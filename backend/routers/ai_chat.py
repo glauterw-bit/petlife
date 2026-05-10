@@ -64,9 +64,20 @@ async def ai_chat(
             pet_name=pet_info["name"] if pet_info else None,
         )
     except Exception as e:
+        msg = str(e).lower()
+        if "credit balance" in msg or "insufficient" in msg or "billing" in msg:
+            raise HTTPException(
+                status_code=503,
+                detail="Vyron IA temporariamente indisponível. (Crédito da API esgotado — administrador deve recarregar em console.anthropic.com)",
+            )
+        if "rate" in msg and "limit" in msg:
+            raise HTTPException(
+                status_code=429,
+                detail="Muitas requisições à IA. Aguarde alguns segundos e tente de novo.",
+            )
         raise HTTPException(
             status_code=503,
-            detail=f"Assistente de IA temporariamente indisponível: {str(e)}",
+            detail=f"Vyron IA temporariamente indisponível. Tente novamente em instantes.",
         )
 
 
@@ -124,7 +135,13 @@ async def analyze_anamnesis(
             recommendations=analysis.get("recommendations", []),
         )
     except Exception as e:
+        msg = str(e).lower()
+        if "credit balance" in msg or "insufficient" in msg or "billing" in msg:
+            raise HTTPException(
+                status_code=503,
+                detail="Análise de IA temporariamente indisponível. (Crédito da API esgotado — administrador deve recarregar em console.anthropic.com)",
+            )
         raise HTTPException(
             status_code=503,
-            detail=f"Serviço de IA temporariamente indisponível: {str(e)}",
+            detail="Análise de IA temporariamente indisponível. Tente novamente em instantes.",
         )

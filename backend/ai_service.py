@@ -8,7 +8,7 @@ def get_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
-MODEL = "claude-opus-4-6"
+MODEL = "claude-sonnet-4-6"
 
 
 async def analyze_pet_anamnesis(pet_info: dict, anamnesis_data: dict) -> dict:
