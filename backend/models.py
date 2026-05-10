@@ -52,6 +52,8 @@ class User(Base):
     avatar = Column(String(500), nullable=True)
     is_vet = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    password_reset_code = Column(String(6), nullable=True)
+    password_reset_expires = Column(DateTime, nullable=True)
 
     pets = relationship("Pet", back_populates="owner", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="user", cascade="all, delete-orphan")

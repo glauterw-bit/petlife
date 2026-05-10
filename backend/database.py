@@ -66,9 +66,29 @@ async def create_tables():
     async with engine.begin() as conn:
         from models import Base as ModelBase
         await conn.run_sync(ModelBase.metadata.create_all)
+    await _run_migrations()
 
 
 async def drop_tables():
     async with engine.begin() as conn:
         from models import Base as ModelBase
         await conn.run_sync(ModelBase.metadata.drop_all)
+
+
+async def _run_migrations():
+    """Migrações leves idempotentes — adiciona colunas que faltam em tabelas
+    pré-existentes. Necessário porque create_all não altera schemas existentes.
+    """
+    from sqlalchemy import text
+
+    migrations = [
+        "ALTER TABLE users ADD COLUMN password_reset_code VARCHAR(6)",
+        "ALTER TABLE users ADD COLUMN password_reset_expires DATETIME",
+    ]
+    async with engine.begin() as conn:
+        for stmt in migrations:
+            try:
+                await conn.execute(text(stmt))
+            except Exception:
+                # Coluna já existe ou tabela ainda não foi criada — seguro ignorar.
+                pass

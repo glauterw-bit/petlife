@@ -58,6 +58,39 @@ class UserLogin(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+    # Em produção: campo `code` é None e o código é enviado por e-mail.
+    # Em dev (sem SMTP configurado): retorna o código direto pra desbloquear o fluxo.
+    code: Optional[str] = None
+    expires_in_minutes: int = 30
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def password_length(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError("A senha deve ter pelo menos 6 caracteres")
+        return v
+
+    @field_validator("code")
+    @classmethod
+    def code_format(cls, v: str) -> str:
+        v = v.strip()
+        if not v.isdigit() or len(v) != 6:
+            raise ValueError("Código deve conter 6 dígitos")
+        return v
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
