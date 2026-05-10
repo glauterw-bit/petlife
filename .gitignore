@@ -42,3 +42,19 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Capacitor / iOS
+frontend/ios/App/Pods/
+frontend/ios/App/build/
+frontend/ios/DerivedData/
+frontend/ios/App/App.xcworkspace/xcuserdata/
+frontend/ios/App/App.xcodeproj/xcuserdata/
+frontend/ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+frontend/ios/App/output/
+frontend/ios/App/Pods/
+
+# Node
+frontend/.next/
+
+# Capacitor assets source (gerado a partir do PNG)
+frontend/assets/
