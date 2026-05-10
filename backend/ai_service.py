@@ -241,6 +241,66 @@ Responda APENAS com o JSON válido, sem texto adicional."""
     return routine
 
 
+async def identify_breed_from_image(image_b64: str, image_media_type: str) -> dict:
+    """Recebe imagem em base64 e retorna top 3 candidatos de raça com confiança."""
+    client = get_client()
+
+    prompt = """Analise esta foto e identifique a raça do pet (cão ou gato).
+
+Responda APENAS com JSON válido neste formato:
+{
+  "species": "dog" ou "cat" ou "unknown",
+  "candidates": [
+    {"breed": "Nome da raça em português brasileiro", "name_en": "English name", "confidence": 0.85, "reasoning": "Por que acredita ser esta raça (1 frase curta)"},
+    {"breed": "Segunda opção", "name_en": "...", "confidence": 0.10, "reasoning": "..."},
+    {"breed": "Terceira opção", "name_en": "...", "confidence": 0.05, "reasoning": "..."}
+  ],
+  "is_mixed_likely": true/false,
+  "notes": "Observações úteis sobre características visíveis (porte, pelagem, etc)"
+}
+
+REGRAS:
+- Se não houver pet visível: species="unknown" e candidates=[]
+- Use nomes de raça padrão FCI/CFA em português brasileiro (ex.: "Labrador Retriever", "Golden Retriever", "SRD")
+- Se for vira-lata/SRD evidente, indique "SRD (Sem Raça Definida)" como primeiro candidato
+- Confidence soma ~1.0 nos top 3
+- NÃO inclua texto fora do JSON"""
+
+    message = client.messages.create(
+        model=MODEL,  # Sonnet 4.6 tem visão e é melhor que Haiku para identificação visual
+        max_tokens=800,
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": image_media_type,
+                        "data": image_b64,
+                    },
+                },
+                {"type": "text", "text": prompt},
+            ],
+        }],
+    )
+
+    response_text = message.content[0].text.strip()
+    try:
+        return json.loads(response_text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {
+            "species": "unknown",
+            "candidates": [],
+            "is_mixed_likely": False,
+            "notes": "Não foi possível processar a resposta da IA. Tente outra foto.",
+        }
+
+
 async def chat_with_vet_ai(
     pet_info: Optional[dict],
     question: str,
