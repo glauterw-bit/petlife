@@ -1,11 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { MapPin, Phone, Star, Navigation, ExternalLink, Loader2 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { search, type NearbyPlace } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { cn } from '@/lib/utils'
+
+const NearbyMap = dynamic(() => import('@/components/nearby/NearbyMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-2xl border border-surface-200 bg-surface-50 flex items-center justify-center" style={{ height: 420 }}>
+      <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
+    </div>
+  ),
+})
 
 const RADII = [
   { value: 1, label: '1 km' },
@@ -143,26 +153,21 @@ export default function NearbyPage() {
         </div>
       </div>
 
-      {/* Map placeholder */}
-      <div className="bg-surface-100 rounded-2xl border border-surface-200 p-8 mb-6 text-center">
-        <div className="text-5xl mb-3">🗺️</div>
-        <h3 className="font-semibold text-surface-700 mb-2">Mapa Interativo</h3>
-        <p className="text-sm text-surface-500 max-w-md mx-auto">
-          Para visualizar os resultados no mapa, clique em "Abrir no Google Maps" em cada resultado abaixo.
-          Em breve integraremos um mapa interativo diretamente aqui.
-        </p>
-        {coords && (
-          <a
-            href={`https://www.google.com/maps/search/${encodeURIComponent(TYPES.find(t2 => t2.value === type)?.label.replace(/[^a-zA-Z\s]/g, '') ?? 'veterinario')}/@${coords.lat},${coords.lon},14z`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-4 inline-flex items-center gap-2 text-sm text-primary-600 hover:underline font-medium"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Abrir busca no Google Maps
-          </a>
-        )}
-      </div>
+      {/* Map */}
+      {coords ? (
+        <div className="mb-6">
+          <NearbyMap
+            userLat={coords.lat}
+            userLon={coords.lon}
+            results={results}
+            type={type}
+          />
+        </div>
+      ) : (
+        <div className="bg-surface-50 border border-surface-200 rounded-2xl p-8 mb-6 text-center text-sm text-surface-500">
+          Permita o acesso à sua localização para ver o mapa.
+        </div>
+      )}
 
       {/* Results */}
       {searched && !loading && (

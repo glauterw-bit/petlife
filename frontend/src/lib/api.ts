@@ -380,10 +380,17 @@ export const reminders = {
 // ── Search / Nearby ───────────────────────────────────
 export const search = {
   nearby: async (lat: number, lon: number, type: string, radius?: number) => {
-    const qs = new URLSearchParams({ lat: String(lat), lon: String(lon), type })
+    const backendType = type === 'veterinary' ? 'vet' : type
+    const qs = new URLSearchParams({ lat: String(lat), lon: String(lon), type: backendType })
     if (radius) qs.set('radius', String(radius))
     const res = await fetch(`${API_URL}/search/nearby?${qs}`, { headers: getAuthHeaders() })
-    return handleResponse<NearbyPlace[]>(res)
+    type RawPlace = NearbyPlace & { latitude?: number; longitude?: number }
+    const raw = await handleResponse<RawPlace[]>(res)
+    return raw.map(p => ({
+      ...p,
+      lat: p.lat ?? p.latitude,
+      lon: p.lon ?? p.longitude,
+    })) as NearbyPlace[]
   },
 }
 
