@@ -221,20 +221,23 @@ CHALLENGES = [
 
 
 async def seed_breeds(session):
-    result = await session.execute(select(Breed).limit(1))
-    if result.scalar_one_or_none():
-        print("Raças já cadastradas. Pulando seed de raças.")
-        return 0
+    result = await session.execute(select(Breed.name))
+    existing_names = {row[0] for row in result.all()}
 
-    count = 0
+    inserted = 0
     for breed_data in ALL_BREEDS:
+        if breed_data["name"] in existing_names:
+            continue
         breed = Breed(**breed_data)
         session.add(breed)
-        count += 1
+        inserted += 1
 
-    await session.commit()
-    print(f"{count} raças cadastradas com sucesso.")
-    return count
+    if inserted:
+        await session.commit()
+        print(f"{inserted} novas raças cadastradas (catálogo total: {len(ALL_BREEDS)}).")
+    else:
+        print(f"Catálogo de raças já completo ({len(ALL_BREEDS)} raças).")
+    return inserted
 
 
 async def seed_challenges(session):
