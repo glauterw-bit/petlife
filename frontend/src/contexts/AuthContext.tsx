@@ -10,6 +10,7 @@ interface AuthContextValue {
   isLoading: boolean
   isVetUser: boolean
   login: (email: string, password: string) => Promise<void>
+  loginWithSession: (token: string, user: User) => void
   vetLogin: (email: string, password: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
@@ -42,6 +43,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsVet(false)
     setTokenState(res.access_token)
     setUserState(res.user)
+    setIsVetUser(false)
+  }, [])
+
+  const loginWithSession = useCallback((tokenStr: string, u: User) => {
+    setToken(tokenStr)
+    setUser(u)
+    setIsVet(false)
+    setTokenState(tokenStr)
+    setUserState(u)
     setIsVetUser(false)
   }, [])
 
@@ -87,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, isVetUser, login, vetLogin, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, isVetUser, login, loginWithSession, vetLogin, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

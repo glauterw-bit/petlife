@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, PawPrint, Mail, Lock, User, Phone, AlertCircle, CheckCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { auth } from '@/lib/api'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { login } = useAuth()
+  const { loginWithSession } = useAuth()
 
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' })
   const [showPass, setShowPass] = useState(false)
@@ -31,21 +32,25 @@ export default function RegisterPage() {
     }
     setLoading(true)
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password, phone: form.phone }),
+      const res = await auth.register({
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        phone: form.phone.trim() || undefined,
       })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.detail || 'Erro ao cadastrar')
-      }
-      // Auto-login
-      await login(form.email, form.password)
+      // Usa diretamente o token + user do response do register (sem segundo login)
+      loginWithSession(res.access_token, res.user)
       router.push('/pets/new')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro ao cadastrar.')
+      const msg = err instanceof Error ? err.message : 'Erro ao cadastrar.'
+      // Mensagens mais amigáveis para erros comuns
+      if (msg.toLowerCase().includes('já cadastrado') || msg.toLowerCase().includes('already')) {
+        setError('Este e-mail já está cadastrado. Tente fazer login.')
+      } else if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('network')) {
+        setError('Sem conexão com o servidor. Verifique sua internet e tente novamente.')
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }

@@ -55,6 +55,24 @@ export const auth = {
     })
     return handleResponse<User>(res)
   },
+
+  forgotPassword: async (email: string) => {
+    const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    return handleResponse<{ message: string; code: string | null; expires_in_minutes: number }>(res)
+  },
+
+  resetPassword: async (email: string, code: string, new_password: string) => {
+    const res = await fetch(`${API_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, new_password }),
+    })
+    return handleResponse<{ message: string }>(res)
+  },
 }
 
 // ── Pets ──────────────────────────────────────────────

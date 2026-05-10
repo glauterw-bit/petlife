@@ -65,8 +65,15 @@ export default function NearbyPage() {
     try {
       const res = await search.nearby(coords.lat, coords.lon, type, radius)
       setResults(res)
-    } catch {
-      error('Erro ao buscar locais próximos.')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Erro desconhecido.'
+      if (msg.toLowerCase().includes('timeout') || msg.includes('504')) {
+        error('A busca demorou demais. Tente um raio menor ou outra região.')
+      } else if (msg.includes('502') || msg.toLowerCase().includes('mapa')) {
+        error('Serviço de mapa instável. Tente novamente em instantes.')
+      } else {
+        error(`Erro ao buscar: ${msg}`)
+      }
       setResults([])
     } finally { setLoading(false) }
   }

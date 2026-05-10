@@ -88,13 +88,24 @@ export default function CarteirinhaPage() {
   }
 
   function handleShare() {
-    const shareUrl = `${API_URL.replace(':8030', ':3030')}/health/vaccines/carteirinha/${petId}`
+    // Compartilhamos o link público (acessível sem login), não a página privada.
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const shareUrl = `${origin}/public/carteirinha/${petId}`
+    const text = `Carteirinha de vacinação de ${data?.pet.name} no PetLife: ${shareUrl}`
     if (navigator.share) {
-      navigator.share({ title: `Carteirinha de ${data?.pet.name}`, url: shareUrl })
+      navigator.share({ title: `Carteirinha de ${data?.pet.name}`, text, url: shareUrl })
+        .catch(() => {})
     } else {
       navigator.clipboard.writeText(shareUrl)
         .then(() => alert('Link copiado para a área de transferência!'))
     }
+  }
+
+  function shareWhatsApp() {
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const shareUrl = `${origin}/public/carteirinha/${petId}`
+    const text = encodeURIComponent(`🐾 Carteirinha de vacinação de ${data?.pet.name} no PetLife:\n${shareUrl}`)
+    window.open(`https://wa.me/?text=${text}`, '_blank')
   }
 
   const totalVaccines = data?.vaccines.length ?? 0
@@ -114,9 +125,18 @@ export default function CarteirinhaPage() {
           <ArrowLeft className="w-5 h-5" />
           <span className="text-sm font-medium">Voltar</span>
         </button>
-        <div className="flex gap-3">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={shareWhatsApp}
+            aria-label="Compartilhar pelo WhatsApp"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition"
+          >
+            <Share2 className="w-4 h-4" />
+            WhatsApp
+          </button>
           <button
             onClick={handleShare}
+            aria-label="Compartilhar carteirinha"
             className="flex items-center gap-2 px-4 py-2 border border-surface-200 rounded-xl text-sm font-medium text-surface-700 hover:border-primary-300 hover:text-primary-700 transition"
           >
             <Share2 className="w-4 h-4" />
@@ -124,6 +144,7 @@ export default function CarteirinhaPage() {
           </button>
           <button
             onClick={handlePrint}
+            aria-label="Imprimir ou salvar PDF"
             className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition"
           >
             <Printer className="w-4 h-4" />
