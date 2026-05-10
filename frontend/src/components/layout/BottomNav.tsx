@@ -1,0 +1,48 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Home, PawPrint, ShieldCheck, Bell, User } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+const ITEMS = [
+  { href: '/dashboard', label: 'Início', Icon: Home, match: (p: string) => p === '/dashboard' },
+  { href: '/pets', label: 'Pets', Icon: PawPrint, match: (p: string) => p.startsWith('/pets') },
+  { href: '/health/vaccines', label: 'Saúde', Icon: ShieldCheck, match: (p: string) => p.startsWith('/health') },
+  { href: '/routines', label: 'Lembretes', Icon: Bell, match: (p: string) => p.startsWith('/routines') || p.startsWith('/challenges') },
+  { href: '/settings', label: 'Perfil', Icon: User, match: (p: string) => p.startsWith('/settings') },
+]
+
+export function BottomNav() {
+  const pathname = usePathname() ?? ''
+
+  return (
+    <nav
+      aria-label="Navegação principal"
+      className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-surface-200 pb-[env(safe-area-inset-bottom)]"
+    >
+      <ul className="grid grid-cols-5">
+        {ITEMS.map(({ href, label, Icon, match }) => {
+          const active = match(pathname)
+          return (
+            <li key={href}>
+              <Link
+                href={href}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 transition',
+                  active ? 'text-primary-600' : 'text-surface-500 hover:text-surface-800',
+                )}
+              >
+                <Icon className={cn('w-5 h-5', active && 'fill-primary-100/40')} aria-hidden />
+                <span className={cn('text-[10px] font-medium leading-tight', active && 'font-semibold')}>
+                  {label}
+                </span>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </nav>
+  )
+}

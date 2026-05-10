@@ -38,6 +38,7 @@ export default function PetProfilePage() {
   const [tab, setTab] = useState<Tab>('overview')
   const [generatingRoutine, setGeneratingRoutine] = useState(false)
   const [generatingCare, setGeneratingCare] = useState(false)
+  const [suggestions, setSuggestions] = useState<Awaited<ReturnType<typeof breedsApi.petHealthSuggestions>> | null>(null)
 
   // Anamnesis form
   const [anamForm, setAnamForm] = useState({ symptoms: '', duration: '', behavior_changes: '', appetite: '', water_intake: '', medications: '', notes: '' })
@@ -58,6 +59,8 @@ export default function PetProfilePage() {
         ])
         if (p.status === 'fulfilled') setPet(p.value)
         else { router.push('/pets'); return }
+
+        breedsApi.petHealthSuggestions(petId).then(setSuggestions).catch(() => {})
         if (v.status === 'fulfilled') setVaccines(v.value)
         if (e.status === 'fulfilled') setExams(e.value)
         if (a.status === 'fulfilled') setAnamnesisHistory(a.value)
@@ -270,6 +273,49 @@ export default function PetProfilePage() {
               </div>
             </div>
           </div>
+
+          {/* Sugestões inteligentes baseadas em fase de vida + vacinas já aplicadas */}
+          {suggestions && suggestions.suggestions.length > 0 && (
+            <div className="bg-gradient-to-br from-primary-50 via-white to-emerald-50 rounded-2xl border border-primary-200 p-5">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center">
+                    <span className="text-white text-base">🧬</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-surface-900">Plano de saúde sugerido</h3>
+                    <p className="text-xs text-surface-500">
+                      Fase: <span className="font-semibold text-primary-700">{suggestions.phase_label}</span>
+                      {suggestions.age_months !== null && ` · ${suggestions.age_months} meses`}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-surface-400">Baseado em WSAVA / CRMV</span>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {suggestions.suggestions.map((s, i) => {
+                  const urgencyClasses = s.urgency === 'alta'
+                    ? 'border-red-200 bg-red-50/40'
+                    : s.urgency === 'media'
+                    ? 'border-amber-200 bg-amber-50/40'
+                    : 'border-emerald-200 bg-emerald-50/40'
+                  const urgencyDot = s.urgency === 'alta' ? 'bg-red-500' : s.urgency === 'media' ? 'bg-amber-500' : 'bg-emerald-500'
+                  return (
+                    <div key={i} className={cn('rounded-xl border p-3', urgencyClasses)}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn('w-2 h-2 rounded-full shrink-0', urgencyDot)} />
+                        <span className="font-semibold text-sm text-surface-900">{s.title}</span>
+                      </div>
+                      <p className="text-xs text-surface-600 leading-relaxed">{s.description}</p>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-surface-500 mt-3 italic">
+                Estas sugestões são orientativas e não substituem consulta veterinária.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

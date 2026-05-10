@@ -159,6 +159,46 @@ export const breeds = {
     const res = await fetch(`${API_URL}/breeds/${id}/care-guide`, { headers: getAuthHeaders() })
     return handleResponse<CareGuide>(res)
   },
+
+  petHealthSuggestions: async (petId: number) => {
+    const res = await fetch(`${API_URL}/breeds/pet/${petId}/health-suggestions`, { headers: getAuthHeaders() })
+    return handleResponse<{
+      pet_id: number
+      pet_name: string
+      phase: string
+      phase_label: string
+      age_months: number | null
+      suggestions: Array<{
+        title: string
+        description: string
+        category: string
+        urgency: 'baixa' | 'media' | 'alta'
+      }>
+    }>(res)
+  },
+
+  identifyFromPhoto: async (file: File) => {
+    const fd = new FormData()
+    fd.append('photo', file)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('petlife_token') : null
+    const res = await fetch(`${API_URL}/breeds/identify-from-photo`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: fd,
+    })
+    return handleResponse<{
+      species: string
+      candidates: Array<{
+        breed: string
+        name_en?: string
+        confidence: number
+        reasoning?: string
+        breed_id: number | null
+      }>
+      is_mixed_likely: boolean
+      notes: string
+    }>(res)
+  },
 }
 
 // ── Vaccines ──────────────────────────────────────────

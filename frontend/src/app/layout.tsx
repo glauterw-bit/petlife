@@ -12,11 +12,29 @@ export const metadata: Metadata = {
     'Gerencie a saúde do seu pet com tecnologia e carinho. Vacinas, exames, rotinas e muito mais.',
   keywords: ['pet', 'saúde animal', 'vacinas', 'cachorro', 'gato', 'veterinário'],
   authors: [{ name: 'PetLife' }],
+  manifest: '/manifest.json',
+  applicationName: 'PetLife',
+  appleWebApp: {
+    capable: true,
+    title: 'PetLife',
+    statusBarStyle: 'default',
+  },
+  icons: {
+    icon: '/icons/icon.svg',
+    apple: '/icons/icon.svg',
+  },
   openGraph: {
     title: 'PetLife — O cuidado que seu pet merece',
     description: 'Plataforma completa para cuidar da saúde do seu pet.',
     type: 'website',
   },
+}
+
+export const viewport = {
+  themeColor: '#10b981',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover' as const,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +46,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </ToastProvider>
         </AuthProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js').catch(() => {});
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   )

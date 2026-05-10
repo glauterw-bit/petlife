@@ -4,6 +4,7 @@ import { useEffect, useState, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Sidebar } from './Sidebar'
+import { BottomNav } from './BottomNav'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { AIChatWidget } from '@/components/ai/AIChatWidget'
 import { pets as petsApi, type Pet } from '@/lib/api'
@@ -43,12 +44,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         activePetId={activePetId}
         onPetChange={p => setActivePetId(p.id)}
       />
-      <main className="flex-1 md:ml-64 min-h-screen">
+      <main className="flex-1 md:ml-64 min-h-screen pb-20 md:pb-0">
         <div className="p-4 md:p-8 max-w-7xl mx-auto animate-fade-in">
           {children}
         </div>
       </main>
       {!isVetUser && <AIChatWidget pets={pets} />}
+      {!isVetUser && <BottomNav />}
     </div>
   )
 }

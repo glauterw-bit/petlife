@@ -3,10 +3,18 @@
 import { useState, useEffect, useRef, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, Search, ChevronDown, AlertCircle, PawPrint } from 'lucide-react'
+import { Camera, Search, ChevronDown, AlertCircle, PawPrint, Sparkles, X } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { pets as petsApi, breeds as breedsApi, type Breed } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+
+interface BreedCandidate {
+  breed: string
+  name_en?: string
+  confidence: number
+  reasoning?: string
+  breed_id: number | null
+}
 
 export default function NewPetPage() {
   const router = useRouter()
@@ -27,6 +35,18 @@ export default function NewPetPage() {
 
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+
+  // Breed-from-photo (IA Vision)
+  const [identifyOpen, setIdentifyOpen] = useState(false)
+  const [identifyFile, setIdentifyFile] = useState<File | null>(null)
+  const [identifyPreview, setIdentifyPreview] = useState<string | null>(null)
+  const [identifyLoading, setIdentifyLoading] = useState(false)
+  const [identifyResult, setIdentifyResult] = useState<{
+    candidates: BreedCandidate[]
+    notes: string
+    is_mixed_likely: boolean
+  } | null>(null)
+  const [identifyError, setIdentifyError] = useState<string | null>(null)
   const [breedSearch, setBreedSearch] = useState('')
   const [breedOptions, setBreedOptions] = useState<Breed[]>([])
   const [selectedBreed, setSelectedBreed] = useState<Breed | null>(null)
@@ -76,6 +96,60 @@ export default function NewPetPage() {
     setForm(f => ({ ...f, breed_id: b.id }))
     setBreedSearch(b.name)
     setBreedOpen(false)
+  }
+
+  async function pickIdentifyFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIdentifyFile(file)
+    setIdentifyPreview(URL.createObjectURL(file))
+    setIdentifyResult(null)
+    setIdentifyError(null)
+  }
+
+  async function runIdentify() {
+    if (!identifyFile) return
+    setIdentifyLoading(true)
+    setIdentifyError(null)
+    try {
+      const res = await breedsApi.identifyFromPhoto(identifyFile)
+      setIdentifyResult(res)
+    } catch (e: unknown) {
+      setIdentifyError(e instanceof Error ? e.message : 'Erro ao identificar.')
+    } finally {
+      setIdentifyLoading(false)
+    }
+  }
+
+  async function pickCandidate(c: BreedCandidate) {
+    if (c.breed_id) {
+      // Já existe no catálogo — busca o registro completo e seleciona
+      try {
+        const breed = await breedsApi.getById(c.breed_id)
+        selectBreed(breed)
+      } catch {
+        setBreedSearch(c.breed)
+        setForm(f => ({ ...f, breed_id: c.breed_id ?? undefined }))
+      }
+    } else {
+      // Sem match no catálogo — só preenche o nome
+      setBreedSearch(c.breed)
+    }
+    // Reusa a foto da identificação como foto do pet (se ainda não tem)
+    if (identifyFile && !photoFile) {
+      setPhotoFile(identifyFile)
+      setPhotoPreview(identifyPreview)
+    }
+    closeIdentify()
+  }
+
+  function closeIdentify() {
+    setIdentifyOpen(false)
+    setIdentifyFile(null)
+    setIdentifyPreview(null)
+    setIdentifyResult(null)
+    setIdentifyError(null)
+    setIdentifyLoading(false)
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -180,7 +254,17 @@ export default function NewPetPage() {
               {/* Breed selector */}
               {form.species !== 'other' && (
                 <div className="relative" ref={breedRef}>
-                  <label className="block text-sm font-medium text-surface-700 mb-1.5">Raça</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-sm font-medium text-surface-700">Raça</label>
+                    <button
+                      type="button"
+                      onClick={() => setIdentifyOpen(true)}
+                      className="flex items-center gap-1 text-xs text-primary-700 bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-full font-semibold transition"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Não sei a raça? Identificar por foto
+                    </button>
+                  </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
                     <input
@@ -349,6 +433,126 @@ export default function NewPetPage() {
           </div>
         </form>
       </div>
+
+      {/* Modal: identificar raça por foto */}
+      {identifyOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={closeIdentify}
+        >
+          <div
+            className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto animate-slide-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100 sticky top-0 bg-white">
+              <h2 className="font-bold text-surface-900 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary-600" />
+                Identificar raça por foto
+              </h2>
+              <button
+                type="button"
+                onClick={closeIdentify}
+                aria-label="Fechar"
+                className="p-1.5 rounded-lg hover:bg-surface-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-surface-600">
+                A IA Vyron analisa a foto e sugere as 3 raças mais prováveis.
+                Funciona melhor com foto de corpo inteiro do pet com boa iluminação.
+              </p>
+
+              {!identifyPreview ? (
+                <label className="block">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={pickIdentifyFile}
+                  />
+                  <div className="border-2 border-dashed border-primary-200 hover:border-primary-400 hover:bg-primary-50 rounded-2xl p-8 text-center cursor-pointer transition">
+                    <Camera className="w-10 h-10 mx-auto text-primary-500 mb-2" />
+                    <p className="text-sm font-semibold text-surface-800">Tirar foto ou escolher</p>
+                    <p className="text-xs text-surface-500 mt-1">JPG, PNG ou WEBP até 5 MB</p>
+                  </div>
+                </label>
+              ) : (
+                <div className="space-y-3">
+                  <img
+                    src={identifyPreview}
+                    alt="Pet"
+                    className="w-full rounded-2xl object-cover max-h-64 border border-surface-200"
+                  />
+                  <div className="flex gap-2">
+                    <label className="flex-1 cursor-pointer text-center text-sm text-surface-700 bg-surface-100 hover:bg-surface-200 px-3 py-2 rounded-xl transition">
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={pickIdentifyFile} />
+                      Trocar foto
+                    </label>
+                    <button
+                      type="button"
+                      onClick={runIdentify}
+                      disabled={identifyLoading || !!identifyResult}
+                      className="flex-1 flex items-center justify-center gap-1.5 text-sm bg-primary-500 text-white px-3 py-2 rounded-xl hover:bg-primary-600 disabled:opacity-60 transition"
+                    >
+                      {identifyLoading ? (
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                      {identifyLoading ? 'Analisando…' : identifyResult ? 'Analisado' : 'Identificar'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {identifyError && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {identifyError}
+                </div>
+              )}
+
+              {identifyResult && identifyResult.candidates.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-surface-500">
+                    Candidatos {identifyResult.is_mixed_likely && <span className="ml-1 text-amber-600">(possível mistura)</span>}
+                  </p>
+                  {identifyResult.candidates.map((c, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => pickCandidate(c)}
+                      className="w-full text-left bg-white border border-surface-200 hover:border-primary-300 hover:bg-primary-50 rounded-xl p-3 transition group"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-surface-900 group-hover:text-primary-700">{c.breed}</span>
+                        <span className="text-xs font-bold text-primary-600 bg-primary-50 group-hover:bg-white px-2 py-0.5 rounded-full">
+                          {Math.round((c.confidence ?? 0) * 100)}%
+                        </span>
+                      </div>
+                      {c.reasoning && <p className="text-xs text-surface-500 mt-1">{c.reasoning}</p>}
+                      {!c.breed_id && <p className="text-[10px] text-amber-600 mt-1">⚠ Não está no catálogo — apenas preenche o nome.</p>}
+                    </button>
+                  ))}
+                  {identifyResult.notes && (
+                    <p className="text-xs text-surface-500 italic mt-2">{identifyResult.notes}</p>
+                  )}
+                </div>
+              )}
+
+              {identifyResult && identifyResult.candidates.length === 0 && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-sm">
+                  Não foi possível identificar uma raça nesta foto. {identifyResult.notes}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }

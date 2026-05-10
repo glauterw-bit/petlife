@@ -1,0 +1,38 @@
+{
+  "name": "PetLife — Saúde do seu pet",
+  "short_name": "PetLife",
+  "description": "Gerencie a saúde do seu pet com IA, carteirinha digital de vacinação e lembretes inteligentes.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "lang": "pt-BR",
+  "categories": ["health", "lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Vyron IA",
+      "short_name": "IA",
+      "description": "Conversar com a assistente veterinária",
+      "url": "/dashboard?chat=1"
+    },
+    {
+      "name": "Meus pets",
+      "short_name": "Pets",
+      "url": "/pets"
+    },
+    {
+      "name": "Vacinas",
+      "url": "/health/vaccines"
+    }
+  ]
+}
