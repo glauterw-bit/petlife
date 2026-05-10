@@ -8,7 +8,11 @@ def get_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
+# Modelo principal — usado nas análises e geração de conteúdo (mais qualidade)
 MODEL = "claude-sonnet-4-6"
+
+# Modelo rápido/barato — usado no chat conversacional do tutor (~5x mais barato)
+CHAT_MODEL = "claude-haiku-4-5-20251001"
 
 
 async def analyze_pet_anamnesis(pet_info: dict, anamnesis_data: dict) -> dict:
@@ -285,7 +289,7 @@ Quando relevante, mencione:
     messages.append({"role": "user", "content": user_message})
 
     response = client.messages.create(
-        model=MODEL,
+        model=CHAT_MODEL,
         max_tokens=1500,
         system=system_prompt,
         messages=messages,
