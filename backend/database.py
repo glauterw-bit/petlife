@@ -31,10 +31,27 @@ def get_settings() -> Settings:
 
 settings = get_settings()
 
+# Railway provê DATABASE_URL no formato `postgres://...` (ou `postgresql://...`).
+# SQLAlchemy 2.x exige driver explícito (`postgresql+asyncpg://`) para async.
+def _normalize_db_url(url: str) -> str:
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://") and "+asyncpg" not in url:
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url
+
+
+_db_url = _normalize_db_url(settings.DATABASE_URL)
+_is_sqlite = _db_url.startswith("sqlite")
+
+# `check_same_thread` é flag exclusiva do driver sqlite3.
+_connect_args = {"check_same_thread": False} if _is_sqlite else {}
+
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    _db_url,
     echo=False,
-    connect_args={"check_same_thread": False},
+    connect_args=_connect_args,
+    pool_pre_ping=True,  # reconecta se o Postgres derruba conexões idle
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -78,17 +95,23 @@ async def drop_tables():
 async def _run_migrations():
     """Migrações leves idempotentes — adiciona colunas que faltam em tabelas
     pré-existentes. Necessário porque create_all não altera schemas existentes.
+
+    Usa conexão separada por statement: no Postgres uma falha em ALTER TABLE
+    aborta a transação inteira, então isolamos cada DDL.
     """
     from sqlalchemy import text
 
+    # Postgres usa TIMESTAMP, SQLite aceita DATETIME — ambos toleram VARCHAR.
+    timestamp_type = "TIMESTAMP" if not _is_sqlite else "DATETIME"
+
     migrations = [
-        "ALTER TABLE users ADD COLUMN password_reset_code VARCHAR(6)",
-        "ALTER TABLE users ADD COLUMN password_reset_expires DATETIME",
+        f"ALTER TABLE users ADD COLUMN password_reset_code VARCHAR(6)",
+        f"ALTER TABLE users ADD COLUMN password_reset_expires {timestamp_type}",
     ]
-    async with engine.begin() as conn:
-        for stmt in migrations:
-            try:
+    for stmt in migrations:
+        try:
+            async with engine.begin() as conn:
                 await conn.execute(text(stmt))
-            except Exception:
-                # Coluna já existe ou tabela ainda não foi criada — seguro ignorar.
-                pass
+        except Exception:
+            # Coluna já existe ou tabela ainda não foi criada — seguro ignorar.
+            pass
