@@ -104,6 +104,10 @@ class Pet(Base):
     photo = Column(String(500), nullable=True)
     bio = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    is_lost = Column(Boolean, default=False, nullable=False)
+    lost_at = Column(DateTime, nullable=True)
+    lost_last_seen = Column(String(500), nullable=True)
+    lost_reward = Column(String(200), nullable=True)
 
     owner = relationship("User", back_populates="pets")
     breed = relationship("Breed", back_populates="pets")

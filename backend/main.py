@@ -1,12 +1,38 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from database import create_tables, settings
+
+# ─── Sentry (error tracking) ──────────────────────────────────────────────────
+# Configure SENTRY_DSN env var em produção pra ativar.
+_SENTRY_DSN = os.getenv("SENTRY_DSN", "").strip()
+if _SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    sentry_sdk.init(
+        dsn=_SENTRY_DSN,
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        profiles_sample_rate=float(os.getenv("SENTRY_PROFILES_SAMPLE_RATE", "0.1")),
+        environment=os.getenv("RAILWAY_ENVIRONMENT_NAME", "production"),
+        integrations=[FastApiIntegration(), SqlalchemyIntegration()],
+        send_default_pii=False,  # LGPD-friendly: nao envia user_id, email etc por padrao
+    )
+
+# ─── Rate Limiting ────────────────────────────────────────────────────────────
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["300/minute"],  # default por IP — generoso, evita abuse simples
+    storage_uri=os.getenv("RATE_LIMIT_REDIS_URL", "memory://"),
+)
 from routers import (
     auth_router,
     pets,
@@ -20,6 +46,7 @@ from routers import (
     search,
     vet_portal,
     ai_chat,
+    lost_pet,
 )
 
 
@@ -57,6 +84,9 @@ app = FastAPI(
 
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3030,http://127.0.0.1:3030,http://localhost:3000,http://127.0.0.1:3000").split(",")
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -81,6 +111,13 @@ app.include_router(reminders.router)
 app.include_router(search.router)
 app.include_router(vet_portal.router)
 app.include_router(ai_chat.router)
+app.include_router(lost_pet.router)
+
+
+@app.get("/public/lost/{pet_id}", tags=["Público"])
+async def public_lost_pet_endpoint(pet_id: int):
+    """QR-tag físico na coleira aponta pra essa URL."""
+    return await lost_pet.public_lost_pet(pet_id)
 
 
 @app.get("/", tags=["Status"])

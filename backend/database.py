@@ -107,6 +107,11 @@ async def _run_migrations():
     migrations = [
         f"ALTER TABLE users ADD COLUMN password_reset_code VARCHAR(6)",
         f"ALTER TABLE users ADD COLUMN password_reset_expires {timestamp_type}",
+        # Lost-pet feature
+        f"ALTER TABLE pets ADD COLUMN is_lost BOOLEAN DEFAULT FALSE NOT NULL",
+        f"ALTER TABLE pets ADD COLUMN lost_at {timestamp_type}",
+        f"ALTER TABLE pets ADD COLUMN lost_last_seen VARCHAR(500)",
+        f"ALTER TABLE pets ADD COLUMN lost_reward VARCHAR(200)",
     ]
     for stmt in migrations:
         try:

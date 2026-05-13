@@ -147,10 +147,17 @@ async def upload_pet_photo(
     if len(content) > settings.MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="Arquivo muito grande (máximo 10MB)")
 
+    # Comprime/redimensiona antes de salvar — economiza storage e banda
+    from image_utils import compress_image
+    try:
+        content, ext = compress_image(content, max_dimension=1600, quality=85)
+    except Exception:
+        # Se falhar (arquivo corrompido), salva o original
+        ext = os.path.splitext(file.filename or "photo.jpg")[1] or ".jpg"
+
     upload_dir = os.path.join(settings.UPLOAD_DIR, "pets")
     os.makedirs(upload_dir, exist_ok=True)
 
-    ext = os.path.splitext(file.filename or "photo.jpg")[1] or ".jpg"
     filename = f"{uuid.uuid4().hex}{ext}"
     filepath = os.path.join(upload_dir, filename)
 

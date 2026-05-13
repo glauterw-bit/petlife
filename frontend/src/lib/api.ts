@@ -129,6 +129,18 @@ export const pets = {
     const res = await fetch(`${API_URL}/pets/${id}/full-profile`, { headers: getAuthHeaders() })
     return handleResponse<PetFullProfile>(res)
   },
+
+  toggleLost: async (petId: number, payload: { is_lost: boolean; last_seen?: string; reward?: string }) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/lost`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    })
+    return handleResponse<{
+      pet_id: number; is_lost: boolean; lost_at: string | null;
+      last_seen: string | null; reward: string | null;
+    }>(res)
+  },
 }
 
 // ── Breeds ────────────────────────────────────────────

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
+import { OnboardingModal } from '@/components/onboarding/OnboardingModal'
 import { AIChatWidget } from '@/components/ai/AIChatWidget'
 import { pets as petsApi, type Pet } from '@/lib/api'
 
@@ -51,6 +52,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </main>
       {!isVetUser && <AIChatWidget pets={pets} />}
       {!isVetUser && <BottomNav />}
+      {!isVetUser && <OnboardingModal />}
     </div>
   )
 }

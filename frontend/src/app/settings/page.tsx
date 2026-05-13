@@ -1,5 +1,7 @@
 'use client'
 
+import { useTheme } from '@/contexts/ThemeContext'
+
 import { useState, FormEvent } from 'react'
 import { User, Mail, Phone, Lock, Save, Eye, EyeOff } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
@@ -176,7 +178,41 @@ export default function SettingsPage() {
             </button>
           </form>
         </div>
+
+        <ThemeSection />
       </div>
     </DashboardLayout>
+  )
+}
+
+function ThemeSection() {
+  const { theme, setTheme } = useTheme()
+  const opts: Array<{ value: 'light' | 'dark' | 'system'; label: string; icon: string }> = [
+    { value: 'light', label: 'Claro', icon: '☀️' },
+    { value: 'dark', label: 'Escuro', icon: '🌙' },
+    { value: 'system', label: 'Sistema', icon: '🖥️' },
+  ]
+  return (
+    <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
+      <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-1">Aparência</h2>
+      <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">Escolha como o PetLife aparece pra você.</p>
+      <div className="grid grid-cols-3 gap-2">
+        {opts.map(o => (
+          <button
+            key={o.value}
+            onClick={() => setTheme(o.value)}
+            aria-pressed={theme === o.value}
+            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition ${
+              theme === o.value
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                : 'border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-300 hover:border-surface-300 dark:hover:border-surface-600'
+            }`}
+          >
+            <span className="text-2xl">{o.icon}</span>
+            <span className="text-xs font-medium">{o.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
