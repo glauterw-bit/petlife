@@ -22,6 +22,8 @@ import { useToast } from '@/components/ui/ToastContext'
 import { cn } from '@/lib/utils'
 import { BedtimeStoryModal } from '@/components/innovations/BedtimeStoryModal'
 import { SnapshotTriageModal } from '@/components/innovations/SnapshotTriageModal'
+import { PainAssessmentModal } from '@/components/innovations/PainAssessmentModal'
+import { StoolAnalysisModal } from '@/components/innovations/StoolAnalysisModal'
 import { BookOpen } from 'lucide-react'
 
 type Tab = 'overview' | 'health' | 'routine' | 'history' | 'anamnesis' | 'care'
@@ -44,6 +46,8 @@ export default function PetProfilePage() {
   const [suggestions, setSuggestions] = useState<Awaited<ReturnType<typeof breedsApi.petHealthSuggestions>> | null>(null)
   const [storyOpen, setStoryOpen] = useState(false)
   const [snapshotOpen, setSnapshotOpen] = useState(false)
+  const [painOpen, setPainOpen] = useState(false)
+  const [stoolOpen, setStoolOpen] = useState(false)
 
   // Anamnesis form
   const [anamForm, setAnamForm] = useState({ symptoms: '', duration: '', behavior_changes: '', appetite: '', water_intake: '', medications: '', notes: '' })
@@ -156,28 +160,20 @@ export default function PetProfilePage() {
           <h1 className="text-2xl font-bold text-surface-900">{pet.name}</h1>
           <p className="text-surface-500 text-sm">{pet.breed?.name ?? ''} {pet.birth_date ? `• ${formatAge(pet.birth_date)}` : ''}</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setSnapshotOpen(true)}
-            aria-label="Triagem por foto"
-            className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-3 py-2 rounded-xl transition shadow-md shadow-primary-500/30"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span className="hidden sm:inline">Triagem</span>
-          </button>
-          <button
-            onClick={() => setStoryOpen(true)}
-            aria-label="História de boa noite"
-            className="flex items-center gap-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold px-3 py-2 rounded-xl transition shadow-md shadow-indigo-500/30"
-          >
-            <BookOpen className="w-4 h-4" />
-            <span className="hidden sm:inline">História</span>
-          </button>
-        </div>
       </div>
 
       <BedtimeStoryModal petId={petId} petName={pet.name} open={storyOpen} onClose={() => setStoryOpen(false)} />
       <SnapshotTriageModal petId={petId} petName={pet.name} open={snapshotOpen} onClose={() => setSnapshotOpen(false)} />
+      <PainAssessmentModal petId={petId} petName={pet.name} open={painOpen} onClose={() => setPainOpen(false)} />
+      <StoolAnalysisModal petId={petId} petName={pet.name} open={stoolOpen} onClose={() => setStoolOpen(false)} />
+
+      {/* Quick actions IA — barra horizontal scrollável */}
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-4 px-4 md:mx-0 md:px-0">
+        <QuickAction icon={<Sparkles className="w-4 h-4" />} label="Triagem geral" onClick={() => setSnapshotOpen(true)} color="primary" />
+        <QuickAction icon={<Heart className="w-4 h-4" />} label="Avaliar dor" onClick={() => setPainOpen(true)} color="rose" />
+        <QuickAction icon={<span className="text-base">💩</span>} label="Fezes" onClick={() => setStoolOpen(true)} color="amber" />
+        <QuickAction icon={<BookOpen className="w-4 h-4" />} label="Boa noite" onClick={() => setStoryOpen(true)} color="indigo" />
+      </div>
 
       {/* Pet card summary */}
       <div className="bg-white rounded-2xl border border-surface-100 p-6 mb-6">
@@ -642,5 +638,23 @@ export default function PetProfilePage() {
         </div>
       )}
     </DashboardLayout>
+  )
+}
+
+function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; label: string; onClick: () => void; color: 'primary' | 'rose' | 'amber' | 'indigo' }) {
+  const cls = {
+    primary: 'bg-primary-500 hover:bg-primary-600 shadow-primary-500/30',
+    rose: 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30',
+    amber: 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30',
+    indigo: 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/30',
+  }[color]
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 ${cls} text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition shadow-md whitespace-nowrap shrink-0`}
+    >
+      {icon}
+      {label}
+    </button>
   )
 }

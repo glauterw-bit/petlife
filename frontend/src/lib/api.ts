@@ -487,6 +487,98 @@ export const innovations = {
     })
     return handleResponse<SnapshotTriageResult>(res)
   },
+
+  painAssessment: async (pet_id: number, photo: File) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('petlife_token') : null
+    const fd = new FormData()
+    fd.append('pet_id', String(pet_id))
+    fd.append('photo', photo)
+    const res = await fetch(`${API_URL}/innovations/pain-assessment`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: fd,
+    })
+    return handleResponse<PainAssessmentResult>(res)
+  },
+
+  stoolAnalysis: async (pet_id: number, photo: File) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('petlife_token') : null
+    const fd = new FormData()
+    fd.append('pet_id', String(pet_id))
+    fd.append('photo', photo)
+    const res = await fetch(`${API_URL}/innovations/stool-analysis`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: fd,
+    })
+    return handleResponse<StoolAnalysisResult>(res)
+  },
+
+  vetScribe: async (pet_id: number, transcript: string) => {
+    const res = await fetch(`${API_URL}/innovations/vet-scribe`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ pet_id, transcript }),
+    })
+    return handleResponse<VetScribeResult>(res)
+  },
+}
+
+export interface PainAssessmentResult {
+  pet_name: string
+  species: string
+  image_quality: 'ok' | 'ruim'
+  image_quality_notes?: string
+  scale: string
+  total_score?: number | string
+  max_possible?: number | string
+  pain_level: 'sem dor' | 'leve' | 'moderada' | 'severa'
+  interpretation: string
+  recommendations: string[]
+  disclaimer: string
+  // species-specific fields stored loose
+  ears?: { score: number | null; notes: string }
+  orbitals?: { score: number | null; notes: string }
+  muzzle?: { score: number | null; notes: string }
+  whiskers?: { score: number | null; notes: string }
+  head_position?: { score: number | null; notes: string }
+  facial_expression?: { score: number | null; notes: string }
+  posture?: { score: number | null; notes: string }
+  attention_to_body?: { score: number | null; notes: string }
+}
+
+export interface StoolAnalysisResult {
+  pet_name: string
+  image_quality: 'ok' | 'ruim'
+  image_quality_notes?: string
+  fecal_score: number | null
+  ideal_range: string
+  color: string
+  color_notes: string
+  alerts: string[]
+  consistency_notes: string
+  urgency: 'rotina' | 'acompanhar' | 'vet_agendar' | 'vet_urgente'
+  summary: string
+  recommendations: string[]
+  disclaimer: string
+}
+
+export interface VetScribeResult {
+  pet_id: number
+  pet_name: string
+  subjective: string
+  objective: string
+  assessment: string
+  plan: {
+    diagnostic?: string[]
+    therapeutic?: string[]
+    preventive?: string[]
+    recommendations?: string[]
+    follow_up?: string
+  }
+  icd_codes?: string[]
+  prescription_summary?: string
+  owner_friendly_summary?: string
 }
 
 export interface SnapshotTriageResult {

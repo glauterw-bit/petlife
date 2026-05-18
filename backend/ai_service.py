@@ -285,6 +285,211 @@ Apenas a história. Sem título, sem introdução."""
     return {"story": text, "pet_name": pet_name, "mood": mood}
 
 
+async def assess_pet_pain(image_b64: str, image_media_type: str, pet_info: dict) -> dict:
+    """Avaliação de dor por foto facial. Para gatos usa Feline Grimace Scale
+    (FGS): 5 unidades de ação (orelhas, órbitas, focinho, bigodes, cabeça).
+    Para cães usa Glasgow Composite Measure Pain Scale (canine, adaptado pra foto).
+    """
+    client = get_client()
+    species = pet_info.get("species", "dog")
+    is_cat = species == "cat"
+
+    if is_cat:
+        prompt = """Você é um veterinário aplicando a Feline Grimace Scale (FGS) nesta foto frontal do gato.
+
+A FGS avalia 5 unidades de ação. Para cada uma, dê nota 0/1/2:
+- 0: ausente (sem dor)
+- 1: moderadamente presente
+- 2: marcadamente presente (dor)
+- null: não visível na foto
+
+Responda APENAS com JSON válido:
+{
+  "image_quality": "ok"|"ruim",
+  "image_quality_notes": "Se ruim, explique e pare",
+  "scale": "FGS (Feline Grimace Scale)",
+  "ears": {"score": 0|1|2|null, "notes": "Posição das orelhas — abertas/laterais/dobradas"},
+  "orbitals": {"score": 0|1|2|null, "notes": "Apertura ocular — abertos/semi-fechados/fechados"},
+  "muzzle": {"score": 0|1|2|null, "notes": "Tensão do focinho — relaxado/oval/elíptico"},
+  "whiskers": {"score": 0|1|2|null, "notes": "Posição dos bigodes — relaxados/curvados/retos"},
+  "head_position": {"score": 0|1|2|null, "notes": "Cabeça — acima/em linha/abaixo dos ombros"},
+  "total_score": "soma das notas visíveis",
+  "max_possible": "número de unidades visíveis × 2",
+  "pain_level": "sem dor"|"leve"|"moderada"|"severa",
+  "interpretation": "Score ≥4/10 sugere necessidade de analgesia. Explique o achado em 2-3 frases pt-BR.",
+  "recommendations": ["lista curta"],
+  "disclaimer": "FGS é validada em gatos a partir de fotos frontais. Esta análise é orientativa."
+}"""
+    else:
+        prompt = """Você é um veterinário avaliando sinais de dor em um cão a partir da foto.
+
+Use elementos da Glasgow Composite Measure Pain Scale (canine) adaptados ao que é visível na foto:
+- Expressão facial (olhos, focinho, orelhas)
+- Postura (relaxada, tensa, encurvada)
+- Sinais de proteção corporal (lambendo ou olhando região específica)
+
+Responda APENAS com JSON válido:
+{
+  "image_quality": "ok"|"ruim",
+  "image_quality_notes": "Se ruim, explique e pare",
+  "scale": "Glasgow Composite (adaptado de foto)",
+  "facial_expression": {"score": 0|1|2|3|null, "notes": "Relaxado a tenso/angustiado"},
+  "posture": {"score": 0|1|2|3|null, "notes": "Relaxada a rígida/encurvada"},
+  "attention_to_body": {"score": 0|1|2|3|null, "notes": "Sem foco ou olhando/lambendo região"},
+  "total_score": "soma",
+  "max_possible": "número de itens × 3",
+  "pain_level": "sem dor"|"leve"|"moderada"|"severa",
+  "interpretation": "Explique o achado em 2-3 frases pt-BR",
+  "recommendations": ["lista curta"],
+  "disclaimer": "Avaliação por foto é limitada. Apenas orientativa — exame presencial é obrigatório se há suspeita de dor."
+}"""
+
+    msg = client.messages.create(
+        model=MODEL,
+        max_tokens=1200,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": image_media_type, "data": image_b64}},
+                {"type": "text", "text": prompt},
+            ],
+        }],
+    )
+    text = msg.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {
+            "image_quality": "ruim",
+            "image_quality_notes": "Não foi possível processar.",
+            "pain_level": "sem dor",
+            "interpretation": "Análise indisponível.",
+            "recommendations": [],
+            "disclaimer": "Erro temporário.",
+        }
+
+
+async def analyze_stool_from_image(image_b64: str, image_media_type: str, pet_info: dict) -> dict:
+    """Análise de fezes por foto — Bristol-equivalent veterinário (1-7),
+    cor, consistência, sinais de alerta visíveis (sangue, muco, parasitas
+    macroscópicos).
+    """
+    client = get_client()
+    species = "cão" if pet_info.get("species") == "dog" else "gato"
+
+    prompt = f"""Você é um veterinário avaliando uma foto de fezes de um {species}. Use a escala fecal Purina/Nestlé (1-7) ou WSAVA (1-7).
+
+Responda APENAS com JSON válido:
+{{
+  "image_quality": "ok"|"ruim",
+  "image_quality_notes": "Se ruim, explique e pare",
+  "fecal_score": 1-7|null,
+  "score_descriptions": {{
+    "1": "Fezes duras, secas, em bolinhas — constipação",
+    "2": "Cilíndricas mas duras — desidratação leve",
+    "3": "Cilíndricas, segmentadas, fáceis de coletar — IDEAL",
+    "4": "Cilíndricas, mais úmidas, mas mantêm formato — IDEAL",
+    "5": "Muito moles, perdem formato ao coletar",
+    "6": "Sem formato, em pilhas",
+    "7": "Líquidas, sem forma — diarreia"
+  }},
+  "ideal_range": "3-4",
+  "color": "marrom_claro"|"marrom_escuro"|"amarelo"|"verde"|"preto_alcatrao"|"avermelhado"|"cinza"|"outro",
+  "color_notes": "1 frase sobre o que essa cor sugere",
+  "alerts": [],
+  "alert_examples": "sangue visível, muco, partes brancas (parasitas), corpos estranhos — só inclua se realmente visível",
+  "consistency_notes": "1-2 frases sobre o que vê",
+  "urgency": "rotina"|"acompanhar"|"vet_agendar"|"vet_urgente",
+  "summary": "2-3 frases em pt-BR pro tutor",
+  "recommendations": ["lista curta"],
+  "disclaimer": "Análise visual por foto não substitui exame parasitológico. Suspeita de sangue, muco persistente ou diarreia > 24h: procure vet."
+}}
+
+NUNCA invente o que não está claramente visível. Se imagem ruim, pare em image_quality."""
+
+    msg = client.messages.create(
+        model=MODEL,
+        max_tokens=1500,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": image_media_type, "data": image_b64}},
+                {"type": "text", "text": prompt},
+            ],
+        }],
+    )
+    text = msg.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {"image_quality": "ruim", "urgency": "rotina", "summary": "Erro."}
+
+
+async def generate_soap_note(transcript: str, pet_info: dict, vet_name: str) -> dict:
+    """Recebe notas/transcrição de consulta vet e estrutura no formato SOAP
+    (Subjetivo, Objetivo, Avaliação, Plano). Acelera prontuário pra B2B vet portal.
+    """
+    client = get_client()
+    species = "cão" if pet_info.get("species") == "dog" else "gato"
+    pet_name = pet_info.get("name", "Pet")
+
+    prompt = f"""Você é um veterinário(a) escrevendo prontuário no formato SOAP a partir de notas brutas de consulta.
+
+CONSULTA:
+Paciente: {pet_name} ({species}, raça {pet_info.get('breed_name', 'SRD')}, {pet_info.get('age', '')}, {pet_info.get('weight', '')} kg)
+Veterinário: {vet_name}
+Notas/transcrição:
+\"\"\"
+{transcript}
+\"\"\"
+
+Estruture em SOAP. Responda APENAS com JSON válido:
+{{
+  "subjective": "Relato do tutor: queixa principal, histórico, evolução, sintomas relatados. Use frases completas em terceira pessoa.",
+  "objective": "Achados do exame físico: TPC, mucosas, FC, FR, temperatura se mencionado; palpação; achados visíveis. Use bullets se houver múltiplos achados.",
+  "assessment": "Hipóteses diagnósticas ordenadas por probabilidade. Inclua diagnósticos diferenciais.",
+  "plan": {{
+    "diagnostic": ["exames complementares solicitados"],
+    "therapeutic": ["medicações com dose, via, frequência, duração"],
+    "preventive": ["vacinas, vermífugos, antipulgas"],
+    "recommendations": ["orientações ao tutor"],
+    "follow_up": "Retorno em X dias OU se piora"
+  }},
+  "icd_codes": ["códigos veterinários SNOMED-Vet ou CID quando aplicável"],
+  "prescription_summary": "Resumo das medicações em texto curto pra etiqueta de impressão",
+  "owner_friendly_summary": "Versão simplificada em 3-4 frases pra mandar pro tutor no WhatsApp"
+}}
+
+IMPORTANTE:
+- NÃO invente informações que não estão nas notas
+- Se um campo está faltando nas notas, deixe vazio ou null
+- Mantenha linguagem técnica em S/O/A/P
+- owner_friendly_summary deve ser carinhoso e em pt-BR coloquial"""
+
+    msg = client.messages.create(
+        model=MODEL,
+        max_tokens=2500,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = msg.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {"subjective": "", "objective": "", "assessment": "", "plan": {}, "owner_friendly_summary": ""}
+
+
 async def snapshot_triage_from_image(image_b64: str, image_media_type: str, pet_info: dict) -> dict:
     """Análise rápida (5s) de saúde com foto — BCS, olhos, dental, sinais visíveis.
     NÃO substitui consulta vet — só triagem orientativa.
