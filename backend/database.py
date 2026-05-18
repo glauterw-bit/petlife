@@ -116,6 +116,8 @@ async def _run_migrations():
         "CREATE INDEX IF NOT EXISTS ix_vaccines_pet_next_due ON vaccines(pet_id, next_due)",
         "CREATE INDEX IF NOT EXISTS ix_reminders_user_due_completed ON reminders(user_id, due_date, is_completed)",
         "CREATE INDEX IF NOT EXISTS ix_pets_user_created ON pets(user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_weight_pet_measured ON pet_weight_history(pet_id, measured_at)",
+        "CREATE INDEX IF NOT EXISTS ix_behavior_plans_pet_status ON behavior_plans(pet_id, status)",
     ]
     for stmt in migrations:
         try:

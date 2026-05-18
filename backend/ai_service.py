@@ -285,6 +285,132 @@ Apenas a história. Sem título, sem introdução."""
     return {"story": text, "pet_name": pet_name, "mood": mood}
 
 
+async def generate_behavior_plan(pet_info: dict, issue_type: str, intensity: str, context: str = "") -> dict:
+    """Gera plano comportamental 6 semanas em pt-BR, baseado em etologia veterinária."""
+    client = get_client()
+    species = "cão" if pet_info.get("species") == "dog" else "gato"
+    pet_name = pet_info.get("name", "Pet")
+    age = pet_info.get("age", "adulto")
+    breed = pet_info.get("breed_name", "SRD")
+
+    issue_label = {
+        "separation_anxiety": "ansiedade de separação",
+        "fear": "medo (barulhos, estranhos, objetos)",
+        "reactivity": "reatividade (latir, atacar outros pets)",
+        "aggression": "agressividade",
+        "destruction": "comportamento destrutivo (morder móveis)",
+        "barking": "latidos excessivos",
+        "cat_litter": "problemas com caixa de areia",
+    }.get(issue_type, issue_type)
+
+    prompt = f"""Você é um etólogo veterinário criando um plano comportamental progressivo de 6 semanas pra {pet_name}, um {species} {breed} {age}.
+
+PROBLEMA: {issue_label}
+INTENSIDADE: {intensity}
+CONTEXTO DO TUTOR:
+{context or "Não informado"}
+
+Crie um plano em pt-BR baseado em técnicas de dessensibilização, contracondicionamento e reforço positivo. Princípios: nunca punição, sempre reforço positivo, ritmo respeitando o pet, micro-progressos diários.
+
+Responda APENAS com JSON válido:
+{{
+  "issue_label": "{issue_label}",
+  "summary": "2-3 frases explicando a abordagem do plano em pt-BR",
+  "core_principles": ["lista de 4-5 princípios chave (sem punição, reforço positivo, etc)"],
+  "warning_signs": ["sinais de que o plano não está funcionando ou pet está pior"],
+  "weeks": [
+    {{
+      "week": 1,
+      "focus": "objetivo da semana em 1 frase",
+      "daily_exercises": [
+        {{"day": 1, "title": "...", "duration_min": 10, "description": "instrução clara em pt-BR"}},
+        {{"day": 2, "title": "...", "duration_min": 10, "description": "..."}},
+        ...7 dias
+      ],
+      "milestone": "Sinal de progresso esperado ao final da semana"
+    }},
+    ...6 semanas no total
+  ],
+  "tools_needed": ["lista de itens necessários (clicker, snack, brinquedos especificos, etc)"],
+  "when_to_seek_help": "Quando o tutor deve procurar etólogo/vet presencial",
+  "disclaimer": "Este plano é orientativo. Casos severos requerem acompanhamento de etólogo veterinário presencial."
+}}
+
+REGRAS:
+- Cada exercício diário deve ser realista (5-20 min)
+- Progressão gradual semana a semana
+- Use linguagem clara, sem jargão técnico desnecessário
+- Adapte a intensidade {intensity}: leve = passos pequenos, alta = passos muito pequenos com mais paciência
+- Para gatos, lembre que técnicas são diferentes de cães"""
+
+    msg = client.messages.create(
+        model=MODEL,
+        max_tokens=4000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = msg.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {"summary": "Erro ao gerar plano.", "weeks": []}
+
+
+async def generate_petlife_wrapped(pet_info: dict, year_data: dict) -> dict:
+    """Recap anual estilo Spotify Wrapped — historia narrativa do ano do pet."""
+    client = get_client()
+    pet_name = pet_info.get("name", "Pet")
+
+    prompt = f"""Crie um "PetLife Wrapped" estilo Spotify Wrapped pra {pet_name} em {year_data.get('year', 2026)}.
+
+DADOS DO ANO:
+- Vacinas tomadas: {year_data.get('vaccines_count', 0)}
+- Exames realizados: {year_data.get('exams_count', 0)}
+- Anamneses registradas: {year_data.get('anamneses_count', 0)}
+- Conversas com IA Vyron: {year_data.get('ai_chats_count', 0)}
+- Lembretes configurados: {year_data.get('reminders_count', 0)}
+- Desafios completados: {year_data.get('challenges_count', 0)}
+- Pontos ganhos: {year_data.get('total_points', 0)}
+- Peso registrado: {year_data.get('weights_count', 0)} vezes
+- Análises por foto (raça/triagem/dor/fezes): {year_data.get('photo_analyses_count', 0)}
+- Mês de mais atividade: {year_data.get('busiest_month', 'desconhecido')}
+
+Responda APENAS com JSON válido:
+{{
+  "title": "O ano de {pet_name} em {year_data.get('year')}",
+  "subtitle": "Frase curta carinhosa de abertura",
+  "highlights": [
+    {{"emoji": "🎉", "stat": "valor numérico ou label", "label": "descrição curta", "narrative": "frase divertida"}},
+    ...5-6 highlights
+  ],
+  "milestone_of_the_year": "Conquista mais especial do ano em 1-2 frases",
+  "personality_tag": "Tag divertida pro pet baseado nos dados (ex: 'O explorador', 'A diva', 'O esportista')",
+  "narrative": "Texto narrativo de 3-4 frases contando a história do ano do pet, calorosa e em pt-BR",
+  "next_year_wish": "Desejo carinhoso pro próximo ano",
+  "share_text": "Texto pronto pra compartilhar no WhatsApp/Instagram, ~120 chars, com emojis"
+}}
+
+Tom: caloroso, festivo, divertido, em pt-BR. Trate {pet_name} como protagonista querido."""
+
+    msg = client.messages.create(
+        model=CHAT_MODEL,  # Haiku é suficiente, charme não precisa do Sonnet
+        max_tokens=1500,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = msg.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {"title": f"O ano de {pet_name}", "highlights": [], "narrative": "Wrapped indisponível agora."}
+
+
 async def assess_pet_pain(image_b64: str, image_media_type: str, pet_info: dict) -> dict:
     """Avaliação de dor por foto facial. Para gatos usa Feline Grimace Scale
     (FGS): 5 unidades de ação (orelhas, órbitas, focinho, bigodes, cabeça).

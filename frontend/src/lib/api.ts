@@ -522,6 +522,123 @@ export const innovations = {
     })
     return handleResponse<VetScribeResult>(res)
   },
+
+  // Weight history
+  addWeight: async (pet_id: number, weight_kg: number, opts?: { body_condition_score?: number; notes?: string; measured_at?: string }) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/weight`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ weight_kg, ...opts }),
+    })
+    return handleResponse<{ id: number; weight_kg: number; measured_at: string }>(res)
+  },
+
+  weightHistory: async (pet_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/weight-history`, { headers: getAuthHeaders() })
+    return handleResponse<WeightHistory>(res)
+  },
+
+  // Behavior Plans
+  createBehaviorPlan: async (pet_id: number, issue_type: BehaviorIssueType, intensity: 'leve' | 'moderada' | 'alta', context?: string) => {
+    const res = await fetch(`${API_URL}/innovations/behavior-plans`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ pet_id, issue_type, intensity, context }),
+    })
+    return handleResponse<BehaviorPlanDetail>(res)
+  },
+
+  listBehaviorPlans: async () => {
+    const res = await fetch(`${API_URL}/innovations/behavior-plans`, { headers: getAuthHeaders() })
+    return handleResponse<BehaviorPlanSummary[]>(res)
+  },
+
+  getBehaviorPlan: async (id: number) => {
+    const res = await fetch(`${API_URL}/innovations/behavior-plans/${id}`, { headers: getAuthHeaders() })
+    return handleResponse<BehaviorPlanDetail>(res)
+  },
+
+  behaviorCheckIn: async (plan_id: number, day_number: number, progress_score: number, notes?: string) => {
+    const res = await fetch(`${API_URL}/innovations/behavior-plans/${plan_id}/check-in`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ day_number, progress_score, notes }),
+    })
+    return handleResponse<{ id: number; day_number: number; progress_score: number }>(res)
+  },
+
+  petlifeWrapped: async (pet_id: number, year?: number) => {
+    const qs = year ? `?year=${year}` : ''
+    const res = await fetch(`${API_URL}/innovations/petlife-wrapped/${pet_id}${qs}`, { headers: getAuthHeaders() })
+    return handleResponse<PetLifeWrapped>(res)
+  },
+}
+
+export type BehaviorIssueType = 'separation_anxiety' | 'fear' | 'reactivity' | 'aggression' | 'destruction' | 'barking' | 'cat_litter'
+
+export interface WeightHistory {
+  pet_id: number
+  pet_name: string
+  breed_weight_range: string | null
+  current_weight: number | null
+  entries: Array<{
+    id: number
+    weight_kg: number
+    body_condition_score: number | null
+    source: string
+    measured_at: string
+    notes: string | null
+  }>
+  alert: { type: 'ganho' | 'perda'; severity: 'media' | 'alta'; message: string } | null
+}
+
+export interface BehaviorPlanSummary {
+  id: number
+  pet_id: number
+  pet_name: string
+  issue_type: BehaviorIssueType
+  intensity: 'leve' | 'moderada' | 'alta'
+  status: 'active' | 'completed' | 'paused' | 'abandoned'
+  duration_weeks: number
+  created_at: string
+  completed_at: string | null
+  check_ins_count: number
+  average_progress: number | null
+}
+
+export interface BehaviorPlanDetail extends BehaviorPlanSummary {
+  plan_data: {
+    issue_label: string
+    summary: string
+    core_principles: string[]
+    warning_signs: string[]
+    weeks: Array<{
+      week: number
+      focus: string
+      daily_exercises: Array<{ day: number; title: string; duration_min: number; description: string }>
+      milestone: string
+    }>
+    tools_needed: string[]
+    when_to_seek_help: string
+    disclaimer: string
+  }
+  context_notes: string | null
+  check_ins: Array<{ day_number: number; progress_score: number; notes: string | null; completed_at: string }>
+}
+
+export interface PetLifeWrapped {
+  pet_id: number
+  pet_name: string
+  year: number
+  title: string
+  subtitle: string
+  highlights: Array<{ emoji: string; stat: string | number; label: string; narrative: string }>
+  milestone_of_the_year?: string
+  personality_tag?: string
+  narrative: string
+  next_year_wish?: string
+  share_text: string
+  raw_stats: Record<string, number | string>
 }
 
 export interface PainAssessmentResult {

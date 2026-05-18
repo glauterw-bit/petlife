@@ -24,7 +24,8 @@ import { BedtimeStoryModal } from '@/components/innovations/BedtimeStoryModal'
 import { SnapshotTriageModal } from '@/components/innovations/SnapshotTriageModal'
 import { PainAssessmentModal } from '@/components/innovations/PainAssessmentModal'
 import { StoolAnalysisModal } from '@/components/innovations/StoolAnalysisModal'
-import { BookOpen } from 'lucide-react'
+import { WeightChart } from '@/components/innovations/WeightChart'
+import { BookOpen, Brain, PartyPopper } from 'lucide-react'
 
 type Tab = 'overview' | 'health' | 'routine' | 'history' | 'anamnesis' | 'care'
 
@@ -173,6 +174,8 @@ export default function PetProfilePage() {
         <QuickAction icon={<Heart className="w-4 h-4" />} label="Avaliar dor" onClick={() => setPainOpen(true)} color="rose" />
         <QuickAction icon={<span className="text-base">💩</span>} label="Fezes" onClick={() => setStoolOpen(true)} color="amber" />
         <QuickAction icon={<BookOpen className="w-4 h-4" />} label="Boa noite" onClick={() => setStoryOpen(true)} color="indigo" />
+        <QuickAction icon={<Brain className="w-4 h-4" />} label="Plano comportamental" onClick={() => router.push('/behavior')} color="purple" />
+        <QuickAction icon={<PartyPopper className="w-4 h-4" />} label="Wrapped" onClick={() => router.push(`/wrapped/${petId}`)} color="pink" />
       </div>
 
       {/* Pet card summary */}
@@ -295,6 +298,8 @@ export default function PetProfilePage() {
               </div>
             </div>
           </div>
+
+          <WeightChart petId={petId} />
 
           {/* Sugestões inteligentes baseadas em fase de vida + vacinas já aplicadas */}
           {suggestions && suggestions.suggestions.length > 0 && (
@@ -641,12 +646,14 @@ export default function PetProfilePage() {
   )
 }
 
-function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; label: string; onClick: () => void; color: 'primary' | 'rose' | 'amber' | 'indigo' }) {
+function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; label: string; onClick: () => void; color: 'primary' | 'rose' | 'amber' | 'indigo' | 'purple' | 'pink' }) {
   const cls = {
     primary: 'bg-primary-500 hover:bg-primary-600 shadow-primary-500/30',
     rose: 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30',
     amber: 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30',
     indigo: 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/30',
+    purple: 'bg-purple-500 hover:bg-purple-600 shadow-purple-500/30',
+    pink: 'bg-pink-500 hover:bg-pink-600 shadow-pink-500/30',
   }[color]
   return (
     <button

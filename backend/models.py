@@ -284,6 +284,49 @@ class ClinicVet(Base):
     user = relationship("User", back_populates="clinic_vets")
 
 
+class PetWeightHistory(Base):
+    """Historico de peso pra grafico de crescimento + alertas obesidade."""
+    __tablename__ = "pet_weight_history"
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    weight_kg = Column(Float, nullable=False)
+    measured_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    source = Column(String(50), nullable=True)  # 'manual'|'iot'|'vet'|'snapshot_ia'
+    body_condition_score = Column(Integer, nullable=True)  # 1-9 WSAVA
+    notes = Column(Text, nullable=True)
+
+
+class BehaviorPlan(Base):
+    """Plano comportamental gerado por IA — 6 semanas estruturadas."""
+    __tablename__ = "behavior_plans"
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    issue_type = Column(String(100), nullable=False)  # separation_anxiety|fear|reactivity|aggression|destruction|barking|cat_litter
+    intensity = Column(String(20), nullable=False)  # leve|moderada|alta
+    status = Column(String(20), default="active", nullable=False)  # active|completed|paused|abandoned
+    duration_weeks = Column(Integer, default=6, nullable=False)
+    plan_data = Column(JSON, nullable=False)  # curriculum gerado pela IA
+    context_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+
+    check_ins = relationship("BehaviorCheckIn", back_populates="plan", cascade="all, delete-orphan")
+
+
+class BehaviorCheckIn(Base):
+    """Check-in diario do tutor sobre progresso do plano."""
+    __tablename__ = "behavior_check_ins"
+    id = Column(Integer, primary_key=True, index=True)
+    plan_id = Column(Integer, ForeignKey("behavior_plans.id", ondelete="CASCADE"), nullable=False, index=True)
+    day_number = Column(Integer, nullable=False)
+    progress_score = Column(Integer, nullable=False)  # 0-10
+    notes = Column(Text, nullable=True)
+    completed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    plan = relationship("BehaviorPlan", back_populates="check_ins")
+
+
 class PetClinicAccess(Base):
     """Consentimento explícito do tutor pra clínica acessar histórico do pet.
     Obrigatório por LGPD — vet só vê pets com acesso liberado pelo tutor.
