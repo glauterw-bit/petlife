@@ -1,13 +1,34 @@
+import json
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload
 
 from database import get_db, settings
 from models import (
-    User, VetClinic, ClinicVet, Pet, Vaccine, Exam, Anamnesis, Reminder, WalkRoutine, Breed
+    User, VetClinic, ClinicVet, Pet, Vaccine, Exam, Anamnesis, Reminder, WalkRoutine, Breed,
+    PetClinicAccess,
 )
+
+
+async def _vet_accessible_pet_ids(db: AsyncSession, vet_user: User) -> list[int]:
+    """Retorna IDs dos pets cujo tutor concedeu acesso a alguma clínica
+    da qual este vet faz parte. Base do controle de acesso (LGPD).
+    """
+    clinic_q = await db.execute(select(ClinicVet.clinic_id).where(ClinicVet.user_id == vet_user.id))
+    clinic_ids = [r[0] for r in clinic_q.all()]
+    if not clinic_ids:
+        return []
+    access_q = await db.execute(
+        select(PetClinicAccess.pet_id).where(
+            and_(
+                PetClinicAccess.clinic_id.in_(clinic_ids),
+                PetClinicAccess.revoked_at.is_(None),
+            )
+        )
+    )
+    return [r[0] for r in access_q.all()]
 from schemas import VetClinicCreate, VetClinicResponse, UserLogin, Token, UserResponse
 from auth import (
     get_password_hash, verify_password, create_access_token,
@@ -84,18 +105,17 @@ async def get_vet_patients(
     current_user: User = Depends(get_current_vet),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(ClinicVet).where(ClinicVet.user_id == current_user.id)
-    )
-    clinic_vet_rows = result.scalars().all()
-    clinic_ids = [cv.clinic_id for cv in clinic_vet_rows]
-
-    if not clinic_ids:
+    """Lista APENAS os pets cujos tutores concederam acesso a alguma clínica
+    do vet logado (consentimento explícito via PetClinicAccess).
+    """
+    accessible_ids = await _vet_accessible_pet_ids(db, current_user)
+    if not accessible_ids:
         return []
 
     pet_result = await db.execute(
         select(Pet)
         .options(selectinload(Pet.breed), selectinload(Pet.owner))
+        .where(Pet.id.in_(accessible_ids))
         .order_by(Pet.name)
     )
     pets = pet_result.scalars().all()
@@ -120,6 +140,14 @@ async def get_patient_full_history(
     current_user: User = Depends(get_current_vet),
     db: AsyncSession = Depends(get_db),
 ):
+    # LGPD: vet só vê histórico se o tutor concedeu acesso à clínica do vet
+    accessible_ids = await _vet_accessible_pet_ids(db, current_user)
+    if pet_id not in accessible_ids:
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso negado. O tutor precisa autorizar sua clínica a acessar este pet.",
+        )
+
     result = await db.execute(
         select(Pet)
         .options(
@@ -205,15 +233,25 @@ async def add_consultation(
     current_user: User = Depends(get_current_vet),
     db: AsyncSession = Depends(get_db),
 ):
+    # Auth: vet precisa ter acesso ao pet via PetClinicAccess
+    accessible_ids = await _vet_accessible_pet_ids(db, current_user)
+    if pet_id not in accessible_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
     result = await db.execute(select(Pet).where(Pet.id == pet_id))
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
 
+    # FIX: json.dumps em vez de string interpolation (era vetor de injeção)
     anamnesis = Anamnesis(
         pet_id=pet_id,
         symptoms=notes,
-        ai_analysis=f'{{"diagnosis": "{diagnosis or ""}", "treatment": "{treatment or ""}", "vet": "{current_user.name}"}}',
+        ai_analysis=json.dumps({
+            "diagnosis": diagnosis or "",
+            "treatment": treatment or "",
+            "vet": current_user.name,
+        }, ensure_ascii=False),
     )
     db.add(anamnesis)
 
@@ -243,9 +281,15 @@ async def get_vet_appointments(
     current_user: User = Depends(get_current_vet),
     db: AsyncSession = Depends(get_db),
 ):
+    accessible_ids = await _vet_accessible_pet_ids(db, current_user)
+    if not accessible_ids:
+        return []
     result = await db.execute(
         select(Reminder)
-        .where(Reminder.type == "vet_appointment")
+        .where(
+            Reminder.type == "vet_appointment",
+            Reminder.pet_id.in_(accessible_ids),
+        )
         .order_by(Reminder.due_date)
     )
     reminders = result.scalars().all()
@@ -267,3 +311,74 @@ async def get_vet_appointments(
         })
 
     return appointments
+
+
+# ─── Endpoints do TUTOR: conceder/revogar acesso da clínica ──────────────────
+
+@router.post("/pet/{pet_id}/share-clinic/{clinic_id}")
+async def share_pet_with_clinic(
+    pet_id: int,
+    clinic_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Tutor concede acesso a uma clínica veterinária pra ver o histórico do pet.
+    Pré-requisito por LGPD pra qualquer vet acessar dados de saúde do pet.
+    """
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    clinic_q = await db.execute(select(VetClinic).where(VetClinic.id == clinic_id))
+    clinic = clinic_q.scalar_one_or_none()
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clínica não encontrada")
+
+    # Já tem acesso ativo?
+    existing_q = await db.execute(
+        select(PetClinicAccess).where(
+            PetClinicAccess.pet_id == pet_id,
+            PetClinicAccess.clinic_id == clinic_id,
+            PetClinicAccess.revoked_at.is_(None),
+        )
+    )
+    if existing_q.scalar_one_or_none():
+        return {"message": "Acesso já concedido", "clinic": clinic.name}
+
+    access = PetClinicAccess(
+        pet_id=pet_id,
+        clinic_id=clinic_id,
+        granted_by_user_id=current_user.id,
+        granted_at=datetime.utcnow(),
+    )
+    db.add(access)
+    await db.commit()
+    return {"message": "Acesso concedido à clínica", "clinic": clinic.name}
+
+
+@router.delete("/pet/{pet_id}/share-clinic/{clinic_id}")
+async def revoke_clinic_access(
+    pet_id: int,
+    clinic_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    if not pet_q.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    access_q = await db.execute(
+        select(PetClinicAccess).where(
+            PetClinicAccess.pet_id == pet_id,
+            PetClinicAccess.clinic_id == clinic_id,
+            PetClinicAccess.revoked_at.is_(None),
+        )
+    )
+    access = access_q.scalar_one_or_none()
+    if not access:
+        return {"message": "Não havia acesso ativo"}
+
+    access.revoked_at = datetime.utcnow()
+    await db.commit()
+    return {"message": "Acesso revogado"}

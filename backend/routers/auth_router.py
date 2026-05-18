@@ -1,9 +1,14 @@
 import os
 import secrets
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import timedelta, datetime
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+# Limiter compartilhado com main.py — declarado aqui pra decorar endpoints
+_auth_limiter = Limiter(key_func=get_remote_address)
 
 from database import get_db, settings
 from models import User, UserPoints
@@ -23,7 +28,8 @@ RESET_CODE_TTL_MINUTES = 30
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
+@_auth_limiter.limit("5/hour")
+async def register(request: Request, user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == user_data.email))
     existing = result.scalar_one_or_none()
     if existing:
@@ -54,7 +60,8 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
+@_auth_limiter.limit("10/minute")
+async def login(request: Request, credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == credentials.email))
     user = result.scalar_one_or_none()
 
@@ -112,7 +119,8 @@ async def change_password(
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
-async def forgot_password(data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+@_auth_limiter.limit("3/hour")
+async def forgot_password(request: Request, data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
     """
     Gera um código de 6 dígitos válido por 30 min.
     SEMPRE retorna sucesso (não revela se o e-mail existe — proteção contra enumeração).
@@ -133,26 +141,24 @@ async def forgot_password(data: ForgotPasswordRequest, db: AsyncSession = Depend
             # await send_reset_email(user.email, code)
             pass
 
-    if SMTP_ENABLED:
-        return ForgotPasswordResponse(
-            message="Se este e-mail existir, enviaremos instruções com o código de redefinição.",
-            code=None,
-            expires_in_minutes=RESET_CODE_TTL_MINUTES,
-        )
+    # SEGURANÇA: nunca retornar o código no response.
+    # Sem SMTP configurado, o código fica só no DB — admin extrai dos logs ou DB
+    # pra desbloquear contas durante dev. Em prod, configure SMTP_ENABLED=true
+    # e implemente envio real via Resend/SendGrid.
+    if user and not SMTP_ENABLED:
+        # Log o código pra dev (visível apenas em logs do servidor, não na response)
+        print(f"[DEV] Reset code for {user.email}: {code} (válido 30 min)")
 
-    # Modo dev: retorna o código direto (apenas se o usuário existe)
     return ForgotPasswordResponse(
-        message=(
-            "Código gerado (modo desenvolvimento — sem SMTP configurado). "
-            "Em produção, este código será enviado por e-mail."
-        ) if user else "Se este e-mail existir, enviaremos instruções por e-mail.",
-        code=code if user else None,
+        message="Se este e-mail existir, enviaremos instruções com o código de redefinição em alguns minutos.",
+        code=None,
         expires_in_minutes=RESET_CODE_TTL_MINUTES,
     )
 
 
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
-async def reset_password(data: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+@_auth_limiter.limit("5/hour")
+async def reset_password(request: Request, data: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == data.email))
     user = result.scalar_one_or_none()
 

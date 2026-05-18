@@ -284,6 +284,20 @@ class ClinicVet(Base):
     user = relationship("User", back_populates="clinic_vets")
 
 
+class PetClinicAccess(Base):
+    """Consentimento explícito do tutor pra clínica acessar histórico do pet.
+    Obrigatório por LGPD — vet só vê pets com acesso liberado pelo tutor.
+    """
+    __tablename__ = "pet_clinic_access"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    granted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    granted_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+
+
 class PetshopLocation(Base):
     __tablename__ = "petshop_locations"
 

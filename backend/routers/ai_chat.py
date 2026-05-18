@@ -1,9 +1,13 @@
 import json
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+_ai_limiter = Limiter(key_func=get_remote_address)
 
 from database import get_db
 from models import Pet, Anamnesis, Breed
@@ -28,18 +32,20 @@ def _calculate_age(birth_date) -> str:
 
 
 @router.post("/chat", response_model=AIChatResponse)
+@_ai_limiter.limit("30/hour")
 async def ai_chat(
-    request: AIChatRequest,
+    request: Request,
+    body: AIChatRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     pet_info = None
 
-    if request.pet_id:
+    if body.pet_id:
         result = await db.execute(
             select(Pet)
             .options(selectinload(Pet.breed))
-            .where(Pet.id == request.pet_id, Pet.user_id == current_user.id)
+            .where(Pet.id == body.pet_id, Pet.user_id == current_user.id)
         )
         pet = result.scalar_one_or_none()
         if pet:
@@ -56,8 +62,8 @@ async def ai_chat(
     try:
         response_text = await ai_service.chat_with_vet_ai(
             pet_info=pet_info,
-            question=request.question,
-            conversation_history=request.conversation_history,
+            question=body.question,
+            conversation_history=body.conversation_history,
         )
         return AIChatResponse(
             response=response_text,
@@ -82,15 +88,17 @@ async def ai_chat(
 
 
 @router.post("/analyze-anamnesis", response_model=AIAnalysisResponse)
+@_ai_limiter.limit("20/hour")
 async def analyze_anamnesis(
-    request: AIAnalysisRequest,
+    request: Request,
+    body: AIAnalysisRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(Anamnesis)
         .options(selectinload(Anamnesis.pet).selectinload(Pet.breed))
-        .where(Anamnesis.id == request.anamnesis_id)
+        .where(Anamnesis.id == body.anamnesis_id)
     )
     anamnesis = result.scalar_one_or_none()
     if not anamnesis:

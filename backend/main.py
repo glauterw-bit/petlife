@@ -52,6 +52,19 @@ from routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # SEGURANÇA: refuse-to-boot se config insegura em produção
+    is_prod = os.getenv("RAILWAY_ENVIRONMENT_NAME") == "production"
+    if is_prod:
+        if "change-in-production" in (settings.SECRET_KEY or "") or len(settings.SECRET_KEY or "") < 32:
+            raise RuntimeError(
+                "SECRET_KEY inseguro em produção. Configure SECRET_KEY (>=32 chars, gerado aleatoriamente) "
+                "nas variáveis de ambiente do Railway."
+            )
+        # CORS sem localhost em prod
+        bad_origins = [o for o in ALLOWED_ORIGINS if "localhost" in o or "127.0.0.1" in o]
+        if bad_origins:
+            print(f"⚠️ AVISO: CORS contém origens locais em produção: {bad_origins}")
+
     await create_tables()
 
     from seed import seed_breeds, seed_challenges

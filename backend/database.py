@@ -112,6 +112,10 @@ async def _run_migrations():
         f"ALTER TABLE pets ADD COLUMN lost_at {timestamp_type}",
         f"ALTER TABLE pets ADD COLUMN lost_last_seen VARCHAR(500)",
         f"ALTER TABLE pets ADD COLUMN lost_reward VARCHAR(200)",
+        # Indexes para performance
+        "CREATE INDEX IF NOT EXISTS ix_vaccines_pet_next_due ON vaccines(pet_id, next_due)",
+        "CREATE INDEX IF NOT EXISTS ix_reminders_user_due_completed ON reminders(user_id, due_date, is_completed)",
+        "CREATE INDEX IF NOT EXISTS ix_pets_user_created ON pets(user_id, created_at)",
     ]
     for stmt in migrations:
         try:
