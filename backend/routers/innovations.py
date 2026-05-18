@@ -75,8 +75,11 @@ async def bedtime_story(
         return result
     except Exception as e:
         msg = str(e).lower()
-        if "credit" in msg or "billing" in msg:
-            raise HTTPException(status_code=503, detail="Histórias temporariamente indisponíveis. Tente mais tarde.")
+        if "credit balance" in msg or "insufficient" in msg or "billing" in msg:
+            raise HTTPException(
+                status_code=503,
+                detail="História indisponível: crédito da Anthropic API esgotado. Administrador deve recarregar em console.anthropic.com",
+            )
         raise HTTPException(status_code=503, detail="Erro ao gerar história. Tente novamente.")
 
 
@@ -126,6 +129,9 @@ async def snapshot_triage(
         return result
     except Exception as e:
         msg = str(e).lower()
-        if "credit" in msg or "billing" in msg:
-            raise HTTPException(status_code=503, detail="Triagem temporariamente indisponível.")
+        if "credit balance" in msg or "insufficient" in msg or "billing" in msg:
+            raise HTTPException(
+                status_code=503,
+                detail="Triagem indisponível: crédito Anthropic esgotado. Administrador deve recarregar em console.anthropic.com",
+            )
         raise HTTPException(status_code=503, detail="Erro ao analisar foto. Tente outra.")
