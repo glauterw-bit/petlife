@@ -464,6 +464,47 @@ export const search = {
   },
 }
 
+// ── Innovations (Bedtime Story + Snapshot Triage) ─────
+export const innovations = {
+  bedtimeStory: async (pet_id: number, mood: 'carinhoso' | 'aventura' | 'engraçado' | 'calmo' = 'carinhoso') => {
+    const res = await fetch(`${API_URL}/innovations/bedtime-story`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ pet_id, mood }),
+    })
+    return handleResponse<{ story: string; pet_name: string; mood: string }>(res)
+  },
+
+  snapshotTriage: async (pet_id: number, photo: File) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('petlife_token') : null
+    const fd = new FormData()
+    fd.append('pet_id', String(pet_id))
+    fd.append('photo', photo)
+    const res = await fetch(`${API_URL}/innovations/snapshot-triage`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: fd,
+    })
+    return handleResponse<SnapshotTriageResult>(res)
+  },
+}
+
+export interface SnapshotTriageResult {
+  pet_name: string
+  image_quality: 'ok' | 'ruim'
+  image_quality_notes: string
+  body_condition_score: number | null
+  body_condition_notes: string
+  eyes: { visible: boolean; concerns: string[]; severity: string }
+  dental: { visible: boolean; tartar_level: string; concerns: string[] }
+  skin_coat: { concerns: string[]; severity: string }
+  posture_behavior: string
+  urgency_tier: 'rotina' | 'acompanhar' | 'agendar_vet' | 'vet_urgente'
+  summary: string
+  recommendations: string[]
+  disclaimer: string
+}
+
 // ── Vet ───────────────────────────────────────────────
 export const vet = {
   registerClinic: async (data: RegisterClinicData) => {

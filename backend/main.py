@@ -47,6 +47,7 @@ from routers import (
     vet_portal,
     ai_chat,
     lost_pet,
+    innovations,
 )
 
 
@@ -125,6 +126,7 @@ app.include_router(search.router)
 app.include_router(vet_portal.router)
 app.include_router(ai_chat.router)
 app.include_router(lost_pet.router)
+app.include_router(innovations.router)
 
 
 @app.get("/public/lost/{pet_id}", tags=["Público"])

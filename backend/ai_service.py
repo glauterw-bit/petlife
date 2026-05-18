@@ -241,6 +241,119 @@ Responda APENAS com o JSON válido, sem texto adicional."""
     return routine
 
 
+async def generate_bedtime_story(pet_info: dict, mood: str = "carinhoso") -> dict:
+    """História de 2 min de boa-noite personalizada — Toby tutor leu a noite toda."""
+    client = get_client()
+
+    species = "cachorro" if pet_info.get("species") == "dog" else "gato"
+    pet_name = pet_info.get("name", "amigo")
+    breed = pet_info.get("breed_name", "vira-lata")
+    owner = pet_info.get("owner_name", "tutor")
+    age_phrase = pet_info.get("age", "")
+
+    mood_map = {
+        "carinhoso": "afetuosa, calma, com tom de aconchego",
+        "aventura": "cheia de aventuras leves, descobertas pequenas",
+        "engraçado": "com humor leve e situações engraçadas próprias de pet",
+        "calmo": "muito serena, sons da natureza, sussurros, indicada pra adormecer rápido",
+    }
+    tone = mood_map.get(mood, mood_map["carinhoso"])
+
+    prompt = f"""Escreva uma história de boa noite curta (2-3 minutos de leitura, ~250-400 palavras) personalizada pra ler pro pet antes de dormir.
+
+PERSONAGEM PRINCIPAL: {pet_name}, um {species} {breed} de {age_phrase}.
+TUTOR: {owner}
+TOM: {tone}
+IDIOMA: Português brasileiro
+FORMATO: 4-6 parágrafos curtos, frases simples, ritmo de quem lê em voz baixa.
+
+REGRAS:
+- {pet_name} é o herói absoluto da história
+- Mencione características da raça {breed} quando natural
+- Termine sempre com {pet_name} adormecendo aconchegado(a) e em segurança
+- Sem rimas forçadas. Não use emoji
+- Não diga "fim" ou "the end" no final — só feche com a imagem do pet dormindo
+
+Apenas a história. Sem título, sem introdução."""
+
+    msg = client.messages.create(
+        model=CHAT_MODEL,
+        max_tokens=900,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = msg.content[0].text.strip()
+    return {"story": text, "pet_name": pet_name, "mood": mood}
+
+
+async def snapshot_triage_from_image(image_b64: str, image_media_type: str, pet_info: dict) -> dict:
+    """Análise rápida (5s) de saúde com foto — BCS, olhos, dental, sinais visíveis.
+    NÃO substitui consulta vet — só triagem orientativa.
+    """
+    client = get_client()
+    species = "cão" if pet_info.get("species") == "dog" else "gato"
+
+    prompt = f"""Você é um veterinário fazendo triagem visual rápida de um {species} a partir desta foto.
+
+Avalie SOMENTE o que está visível na imagem. Não invente informações que não dá pra ver.
+
+Responda APENAS com JSON válido:
+{{
+  "image_quality": "ok" ou "ruim",
+  "image_quality_notes": "Se ruim, explique (foto escura, pet parcial, etc) e pare aqui",
+  "body_condition_score": null ou número de 1-9 (escala WSAVA),
+  "body_condition_notes": "magro/ideal/sobrepeso/obeso + 1 frase",
+  "eyes": {{
+    "visible": true/false,
+    "concerns": ["vermelhidão", "secreção", "opacidade", "etc"] ou [],
+    "severity": "nenhuma"|"leve"|"moderada"|"alta"
+  }},
+  "dental": {{
+    "visible": true/false,
+    "tartar_level": "nenhum"|"leve"|"moderado"|"grave"|"nao_visivel",
+    "concerns": [] ou ["lista"]
+  }},
+  "skin_coat": {{
+    "concerns": [] ou ["queda de pelo", "lesão", "vermelhidão", "etc"],
+    "severity": "nenhuma"|"leve"|"moderada"|"alta"
+  }},
+  "posture_behavior": "Observações visíveis (ex: parece alerta, parece prostrado, lambendo região X)",
+  "urgency_tier": "rotina"|"acompanhar"|"agendar_vet"|"vet_urgente",
+  "summary": "2-3 frases em pt-BR explicando para o tutor o que vê",
+  "recommendations": ["lista curta de ações sugeridas"],
+  "disclaimer": "Esta análise é orientativa e baseada apenas na foto. Não substitui exame veterinário presencial."
+}}
+
+NÃO invente. NÃO diagnostique doenças específicas. Se imagem ruim, image_quality:"ruim" + pare."""
+
+    msg = client.messages.create(
+        model=MODEL,  # Sonnet (vision) — Haiku não tem vision atualmente
+        max_tokens=1500,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": image_media_type, "data": image_b64}},
+                {"type": "text", "text": prompt},
+            ],
+        }],
+    )
+    text = msg.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {
+            "image_quality": "ruim",
+            "image_quality_notes": "Não foi possível processar a resposta. Tente outra foto.",
+            "urgency_tier": "rotina",
+            "summary": "Análise não disponível no momento.",
+            "recommendations": [],
+            "disclaimer": "Esta análise é orientativa.",
+        }
+
+
 async def identify_breed_from_image(image_b64: str, image_media_type: str) -> dict:
     """Recebe imagem em base64 e retorna top 3 candidatos de raça com confiança."""
     client = get_client()

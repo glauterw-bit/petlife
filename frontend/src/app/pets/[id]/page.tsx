@@ -20,6 +20,9 @@ import {
 import { formatDate, formatAge, getSpeciesEmoji, getSizeLabel, getEnergyLabel } from '@/lib/utils'
 import { useToast } from '@/components/ui/ToastContext'
 import { cn } from '@/lib/utils'
+import { BedtimeStoryModal } from '@/components/innovations/BedtimeStoryModal'
+import { SnapshotTriageModal } from '@/components/innovations/SnapshotTriageModal'
+import { BookOpen } from 'lucide-react'
 
 type Tab = 'overview' | 'health' | 'routine' | 'history' | 'anamnesis' | 'care'
 
@@ -39,6 +42,8 @@ export default function PetProfilePage() {
   const [generatingRoutine, setGeneratingRoutine] = useState(false)
   const [generatingCare, setGeneratingCare] = useState(false)
   const [suggestions, setSuggestions] = useState<Awaited<ReturnType<typeof breedsApi.petHealthSuggestions>> | null>(null)
+  const [storyOpen, setStoryOpen] = useState(false)
+  const [snapshotOpen, setSnapshotOpen] = useState(false)
 
   // Anamnesis form
   const [anamForm, setAnamForm] = useState({ symptoms: '', duration: '', behavior_changes: '', appetite: '', water_intake: '', medications: '', notes: '' })
@@ -143,15 +148,36 @@ export default function PetProfilePage() {
   return (
     <DashboardLayout>
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
         <button onClick={() => router.back()} className="p-2 rounded-xl hover:bg-surface-100 transition">
           <ArrowLeft className="w-5 h-5 text-surface-600" />
         </button>
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-surface-900">{pet.name}</h1>
           <p className="text-surface-500 text-sm">{pet.breed?.name ?? ''} {pet.birth_date ? `• ${formatAge(pet.birth_date)}` : ''}</p>
         </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSnapshotOpen(true)}
+            aria-label="Triagem por foto"
+            className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-3 py-2 rounded-xl transition shadow-md shadow-primary-500/30"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline">Triagem</span>
+          </button>
+          <button
+            onClick={() => setStoryOpen(true)}
+            aria-label="História de boa noite"
+            className="flex items-center gap-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold px-3 py-2 rounded-xl transition shadow-md shadow-indigo-500/30"
+          >
+            <BookOpen className="w-4 h-4" />
+            <span className="hidden sm:inline">História</span>
+          </button>
+        </div>
       </div>
+
+      <BedtimeStoryModal petId={petId} petName={pet.name} open={storyOpen} onClose={() => setStoryOpen(false)} />
+      <SnapshotTriageModal petId={petId} petName={pet.name} open={snapshotOpen} onClose={() => setSnapshotOpen(false)} />
 
       {/* Pet card summary */}
       <div className="bg-white rounded-2xl border border-surface-100 p-6 mb-6">
