@@ -2,7 +2,7 @@
 Reusa o pipeline Claude já configurado em ai_service.
 """
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from pydantic import BaseModel
@@ -13,7 +13,9 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from database import get_db
-from models import Pet, User, PetWeightHistory, BehaviorPlan, BehaviorCheckIn, Vaccine, Exam, Anamnesis, Reminder, UserChallenge
+from models import Pet, User, PetWeightHistory, BehaviorPlan, BehaviorCheckIn, Vaccine, Exam, Anamnesis, Reminder, UserChallenge, PetBehaviorLog, PetStory
+from database import settings as db_settings
+import os, uuid
 from auth import get_current_user
 import ai_service
 
@@ -560,6 +562,419 @@ async def petlife_wrapped(
             "share_text": f"O ano de {pet.name} em {target_year} no PetLife 🐾",
             "raw_stats": year_data,
         }
+
+
+# ─── Pet Behavior Log (daily check-in + pattern detection) ───────────────────
+
+class BehaviorLogEntry(BaseModel):
+    mood: Optional[Literal["feliz", "neutro", "apatico", "ansioso", "agitado"]] = None
+    energy: Optional[int] = None  # 1-5
+    appetite: Optional[Literal["normal", "reduzido", "aumentado", "recusou"]] = None
+    water_intake: Optional[Literal["normal", "reduzido", "aumentado"]] = None
+    stool_quality: Optional[int] = None  # 1-7
+    activity_minutes: Optional[int] = None
+    notes: Optional[str] = None
+
+
+@router.post("/pets/{pet_id}/behavior-log")
+async def add_behavior_log(
+    pet_id: int,
+    body: BehaviorLogEntry,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    log = PetBehaviorLog(pet_id=pet_id, **body.model_dump(exclude_none=True))
+    db.add(log)
+    await db.commit()
+    await db.refresh(log)
+    return {"id": log.id, "logged_at": log.logged_at.isoformat()}
+
+
+@router.get("/pets/{pet_id}/behavior-log")
+async def get_behavior_logs(
+    pet_id: int,
+    days: int = 30,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    since = datetime.utcnow() - timedelta(days=days)
+    logs_q = await db.execute(
+        select(PetBehaviorLog)
+        .where(PetBehaviorLog.pet_id == pet_id, PetBehaviorLog.logged_at >= since)
+        .order_by(PetBehaviorLog.logged_at.desc())
+    )
+    logs = logs_q.scalars().all()
+    return {
+        "pet_id": pet_id,
+        "pet_name": pet.name,
+        "days_requested": days,
+        "logs": [
+            {
+                "id": l.id,
+                "logged_at": l.logged_at.isoformat(),
+                "mood": l.mood,
+                "energy": l.energy,
+                "appetite": l.appetite,
+                "water_intake": l.water_intake,
+                "stool_quality": l.stool_quality,
+                "activity_minutes": l.activity_minutes,
+                "notes": l.notes,
+            }
+            for l in logs
+        ],
+    }
+
+
+@router.get("/pets/{pet_id}/behavior-patterns")
+@_limiter.limit("5/hour")
+async def analyze_behavior(
+    request: Request,
+    pet_id: int,
+    days: int = 30,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    since = datetime.utcnow() - timedelta(days=days)
+    logs_q = await db.execute(
+        select(PetBehaviorLog)
+        .where(PetBehaviorLog.pet_id == pet_id, PetBehaviorLog.logged_at >= since)
+        .order_by(PetBehaviorLog.logged_at)
+    )
+    logs = logs_q.scalars().all()
+    if len(logs) < 5:
+        return {
+            "summary": f"Apenas {len(logs)} dias registrados. IA precisa de pelo menos 7 dias pra detectar padrões. Continue registrando!",
+            "patterns": [],
+            "alerts": [],
+            "logs_count": len(logs),
+        }
+
+    pet_info = {"name": pet.name, "species": pet.species.value if hasattr(pet.species, "value") else pet.species}
+    logs_data = [{
+        "logged_at": l.logged_at.strftime("%Y-%m-%d"),
+        "mood": l.mood, "energy": l.energy, "appetite": l.appetite,
+        "water_intake": l.water_intake, "stool_quality": l.stool_quality,
+        "activity_minutes": l.activity_minutes, "notes": l.notes,
+    } for l in logs]
+
+    try:
+        result = await ai_service.analyze_behavior_patterns(pet_info, logs_data)
+        result["logs_count"] = len(logs)
+        return result
+    except Exception as e:
+        msg = str(e).lower()
+        if "credit balance" in msg or "insufficient" in msg or "billing" in msg:
+            raise HTTPException(status_code=503, detail="Análise indisponível: crédito Anthropic esgotado.")
+        raise HTTPException(status_code=503, detail="Erro na análise.")
+
+
+# ─── Senior Longevity Protocol ────────────────────────────────────────────────
+
+@router.get("/pets/{pet_id}/senior-protocol")
+async def senior_protocol(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Pets 7+ anos (cães) ou 10+ (gatos) ganham protocolo semestral curado."""
+    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    if not pet.birth_date:
+        return {"is_senior": False, "message": "Data de nascimento não informada — não dá pra calcular fase senior."}
+
+    age_years = (datetime.utcnow() - pet.birth_date).days // 365
+    species = pet.species.value if hasattr(pet.species, "value") else pet.species
+    is_senior = (species == "dog" and age_years >= 7) or (species == "cat" and age_years >= 10)
+
+    if not is_senior:
+        return {
+            "is_senior": False,
+            "age_years": age_years,
+            "species": species,
+            "becomes_senior_at": "7 anos" if species == "dog" else "10 anos",
+            "message": f"{pet.name} ainda não está na fase senior. Protocolo ativa automaticamente quando completar a idade.",
+        }
+
+    # Protocolo curado (rule-based, sem IA — confiável e gratuito)
+    semestral_exams = [
+        {"name": "Hemograma completo", "frequency": "semestral", "reason": "Detecção precoce de anemia, infecções, leucemia"},
+        {"name": "Bioquímico (ureia, creatinina, ALT, FA, glicemia)", "frequency": "semestral", "reason": "Função renal e hepática"},
+        {"name": "Urinálise (EAS)", "frequency": "semestral", "reason": "Doença renal crônica, diabetes, infecção urinária"},
+        {"name": "Pressão arterial", "frequency": "semestral", "reason": "Hipertensão é comum em seniores e silenciosa"},
+        {"name": "Avaliação cardíaca (ausculta + ECG anual)", "frequency": "anual", "reason": "Cardiopatias seniores"},
+        {"name": "Exame oftalmológico", "frequency": "anual", "reason": "Catarata, glaucoma"},
+        {"name": "Avaliação dental + limpeza", "frequency": "anual", "reason": "Doença periodontal afeta órgãos sistêmicos"},
+    ]
+
+    species_specific = []
+    if species == "cat":
+        species_specific = [
+            {"name": "T4 total (tireoide)", "frequency": "anual", "reason": "Hipertireoidismo é a doença endócrina mais comum em gatas/os seniores"},
+            {"name": "Teste FIV/FeLV (se acesso à rua)", "frequency": "anual", "reason": "Reavaliação imune"},
+        ]
+    else:
+        species_specific = [
+            {"name": "Radiografia ortopédica (quadril, coluna)", "frequency": "se sintomas", "reason": "Artrose, displasia"},
+            {"name": "TSH/T4 (tireoide)", "frequency": "anual", "reason": "Hipotireoidismo canino senior"},
+        ]
+
+    supplements = [
+        {"name": "Ômega-3 (EPA + DHA)", "purpose": "Anti-inflamatório, articulações, cognição"},
+        {"name": "Glucosamina + condroitina", "purpose": "Cartilagem articular"},
+        {"name": "SAM-e ou silimarina (se fígado alterado)", "purpose": "Hepatoprotetor"},
+        {"name": "Antioxidantes (vit E, selênio)", "purpose": "Cognição e imunidade"},
+    ]
+
+    lifestyle = [
+        "Ração senior específica (com restrição proteica controlada se função renal alterada)",
+        "Exercício moderado diário — caminhadas curtas e frequentes",
+        "Enriquecimento ambiental cognitivo (brinquedos de busca, jogos)",
+        "Cama ortopédica pra articulações",
+        "Hidratação reforçada (fontes para gatos, água sempre fresca)",
+        "Monitorar sinais sutis: mudança de apetite, sede aumentada, perda de peso, mudança de comportamento",
+    ]
+
+    return {
+        "is_senior": True,
+        "pet_name": pet.name,
+        "age_years": age_years,
+        "species": species,
+        "life_stage": "senior" if age_years < (12 if species == "dog" else 15) else "geriátrico",
+        "exams_protocol": semestral_exams + species_specific,
+        "supplements_to_discuss": supplements,
+        "lifestyle_recommendations": lifestyle,
+        "early_warning_signs": [
+            "Perda de peso sem dieta",
+            "Sede aumentada (poliúria/polidipsia)",
+            "Apatia ou redução de interação",
+            "Confusão noturna, latidos sem motivo",
+            "Dificuldade de subir escadas ou no sofá",
+            "Mau hálito forte (doença periodontal/renal)",
+        ],
+        "disclaimer": "Protocolo orientativo baseado em diretrizes AAHA Senior Care + Brasil. Adapte com seu veterinário de confiança.",
+    }
+
+
+# ─── Memorial Mode (sensible — end-of-life support) ──────────────────────────
+
+class MemorialRequest(BaseModel):
+    deceased_at: Optional[datetime] = None
+    owner_message: Optional[str] = ""
+
+
+@router.post("/pets/{pet_id}/memorial")
+async def set_memorial(
+    pet_id: int,
+    body: MemorialRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    pet_q = await db.execute(
+        select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, Pet.user_id == current_user.id)
+    )
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    pet_info = {
+        "name": pet.name,
+        "species": pet.species.value if hasattr(pet.species, "value") else pet.species,
+        "age": (datetime.utcnow() - pet.birth_date).days // 365 if pet.birth_date else None,
+    }
+    age_str = f"{pet_info['age']} anos" if pet_info["age"] else ""
+
+    try:
+        memorial = await ai_service.generate_memorial_text({**pet_info, "age": age_str}, body.owner_message or "")
+    except Exception:
+        memorial = {
+            "memorial_text": f"Em memória de {pet.name}. Para sempre em nossos corações.",
+            "epitaph": f"Em memória de {pet.name}",
+            "comfort_message": "Sinto muito pela sua perda. Que as boas memórias permaneçam.",
+        }
+
+    pet.is_deceased = True
+    pet.deceased_at = body.deceased_at or datetime.utcnow()
+    pet.memorial_text = memorial.get("memorial_text", "")
+    pet.is_lost = False  # se estivesse marcado perdido
+    await db.commit()
+
+    return {
+        "pet_id": pet.id,
+        "pet_name": pet.name,
+        "deceased_at": pet.deceased_at.isoformat(),
+        "memorial_text": pet.memorial_text,
+        "epitaph": memorial.get("epitaph"),
+        "comfort_message": memorial.get("comfort_message"),
+        "memorial_url": f"/memorial/{pet.id}",
+    }
+
+
+# Public endpoint pra página de memorial (sem auth)
+@router.get("/public/memorial/{pet_id}", include_in_schema=False)
+async def public_memorial(
+    pet_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    pet_q = await db.execute(
+        select(Pet).options(selectinload(Pet.breed), selectinload(Pet.owner)).where(Pet.id == pet_id)
+    )
+    pet = pet_q.scalar_one_or_none()
+    if not pet or not pet.is_deceased:
+        raise HTTPException(status_code=404, detail="Memorial não encontrado")
+
+    age_years = (pet.deceased_at - pet.birth_date).days // 365 if pet.birth_date and pet.deceased_at else None
+
+    return {
+        "pet": {
+            "name": pet.name,
+            "species": pet.species.value if hasattr(pet.species, "value") else pet.species,
+            "breed": pet.breed.name if pet.breed else None,
+            "photo": pet.photo,
+            "birth_date": pet.birth_date.isoformat() if pet.birth_date else None,
+            "deceased_at": pet.deceased_at.isoformat() if pet.deceased_at else None,
+            "age_years": age_years,
+        },
+        "memorial_text": pet.memorial_text,
+        "owner_name": pet.owner.name if pet.owner else None,
+    }
+
+
+# ─── Pet Stories (photo feed + AI captions) ──────────────────────────────────
+
+@router.post("/pets/{pet_id}/stories")
+@_limiter.limit("20/hour")
+async def add_story(
+    request: Request,
+    pet_id: int,
+    user_caption: str = Form(""),
+    photo: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Sobe foto + IA gera caption automática + emoção detectada."""
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    media_type = (photo.content_type or "image/jpeg").lower()
+    if media_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Formato inválido.")
+
+    contents = await photo.read()
+    if len(contents) > MAX_IMAGE_BYTES or not contents:
+        raise HTTPException(status_code=400, detail="Imagem inválida.")
+
+    # Comprime antes de salvar
+    from image_utils import compress_image
+    try:
+        contents, ext = compress_image(contents, max_dimension=1280, quality=80)
+    except Exception:
+        ext = ".jpg"
+
+    upload_dir = os.path.join(db_settings.UPLOAD_DIR, "stories")
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    photo_url = f"/uploads/stories/{filename}"
+
+    # Caption IA (não bloqueia se falhar)
+    ai_caption = None
+    ai_emotion = None
+    try:
+        pet_info = {"name": pet.name, "species": pet.species.value if hasattr(pet.species, "value") else pet.species}
+        b64 = base64.b64encode(contents).decode("ascii")
+        cap = await ai_service.generate_story_caption(b64, "image/jpeg", pet_info)
+        ai_caption = cap.get("caption")
+        ai_emotion = cap.get("emotion")
+    except Exception:
+        pass
+
+    story = PetStory(
+        pet_id=pet_id,
+        user_id=current_user.id,
+        photo_url=photo_url,
+        user_caption=user_caption or None,
+        ai_caption=ai_caption,
+        ai_emotion=ai_emotion,
+    )
+    db.add(story)
+    await db.commit()
+    await db.refresh(story)
+
+    return {
+        "id": story.id,
+        "pet_id": pet_id,
+        "photo_url": photo_url,
+        "user_caption": story.user_caption,
+        "ai_caption": story.ai_caption,
+        "ai_emotion": story.ai_emotion,
+        "created_at": story.created_at.isoformat(),
+    }
+
+
+@router.get("/pets/{pet_id}/stories")
+async def list_stories(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    stories_q = await db.execute(
+        select(PetStory).where(PetStory.pet_id == pet_id).order_by(PetStory.created_at.desc())
+    )
+    stories = stories_q.scalars().all()
+    return [
+        {
+            "id": s.id,
+            "photo_url": s.photo_url,
+            "user_caption": s.user_caption,
+            "ai_caption": s.ai_caption,
+            "ai_emotion": s.ai_emotion,
+            "created_at": s.created_at.isoformat(),
+        }
+        for s in stories
+    ]
+
+
+@router.delete("/stories/{story_id}", status_code=204)
+async def delete_story(
+    story_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    story_q = await db.execute(select(PetStory).where(PetStory.id == story_id, PetStory.user_id == current_user.id))
+    story = story_q.scalar_one_or_none()
+    if not story:
+        raise HTTPException(status_code=404, detail="Story não encontrado")
+    await db.delete(story)
+    await db.commit()
+    return None
 
 
 # ─── AI Vet Scribe (B2B — vet portal feature) ────────────────────────────────

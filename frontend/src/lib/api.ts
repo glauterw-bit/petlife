@@ -572,6 +572,130 @@ export const innovations = {
     const res = await fetch(`${API_URL}/innovations/petlife-wrapped/${pet_id}${qs}`, { headers: getAuthHeaders() })
     return handleResponse<PetLifeWrapped>(res)
   },
+
+  // Behavior Log
+  addBehaviorLog: async (pet_id: number, body: BehaviorLogEntry) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/behavior-log`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    })
+    return handleResponse<{ id: number; logged_at: string }>(res)
+  },
+
+  getBehaviorLogs: async (pet_id: number, days = 30) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/behavior-log?days=${days}`, { headers: getAuthHeaders() })
+    return handleResponse<BehaviorLogsResponse>(res)
+  },
+
+  analyzeBehaviorPatterns: async (pet_id: number, days = 30) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/behavior-patterns?days=${days}`, { headers: getAuthHeaders() })
+    return handleResponse<BehaviorPatternsResult>(res)
+  },
+
+  // Senior protocol
+  seniorProtocol: async (pet_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/senior-protocol`, { headers: getAuthHeaders() })
+    return handleResponse<SeniorProtocolResult>(res)
+  },
+
+  // Memorial
+  setMemorial: async (pet_id: number, owner_message?: string, deceased_at?: string) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/memorial`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ owner_message, deceased_at }),
+    })
+    return handleResponse<MemorialResult>(res)
+  },
+
+  // Stories
+  addStory: async (pet_id: number, photo: File, user_caption?: string) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('petlife_token') : null
+    const fd = new FormData()
+    fd.append('photo', photo)
+    if (user_caption) fd.append('user_caption', user_caption)
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/stories`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: fd,
+    })
+    return handleResponse<StoryEntry>(res)
+  },
+
+  listStories: async (pet_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/stories`, { headers: getAuthHeaders() })
+    return handleResponse<StoryEntry[]>(res)
+  },
+
+  deleteStory: async (story_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/stories/${story_id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    })
+    if (!res.ok) throw new Error('Erro ao apagar')
+  },
+}
+
+export interface BehaviorLogEntry {
+  mood?: 'feliz' | 'neutro' | 'apatico' | 'ansioso' | 'agitado'
+  energy?: number
+  appetite?: 'normal' | 'reduzido' | 'aumentado' | 'recusou'
+  water_intake?: 'normal' | 'reduzido' | 'aumentado'
+  stool_quality?: number
+  activity_minutes?: number
+  notes?: string
+}
+
+export interface BehaviorLogsResponse {
+  pet_id: number
+  pet_name: string
+  days_requested: number
+  logs: Array<BehaviorLogEntry & { id: number; logged_at: string }>
+}
+
+export interface BehaviorPatternsResult {
+  summary: string
+  patterns: Array<{ observation: string; significance: string }>
+  trends?: { mood_trend?: string; energy_trend?: string; appetite_trend?: string }
+  alerts: Array<{ signal: string; concern: string; severity: string; action: string }>
+  recommendations?: string[]
+  disclaimer?: string
+  logs_count: number
+}
+
+export interface SeniorProtocolResult {
+  is_senior: boolean
+  pet_name?: string
+  age_years?: number
+  species?: string
+  life_stage?: string
+  becomes_senior_at?: string
+  message?: string
+  exams_protocol?: Array<{ name: string; frequency: string; reason: string }>
+  supplements_to_discuss?: Array<{ name: string; purpose: string }>
+  lifestyle_recommendations?: string[]
+  early_warning_signs?: string[]
+  disclaimer?: string
+}
+
+export interface MemorialResult {
+  pet_id: number
+  pet_name: string
+  deceased_at: string
+  memorial_text: string
+  epitaph?: string
+  comfort_message?: string
+  memorial_url: string
+}
+
+export interface StoryEntry {
+  id: number
+  photo_url: string
+  user_caption: string | null
+  ai_caption: string | null
+  ai_emotion: string | null
+  created_at: string
 }
 
 export type BehaviorIssueType = 'separation_anxiety' | 'fear' | 'reactivity' | 'aggression' | 'destruction' | 'barking' | 'cat_litter'

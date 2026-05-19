@@ -108,6 +108,10 @@ class Pet(Base):
     lost_at = Column(DateTime, nullable=True)
     lost_last_seen = Column(String(500), nullable=True)
     lost_reward = Column(String(200), nullable=True)
+    # Memorial mode
+    is_deceased = Column(Boolean, default=False, nullable=False)
+    deceased_at = Column(DateTime, nullable=True)
+    memorial_text = Column(Text, nullable=True)
 
     owner = relationship("User", back_populates="pets")
     breed = relationship("Breed", back_populates="pets")
@@ -325,6 +329,34 @@ class BehaviorCheckIn(Base):
     completed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     plan = relationship("BehaviorPlan", back_populates="check_ins")
+
+
+class PetBehaviorLog(Base):
+    """Check-in diario de bem-estar — base pra deteccao de padroes."""
+    __tablename__ = "pet_behavior_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    logged_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    mood = Column(String(30), nullable=True)  # feliz | neutro | apatico | ansioso | agitado
+    energy = Column(Integer, nullable=True)  # 1-5
+    appetite = Column(String(20), nullable=True)  # normal | reduzido | aumentado | recusou
+    water_intake = Column(String(20), nullable=True)  # normal | reduzido | aumentado
+    stool_quality = Column(Integer, nullable=True)  # 1-7 escala fecal
+    activity_minutes = Column(Integer, nullable=True)  # tempo de atividade fisica
+    notes = Column(Text, nullable=True)
+
+
+class PetStory(Base):
+    """Stories — feed fotografico com captions geradas por IA."""
+    __tablename__ = "pet_stories"
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    photo_url = Column(String(500), nullable=False)
+    user_caption = Column(Text, nullable=True)
+    ai_caption = Column(Text, nullable=True)
+    ai_emotion = Column(String(30), nullable=True)  # alegre, curioso, sonolento, etc
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
 class PetClinicAccess(Base):

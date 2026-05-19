@@ -118,6 +118,13 @@ async def _run_migrations():
         "CREATE INDEX IF NOT EXISTS ix_pets_user_created ON pets(user_id, created_at)",
         "CREATE INDEX IF NOT EXISTS ix_weight_pet_measured ON pet_weight_history(pet_id, measured_at)",
         "CREATE INDEX IF NOT EXISTS ix_behavior_plans_pet_status ON behavior_plans(pet_id, status)",
+        # Memorial mode
+        "ALTER TABLE pets ADD COLUMN is_deceased BOOLEAN DEFAULT FALSE NOT NULL",
+        f"ALTER TABLE pets ADD COLUMN deceased_at {timestamp_type}",
+        "ALTER TABLE pets ADD COLUMN memorial_text TEXT",
+        # Indexes
+        "CREATE INDEX IF NOT EXISTS ix_behavior_logs_pet_logged ON pet_behavior_logs(pet_id, logged_at)",
+        "CREATE INDEX IF NOT EXISTS ix_stories_pet_created ON pet_stories(pet_id, created_at)",
     ]
     for stmt in migrations:
         try:

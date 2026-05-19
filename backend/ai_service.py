@@ -285,6 +285,137 @@ Apenas a história. Sem título, sem introdução."""
     return {"story": text, "pet_name": pet_name, "mood": mood}
 
 
+async def generate_story_caption(image_b64: str, image_media_type: str, pet_info: dict) -> dict:
+    """Gera caption tipo Instagram pra foto do pet + detecta emoção visível."""
+    client = get_client()
+    pet_name = pet_info.get("name", "pet")
+    species = "cão" if pet_info.get("species") == "dog" else "gato"
+
+    prompt = f"""Olhe esta foto de {pet_name}, um {species}, e gere uma caption curta e carismática em pt-BR (estilo Instagram pet, ~80-120 chars). NÃO use emojis no texto da caption — eles vão num campo separado.
+
+Responda APENAS com JSON válido:
+{{
+  "caption": "Caption curta, divertida, em primeira pessoa do pet ou narrativa carinhosa do tutor.",
+  "emotion": "alegre"|"curioso"|"sonolento"|"travesso"|"observador"|"relaxado"|"atento"|"brincalhao",
+  "emoji_suggestions": ["3-4 emojis que combinam"],
+  "hashtag_suggestions": ["3-5 hashtags pt-BR sem # — ex: vidadecachorro, gatospetlife"]
+}}"""
+
+    msg = client.messages.create(
+        model=CHAT_MODEL,  # Haiku tem visão e é barato
+        max_tokens=400,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": image_media_type, "data": image_b64}},
+                {"type": "text", "text": prompt},
+            ],
+        }],
+    )
+    text = msg.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {"caption": f"{pet_name} aproveitando o dia!", "emotion": "alegre", "emoji_suggestions": ["🐾"], "hashtag_suggestions": []}
+
+
+async def analyze_behavior_patterns(pet_info: dict, logs: list[dict]) -> dict:
+    """Analisa N dias de behavior logs e detecta padrões + alerta sinais clínicos."""
+    if not logs:
+        return {"summary": "Sem dados suficientes ainda. Registre pelo menos 7 dias.", "patterns": [], "alerts": []}
+
+    client = get_client()
+    pet_name = pet_info.get("name", "Pet")
+    species = "cão" if pet_info.get("species") == "dog" else "gato"
+
+    logs_summary = "\n".join([
+        f"{l.get('logged_at', '')}: humor={l.get('mood')}, energia={l.get('energy')}, "
+        f"apetite={l.get('appetite')}, água={l.get('water_intake')}, fezes={l.get('stool_quality')}, "
+        f"atividade={l.get('activity_minutes')}min"
+        + (f", notas: {l.get('notes')}" if l.get('notes') else "")
+        for l in logs[-30:]
+    ])
+
+    prompt = f"""Você é um veterinário analisando o diário de bem-estar de {pet_name}, um {species}.
+
+LOGS ({len(logs)} dias):
+{logs_summary}
+
+Detecte padrões clinicamente relevantes (ex: apetite reduzido 5 dias seguidos, sede aumentada repetida — pode indicar diabetes, doença renal). Responda APENAS com JSON válido:
+{{
+  "summary": "Resumo geral em 2-3 frases pt-BR",
+  "patterns": [
+    {{"observation": "ex: Energia caiu nos últimos 7 dias", "significance": "Pode indicar fadiga, dor ou inicio de doença"}}
+  ],
+  "trends": {{
+    "mood_trend": "estável|melhorando|piorando|variável",
+    "energy_trend": "estável|melhorando|piorando|variável",
+    "appetite_trend": "estável|melhorando|piorando|variável"
+  }},
+  "alerts": [
+    {{"signal": "ex: Sede aumentada por 5+ dias", "concern": "Diabetes mellitus, insuficiência renal", "severity": "alta", "action": "Consulta veterinária esta semana"}}
+  ],
+  "recommendations": ["lista curta"],
+  "disclaimer": "Padrões observados são orientativos. Diagnóstico médico requer avaliação presencial."
+}}"""
+
+    msg = client.messages.create(
+        model=MODEL,
+        max_tokens=1500,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = msg.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {"summary": "Análise indisponível.", "patterns": [], "alerts": []}
+
+
+async def generate_memorial_text(pet_info: dict, owner_message: str = "") -> dict:
+    """Gera texto carinhoso pra memorial — feature sensível, tom respeitoso."""
+    client = get_client()
+    pet_name = pet_info.get("name", "amigo")
+    species = "cão" if pet_info.get("species") == "dog" else "gato"
+    age = pet_info.get("age", "")
+
+    prompt = f"""Você está ajudando um tutor a homenagear um pet querido que faleceu.
+
+PET: {pet_name}, um {species} {age}
+MENSAGEM DO TUTOR (opcional): {owner_message or "Não forneceu"}
+
+Gere um texto de memorial em pt-BR, curto (~80-120 palavras), em tom carinhoso e respeitoso, celebrando a vida do pet. Não use clichés como "ponte do arco-íris" a menos que o tutor mencione. Foque no amor compartilhado.
+
+Responda APENAS com JSON válido:
+{{
+  "memorial_text": "Texto de memorial em pt-BR",
+  "epitaph": "Frase curta (~10-15 palavras) pra placa/QR memorial",
+  "comfort_message": "Mensagem curta de apoio ao tutor, em 2-3 frases"
+}}"""
+
+    msg = client.messages.create(
+        model=CHAT_MODEL,
+        max_tokens=800,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = msg.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {"memorial_text": f"Em memória de {pet_name}, sempre presente em nossos corações.", "epitaph": f"Em memória de {pet_name}", "comfort_message": ""}
+
+
 async def generate_behavior_plan(pet_info: dict, issue_type: str, intensity: str, context: str = "") -> dict:
     """Gera plano comportamental 6 semanas em pt-BR, baseado em etologia veterinária."""
     client = get_client()

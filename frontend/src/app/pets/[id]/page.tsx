@@ -25,9 +25,12 @@ import { SnapshotTriageModal } from '@/components/innovations/SnapshotTriageModa
 import { PainAssessmentModal } from '@/components/innovations/PainAssessmentModal'
 import { StoolAnalysisModal } from '@/components/innovations/StoolAnalysisModal'
 import { WeightChart } from '@/components/innovations/WeightChart'
-import { BookOpen, Brain, PartyPopper } from 'lucide-react'
+import { BehaviorLogModal } from '@/components/innovations/BehaviorLogModal'
+import { SeniorProtocolCard } from '@/components/innovations/SeniorProtocolCard'
+import { StoriesFeed } from '@/components/innovations/StoriesFeed'
+import { BookOpen, Brain, PartyPopper, Smile, Image as ImageIcon } from 'lucide-react'
 
-type Tab = 'overview' | 'health' | 'routine' | 'history' | 'anamnesis' | 'care'
+type Tab = 'overview' | 'health' | 'routine' | 'history' | 'anamnesis' | 'care' | 'stories'
 
 export default function PetProfilePage() {
   const { id } = useParams()
@@ -49,6 +52,7 @@ export default function PetProfilePage() {
   const [snapshotOpen, setSnapshotOpen] = useState(false)
   const [painOpen, setPainOpen] = useState(false)
   const [stoolOpen, setStoolOpen] = useState(false)
+  const [behaviorLogOpen, setBehaviorLogOpen] = useState(false)
 
   // Anamnesis form
   const [anamForm, setAnamForm] = useState({ symptoms: '', duration: '', behavior_changes: '', appetite: '', water_intake: '', medications: '', notes: '' })
@@ -141,6 +145,7 @@ export default function PetProfilePage() {
     { id: 'history', label: 'Histórico', icon: <History className="w-4 h-4" /> },
     { id: 'anamnesis', label: 'Anamnese', icon: <Stethoscope className="w-4 h-4" /> },
     { id: 'care', label: 'Cuidados IA', icon: <Sparkles className="w-4 h-4" /> },
+    { id: 'stories', label: 'Stories', icon: <ImageIcon className="w-4 h-4" /> },
   ]
 
   const urgencyConfig = {
@@ -167,6 +172,7 @@ export default function PetProfilePage() {
       <SnapshotTriageModal petId={petId} petName={pet.name} open={snapshotOpen} onClose={() => setSnapshotOpen(false)} />
       <PainAssessmentModal petId={petId} petName={pet.name} open={painOpen} onClose={() => setPainOpen(false)} />
       <StoolAnalysisModal petId={petId} petName={pet.name} open={stoolOpen} onClose={() => setStoolOpen(false)} />
+      <BehaviorLogModal petId={petId} petName={pet.name} open={behaviorLogOpen} onClose={() => setBehaviorLogOpen(false)} />
 
       {/* Quick actions IA — barra horizontal scrollável */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-4 px-4 md:mx-0 md:px-0">
@@ -175,7 +181,9 @@ export default function PetProfilePage() {
         <QuickAction icon={<span className="text-base">💩</span>} label="Fezes" onClick={() => setStoolOpen(true)} color="amber" />
         <QuickAction icon={<BookOpen className="w-4 h-4" />} label="Boa noite" onClick={() => setStoryOpen(true)} color="indigo" />
         <QuickAction icon={<Brain className="w-4 h-4" />} label="Plano comportamental" onClick={() => router.push('/behavior')} color="purple" />
+        <QuickAction icon={<Smile className="w-4 h-4" />} label="Check-in diário" onClick={() => setBehaviorLogOpen(true)} color="emerald" />
         <QuickAction icon={<PartyPopper className="w-4 h-4" />} label="Wrapped" onClick={() => router.push(`/wrapped/${petId}`)} color="pink" />
+        <QuickAction icon={<ImageIcon className="w-4 h-4" />} label="Stories" onClick={() => setTab('stories' as Tab)} color="teal" />
       </div>
 
       {/* Pet card summary */}
@@ -300,6 +308,8 @@ export default function PetProfilePage() {
           </div>
 
           <WeightChart petId={petId} />
+
+          <SeniorProtocolCard petId={petId} />
 
           {/* Sugestões inteligentes baseadas em fase de vida + vacinas já aplicadas */}
           {suggestions && suggestions.suggestions.length > 0 && (
@@ -592,6 +602,19 @@ export default function PetProfilePage() {
         </div>
       )}
 
+      {tab === 'stories' && (
+        <div className="animate-fade-in">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-surface-900 dark:text-white flex items-center gap-2">
+              <ImageIcon className="w-6 h-6 text-teal-500" />
+              Stories de {pet.name}
+            </h2>
+            <p className="text-surface-500 text-sm mt-0.5">Timeline de fotos com legendas geradas por IA.</p>
+          </div>
+          <StoriesFeed petId={petId} petName={pet.name} />
+        </div>
+      )}
+
       {tab === 'care' && (
         <div className="animate-fade-in">
           <div className="flex items-center justify-between mb-6">
@@ -646,7 +669,7 @@ export default function PetProfilePage() {
   )
 }
 
-function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; label: string; onClick: () => void; color: 'primary' | 'rose' | 'amber' | 'indigo' | 'purple' | 'pink' }) {
+function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; label: string; onClick: () => void; color: 'primary' | 'rose' | 'amber' | 'indigo' | 'purple' | 'pink' | 'emerald' | 'teal' }) {
   const cls = {
     primary: 'bg-primary-500 hover:bg-primary-600 shadow-primary-500/30',
     rose: 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30',
@@ -654,6 +677,8 @@ function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; l
     indigo: 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/30',
     purple: 'bg-purple-500 hover:bg-purple-600 shadow-purple-500/30',
     pink: 'bg-pink-500 hover:bg-pink-600 shadow-pink-500/30',
+    emerald: 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30',
+    teal: 'bg-teal-500 hover:bg-teal-600 shadow-teal-500/30',
   }[color]
   return (
     <button
