@@ -125,6 +125,10 @@ async def _run_migrations():
         # Indexes
         "CREATE INDEX IF NOT EXISTS ix_behavior_logs_pet_logged ON pet_behavior_logs(pet_id, logged_at)",
         "CREATE INDEX IF NOT EXISTS ix_stories_pet_created ON pet_stories(pet_id, created_at)",
+        # Multi-tutor + family tree
+        "CREATE INDEX IF NOT EXISTS ix_pet_shares_user_status ON pet_shares(user_id, status)",
+        "CREATE INDEX IF NOT EXISTS ix_pet_shares_email_status ON pet_shares(invite_email, status)",
+        "CREATE INDEX IF NOT EXISTS ix_pet_relations_pet_status ON pet_relations(pet_id, status)",
     ]
     for stmt in migrations:
         try:

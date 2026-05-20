@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   PawPrint, LayoutDashboard, Heart, Syringe, FlaskConical,
-  Route, Trophy, MapPin, Settings, LogOut, Menu, X,
+  Route, Trophy, MapPin, Settings, LogOut, Menu, X, Brain, MailOpen,
   ChevronDown, ChevronRight, Plus, CreditCard
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -41,6 +41,8 @@ const navItems: NavItem[] = [
   { href: '/routines', icon: <Route className="w-5 h-5" />, label: 'Rotinas' },
   { href: '/challenges', icon: <Trophy className="w-5 h-5" />, label: 'Desafios' },
   { href: '/nearby', icon: <MapPin className="w-5 h-5" />, label: 'Buscar Clínicas' },
+  { href: '/behavior', icon: <Brain className="w-5 h-5" />, label: 'Planos Comportamentais' },
+  { href: '/convites', icon: <MailOpen className="w-5 h-5" />, label: 'Convites' },
   { href: '/settings', icon: <Settings className="w-5 h-5" />, label: 'Configurações' },
 ]
 

@@ -635,6 +635,133 @@ export const innovations = {
     })
     if (!res.ok) throw new Error('Erro ao apagar')
   },
+
+  // Multi-tutor sharing
+  invitePetShare: async (pet_id: number, email: string, role: 'co_tutor' | 'sitter' | 'familia' = 'co_tutor') => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/share`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ email, role }),
+    })
+    return handleResponse<{ id: number; invite_email: string; role: string; status: string; invite_token: string; share_url: string; user_exists: boolean }>(res)
+  },
+
+  listPetShares: async (pet_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/shares`, { headers: getAuthHeaders() })
+    return handleResponse<PetShareEntry[]>(res)
+  },
+
+  revokeShare: async (share_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/shares/${share_id}`, { method: 'DELETE', headers: getAuthHeaders() })
+    return handleResponse<{ message: string }>(res)
+  },
+
+  myInvites: async () => {
+    const res = await fetch(`${API_URL}/innovations/invites/received`, { headers: getAuthHeaders() })
+    return handleResponse<InviteEntry[]>(res)
+  },
+
+  acceptInvite: async (token: string) => {
+    const res = await fetch(`${API_URL}/innovations/invites/${token}/accept`, { method: 'POST', headers: getAuthHeaders() })
+    return handleResponse<{ message: string; pet_id: number; pet_name: string; role: string }>(res)
+  },
+
+  declineInvite: async (token: string) => {
+    const res = await fetch(`${API_URL}/innovations/invites/${token}/decline`, { method: 'POST', headers: getAuthHeaders() })
+    return handleResponse<{ message: string }>(res)
+  },
+
+  sharedPets: async () => {
+    const res = await fetch(`${API_URL}/innovations/pets/shared-with-me`, { headers: getAuthHeaders() })
+    return handleResponse<SharedPet[]>(res)
+  },
+
+  // Family tree
+  addRelation: async (pet_id: number, related_pet_id: number, relation: 'sibling' | 'parent' | 'offspring' | 'mate' | 'friend') => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/relations`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ related_pet_id, relation }),
+    })
+    return handleResponse<{ message: string; relation_id: number; status: string }>(res)
+  },
+
+  confirmRelation: async (relation_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/relations/${relation_id}/confirm`, { method: 'POST', headers: getAuthHeaders() })
+    return handleResponse<{ message: string }>(res)
+  },
+
+  deleteRelation: async (relation_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/relations/${relation_id}`, { method: 'DELETE', headers: getAuthHeaders() })
+    if (!res.ok) throw new Error('Erro ao remover relação')
+  },
+
+  familyTree: async (pet_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/family-tree`, { headers: getAuthHeaders() })
+    return handleResponse<FamilyTree>(res)
+  },
+}
+
+export interface PetShareEntry {
+  id: number
+  user_id: number | null
+  invite_email: string
+  user_name: string | null
+  user_email: string | null
+  role: 'co_tutor' | 'sitter' | 'familia'
+  status: 'pending' | 'accepted' | 'revoked' | 'declined'
+  invited_at: string
+  accepted_at: string | null
+  is_owner: boolean
+}
+
+export interface InviteEntry {
+  id: number
+  pet_id: number
+  pet_name: string
+  pet_photo: string | null
+  pet_species: string
+  inviter_name: string
+  role: 'co_tutor' | 'sitter' | 'familia'
+  invited_at: string
+  invite_token: string
+}
+
+export interface SharedPet {
+  share_id: number
+  pet_id: number
+  pet_name: string
+  pet_photo: string | null
+  pet_species: string
+  owner_name: string
+  role: string
+  accepted_at: string | null
+}
+
+export interface FamilyTreeMember {
+  relation_id: number
+  pet_id: number
+  pet_name: string
+  pet_photo: string | null
+  pet_species: string
+  breed: string | null
+  owner_name: string
+  status: string
+  relation?: string
+  is_inbound?: boolean
+}
+
+export interface FamilyTree {
+  pet_id: number
+  pet_name: string
+  relations: {
+    parent?: FamilyTreeMember[]
+    offspring?: FamilyTreeMember[]
+    sibling?: FamilyTreeMember[]
+    mate?: FamilyTreeMember[]
+    friend?: FamilyTreeMember[]
+  }
+  pending: FamilyTreeMember[]
 }
 
 export interface BehaviorLogEntry {

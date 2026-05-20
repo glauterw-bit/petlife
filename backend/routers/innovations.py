@@ -13,7 +13,9 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from database import get_db
-from models import Pet, User, PetWeightHistory, BehaviorPlan, BehaviorCheckIn, Vaccine, Exam, Anamnesis, Reminder, UserChallenge, PetBehaviorLog, PetStory
+from models import Pet, User, PetWeightHistory, BehaviorPlan, BehaviorCheckIn, Vaccine, Exam, Anamnesis, Reminder, UserChallenge, PetBehaviorLog, PetStory, PetShare, PetRelation
+import secrets as _secrets
+from sqlalchemy import or_
 from database import settings as db_settings
 import os, uuid
 from auth import get_current_user
@@ -975,6 +977,439 @@ async def delete_story(
     await db.delete(story)
     await db.commit()
     return None
+
+
+# ─── Multi-tutor sharing ──────────────────────────────────────────────────────
+
+class ShareInvite(BaseModel):
+    email: str
+    role: Literal["co_tutor", "sitter", "familia"] = "co_tutor"
+
+
+async def _user_can_access_pet(db: AsyncSession, user: User, pet: Pet) -> bool:
+    """Owner ou share aceito."""
+    if pet.user_id == user.id:
+        return True
+    q = await db.execute(
+        select(PetShare).where(
+            PetShare.pet_id == pet.id,
+            PetShare.user_id == user.id,
+            PetShare.status == "accepted",
+        )
+    )
+    return q.scalar_one_or_none() is not None
+
+
+@router.post("/pets/{pet_id}/share")
+@_limiter.limit("20/hour")
+async def invite_share(
+    request: Request,
+    pet_id: int,
+    body: ShareInvite,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Apenas o owner original pode convidar (não cascading)."""
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado ou você não é o tutor principal")
+
+    email = body.email.strip().lower()
+    if email == current_user.email.lower():
+        raise HTTPException(status_code=400, detail="Você já é o tutor desse pet")
+
+    # Verifica se já existe convite pendente/aceito
+    existing_q = await db.execute(
+        select(PetShare).where(
+            PetShare.pet_id == pet_id,
+            PetShare.invite_email == email,
+            PetShare.status.in_(["pending", "accepted"]),
+        )
+    )
+    if existing_q.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Já existe convite ativo ou aceito pra esse e-mail")
+
+    # Se o usuário já existe no app, vincula direto
+    user_q = await db.execute(select(User).where(User.email == email))
+    target_user = user_q.scalar_one_or_none()
+
+    token = _secrets.token_urlsafe(32)
+    share = PetShare(
+        pet_id=pet_id,
+        user_id=target_user.id if target_user else None,
+        invite_email=email,
+        invited_by_user_id=current_user.id,
+        role=body.role,
+        invite_token=token,
+    )
+    db.add(share)
+    await db.commit()
+    await db.refresh(share)
+    return {
+        "id": share.id,
+        "invite_email": share.invite_email,
+        "role": share.role,
+        "status": share.status,
+        "invite_token": token,
+        "invited_at": share.invited_at.isoformat(),
+        "share_url": f"/share/accept/{token}",
+        "user_exists": target_user is not None,
+    }
+
+
+@router.get("/pets/{pet_id}/shares")
+async def list_pet_shares(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet or not await _user_can_access_pet(db, current_user, pet):
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    q = await db.execute(
+        select(PetShare, User.name, User.email)
+        .outerjoin(User, PetShare.user_id == User.id)
+        .where(PetShare.pet_id == pet_id, PetShare.status != "revoked")
+        .order_by(PetShare.invited_at.desc())
+    )
+    return [
+        {
+            "id": s.id,
+            "user_id": s.user_id,
+            "invite_email": s.invite_email,
+            "user_name": name,
+            "user_email": user_email,
+            "role": s.role,
+            "status": s.status,
+            "invited_at": s.invited_at.isoformat(),
+            "accepted_at": s.accepted_at.isoformat() if s.accepted_at else None,
+            "is_owner": s.user_id == pet.user_id,
+        }
+        for s, name, user_email in q.all()
+    ]
+
+
+@router.delete("/shares/{share_id}")
+async def revoke_share(
+    share_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    q = await db.execute(select(PetShare).where(PetShare.id == share_id))
+    share = q.scalar_one_or_none()
+    if not share:
+        raise HTTPException(status_code=404, detail="Compartilhamento não encontrado")
+
+    pet_q = await db.execute(select(Pet).where(Pet.id == share.pet_id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet or (pet.user_id != current_user.id and share.user_id != current_user.id):
+        raise HTTPException(status_code=403, detail="Apenas o tutor principal ou o próprio usuário pode revogar")
+
+    share.status = "revoked"
+    share.revoked_at = datetime.utcnow()
+    await db.commit()
+    return {"message": "Compartilhamento revogado"}
+
+
+@router.get("/invites/received")
+async def my_invites(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    q = await db.execute(
+        select(PetShare, Pet, User.name)
+        .join(Pet, PetShare.pet_id == Pet.id)
+        .join(User, PetShare.invited_by_user_id == User.id)
+        .where(
+            or_(
+                PetShare.user_id == current_user.id,
+                PetShare.invite_email == current_user.email.lower(),
+            ),
+            PetShare.status == "pending",
+        )
+    )
+    return [
+        {
+            "id": s.id,
+            "pet_id": pet.id,
+            "pet_name": pet.name,
+            "pet_photo": pet.photo,
+            "pet_species": pet.species.value if hasattr(pet.species, "value") else pet.species,
+            "inviter_name": inviter,
+            "role": s.role,
+            "invited_at": s.invited_at.isoformat(),
+            "invite_token": s.invite_token,
+        }
+        for s, pet, inviter in q.all()
+    ]
+
+
+@router.post("/invites/{token}/accept")
+async def accept_invite(
+    token: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    q = await db.execute(select(PetShare).where(PetShare.invite_token == token))
+    share = q.scalar_one_or_none()
+    if not share or share.status != "pending":
+        raise HTTPException(status_code=404, detail="Convite não encontrado ou já processado")
+
+    # Match por user_id ou email
+    if share.user_id and share.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Esse convite não é seu")
+    if not share.user_id and share.invite_email.lower() != current_user.email.lower():
+        raise HTTPException(status_code=403, detail="Esse convite é para outro e-mail")
+
+    share.user_id = current_user.id
+    share.status = "accepted"
+    share.accepted_at = datetime.utcnow()
+    await db.commit()
+
+    pet_q = await db.execute(select(Pet).where(Pet.id == share.pet_id))
+    pet = pet_q.scalar_one_or_none()
+    return {
+        "message": "Convite aceito",
+        "pet_id": share.pet_id,
+        "pet_name": pet.name if pet else None,
+        "role": share.role,
+    }
+
+
+@router.post("/invites/{token}/decline")
+async def decline_invite(
+    token: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    q = await db.execute(select(PetShare).where(PetShare.invite_token == token))
+    share = q.scalar_one_or_none()
+    if not share or share.status != "pending":
+        raise HTTPException(status_code=404, detail="Convite não encontrado")
+    if share.user_id and share.user_id != current_user.id:
+        if share.invite_email.lower() != current_user.email.lower():
+            raise HTTPException(status_code=403, detail="Esse convite não é seu")
+    share.status = "declined"
+    await db.commit()
+    return {"message": "Convite recusado"}
+
+
+@router.get("/pets/shared-with-me")
+async def shared_pets(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Pets compartilhados com o usuário atual (não os que ele é dono)."""
+    q = await db.execute(
+        select(PetShare, Pet, User.name)
+        .join(Pet, PetShare.pet_id == Pet.id)
+        .join(User, Pet.user_id == User.id)
+        .where(PetShare.user_id == current_user.id, PetShare.status == "accepted")
+    )
+    return [
+        {
+            "share_id": s.id,
+            "pet_id": pet.id,
+            "pet_name": pet.name,
+            "pet_photo": pet.photo,
+            "pet_species": pet.species.value if hasattr(pet.species, "value") else pet.species,
+            "owner_name": owner_name,
+            "role": s.role,
+            "accepted_at": s.accepted_at.isoformat() if s.accepted_at else None,
+        }
+        for s, pet, owner_name in q.all()
+    ]
+
+
+# ─── Pet Genealogical Tree / Family ──────────────────────────────────────────
+
+class RelationCreate(BaseModel):
+    related_pet_id: int
+    relation: Literal["sibling", "parent", "offspring", "mate", "friend"]
+
+
+def _inverse_relation(r: str) -> str:
+    return {"parent": "offspring", "offspring": "parent", "sibling": "sibling", "mate": "mate", "friend": "friend"}.get(r, r)
+
+
+@router.post("/pets/{pet_id}/relations")
+async def add_relation(
+    pet_id: int,
+    body: RelationCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Adiciona laço entre 2 pets. Cria registros nas duas pontas — pet inicial
+    confirmed_at=now (dono que criou), outra ponta status=pending (precisa
+    o outro dono confirmar)."""
+    if pet_id == body.related_pet_id:
+        raise HTTPException(status_code=400, detail="Pet não pode ter relação consigo mesmo")
+
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    related_q = await db.execute(select(Pet).where(Pet.id == body.related_pet_id))
+    related = related_q.scalar_one_or_none()
+    if not related:
+        raise HTTPException(status_code=404, detail="Pet relacionado não existe")
+
+    # Já existe?
+    existing_q = await db.execute(
+        select(PetRelation).where(
+            PetRelation.pet_id == pet_id,
+            PetRelation.related_pet_id == body.related_pet_id,
+        )
+    )
+    if existing_q.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Relação já existe")
+
+    # Se mesmo tutor, auto-confirma
+    same_owner = related.user_id == current_user.id
+    confirmed_at = datetime.utcnow() if same_owner else None
+    status_val = "confirmed" if same_owner else "pending"
+
+    # Side A
+    side_a = PetRelation(
+        pet_id=pet_id,
+        related_pet_id=body.related_pet_id,
+        relation=body.relation,
+        created_by_user_id=current_user.id,
+        confirmed_at=confirmed_at,
+        status=status_val,
+    )
+    # Side B (inversa)
+    side_b = PetRelation(
+        pet_id=body.related_pet_id,
+        related_pet_id=pet_id,
+        relation=_inverse_relation(body.relation),
+        created_by_user_id=current_user.id,
+        confirmed_at=confirmed_at,
+        status=status_val,
+    )
+    db.add_all([side_a, side_b])
+    await db.commit()
+    return {
+        "message": "Relação criada (auto-confirmada)" if same_owner else "Convite de relação enviado — aguarda confirmação do outro tutor",
+        "relation_id": side_a.id,
+        "status": status_val,
+    }
+
+
+@router.post("/relations/{relation_id}/confirm")
+async def confirm_relation(
+    relation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    rel_q = await db.execute(select(PetRelation).where(PetRelation.id == relation_id))
+    rel = rel_q.scalar_one_or_none()
+    if not rel or rel.status != "pending":
+        raise HTTPException(status_code=404, detail="Relação não encontrada ou já processada")
+
+    pet_q = await db.execute(select(Pet).where(Pet.id == rel.pet_id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet or pet.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Apenas o tutor do pet pode confirmar")
+
+    rel.confirmed_at = datetime.utcnow()
+    rel.status = "confirmed"
+
+    # Confirma o lado espelho também
+    mirror_q = await db.execute(
+        select(PetRelation).where(
+            PetRelation.pet_id == rel.related_pet_id,
+            PetRelation.related_pet_id == rel.pet_id,
+            PetRelation.status == "pending",
+        )
+    )
+    mirror = mirror_q.scalar_one_or_none()
+    if mirror:
+        mirror.status = "confirmed"
+        mirror.confirmed_at = datetime.utcnow()
+
+    await db.commit()
+    return {"message": "Relação confirmada"}
+
+
+@router.delete("/relations/{relation_id}")
+async def delete_relation(
+    relation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    rel_q = await db.execute(select(PetRelation).where(PetRelation.id == relation_id))
+    rel = rel_q.scalar_one_or_none()
+    if not rel:
+        raise HTTPException(status_code=404, detail="Relação não encontrada")
+
+    pet_q = await db.execute(select(Pet).where(Pet.id == rel.pet_id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet or pet.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Apenas o tutor pode remover")
+
+    # Apaga as duas pontas
+    await db.delete(rel)
+    mirror_q = await db.execute(
+        select(PetRelation).where(
+            PetRelation.pet_id == rel.related_pet_id,
+            PetRelation.related_pet_id == rel.pet_id,
+        )
+    )
+    mirror = mirror_q.scalar_one_or_none()
+    if mirror:
+        await db.delete(mirror)
+    await db.commit()
+    return None
+
+
+@router.get("/pets/{pet_id}/family-tree")
+async def family_tree(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id))
+    pet = pet_q.scalar_one_or_none()
+    if not pet or not await _user_can_access_pet(db, current_user, pet):
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    rels_q = await db.execute(
+        select(PetRelation, Pet, User.name)
+        .join(Pet, PetRelation.related_pet_id == Pet.id)
+        .join(User, Pet.user_id == User.id)
+        .where(PetRelation.pet_id == pet_id)
+    )
+
+    relations: dict[str, list] = {"parent": [], "offspring": [], "sibling": [], "mate": [], "friend": []}
+    pending = []
+    for rel, related_pet, owner_name in rels_q.all():
+        item = {
+            "relation_id": rel.id,
+            "pet_id": related_pet.id,
+            "pet_name": related_pet.name,
+            "pet_photo": related_pet.photo,
+            "pet_species": related_pet.species.value if hasattr(related_pet.species, "value") else related_pet.species,
+            "breed": related_pet.breed.name if related_pet.breed else None,
+            "owner_name": owner_name,
+            "status": rel.status,
+        }
+        if rel.status == "pending":
+            # Show as pending — needs the OTHER side's owner to confirm
+            pending.append({**item, "relation": rel.relation, "is_inbound": rel.created_by_user_id != current_user.id})
+        elif rel.status == "confirmed":
+            relations.setdefault(rel.relation, []).append(item)
+
+    return {
+        "pet_id": pet_id,
+        "pet_name": pet.name,
+        "relations": relations,
+        "pending": pending,
+    }
 
 
 # ─── AI Vet Scribe (B2B — vet portal feature) ────────────────────────────────

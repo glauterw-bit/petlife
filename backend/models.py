@@ -331,6 +331,39 @@ class BehaviorCheckIn(Base):
     plan = relationship("BehaviorPlan", back_populates="check_ins")
 
 
+class PetShare(Base):
+    """Compartilhamento de pet com co-tutores, sitters, familia.
+    Owner original mantem controle total; shares tem permissoes limitadas por role.
+    """
+    __tablename__ = "pet_shares"
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)  # null antes do aceite
+    invite_email = Column(String(200), nullable=False, index=True)  # email convidado
+    invited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role = Column(String(30), default="co_tutor", nullable=False)  # co_tutor | sitter | familia
+    invite_token = Column(String(80), unique=True, index=True, nullable=False)
+    invited_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    accepted_at = Column(DateTime, nullable=True)
+    revoked_at = Column(DateTime, nullable=True)
+    status = Column(String(20), default="pending", nullable=False)  # pending | accepted | revoked | declined
+
+
+class PetRelation(Base):
+    """Arvore genealogica/social entre pets — irmaos, pais, filhotes, parceiros.
+    Requer confirmacao mutua dos dois tutores pra evitar spam.
+    """
+    __tablename__ = "pet_relations"
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    related_pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    relation = Column(String(30), nullable=False)  # sibling | parent | offspring | mate | friend
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    confirmed_at = Column(DateTime, nullable=True)
+    status = Column(String(20), default="pending", nullable=False)  # pending | confirmed | declined
+
+
 class PetBehaviorLog(Base):
     """Check-in diario de bem-estar — base pra deteccao de padroes."""
     __tablename__ = "pet_behavior_logs"

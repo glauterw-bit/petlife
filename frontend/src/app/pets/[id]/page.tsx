@@ -28,9 +28,11 @@ import { WeightChart } from '@/components/innovations/WeightChart'
 import { BehaviorLogModal } from '@/components/innovations/BehaviorLogModal'
 import { SeniorProtocolCard } from '@/components/innovations/SeniorProtocolCard'
 import { StoriesFeed } from '@/components/innovations/StoriesFeed'
-import { BookOpen, Brain, PartyPopper, Smile, Image as ImageIcon } from 'lucide-react'
+import { SharePetModal } from '@/components/innovations/SharePetModal'
+import { FamilyTreeSection } from '@/components/innovations/FamilyTreeSection'
+import { BookOpen, Brain, PartyPopper, Smile, Image as ImageIcon, Users, GitFork } from 'lucide-react'
 
-type Tab = 'overview' | 'health' | 'routine' | 'history' | 'anamnesis' | 'care' | 'stories'
+type Tab = 'overview' | 'health' | 'routine' | 'history' | 'anamnesis' | 'care' | 'stories' | 'family'
 
 export default function PetProfilePage() {
   const { id } = useParams()
@@ -53,6 +55,7 @@ export default function PetProfilePage() {
   const [painOpen, setPainOpen] = useState(false)
   const [stoolOpen, setStoolOpen] = useState(false)
   const [behaviorLogOpen, setBehaviorLogOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
 
   // Anamnesis form
   const [anamForm, setAnamForm] = useState({ symptoms: '', duration: '', behavior_changes: '', appetite: '', water_intake: '', medications: '', notes: '' })
@@ -146,6 +149,7 @@ export default function PetProfilePage() {
     { id: 'anamnesis', label: 'Anamnese', icon: <Stethoscope className="w-4 h-4" /> },
     { id: 'care', label: 'Cuidados IA', icon: <Sparkles className="w-4 h-4" /> },
     { id: 'stories', label: 'Stories', icon: <ImageIcon className="w-4 h-4" /> },
+    { id: 'family', label: 'Família', icon: <GitFork className="w-4 h-4" /> },
   ]
 
   const urgencyConfig = {
@@ -173,6 +177,7 @@ export default function PetProfilePage() {
       <PainAssessmentModal petId={petId} petName={pet.name} open={painOpen} onClose={() => setPainOpen(false)} />
       <StoolAnalysisModal petId={petId} petName={pet.name} open={stoolOpen} onClose={() => setStoolOpen(false)} />
       <BehaviorLogModal petId={petId} petName={pet.name} open={behaviorLogOpen} onClose={() => setBehaviorLogOpen(false)} />
+      <SharePetModal petId={petId} petName={pet.name} open={shareOpen} onClose={() => setShareOpen(false)} />
 
       {/* Quick actions IA — barra horizontal scrollável */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-4 px-4 md:mx-0 md:px-0">
@@ -184,6 +189,8 @@ export default function PetProfilePage() {
         <QuickAction icon={<Smile className="w-4 h-4" />} label="Check-in diário" onClick={() => setBehaviorLogOpen(true)} color="emerald" />
         <QuickAction icon={<PartyPopper className="w-4 h-4" />} label="Wrapped" onClick={() => router.push(`/wrapped/${petId}`)} color="pink" />
         <QuickAction icon={<ImageIcon className="w-4 h-4" />} label="Stories" onClick={() => setTab('stories' as Tab)} color="teal" />
+        <QuickAction icon={<Users className="w-4 h-4" />} label="Compartilhar" onClick={() => setShareOpen(true)} color="cyan" />
+        <QuickAction icon={<GitFork className="w-4 h-4" />} label="Família" onClick={() => setTab('family' as Tab)} color="fuchsia" />
       </div>
 
       {/* Pet card summary */}
@@ -615,6 +622,19 @@ export default function PetProfilePage() {
         </div>
       )}
 
+      {tab === 'family' && (
+        <div className="animate-fade-in">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-surface-900 dark:text-white flex items-center gap-2">
+              <GitFork className="w-6 h-6 text-fuchsia-500" />
+              Família de {pet.name}
+            </h2>
+            <p className="text-surface-500 text-sm mt-0.5">Conecte irmãos, pais, filhotes ou amigos. Outros tutores precisam confirmar.</p>
+          </div>
+          <FamilyTreeSection petId={petId} petName={pet.name} />
+        </div>
+      )}
+
       {tab === 'care' && (
         <div className="animate-fade-in">
           <div className="flex items-center justify-between mb-6">
@@ -669,7 +689,7 @@ export default function PetProfilePage() {
   )
 }
 
-function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; label: string; onClick: () => void; color: 'primary' | 'rose' | 'amber' | 'indigo' | 'purple' | 'pink' | 'emerald' | 'teal' }) {
+function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; label: string; onClick: () => void; color: 'primary' | 'rose' | 'amber' | 'indigo' | 'purple' | 'pink' | 'emerald' | 'teal' | 'cyan' | 'fuchsia' }) {
   const cls = {
     primary: 'bg-primary-500 hover:bg-primary-600 shadow-primary-500/30',
     rose: 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30',
@@ -679,6 +699,8 @@ function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; l
     pink: 'bg-pink-500 hover:bg-pink-600 shadow-pink-500/30',
     emerald: 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30',
     teal: 'bg-teal-500 hover:bg-teal-600 shadow-teal-500/30',
+    cyan: 'bg-cyan-500 hover:bg-cyan-600 shadow-cyan-500/30',
+    fuchsia: 'bg-fuchsia-500 hover:bg-fuchsia-600 shadow-fuchsia-500/30',
   }[color]
   return (
     <button
