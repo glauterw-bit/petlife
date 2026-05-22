@@ -886,21 +886,31 @@ async def chat_with_vet_ai(
     """
     client = get_client()
 
-    system_prompt = """Você é o Dr. PetLife, um assistente veterinário virtual especializado em cuidados com cães e gatos.
+    system_prompt = """Você é a Vyron, assistente veterinária virtual especializada em cães e gatos, integrada ao app PetLife.
 
-Suas características:
-- Você fala em português brasileiro (pt-BR)
-- É empático, paciente e usa linguagem acessível
-- Fornece orientações práticas e baseadas em evidências científicas
-- SEMPRE lembra que suas orientações não substituem uma consulta veterinária presencial
-- Para emergências, sempre recomenda buscar atendimento imediato
-- Conhece profundamente medicina veterinária, comportamento animal, nutrição, prevenção e bem-estar
+CARACTERÍSTICAS:
+- Fala em português brasileiro (pt-BR), tom carinhoso e acessível
+- Empática, paciente, prática, baseada em evidências
+- SEMPRE lembra que suas orientações não substituem consulta presencial
+- Para emergências (sinais graves), recomenda atendimento imediato
+- Conhece profundamente medicina veterinária, comportamento, nutrição, prevenção, bem-estar
+- Conhece os protocolos WSAVA, CRMV, AAHA
 
-Quando relevante, mencione:
-- Sinais de alerta que exigem atenção veterinária imediata
-- Cuidados preventivos
-- Dicas práticas para o dia a dia
-- A importância do acompanhamento veterinário regular"""
+USO DO CONTEXTO DO PET:
+Você recebe TODO o histórico médico do pet no início da conversa. USE essas informações ativamente:
+- Se a pergunta menciona vacinas, consulta a seção VACINAS pra dar info específica (qual foi a última, próxima dose etc)
+- Se há sintomas atuais, cruza com ANAMNESES RECENTES e DIÁRIO DE BEM-ESTAR pra contexto
+- Se há alteração de peso, usa HISTÓRICO DE PESO pra calcular tendência
+- Se há plano comportamental ativo, leva em consideração no aconselhamento
+- Cita datas e nomes específicos quando relevante ("a última vacina de raiva do Toby foi em 15/03/2026")
+
+SAIDA:
+- Resposta direta à pergunta primeiro
+- Depois sinais de alerta se aplicável
+- Depois recomendações práticas
+- Cita o nome do pet quando souber, torna pessoal
+- Evita listas exaustivas — vá ao ponto do que o tutor perguntou
+- 2-4 parágrafos curtos no máximo (a menos que tutor peça detalhes)"""
 
     messages = []
 
@@ -909,17 +919,96 @@ Quando relevante, mencione:
             if msg.get("role") in ["user", "assistant"]:
                 messages.append({"role": msg["role"], "content": msg["content"]})
 
-    user_message = question
+    # Constrói contexto enriquecido do pet (perfil + histórico médico recente)
+    pet_context_blocks = []
     if pet_info:
-        pet_context = f"""[Contexto do pet: {pet_info.get('name', 'Não informado')},
-        {'Cão' if pet_info.get('species') == 'dog' else 'Gato'},
-        raça {pet_info.get('breed_name', 'Sem raça definida')},
-        {pet_info.get('age', 'idade não informada')},
-        {pet_info.get('weight', 'peso não informado')} kg,
-        {'castrado' if pet_info.get('neutered') else 'não castrado'}]
+        species_pt = 'Cão' if pet_info.get('species') == 'dog' else 'Gato'
+        gender_pt = 'macho' if pet_info.get('gender') == 'male' else 'fêmea' if pet_info.get('gender') == 'female' else 'sexo não informado'
 
-"""
-        user_message = pet_context + question
+        # Perfil básico
+        profile = [
+            f"Nome: {pet_info.get('name', 'Não informado')}",
+            f"Espécie: {species_pt}",
+            f"Raça: {pet_info.get('breed_name', 'SRD')}",
+            f"Idade: {pet_info.get('age', 'desconhecida')}",
+            f"Peso atual: {pet_info.get('weight', 'não informado')} kg",
+            f"Sexo: {gender_pt}",
+            f"Castrado: {'sim' if pet_info.get('neutered') else 'não'}",
+        ]
+        if pet_info.get('color'):
+            profile.append(f"Pelagem/cor: {pet_info['color']}")
+        if pet_info.get('microchip'):
+            profile.append(f"Microchip: {pet_info['microchip']}")
+        if pet_info.get('bio'):
+            profile.append(f"Bio: {pet_info['bio']}")
+        if pet_info.get('is_lost'):
+            profile.append("⚠ ATENÇÃO: pet atualmente marcado como PERDIDO no app")
+        if pet_info.get('is_deceased'):
+            profile.append("⚠ MEMORIAL: pet faleceu — modo memorial ativo. Trate com sensibilidade.")
+        pet_context_blocks.append("PERFIL DO PET:\n" + "\n".join(profile))
+
+        # Vacinas recentes
+        vaccines = pet_info.get('vaccines_recent') or []
+        if vaccines:
+            v_lines = [f"- {v['name']} (aplicada {v['date_given']}{', próxima ' + v['next_due'] if v.get('next_due') else ''}{', vet ' + v['veterinarian'] if v.get('veterinarian') else ''})" for v in vaccines]
+            pet_context_blocks.append(f"VACINAS (últimas {len(vaccines)}):\n" + "\n".join(v_lines))
+
+        # Exames
+        exams = pet_info.get('exams_recent') or []
+        if exams:
+            e_lines = [f"- {e['name']} ({e.get('type', '')}, {e.get('date', '')}): {e.get('result', '')[:150]}" for e in exams]
+            pet_context_blocks.append(f"EXAMES (últimos {len(exams)}):\n" + "\n".join(e_lines))
+
+        # Anamneses
+        anamneses = pet_info.get('anamneses_recent') or []
+        if anamneses:
+            a_lines = []
+            for a in anamneses:
+                a_lines.append(
+                    f"- {a.get('date')}: sintomas={a.get('symptoms', '')[:200]}, "
+                    f"duração={a.get('duration')}, apetite={a.get('appetite')}, energia={a.get('energy_level')}"
+                )
+            pet_context_blocks.append(f"ANAMNESES RECENTES ({len(anamneses)}):\n" + "\n".join(a_lines))
+
+        # Reminders
+        reminders = pet_info.get('upcoming_reminders') or []
+        if reminders:
+            r_lines = [f"- {r['title']} ({r.get('type', '')}, dia {r.get('due_date')})" for r in reminders]
+            pet_context_blocks.append(f"LEMBRETES PRÓXIMOS 30 DIAS:\n" + "\n".join(r_lines))
+
+        # Peso
+        weights = pet_info.get('weight_history') or []
+        if weights:
+            w_lines = [f"- {w['measured_at']}: {w['weight_kg']} kg{' (BCS ' + str(w['body_condition_score']) + '/9)' if w.get('body_condition_score') else ''}" for w in weights]
+            pet_context_blocks.append(f"HISTÓRICO DE PESO (últimas {len(weights)} medições):\n" + "\n".join(w_lines))
+
+        # Behavior 7d
+        logs = pet_info.get('behavior_last_7d') or []
+        if logs:
+            l_lines = [
+                f"- {l['date']}: humor={l.get('mood')}, energia={l.get('energy')}/5, "
+                f"apetite={l.get('appetite')}, água={l.get('water')}, atividade={l.get('activity_min')}min"
+                for l in logs
+            ]
+            pet_context_blocks.append(f"DIÁRIO DE BEM-ESTAR (últimos 7 dias):\n" + "\n".join(l_lines))
+
+        # Behavior plan ativo
+        plan = pet_info.get('active_behavior_plan')
+        if plan:
+            pet_context_blocks.append(
+                f"PLANO COMPORTAMENTAL ATIVO: {plan['issue']} (intensidade {plan['intensity']}, iniciado {plan['created_at']})"
+            )
+
+    # Monta mensagem do usuário
+    if pet_context_blocks:
+        user_message = (
+            "═══ CONTEXTO COMPLETO DO PET (use pra responder) ═══\n\n"
+            + "\n\n".join(pet_context_blocks)
+            + "\n\n═══ PERGUNTA DO TUTOR ═══\n\n"
+            + question
+        )
+    else:
+        user_message = question
 
     messages.append({"role": "user", "content": user_message})
 
