@@ -73,6 +73,15 @@ export const auth = {
     })
     return handleResponse<{ message: string }>(res)
   },
+
+  deleteAccount: async (password: string, confirmation: string) => {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ password, confirmation }),
+    })
+    return handleResponse<{ message: string; deleted_user_email: string; deleted_at: string }>(res)
+  },
 }
 
 // ── Pets ──────────────────────────────────────────────

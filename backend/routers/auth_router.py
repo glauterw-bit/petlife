@@ -16,6 +16,7 @@ from schemas import (
     UserRegister, UserLogin, Token, UserResponse, UserUpdate, ChangePassword,
     ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest,
 )
+from pydantic import BaseModel
 from auth import get_password_hash, verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
@@ -100,6 +101,65 @@ async def update_profile(
     await db.commit()
     await db.refresh(current_user)
     return current_user
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str
+    confirmation: str  # tutor digita "APAGAR MINHA CONTA" pra confirmar
+
+
+@router.delete("/me", status_code=status.HTTP_200_OK)
+async def delete_account(
+    data: DeleteAccountRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Apagamento de conta — exigência Apple App Store 5.1.1(v) + LGPD.
+    Hard delete do user e todos os dados associados (cascade).
+    Pets, vacinas, exames, anamneses, fotos, behavior logs, stories — tudo apagado.
+    """
+    if not verify_password(data.password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Senha incorreta")
+
+    if data.confirmation.strip() != "APAGAR MINHA CONTA":
+        raise HTTPException(
+            status_code=400,
+            detail='Digite exatamente "APAGAR MINHA CONTA" para confirmar.',
+        )
+
+    user_id = current_user.id
+    user_email = current_user.email
+
+    # Limpa tabelas que referenciam User mas não têm CASCADE configurado
+    from models import (
+        PetShare, PetClinicAccess, PetRelation, BehaviorPlan, PetStory, ClinicVet
+    )
+    from sqlalchemy import delete as sql_delete, or_
+
+    # Pet shares (user_id ou invited_by_user_id)
+    await db.execute(sql_delete(PetShare).where(
+        or_(PetShare.user_id == user_id, PetShare.invited_by_user_id == user_id)
+    ))
+    # Pet clinic access concedido pelo user
+    await db.execute(sql_delete(PetClinicAccess).where(PetClinicAccess.granted_by_user_id == user_id))
+    # Relações criadas pelo user
+    await db.execute(sql_delete(PetRelation).where(PetRelation.created_by_user_id == user_id))
+    # Behavior plans, stories (user_id direto, não vão por cascade do Pet)
+    await db.execute(sql_delete(BehaviorPlan).where(BehaviorPlan.user_id == user_id))
+    await db.execute(sql_delete(PetStory).where(PetStory.user_id == user_id))
+    # Vínculo com clínicas (se for vet)
+    await db.execute(sql_delete(ClinicVet).where(ClinicVet.user_id == user_id))
+
+    # Hard delete user — cascade apaga pets, points, reminders, challenges
+    # (configurado em User.relationship cascade="all, delete-orphan")
+    await db.delete(current_user)
+    await db.commit()
+
+    return {
+        "message": "Conta e todos os dados associados foram apagados permanentemente.",
+        "deleted_user_email": user_email,
+        "deleted_at": datetime.utcnow().isoformat(),
+    }
 
 
 @router.put("/change-password", status_code=status.HTTP_200_OK)

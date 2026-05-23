@@ -3,7 +3,8 @@
 import { useTheme } from '@/contexts/ThemeContext'
 
 import { useState, FormEvent } from 'react'
-import { User, Mail, Phone, Lock, Save, Eye, EyeOff } from 'lucide-react'
+import { User, Mail, Phone, Lock, Save, Eye, EyeOff, AlertTriangle, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
 import { auth } from '@/lib/api'
@@ -180,8 +181,110 @@ export default function SettingsPage() {
         </div>
 
         <ThemeSection />
+
+        <DangerZone />
       </div>
     </DashboardLayout>
+  )
+}
+
+function DangerZone() {
+  const { logout } = useAuth()
+  const { success, error } = useToast()
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    if (confirmation !== 'APAGAR MINHA CONTA') {
+      error('Digite exatamente "APAGAR MINHA CONTA" para confirmar.')
+      return
+    }
+    if (!password) {
+      error('Informe sua senha.')
+      return
+    }
+    setDeleting(true)
+    try {
+      await auth.deleteAccount(password, confirmation)
+      success('Conta apagada permanentemente. Sentiremos sua falta. 🐾')
+      logout()
+      router.push('/')
+    } catch (e: unknown) {
+      error(e instanceof Error ? e.message : 'Erro ao apagar conta')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="bg-white dark:bg-surface-800 rounded-2xl border-2 border-red-200 dark:border-red-900/50 p-6">
+      <h2 className="text-lg font-bold text-red-700 dark:text-red-400 mb-1 flex items-center gap-2">
+        <AlertTriangle className="w-5 h-5" />
+        Zona Perigosa
+      </h2>
+      <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">
+        Apagar sua conta remove permanentemente todos os dados — pets, vacinas, exames, fotos, anamneses, planos, stories.
+        Esta ação é irreversível e cumpre LGPD/GDPR.
+      </p>
+
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 text-red-700 dark:text-red-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition border border-red-200 dark:border-red-700/50"
+        >
+          <Trash2 className="w-4 h-4" />
+          Apagar minha conta
+        </button>
+      ) : (
+        <div className="space-y-3 bg-red-50/50 dark:bg-red-900/10 rounded-xl p-4 border border-red-200 dark:border-red-700/30">
+          <div>
+            <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
+              Sua senha atual
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
+              Pra confirmar, digite exatamente: <code className="bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded text-xs">APAGAR MINHA CONTA</code>
+            </label>
+            <input
+              type="text"
+              value={confirmation}
+              onChange={e => setConfirmation(e.target.value)}
+              placeholder="APAGAR MINHA CONTA"
+              className="w-full px-3 py-2.5 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setOpen(false); setPassword(''); setConfirmation('') }}
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold border border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting || confirmation !== 'APAGAR MINHA CONTA' || !password}
+              className="flex-1 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition"
+            >
+              {deleting ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              {deleting ? 'Apagando…' : 'Apagar permanentemente'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
