@@ -2,20 +2,24 @@ app_identifier "app.petlife"
 username "glauterw@gmail.com"
 team_id "2WND53C953"
 
+metadata_path "/tmp/petlife_metadata"
+screenshots_path "/tmp/petlife_screenshots_final"
+
 skip_binary_upload true
-skip_metadata true
 skip_screenshots true
+skip_metadata false
 force true
-build_number "1"
+overwrite_screenshots true
+build_number "2"
 
 app_review_information(
   first_name: "Glauter",
   last_name: "Correia",
-  phone_number: "+55 11 99999-9999",
+  phone_number: "+55 11 98479-2000",
   email_address: "glauterw@gmail.com",
   demo_user: "review@petlife.app",
   demo_password: "ReviewTest2026!",
-  notes: "App de saude pet. Use a conta demo acima para revisar funcionalidades. Backend FastAPI no Railway. App usa camera para identificacao de raca, geolocalizacao para clinicas proximas, push notifications para lembretes de vacina e share nativo para carteirinha."
+  notes: "App de saude pet em pt-BR. Use conta demo para revisar.\n\n=== RESPOSTA A REJEICAO ANTERIOR (Submission 2d1a9560) ===\n\nGuideline 2.3.3 - Screenshots: Atualizamos todas as 10 capturas de tela (6.5 e 6.9 polegadas) para mostrar o app em uso real: dashboard com pet cadastrado, perfil do pet com acoes IA, chat Vyron IA aberto, mapa de clinicas em uso, e tela de configuracoes mostrando o botao de delete account.\n\nGuideline 5.1.1(v) - Account Deletion: Implementamos delete account no app. Fluxo passo-a-passo para validar:\n\n1) Login com conta demo (review@petlife.app / ReviewTest2026!)\n2) Tap no icone de menu hamburguer (canto superior esquerdo)\n3) Tap em Configuracoes (item Perfil na bottom nav)\n4) Scroll ate a secao em vermelho 'Zona Perigosa' (no final da pagina)\n5) Tap no botao 'Apagar minha conta'\n6) Painel expande com 2 campos: senha atual + texto de confirmacao\n7) Digite a senha + digite literalmente 'APAGAR MINHA CONTA' no campo de confirmacao\n8) Tap em 'Apagar permanentemente'\n9) Toast de sucesso, logout automatico, redirect pra tela inicial\n\nNo backend, este endpoint (DELETE /auth/me) faz hard-delete do usuario + cascade de pets, vacinas, exames, anamneses, fotos, behavior logs e stories. LGPD-compliant.\n\nOutros recursos do app:\n- Camera: identificacao de raca por IA, snapshot triage, pain assessment (Feline Grimace Scale), stool analysis\n- Geolocation: mapa de clinicas/petshops proximos (OpenStreetMap)\n- Push notifications: lembretes de vacinas e check-ups\n- Share nativo: carteirinha digital de vacinacao com QR\n\nBackend: FastAPI no Railway. Frontend: Next.js 14 wrapped com Capacitor 7."
 )
 
 submission_information({

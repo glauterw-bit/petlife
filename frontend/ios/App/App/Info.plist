@@ -18,8 +18,6 @@
 	<string>O PetLife usa sua localização para mostrar clínicas veterinárias e pet shops próximos a você.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>O PetLife usa sua localização para mostrar clínicas próximas e enviar alertas se um pet for marcado como perdido na sua região.</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Usamos identificadores apenas para entender o uso do app e melhorar a experiência. Nenhum dado é compartilhado.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>O PetLife pode acessar contatos apenas para você convidar familiares como co-tutores de um pet.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
