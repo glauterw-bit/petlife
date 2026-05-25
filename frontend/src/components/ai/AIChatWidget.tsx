@@ -90,16 +90,17 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-primary-500 text-white px-4 py-3 rounded-2xl shadow-xl shadow-primary-200 hover:bg-primary-600 transition-all hover:scale-105 animate-pulse-soft"
+          aria-label="Abrir chat com Vyron IA"
+          className="fixed bottom-nav md:bottom-6 right-4 md:right-6 z-40 flex items-center gap-2 bg-primary-500 text-white pl-3 pr-4 py-3 rounded-full shadow-xl shadow-primary-300/50 hover:bg-primary-600 transition-all hover:scale-105 animate-pulse-soft"
         >
           <MessageCircle className="w-5 h-5" />
-          <span className="text-sm font-semibold">Fale com a Vyron IA</span>
+          <span className="text-sm font-semibold">Vyron IA</span>
         </button>
       )}
 
       {/* Chat modal */}
       {open && (
-        <div className="fixed bottom-6 right-6 z-40 w-80 sm:w-96 flex flex-col bg-white rounded-2xl shadow-2xl border border-surface-200 overflow-hidden animate-slide-up">
+        <div className="fixed bottom-nav md:bottom-6 right-2 md:right-6 left-2 md:left-auto z-40 md:w-96 max-h-[80vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-surface-200 overflow-hidden animate-slide-up">
           {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-primary-500 text-white">
             <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">

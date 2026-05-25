@@ -45,8 +45,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         activePetId={activePetId}
         onPetChange={p => setActivePetId(p.id)}
       />
-      <main className="flex-1 md:ml-64 min-h-screen pb-20 md:pb-0">
-        <div className="p-4 md:p-8 max-w-7xl mx-auto animate-fade-in">
+      <main className="flex-1 md:ml-64 min-h-screen pb-nav md:pb-0">
+        <div className="px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] pb-4 md:p-8 max-w-7xl mx-auto animate-fade-in">
           {children}
         </div>
       </main>

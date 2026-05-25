@@ -231,7 +231,8 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
     <>
       {/* Mobile toggle */}
       <button
-        className="fixed top-4 left-4 z-50 md:hidden bg-white shadow-lg rounded-xl p-2.5 border border-surface-200"
+        aria-label="Abrir menu"
+        className="fixed top-safe left-3 z-50 md:hidden bg-white/95 backdrop-blur shadow-md rounded-xl p-2 border border-surface-200 tap-target flex items-center justify-center"
         onClick={() => setMobileOpen(true)}
       >
         <Menu className="w-5 h-5 text-surface-700" />

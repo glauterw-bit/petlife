@@ -90,10 +90,10 @@ export default function VaccinesPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-surface-900">Vacinas</h1>
-          <p className="text-surface-500 mt-1">Controle de vacinação dos seus pets</p>
+      <div className="flex items-start justify-between gap-3 mb-5 md:mb-6 pl-12 md:pl-0">
+        <div className="min-w-0">
+          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Vacinas</h1>
+          <p className="text-sm md:text-base text-surface-500 mt-1">Controle de vacinação dos seus pets</p>
         </div>
         <div className="flex gap-2">
           {petList.length > 0 && (

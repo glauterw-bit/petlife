@@ -162,13 +162,13 @@ export default function PetProfilePage() {
   return (
     <DashboardLayout>
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6 flex-wrap">
-        <button onClick={() => router.back()} className="p-2 rounded-xl hover:bg-surface-100 transition">
+      <div className="flex items-center gap-3 mb-5 md:mb-6 pl-12 md:pl-0">
+        <button onClick={() => router.back()} aria-label="Voltar" className="p-2 rounded-xl hover:bg-surface-100 transition tap-target flex items-center justify-center">
           <ArrowLeft className="w-5 h-5 text-surface-600" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-surface-900">{pet.name}</h1>
-          <p className="text-surface-500 text-sm">{pet.breed?.name ?? ''} {pet.birth_date ? `• ${formatAge(pet.birth_date)}` : ''}</p>
+          <h1 className="text-xl md:text-2xl font-bold text-surface-900 leading-tight truncate">{pet.name}</h1>
+          <p className="text-surface-500 text-xs md:text-sm truncate">{pet.breed?.name ?? ''} {pet.birth_date ? `• ${formatAge(pet.birth_date)}` : ''}</p>
         </div>
       </div>
 
@@ -179,14 +179,14 @@ export default function PetProfilePage() {
       <BehaviorLogModal petId={petId} petName={pet.name} open={behaviorLogOpen} onClose={() => setBehaviorLogOpen(false)} />
       <SharePetModal petId={petId} petName={pet.name} open={shareOpen} onClose={() => setShareOpen(false)} />
 
-      {/* Quick actions IA — barra horizontal scrollável */}
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-4 px-4 md:mx-0 md:px-0">
+      {/* Quick actions IA — flex-wrap em mobile, horizontal scroll em telas maiores */}
+      <div className="flex flex-wrap md:flex-nowrap gap-2 md:overflow-x-auto pb-2 mb-4 md:-mx-4 md:px-4 lg:mx-0 lg:px-0 no-scrollbar">
         <QuickAction icon={<Sparkles className="w-4 h-4" />} label="Triagem geral" onClick={() => setSnapshotOpen(true)} color="primary" />
         <QuickAction icon={<Heart className="w-4 h-4" />} label="Avaliar dor" onClick={() => setPainOpen(true)} color="rose" />
         <QuickAction icon={<span className="text-base">💩</span>} label="Fezes" onClick={() => setStoolOpen(true)} color="amber" />
         <QuickAction icon={<BookOpen className="w-4 h-4" />} label="Boa noite" onClick={() => setStoryOpen(true)} color="indigo" />
-        <QuickAction icon={<Brain className="w-4 h-4" />} label="Plano comportamental" onClick={() => router.push('/behavior')} color="purple" />
-        <QuickAction icon={<Smile className="w-4 h-4" />} label="Check-in diário" onClick={() => setBehaviorLogOpen(true)} color="emerald" />
+        <QuickAction icon={<Brain className="w-4 h-4" />} label="Comportamento" onClick={() => router.push('/behavior')} color="purple" />
+        <QuickAction icon={<Smile className="w-4 h-4" />} label="Check-in" onClick={() => setBehaviorLogOpen(true)} color="emerald" />
         <QuickAction icon={<PartyPopper className="w-4 h-4" />} label="Wrapped" onClick={() => router.push(`/wrapped/${petId}`)} color="pink" />
         <QuickAction icon={<ImageIcon className="w-4 h-4" />} label="Stories" onClick={() => setTab('stories' as Tab)} color="teal" />
         <QuickAction icon={<Users className="w-4 h-4" />} label="Compartilhar" onClick={() => setShareOpen(true)} color="cyan" />
@@ -194,14 +194,14 @@ export default function PetProfilePage() {
       </div>
 
       {/* Pet card summary */}
-      <div className="bg-white rounded-2xl border border-surface-100 p-6 mb-6">
-        <div className="flex items-center gap-6 flex-wrap">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-primary-50 to-accent-50 flex items-center justify-center">
+      <div className="bg-white rounded-2xl border border-surface-100 p-4 md:p-6 mb-5 md:mb-6">
+        <div className="flex items-start gap-4 md:gap-6 flex-wrap md:flex-nowrap">
+          <div className="relative shrink-0">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-primary-50 to-accent-50 flex items-center justify-center">
               {pet.photo_url ? (
                 <Image src={pet.photo_url} alt={pet.name} width={96} height={96} className="object-cover w-full h-full" />
               ) : (
-                <span className="text-5xl">{getSpeciesEmoji(pet.species)}</span>
+                <span className="text-4xl md:text-5xl">{getSpeciesEmoji(pet.species)}</span>
               )}
             </div>
             <label className="absolute -bottom-2 -right-2 bg-primary-500 text-white rounded-xl p-1.5 cursor-pointer hover:bg-primary-600 transition">
@@ -219,7 +219,7 @@ export default function PetProfilePage() {
               />
             </label>
           </div>
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex-1 min-w-0 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {[
               { label: 'Idade', value: formatAge(pet.birth_date), icon: <Calendar className="w-4 h-4 text-primary-500" /> },
               { label: 'Peso', value: pet.weight ? `${pet.weight} kg` : '—', icon: <Weight className="w-4 h-4 text-primary-500" /> },
@@ -227,13 +227,13 @@ export default function PetProfilePage() {
               { label: 'Castrado', value: pet.neutered ? 'Sim ✂' : pet.neutered === false ? 'Não' : '—', icon: null },
             ].map(i => (
               <div key={i.label}>
-                <div className="text-xs text-surface-400 mb-0.5">{i.label}</div>
+                <div className="text-[10px] md:text-xs text-surface-400 mb-0.5 uppercase tracking-wide">{i.label}</div>
                 <div className="text-sm font-semibold text-surface-800">{i.value}</div>
               </div>
             ))}
           </div>
         </div>
-        {pet.bio && <p className="mt-4 text-sm text-surface-600 italic border-t border-surface-100 pt-4">{pet.bio}</p>}
+        {pet.bio && <p className="mt-4 text-sm text-surface-600 italic border-t border-surface-100 pt-4 line-clamp-3">{pet.bio}</p>}
       </div>
 
       {/* Tabs */}
@@ -705,7 +705,7 @@ function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; l
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 ${cls} text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition shadow-md whitespace-nowrap shrink-0`}
+      className={`flex items-center gap-1.5 ${cls} text-white text-xs md:text-sm font-semibold px-3 py-2 md:px-4 md:py-2.5 rounded-xl transition shadow-md whitespace-nowrap shrink-0`}
     >
       {icon}
       {label}

@@ -87,9 +87,9 @@ export default function NearbyPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-surface-900">Buscar Clínicas e Pet Shops</h1>
-        <p className="text-surface-500 mt-1">Encontre estabelecimentos próximos a você</p>
+      <div className="mb-5 md:mb-6 pl-12 md:pl-0">
+        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Clínicas e Pet Shops</h1>
+        <p className="text-sm md:text-base text-surface-500 mt-1">Encontre estabelecimentos próximos a você</p>
       </div>
 
       {/* Controls */}

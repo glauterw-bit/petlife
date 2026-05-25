@@ -72,12 +72,12 @@ function InvitesContent() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2">
-          <MailOpen className="w-6 h-6 text-cyan-600" />
+      <div className="mb-5 md:mb-6 pl-12 md:pl-0">
+        <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2 leading-tight">
+          <MailOpen className="w-6 h-6 text-cyan-600 shrink-0" />
           Convites
         </h1>
-        <p className="text-sm text-surface-500 dark:text-surface-400 mt-1">Convites pra cuidar de pets de outras pessoas.</p>
+        <p className="text-xs md:text-sm text-surface-500 dark:text-surface-400 mt-1">Convites pra cuidar de pets de outras pessoas.</p>
       </div>
 
       {loading ? (

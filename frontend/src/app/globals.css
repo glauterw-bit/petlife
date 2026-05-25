@@ -38,6 +38,18 @@
   .animate-paw-bounce {
     animation: pawBounce 0.6s ease-in-out;
   }
+
+  /* iOS safe-area + bottom-nav clearance */
+  .safe-top { padding-top: max(0.5rem, env(safe-area-inset-top)); }
+  .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+  .top-safe { top: max(0.75rem, env(safe-area-inset-top)); }
+  .pb-nav { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+  .bottom-nav { bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+  /* Tap-friendly minimum 44px (Apple HIG) */
+  .tap-target { min-height: 44px; min-width: 44px; }
+  /* Hide scrollbar on horizontal scroll containers */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
 @keyframes fadeIn {

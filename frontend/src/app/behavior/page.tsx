@@ -65,20 +65,21 @@ export default function BehaviorPlansPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2">
-            <Brain className="w-7 h-7 text-purple-600" />
+      <div className="flex items-start justify-between gap-3 mb-5 md:mb-6 pl-12 md:pl-0">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2 leading-tight">
+            <Brain className="w-6 h-6 md:w-7 md:h-7 text-purple-600 shrink-0" />
             Planos Comportamentais
           </h1>
-          <p className="text-sm text-surface-500 dark:text-surface-400 mt-1">Planos de 6 semanas baseados em etologia, gerados pela IA Vyron.</p>
+          <p className="text-xs md:text-sm text-surface-500 dark:text-surface-400 mt-1">Planos de 6 semanas baseados em etologia, gerados pela IA Vyron.</p>
         </div>
         <button
           onClick={() => setShowWizard(true)}
-          className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2.5 rounded-xl font-semibold transition shadow-lg shadow-purple-500/30"
+          aria-label="Novo plano"
+          className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-semibold transition shadow-lg shadow-purple-500/30 shrink-0 tap-target"
         >
           <Plus className="w-4 h-4" />
-          Novo plano
+          <span className="hidden xs:inline">Novo plano</span>
         </button>
       </div>
 

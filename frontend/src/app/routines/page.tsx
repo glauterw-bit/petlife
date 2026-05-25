@@ -54,9 +54,9 @@ export default function RoutinesPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-surface-900">Rotinas de Passeio</h1>
-        <p className="text-surface-500 mt-1">Rotinas personalizadas por IA para cada pet</p>
+      <div className="mb-5 md:mb-6 pl-12 md:pl-0">
+        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Rotinas de Passeio</h1>
+        <p className="text-sm md:text-base text-surface-500 mt-1">Rotinas personalizadas por IA para cada pet</p>
       </div>
 
       {loading ? <PageLoader /> : petList.length === 0 ? (

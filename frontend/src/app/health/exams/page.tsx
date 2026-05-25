@@ -97,10 +97,10 @@ export default function ExamsPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-surface-900">Exames</h1>
-          <p className="text-surface-500 mt-1">{examList.length} exame{examList.length !== 1 ? 's' : ''} registrado{examList.length !== 1 ? 's' : ''}</p>
+      <div className="flex items-start justify-between gap-3 mb-5 md:mb-6 pl-12 md:pl-0">
+        <div className="min-w-0">
+          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Exames</h1>
+          <p className="text-sm md:text-base text-surface-500 mt-1">{examList.length} exame{examList.length !== 1 ? 's' : ''} registrado{examList.length !== 1 ? 's' : ''}</p>
         </div>
         <button
           onClick={() => setShowModal(true)}

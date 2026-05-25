@@ -52,11 +52,11 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       {/* Welcome */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-surface-900">
+      <div className="mb-6 md:mb-8 pl-14 md:pl-0">
+        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">
           Olá, {user?.name?.split(' ')[0] ?? 'Tutor'}! 👋
         </h1>
-        <p className="text-surface-500 mt-1">
+        <p className="text-sm md:text-base text-surface-500 mt-1">
           {pets.length > 0
             ? `Você tem ${pets.length} pet${pets.length > 1 ? 's' : ''} sob seus cuidados.`
             : 'Adicione seu primeiro pet para começar!'}
@@ -64,7 +64,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
         {[
           {
             icon: <PawPrint className="w-6 h-6 text-primary-500" />,
@@ -92,18 +92,18 @@ export default function DashboardPage() {
             bg: 'bg-accent-50',
           },
         ].map((s, i) => (
-          <div key={i} className={`${s.bg} rounded-2xl p-4 border border-surface-100 relative`}>
+          <div key={i} className={`${s.bg} rounded-2xl p-3 md:p-4 border border-surface-100 relative`}>
             {s.alert && (
               <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full" />
             )}
             {s.icon}
-            <div className="text-2xl font-bold text-surface-900 mt-2">{s.value}</div>
-            <div className="text-sm text-surface-600">{s.label}</div>
+            <div className="text-xl md:text-2xl font-bold text-surface-900 mt-1.5 md:mt-2 leading-tight">{s.value}</div>
+            <div className="text-xs md:text-sm text-surface-600 leading-tight">{s.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Left column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Pet cards */}

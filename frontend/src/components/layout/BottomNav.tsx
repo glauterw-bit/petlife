@@ -25,12 +25,12 @@ export function BottomNav() {
         {ITEMS.map(({ href, label, Icon, match }) => {
           const active = match(pathname)
           return (
-            <li key={href}>
+            <li key={href} className="relative">
               <Link
                 href={href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 transition',
+                  'flex flex-col items-center justify-center gap-0.5 py-2 px-1 min-h-[56px] transition',
                   active ? 'text-primary-600' : 'text-surface-500 hover:text-surface-800',
                 )}
               >
@@ -38,6 +38,7 @@ export function BottomNav() {
                 <span className={cn('text-[10px] font-medium leading-tight', active && 'font-semibold')}>
                   {label}
                 </span>
+                {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" aria-hidden />}
               </Link>
             </li>
           )

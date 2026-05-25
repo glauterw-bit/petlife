@@ -59,9 +59,9 @@ export default function SettingsPage() {
   return (
     <DashboardLayout>
       <div className="max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-surface-900">Configurações</h1>
-          <p className="text-surface-500 mt-1">Gerencie as informações da sua conta</p>
+        <div className="mb-5 md:mb-6 pl-12 md:pl-0">
+          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Configurações</h1>
+          <p className="text-sm md:text-base text-surface-500 mt-1">Gerencie as informações da sua conta</p>
         </div>
 
         {/* Profile */}
