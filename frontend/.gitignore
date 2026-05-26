@@ -1,0 +1,8 @@
+
+# Android signing — NEVER commit
+android/key.properties
+android/app/google-services.json
+android/**/release/
+android/build/
+android/app/build/
+android/.gradle/

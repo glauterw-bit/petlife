@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PetLife</string>
+    <string name="title_activity_main">PetLife</string>
+    <string name="package_name">app.petlife</string>
+    <string name="custom_url_scheme">app.petlife</string>
+</resources>
