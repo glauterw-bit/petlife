@@ -8,8 +8,25 @@ function getAuthHeaders(): HeadersInit {
   }
 }
 
+// Endpoints que NÃO devem disparar logout em 401 (ex: login).
+// Em qualquer outro endpoint, 401 = sessão expirada → limpa token + redirect.
+const AUTH_EXEMPT_PATHS = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password']
+
+function handleUnauthorized(url: string) {
+  if (typeof window === 'undefined') return
+  if (AUTH_EXEMPT_PATHS.some(p => url.includes(p))) return
+  try { localStorage.removeItem('petlife_token') } catch {}
+  // Evita loop infinito: só redireciona se não estamos já em /auth/*
+  if (!window.location.pathname.startsWith('/auth/')) {
+    window.location.assign('/auth/login?session_expired=1')
+  }
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    if (res.status === 401) {
+      handleUnauthorized(res.url)
+    }
     let message = `Erro ${res.status}`
     try {
       const data = await res.json()
@@ -48,12 +65,21 @@ export const auth = {
   },
 
   updateProfile: async (data: Partial<User>) => {
-    const res = await fetch(`${API_URL}/auth/me`, {
+    const res = await fetch(`${API_URL}/auth/profile`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     })
     return handleResponse<User>(res)
+  },
+
+  changePassword: async (current_password: string, new_password: string) => {
+    const res = await fetch(`${API_URL}/auth/change-password`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ current_password, new_password }),
+    })
+    return handleResponse<{ message: string }>(res)
   },
 
   forgotPassword: async (email: string) => {
@@ -266,7 +292,7 @@ export const vaccines = {
     const token = localStorage.getItem('petlife_token')
     const formData = new FormData()
     formData.append('file', file)
-    const res = await fetch(`${API_URL}/vaccines/${id}/document`, {
+    const res = await fetch(`${API_URL}/vaccines/${id}/upload-document`, {
       method: 'POST',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: formData,
@@ -313,7 +339,7 @@ export const exams = {
     const token = localStorage.getItem('petlife_token')
     const formData = new FormData()
     formData.append('file', file)
-    const res = await fetch(`${API_URL}/exams/${id}/file`, {
+    const res = await fetch(`${API_URL}/exams/${id}/upload`, {
       method: 'POST',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: formData,
@@ -347,9 +373,10 @@ export const anamnesis = {
 // ── Routines ──────────────────────────────────────────
 export const routines = {
   generate: async (petId: number) => {
-    const res = await fetch(`${API_URL}/routines/generate/${petId}`, {
+    const res = await fetch(`${API_URL}/routines/generate`, {
       method: 'POST',
       headers: getAuthHeaders(),
+      body: JSON.stringify({ pet_id: petId }),
     })
     return handleResponse<Routine>(res)
   },
@@ -377,7 +404,7 @@ export const gamification = {
   },
 
   getUserChallenges: async () => {
-    const res = await fetch(`${API_URL}/gamification/user-challenges`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/gamification/challenges/user`, { headers: getAuthHeaders() })
     return handleResponse<UserChallenge[]>(res)
   },
 
@@ -389,8 +416,8 @@ export const gamification = {
     return handleResponse<UserChallenge>(res)
   },
 
-  completeChallenge: async (userChallengeId: number) => {
-    const res = await fetch(`${API_URL}/gamification/user-challenges/${userChallengeId}/complete`, {
+  completeChallenge: async (challengeId: number) => {
+    const res = await fetch(`${API_URL}/gamification/challenges/${challengeId}/complete`, {
       method: 'POST',
       headers: getAuthHeaders(),
     })
@@ -403,7 +430,7 @@ export const gamification = {
   },
 
   getUserPoints: async () => {
-    const res = await fetch(`${API_URL}/gamification/points`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/gamification/user/points`, { headers: getAuthHeaders() })
     return handleResponse<UserPoints>(res)
   },
 }
@@ -449,7 +476,7 @@ export const reminders = {
 
   complete: async (id: number) => {
     const res = await fetch(`${API_URL}/reminders/${id}/complete`, {
-      method: 'POST',
+      method: 'PATCH',
       headers: getAuthHeaders(),
     })
     return handleResponse<Reminder>(res)

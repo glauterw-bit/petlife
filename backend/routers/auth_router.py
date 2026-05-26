@@ -1,4 +1,5 @@
 import os
+import logging
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +7,8 @@ from sqlalchemy import select
 from datetime import timedelta, datetime
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+
+logger = logging.getLogger(__name__)
 
 # Limiter compartilhado com main.py — declarado aqui pra decorar endpoints
 _auth_limiter = Limiter(key_func=get_remote_address)
@@ -18,13 +21,10 @@ from schemas import (
 )
 from pydantic import BaseModel
 from auth import get_password_hash, verify_password, create_access_token, get_current_user
+from email_service import send_password_reset_email
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
-# Quando SMTP_ENABLED=false (default), retornamos o código direto na response
-# para desbloquear o fluxo enquanto não há servidor de e-mail configurado.
-# Em produção real, configurar Resend/SendGrid e setar SMTP_ENABLED=true.
-SMTP_ENABLED = os.getenv("SMTP_ENABLED", "false").lower() == "true"
 RESET_CODE_TTL_MINUTES = 30
 
 
@@ -109,7 +109,9 @@ class DeleteAccountRequest(BaseModel):
 
 
 @router.delete("/me", status_code=status.HTTP_200_OK)
+@_auth_limiter.limit("3/hour")
 async def delete_account(
+    request: Request,
     data: DeleteAccountRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -163,7 +165,9 @@ async def delete_account(
 
 
 @router.put("/change-password", status_code=status.HTTP_200_OK)
+@_auth_limiter.limit("5/hour")
 async def change_password(
+    request: Request,
     data: ChangePassword,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -182,9 +186,8 @@ async def change_password(
 @_auth_limiter.limit("3/hour")
 async def forgot_password(request: Request, data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
     """
-    Gera um código de 6 dígitos válido por 30 min.
+    Gera um código de 6 dígitos válido por 30 min e envia por email via Resend.
     SEMPRE retorna sucesso (não revela se o e-mail existe — proteção contra enumeração).
-    Quando SMTP_ENABLED=false, devolve o código na própria response (modo dev).
     """
     result = await db.execute(select(User).where(User.email == data.email))
     user = result.scalar_one_or_none()
@@ -196,18 +199,9 @@ async def forgot_password(request: Request, data: ForgotPasswordRequest, db: Asy
         user.password_reset_expires = datetime.utcnow() + timedelta(minutes=RESET_CODE_TTL_MINUTES)
         await db.commit()
 
-        if SMTP_ENABLED:
-            # TODO: integrar Resend/SendGrid e enviar e-mail real
-            # await send_reset_email(user.email, code)
-            pass
-
-    # SEGURANÇA: nunca retornar o código no response.
-    # Sem SMTP configurado, o código fica só no DB — admin extrai dos logs ou DB
-    # pra desbloquear contas durante dev. Em prod, configure SMTP_ENABLED=true
-    # e implemente envio real via Resend/SendGrid.
-    if user and not SMTP_ENABLED:
-        # Log o código pra dev (visível apenas em logs do servidor, não na response)
-        print(f"[DEV] Reset code for {user.email}: {code} (válido 30 min)")
+        sent = await send_password_reset_email(user.email, code, RESET_CODE_TTL_MINUTES)
+        if not sent:
+            logger.error("Failed to send password reset email to %s", user.email)
 
     return ForgotPasswordResponse(
         message="Se este e-mail existir, enviaremos instruções com o código de redefinição em alguns minutos.",

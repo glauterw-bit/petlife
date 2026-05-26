@@ -44,11 +44,12 @@ export default function SettingsPage() {
 
   async function handlePassSubmit(e: FormEvent) {
     e.preventDefault()
+    if (!passForm.current) { error('Informe a senha atual.'); return }
     if (passForm.password !== passForm.confirm) { error('As senhas não coincidem.'); return }
     if (passForm.password.length < 6) { error('A senha deve ter pelo menos 6 caracteres.'); return }
     setSavingPass(true)
     try {
-      await auth.updateProfile({ password: passForm.password } as Parameters<typeof auth.updateProfile>[0])
+      await auth.changePassword(passForm.current, passForm.password)
       success('Senha alterada com sucesso!')
       setPassForm({ current: '', password: '', confirm: '' })
     } catch (err: unknown) {

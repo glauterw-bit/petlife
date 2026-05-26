@@ -105,6 +105,17 @@ async def delete_exam(
     await db.commit()
 
 
+ALLOWED_EXAM_MIME = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+}
+ALLOWED_EXAM_EXTS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
+
+
 @router.post("/{exam_id}/upload", response_model=ExamResponse)
 async def upload_exam_file(
     exam_id: int,
@@ -114,14 +125,32 @@ async def upload_exam_file(
 ):
     exam = await _get_exam_verified(exam_id, current_user.id, db)
 
+    # Validação de MIME-type (allowlist) — bloqueia HTML/JS/EXE/etc.
+    if file.content_type and file.content_type.lower() not in ALLOWED_EXAM_MIME:
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de arquivo não permitido. Aceitos: PDF, JPG, PNG, WEBP, HEIC.",
+        )
+
+    # Validação de extensão (defesa em profundidade — content_type pode ser falso)
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext and ext not in ALLOWED_EXAM_EXTS:
+        raise HTTPException(
+            status_code=400,
+            detail="Extensão de arquivo não permitida.",
+        )
+    if not ext:
+        ext = ".pdf"
+
     content = await file.read()
     if len(content) > settings.MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="Arquivo muito grande (máximo 10MB)")
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="Arquivo vazio.")
 
     upload_dir = os.path.join(settings.UPLOAD_DIR, "exams")
     os.makedirs(upload_dir, exist_ok=True)
 
-    ext = os.path.splitext(file.filename or "exam.pdf")[1] or ".pdf"
     filename = f"{uuid.uuid4().hex}{ext}"
     filepath = os.path.join(upload_dir, filename)
 

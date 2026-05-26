@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, PawPrint, Mail, Lock, AlertCircle } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Eye, EyeOff, PawPrint, Mail, Lock, AlertCircle, Info } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login } = useAuth()
 
   const [email, setEmail] = useState('')
@@ -15,6 +16,13 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [sessionExpired, setSessionExpired] = useState(false)
+
+  useEffect(() => {
+    if (searchParams?.get('session_expired') === '1') {
+      setSessionExpired(true)
+    }
+  }, [searchParams])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -47,6 +55,12 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-white rounded-3xl shadow-xl border border-surface-100 p-8">
+          {sessionExpired && !error && (
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3 mb-6 text-sm">
+              <Info className="w-4 h-4 shrink-0" />
+              Sua sessão expirou. Entre novamente pra continuar.
+            </div>
+          )}
           {error && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-6 text-sm">
               <AlertCircle className="w-4 h-4 shrink-0" />
