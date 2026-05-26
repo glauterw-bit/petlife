@@ -7,6 +7,7 @@ import { ChallengeCard } from '@/components/gamification/ChallengeCard'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { gamification, type Challenge, type UserChallenge, type LeaderboardEntry, type UserPoints } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { celebrateBadge, hapticMedium, hapticError } from '@/lib/feedback'
 import { getLevelName, getBadgeColor } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -45,8 +46,10 @@ export default function ChallengesPage() {
     try {
       const uc = await gamification.startChallenge(challengeId)
       setUserChallenges(prev => [...prev, uc])
+      void hapticMedium()
       success('Desafio iniciado! Boa sorte! 🎯')
     } catch (err: unknown) {
+      void hapticError()
       error(err instanceof Error ? err.message : 'Erro ao iniciar desafio.')
     } finally { setActionLoading(null) }
   }
@@ -58,8 +61,10 @@ export default function ChallengesPage() {
       setUserChallenges(prev => prev.map(u => u.id === uc.id ? uc : u))
       const pts = await gamification.getUserPoints()
       setPoints(pts)
+      celebrateBadge()
       success('Parabéns! Desafio concluído! 🏆')
     } catch (err: unknown) {
+      void hapticError()
       error(err instanceof Error ? err.message : 'Erro ao completar desafio.')
     } finally { setActionLoading(null) }
   }

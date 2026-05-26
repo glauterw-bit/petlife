@@ -7,6 +7,7 @@ import { Camera, Search, ChevronDown, AlertCircle, PawPrint, Sparkles, X } from 
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { pets as petsApi, breeds as breedsApi, type Breed } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { celebratePets, hapticError } from '@/lib/feedback'
 
 interface BreedCandidate {
   breed: string
@@ -173,9 +174,12 @@ export default function NewPetPage() {
       if (photoFile) {
         await petsApi.uploadPhoto(pet.id, photoFile).catch(() => {})
       }
+      celebratePets()
       success(`${pet.name} foi cadastrado com sucesso! 🐾`)
-      router.push(`/pets/${pet.id}`)
+      // Pequeno delay pra o usuário ver o confetti antes da transição
+      setTimeout(() => router.push(`/pets/${pet.id}`), 600)
     } catch (err: unknown) {
+      void hapticError()
       error(err instanceof Error ? err.message : 'Erro ao cadastrar pet.')
     } finally {
       setLoading(false)
