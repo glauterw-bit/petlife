@@ -15,9 +15,9 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>O PetLife salva carteirinha de vacinação e outros documentos na sua galeria.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>O PetLife usa sua localização para mostrar clínicas veterinárias e pet shops próximos a você.</string>
+	<string>O PetLife usa sua localização para mostrar clínicas próximas, registrar o trajeto dos passeios do seu pet e calcular distância/ritmo em tempo real.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>O PetLife usa sua localização para mostrar clínicas próximas e enviar alertas se um pet for marcado como perdido na sua região.</string>
+	<string>O PetLife usa sua localização para registrar passeios em segundo plano, mostrar clínicas próximas e enviar alertas se um pet for marcado como perdido na sua região.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>O PetLife pode acessar contatos apenas para você convidar familiares como co-tutores de um pet.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
