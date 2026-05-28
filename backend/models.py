@@ -120,6 +120,7 @@ class Pet(Base):
     anamneses = relationship("Anamnesis", back_populates="pet", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="pet", cascade="all, delete-orphan")
     walk_routines = relationship("WalkRoutine", back_populates="pet", cascade="all, delete-orphan")
+    walk_sessions = relationship("WalkSession", back_populates="pet", cascade="all, delete-orphan")
     challenges = relationship("UserChallenge", back_populates="pet", cascade="all, delete-orphan")
 
 
@@ -419,3 +420,43 @@ class PetshopLocation(Base):
     longitude = Column(Float, nullable=True)
     services = Column(JSON, nullable=True)
     rating = Column(Float, nullable=True)
+
+
+class WalkSession(Base):
+    """Sessão de passeio cronometrada (estilo Strava)."""
+    __tablename__ = "walk_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    started_at = Column(DateTime, nullable=False)
+    ended_at = Column(DateTime, nullable=True)
+    duration_seconds = Column(Integer, nullable=False, default=0)
+    distance_meters = Column(Float, nullable=False, default=0.0)
+
+    # Lista de pontos: [{lat, lng, ts, alt?, acc?}, ...]
+    # Amostragem ~5s ou a cada 5m percorridos (o que vier antes)
+    route_points = Column(JSON, nullable=True)
+
+    # Fotos tiradas durante o passeio: ["url1", "url2", ...]
+    photos = Column(JSON, nullable=True)
+
+    note = Column(Text, nullable=True)
+    weather = Column(JSON, nullable=True)  # {temp_c, condition, humidity}
+    avg_pace_seconds_per_km = Column(Float, nullable=True)
+    avg_speed_kmh = Column(Float, nullable=True)
+    calories_estimated = Column(Float, nullable=True)
+    elevation_gain_m = Column(Float, nullable=True)
+
+    # Pet mood at end: happy, normal, tired
+    mood = Column(String(20), nullable=True)
+
+    is_shared = Column(Boolean, default=False, nullable=False)
+    shared_at = Column(DateTime, nullable=True)
+    share_image_url = Column(String(500), nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    pet = relationship("Pet", back_populates="walk_sessions")
+    user = relationship("User")

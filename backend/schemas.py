@@ -199,11 +199,20 @@ class PetResponse(BaseModel):
     neutered: bool
     microchip: Optional[str] = None
     photo: Optional[str] = None
+    photo_url: Optional[str] = None  # alias retrocompatível: frontend usa photo_url
     bio: Optional[str] = None
     created_at: datetime
     breed: Optional[BreedResponse] = None
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        # Popula photo_url a partir de photo (campo do DB)
+        instance = super().model_validate(obj, *args, **kwargs)
+        if instance.photo and not instance.photo_url:
+            instance.photo_url = instance.photo
+        return instance
 
 
 class PetFullProfile(PetResponse):
@@ -507,6 +516,83 @@ class LeaderboardEntry(BaseModel):
     total_points: int
     level: int
     badges_count: int
+
+
+# ─── Walk Session Schemas (Strava-style) ─────────────────────────────────────
+
+class RoutePoint(BaseModel):
+    lat: float
+    lng: float
+    ts: int  # unix ms
+    alt: Optional[float] = None  # altitude meters
+    acc: Optional[float] = None  # accuracy meters
+
+
+class WalkSessionStart(BaseModel):
+    pet_id: int
+
+
+class WalkSessionFinish(BaseModel):
+    ended_at: datetime
+    duration_seconds: int
+    distance_meters: float
+    route_points: Optional[List[RoutePoint]] = None
+    photos: Optional[List[str]] = None
+    note: Optional[str] = None
+    mood: Optional[str] = None  # happy, normal, tired
+    weather: Optional[dict] = None
+    elevation_gain_m: Optional[float] = None
+
+
+class WalkSessionResponse(BaseModel):
+    id: int
+    pet_id: int
+    user_id: int
+    started_at: datetime
+    ended_at: Optional[datetime] = None
+    duration_seconds: int
+    distance_meters: float
+    route_points: Optional[List[dict]] = None
+    photos: Optional[List[str]] = None
+    note: Optional[str] = None
+    mood: Optional[str] = None
+    weather: Optional[dict] = None
+    avg_pace_seconds_per_km: Optional[float] = None
+    avg_speed_kmh: Optional[float] = None
+    calories_estimated: Optional[float] = None
+    elevation_gain_m: Optional[float] = None
+    is_shared: bool
+    shared_at: Optional[datetime] = None
+    share_image_url: Optional[str] = None
+    created_at: datetime
+    pet_name: Optional[str] = None
+    pet_photo: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class WalkSessionListItem(BaseModel):
+    """Versão enxuta pra listagens (sem route_points pesados)."""
+    id: int
+    pet_id: int
+    pet_name: Optional[str] = None
+    pet_photo: Optional[str] = None
+    started_at: datetime
+    ended_at: Optional[datetime] = None
+    duration_seconds: int
+    distance_meters: float
+    avg_pace_seconds_per_km: Optional[float] = None
+    photos_count: int = 0
+    mood: Optional[str] = None
+    is_shared: bool
+
+    model_config = {"from_attributes": True}
+
+
+class WalkSessionUpdate(BaseModel):
+    note: Optional[str] = None
+    mood: Optional[str] = None
+    is_shared: Optional[bool] = None
 
 
 # Allow forward references

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   PawPrint, Syringe, FlaskConical, Trophy, Plus, ArrowRight,
-  Bell, Shield, Star, TrendingUp, Clock, CheckCircle
+  Bell, Shield, Star, TrendingUp, Clock, CheckCircle, Footprints
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
@@ -195,11 +195,11 @@ export default function DashboardPage() {
             <h2 className="text-lg font-bold text-surface-900 mb-4">Ações Rápidas</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
+                { href: '/walks/active', icon: <Footprints className="w-5 h-5" />, label: 'Passear agora', color: 'text-primary-600 bg-primary-50 hover:bg-primary-100' },
                 { href: '/health/vaccines', icon: <Syringe className="w-5 h-5" />, label: 'Nova Vacina', color: 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' },
                 { href: '/health/exams', icon: <FlaskConical className="w-5 h-5" />, label: 'Novo Exame', color: 'text-blue-600 bg-blue-50 hover:bg-blue-100' },
                 { href: '/challenges', icon: <Trophy className="w-5 h-5" />, label: 'Desafios', color: 'text-accent-600 bg-accent-50 hover:bg-accent-100' },
-                { href: '/pets/new', icon: <PawPrint className="w-5 h-5" />, label: 'Novo Pet', color: 'text-primary-600 bg-primary-50 hover:bg-primary-100' },
-                { href: '/routines', icon: <Clock className="w-5 h-5" />, label: 'Rotinas', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
+                { href: '/pets/new', icon: <PawPrint className="w-5 h-5" />, label: 'Novo Pet', color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
                 { href: '/nearby', icon: <TrendingUp className="w-5 h-5" />, label: 'Clínicas Próximas', color: 'text-green-600 bg-green-50 hover:bg-green-100' },
               ].map(a => (
                 <Link

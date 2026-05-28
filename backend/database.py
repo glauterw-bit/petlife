@@ -129,6 +129,10 @@ async def _run_migrations():
         "CREATE INDEX IF NOT EXISTS ix_pet_shares_user_status ON pet_shares(user_id, status)",
         "CREATE INDEX IF NOT EXISTS ix_pet_shares_email_status ON pet_shares(invite_email, status)",
         "CREATE INDEX IF NOT EXISTS ix_pet_relations_pet_status ON pet_relations(pet_id, status)",
+        # Walk sessions (Strava-style)
+        "CREATE INDEX IF NOT EXISTS ix_walk_sessions_user_started ON walk_sessions(user_id, started_at DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_walk_sessions_pet_started ON walk_sessions(pet_id, started_at DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_walk_sessions_active ON walk_sessions(user_id) WHERE ended_at IS NULL",
     ]
     for stmt in migrations:
         try:

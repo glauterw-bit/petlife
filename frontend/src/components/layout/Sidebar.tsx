@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   PawPrint, LayoutDashboard, Heart, Syringe, FlaskConical,
   Route, Trophy, MapPin, Settings, LogOut, Menu, X, Brain, MailOpen,
-  ChevronDown, ChevronRight, Plus, CreditCard
+  ChevronDown, ChevronRight, Plus, CreditCard, Footprints
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { cn, getSpeciesEmoji } from '@/lib/utils'
@@ -38,6 +38,7 @@ const navItems: NavItem[] = [
       { href: '/health/exams', label: 'Exames', icon: <FlaskConical className="w-4 h-4" /> },
     ],
   },
+  { href: '/walks', icon: <Footprints className="w-5 h-5" />, label: 'Passeios' },
   { href: '/routines', icon: <Route className="w-5 h-5" />, label: 'Rotinas' },
   { href: '/challenges', icon: <Trophy className="w-5 h-5" />, label: 'Desafios' },
   { href: '/nearby', icon: <MapPin className="w-5 h-5" />, label: 'Buscar Clínicas' },

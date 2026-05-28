@@ -1,0 +1,283 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
+import Image from 'next/image'
+import { ArrowLeft, Share2, Trash2, Smile, Frown, Meh, Calendar, Trophy } from 'lucide-react'
+import { Share } from '@capacitor/share'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { walks, type Walk } from '@/lib/api'
+import { useToast } from '@/components/ui/ToastContext'
+import { celebrate, hapticMedium, hapticError } from '@/lib/feedback'
+import { formatDistance, formatDuration, formatPace, generateShareCard } from '@/lib/walk-utils'
+import { PageLoader } from '@/components/ui/LoadingSpinner'
+
+const WalkMap = dynamic(() => import('@/components/walks/WalkMap'), { ssr: false })
+
+export default function WalkDetailPage() {
+  const router = useRouter()
+  const params = useParams<{ id: string }>()
+  const id = Number(params?.id)
+  const { success, error } = useToast()
+
+  const [walk, setWalk] = useState<Walk | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [note, setNote] = useState('')
+  const [mood, setMood] = useState<string | null>(null)
+  const [savingNote, setSavingNote] = useState(false)
+  const [sharing, setSharing] = useState(false)
+
+  useEffect(() => {
+    if (!id) return
+    walks.getById(id)
+      .then(w => {
+        setWalk(w)
+        setNote(w.note ?? '')
+        setMood(w.mood ?? null)
+      })
+      .catch(e => error(e instanceof Error ? e.message : 'Erro ao carregar passeio.'))
+      .finally(() => setLoading(false))
+  }, [id, error])
+
+  async function handleSaveNote() {
+    if (!walk) return
+    setSavingNote(true)
+    try {
+      const updated = await walks.update(walk.id, { note, mood: mood ?? undefined })
+      setWalk(updated)
+      success('Salvo!')
+    } catch (e) {
+      error(e instanceof Error ? e.message : 'Erro ao salvar.')
+    } finally {
+      setSavingNote(false)
+    }
+  }
+
+  async function handleShare() {
+    if (!walk) return
+    setSharing(true)
+    void hapticMedium()
+    try {
+      const blob = await generateShareCard({
+        petName: walk.pet_name ?? 'meu pet',
+        petPhotoUrl: walk.pet_photo,
+        distanceMeters: walk.distance_meters,
+        durationSeconds: walk.duration_seconds,
+        pace: walk.avg_pace_seconds_per_km,
+        caloriesEstimated: walk.calories_estimated,
+        mood: walk.mood,
+        routePoints: walk.route_points ?? [],
+        photos: walk.photos ?? [],
+      })
+
+      // Convert blob to file
+      const file = new File([blob], `petlife-passeio-${walk.id}.png`, { type: 'image/png' })
+
+      // Try Capacitor native share first (mobile), fallback to Web Share API
+      const canCapacitor = await Share.canShare().then(r => r.value).catch(() => false)
+      const shareText = `Passeio com ${walk.pet_name ?? 'meu pet'} 🐾\n${formatDistance(walk.distance_meters)} em ${formatDuration(walk.duration_seconds)}\n\nfeito no @petlife.app`
+
+      if (canCapacitor) {
+        // Write blob to temp file via FileReader → data URL
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+        await Share.share({
+          title: 'Passeio PetLife',
+          text: shareText,
+          url: dataUrl,
+          dialogTitle: 'Compartilhar passeio',
+        })
+      } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: 'Passeio PetLife',
+          text: shareText,
+          files: [file],
+        })
+      } else {
+        // Fallback: download the card
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = file.name
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+
+      // Marca como compartilhado
+      const updated = await walks.update(walk.id, { is_shared: true })
+      setWalk(updated)
+      celebrate('medium')
+      success('Compartilhado!')
+    } catch (e) {
+      void hapticError()
+      // Usuário pode ter cancelado o share — não mostrar erro nesse caso
+      const msg = e instanceof Error ? e.message : ''
+      if (!msg.toLowerCase().includes('abort') && !msg.toLowerCase().includes('cancel')) {
+        error('Erro ao compartilhar.')
+      }
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!walk) return
+    if (!confirm('Apagar este passeio? Esta ação não pode ser desfeita.')) return
+    try {
+      await walks.remove(walk.id)
+      success('Passeio apagado.')
+      router.push('/walks')
+    } catch (e) {
+      error(e instanceof Error ? e.message : 'Erro ao apagar.')
+    }
+  }
+
+  if (loading) return <DashboardLayout><PageLoader /></DashboardLayout>
+  if (!walk) {
+    return (
+      <DashboardLayout>
+        <p className="text-center text-surface-500 mt-12">Passeio não encontrado.</p>
+      </DashboardLayout>
+    )
+  }
+
+  const date = new Date(walk.started_at)
+  const dateStr = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+  return (
+    <DashboardLayout>
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-5 pl-12 md:pl-0">
+          <button onClick={() => router.back()} aria-label="Voltar" className="p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition tap-target flex items-center justify-center">
+            <ArrowLeft className="w-5 h-5 text-surface-600 dark:text-surface-300" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white leading-tight truncate">
+              Passeio com {walk.pet_name ?? 'pet'}
+            </h1>
+            <p className="text-xs md:text-sm text-surface-500 dark:text-surface-400">
+              {dateStr} · {timeStr}
+            </p>
+          </div>
+        </div>
+
+        {/* Map */}
+        <WalkMap
+          points={walk.route_points ?? []}
+          height={320}
+          follow={false}
+        />
+
+        {/* Big stats */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <StatCard label="Distância" value={formatDistance(walk.distance_meters)} />
+          <StatCard label="Tempo" value={formatDuration(walk.duration_seconds)} />
+          <StatCard label="Ritmo" value={formatPace(walk.avg_pace_seconds_per_km)} />
+          <StatCard label="Calorias" value={walk.calories_estimated ? `${Math.round(walk.calories_estimated)} kcal` : '—'} />
+        </div>
+
+        {/* Mood + note */}
+        <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl p-5 border border-surface-100 dark:border-surface-700">
+          <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3">Como o pet ficou?</h3>
+          <div className="flex gap-2 mb-4">
+            <MoodButton value="happy" active={mood === 'happy'} onClick={() => setMood(mood === 'happy' ? null : 'happy')} icon={<Smile className="w-5 h-5" />} label="Feliz" color="green" />
+            <MoodButton value="normal" active={mood === 'normal'} onClick={() => setMood(mood === 'normal' ? null : 'normal')} icon={<Meh className="w-5 h-5" />} label="Normal" color="blue" />
+            <MoodButton value="tired" active={mood === 'tired'} onClick={() => setMood(mood === 'tired' ? null : 'tired')} icon={<Frown className="w-5 h-5" />} label="Cansado" color="amber" />
+          </div>
+
+          <textarea
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            placeholder="Anote como foi o passeio…"
+            rows={3}
+            className="w-full p-3 rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 text-surface-800 dark:text-surface-100 placeholder-surface-400 focus:outline-none focus:border-primary-400 resize-none"
+          />
+
+          {(note !== (walk.note ?? '') || mood !== (walk.mood ?? null)) && (
+            <button
+              onClick={handleSaveNote}
+              disabled={savingNote}
+              className="mt-3 w-full bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 text-white py-2.5 rounded-xl font-medium transition"
+            >
+              {savingNote ? 'Salvando...' : 'Salvar'}
+            </button>
+          )}
+        </div>
+
+        {/* Photos */}
+        {walk.photos && walk.photos.length > 0 && (
+          <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl p-5 border border-surface-100 dark:border-surface-700">
+            <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3">Fotos do passeio</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {walk.photos.map((photoUrl, i) => (
+                <div key={i} className="aspect-square rounded-xl overflow-hidden bg-surface-100 dark:bg-surface-900">
+                  <Image src={photoUrl} alt={`Foto ${i + 1}`} width={300} height={300} className="object-cover w-full h-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button
+            onClick={handleShare}
+            disabled={sharing}
+            className="flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 text-white py-3.5 rounded-2xl font-semibold transition shadow-lg shadow-primary-200"
+          >
+            <Share2 className="w-5 h-5" />
+            {sharing ? 'Preparando...' : 'Compartilhar'}
+          </button>
+          <button
+            onClick={handleDelete}
+            className="flex items-center justify-center gap-2 bg-white dark:bg-surface-800 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 py-3.5 rounded-2xl font-semibold transition"
+          >
+            <Trash2 className="w-5 h-5" />
+            Apagar
+          </button>
+        </div>
+
+        {walk.is_shared && (
+          <div className="mt-3 text-xs text-center text-primary-600 dark:text-primary-400 flex items-center justify-center gap-1">
+            <Trophy className="w-3.5 h-3.5" /> Compartilhado nas redes
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  )
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 border border-surface-100 dark:border-surface-700">
+      <div className="text-xs uppercase tracking-wide text-surface-500 mb-1">{label}</div>
+      <div className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white tabular-nums">{value}</div>
+    </div>
+  )
+}
+
+function MoodButton({
+  active, onClick, icon, label, color,
+}: { value: string; active: boolean; onClick: () => void; icon: React.ReactNode; label: string; color: string }) {
+  const colorClass = {
+    green: active ? 'bg-green-500 text-white border-green-500' : 'bg-white dark:bg-surface-800 text-green-600 dark:text-green-400 border-surface-200 dark:border-surface-700',
+    blue: active ? 'bg-blue-500 text-white border-blue-500' : 'bg-white dark:bg-surface-800 text-blue-600 dark:text-blue-400 border-surface-200 dark:border-surface-700',
+    amber: active ? 'bg-amber-500 text-white border-amber-500' : 'bg-white dark:bg-surface-800 text-amber-600 dark:text-amber-400 border-surface-200 dark:border-surface-700',
+  }[color] ?? ''
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-medium transition ${colorClass}`}
+    >
+      {icon}
+      <span className="text-sm">{label}</span>
+    </button>
+  )
+}

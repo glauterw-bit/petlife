@@ -483,6 +483,151 @@ export const reminders = {
   },
 }
 
+// ── Walks (Strava-style) ──────────────────────────────
+export interface RoutePoint {
+  lat: number
+  lng: number
+  ts: number  // unix ms
+  alt?: number
+  acc?: number
+}
+
+export interface Walk {
+  id: number
+  pet_id: number
+  user_id: number
+  started_at: string
+  ended_at?: string | null
+  duration_seconds: number
+  distance_meters: number
+  route_points?: RoutePoint[]
+  photos?: string[]
+  note?: string | null
+  mood?: string | null
+  weather?: Record<string, unknown> | null
+  avg_pace_seconds_per_km?: number | null
+  avg_speed_kmh?: number | null
+  calories_estimated?: number | null
+  elevation_gain_m?: number | null
+  is_shared: boolean
+  shared_at?: string | null
+  share_image_url?: string | null
+  created_at: string
+  pet_name?: string | null
+  pet_photo?: string | null
+}
+
+export interface WalkListItem {
+  id: number
+  pet_id: number
+  pet_name?: string | null
+  pet_photo?: string | null
+  started_at: string
+  ended_at?: string | null
+  duration_seconds: number
+  distance_meters: number
+  avg_pace_seconds_per_km?: number | null
+  photos_count: number
+  mood?: string | null
+  is_shared: boolean
+}
+
+export interface WalkStats {
+  total_walks: number
+  total_distance_meters: number
+  total_duration_seconds: number
+  current_streak_days: number
+  avg_distance_meters: number
+}
+
+export const walks = {
+  start: async (pet_id: number) => {
+    const res = await fetch(`${API_URL}/walks/start`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ pet_id }),
+    })
+    return handleResponse<Walk>(res)
+  },
+
+  finish: async (
+    id: number,
+    data: {
+      ended_at: string
+      duration_seconds: number
+      distance_meters: number
+      route_points?: RoutePoint[]
+      photos?: string[]
+      note?: string
+      mood?: string
+      weather?: Record<string, unknown>
+      elevation_gain_m?: number
+    },
+  ) => {
+    const res = await fetch(`${API_URL}/walks/${id}/finish`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handleResponse<Walk>(res)
+  },
+
+  list: async (params?: { pet_id?: number; limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.pet_id) qs.set('pet_id', String(params.pet_id))
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.offset) qs.set('offset', String(params.offset))
+    const url = `${API_URL}/walks${qs.toString() ? '?' + qs.toString() : ''}`
+    const res = await fetch(url, { headers: getAuthHeaders() })
+    return handleResponse<WalkListItem[]>(res)
+  },
+
+  getActive: async () => {
+    const res = await fetch(`${API_URL}/walks/active`, { headers: getAuthHeaders() })
+    return handleResponse<Walk | null>(res)
+  },
+
+  getById: async (id: number) => {
+    const res = await fetch(`${API_URL}/walks/${id}`, { headers: getAuthHeaders() })
+    return handleResponse<Walk>(res)
+  },
+
+  update: async (id: number, data: { note?: string; mood?: string; is_shared?: boolean }) => {
+    const res = await fetch(`${API_URL}/walks/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handleResponse<Walk>(res)
+  },
+
+  remove: async (id: number) => {
+    const res = await fetch(`${API_URL}/walks/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    })
+    return handleResponse<void>(res)
+  },
+
+  uploadPhoto: async (id: number, file: File) => {
+    const token = localStorage.getItem('petlife_token')
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`${API_URL}/walks/${id}/photo`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: formData,
+    })
+    return handleResponse<Walk>(res)
+  },
+
+  stats: async (pet_id?: number) => {
+    const qs = pet_id ? `?pet_id=${pet_id}` : ''
+    const res = await fetch(`${API_URL}/walks/stats${qs}`, { headers: getAuthHeaders() })
+    return handleResponse<WalkStats>(res)
+  },
+}
+
 // ── Search / Nearby ───────────────────────────────────
 export const search = {
   nearby: async (lat: number, lon: number, type: string, radius?: number) => {

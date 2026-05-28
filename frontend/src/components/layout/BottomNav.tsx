@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, PawPrint, ShieldCheck, Bell, User } from 'lucide-react'
+import { Home, PawPrint, Footprints, ShieldCheck, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const ITEMS = [
   { href: '/dashboard', label: 'Início', Icon: Home, match: (p: string) => p === '/dashboard' },
   { href: '/pets', label: 'Pets', Icon: PawPrint, match: (p: string) => p.startsWith('/pets') },
+  { href: '/walks', label: 'Passeios', Icon: Footprints, match: (p: string) => p.startsWith('/walks') },
   { href: '/health/vaccines', label: 'Saúde', Icon: ShieldCheck, match: (p: string) => p.startsWith('/health') },
-  { href: '/routines', label: 'Lembretes', Icon: Bell, match: (p: string) => p.startsWith('/routines') || p.startsWith('/challenges') },
   { href: '/settings', label: 'Perfil', Icon: User, match: (p: string) => p.startsWith('/settings') },
 ]
 
