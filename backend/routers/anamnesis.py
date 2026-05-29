@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from database import get_db
-from models import Pet, Anamnesis, Breed
+from models import Pet, Anamnesis, Breed, user_has_pet_access
 from schemas import AnamnesisCreate, AnamnesisResponse
 from auth import get_current_user
 from models import User
@@ -39,7 +39,7 @@ async def create_anamnesis(
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    if pet.user_id != current_user.id:
+    if not await user_has_pet_access(db, pet.id, current_user.id):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     anamnesis = Anamnesis(
@@ -106,7 +106,7 @@ async def list_anamneses_for_pet(
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    if pet.user_id != current_user.id:
+    if not await user_has_pet_access(db, pet.id, current_user.id):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     result = await db.execute(
@@ -131,6 +131,6 @@ async def get_anamnesis(
     anamnesis = result.scalar_one_or_none()
     if not anamnesis:
         raise HTTPException(status_code=404, detail="Anamnese não encontrada")
-    if anamnesis.pet.user_id != current_user.id:
+    if not await user_has_pet_access(db, anamnesis.pet_id, current_user.id):
         raise HTTPException(status_code=403, detail="Acesso negado")
     return anamnesis

@@ -30,7 +30,7 @@ export function BottomNav() {
                 href={href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 py-2 px-1 min-h-[56px] transition',
+                  'flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 min-h-[60px] tap-target transition',
                   active ? 'text-primary-600' : 'text-surface-500 hover:text-surface-800',
                 )}
               >

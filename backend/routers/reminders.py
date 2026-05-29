@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
 from database import get_db
-from models import Reminder, Pet
+from models import Reminder, Pet, user_has_pet_access
 from schemas import ReminderCreate, ReminderUpdate, ReminderResponse
 from auth import get_current_user
 from models import User
@@ -33,7 +33,7 @@ async def create_reminder(
         pet = result.scalar_one_or_none()
         if not pet:
             raise HTTPException(status_code=404, detail="Pet não encontrado")
-        if pet.user_id != current_user.id:
+        if not await user_has_pet_access(db, pet.id, current_user.id):
             raise HTTPException(status_code=403, detail="Acesso negado")
 
     reminder = Reminder(

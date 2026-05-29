@@ -146,19 +146,23 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                     </p>
                   </div>
                   <div className="flex flex-col gap-1">
-                    {s.status === 'pending' && (
+                    {s.status === 'pending' && s.invite_token && (
                       <button
-                        onClick={() => { const tok = shares.find(x => x.id === s.id); if (tok) {} /* token isnt returned in list — could re-issue */ copyLink('')}}
-                        aria-label="Copiar link"
-                        className="hidden p-1.5 rounded-lg text-surface-500 hover:text-cyan-600"
+                        onClick={() => copyLink(s.invite_token!)}
+                        aria-label="Copiar link do convite"
+                        title="Copiar link"
+                        className="tap-target p-1.5 rounded-lg text-surface-500 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition"
                       >
-                        {copiedToken ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedToken === s.invite_token
+                          ? <Check className="w-3.5 h-3.5 text-green-600" />
+                          : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     )}
                     <button
                       onClick={() => revoke(s.id)}
-                      aria-label="Revogar"
-                      className="p-1.5 rounded-lg text-surface-500 hover:text-red-600"
+                      aria-label="Revogar acesso"
+                      title="Revogar"
+                      className="tap-target p-1.5 rounded-lg text-surface-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

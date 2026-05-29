@@ -129,10 +129,10 @@ async def pet_health_suggestions(
 ):
     """Sugestões automáticas de vacinas/check-ups baseado em espécie + idade.
     Cruza com vacinas já aplicadas para não sugerir o que já foi feito."""
-    from models import Pet, Vaccine
+    from models import Pet, Vaccine, pet_accessible_filter
     from health_protocols import suggested_health_plan
 
-    result = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    result = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")

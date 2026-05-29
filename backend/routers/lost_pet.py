@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from database import get_db, AsyncSessionLocal
-from models import Pet, User
+from models import Pet, User, user_has_pet_access
 from auth import get_current_user
 
 router = APIRouter(prefix="/pets", tags=["Lost Pet"])
@@ -33,7 +33,7 @@ async def toggle_lost(
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    if pet.user_id != current_user.id:
+    if not await user_has_pet_access(db, pet.id, current_user.id):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     pet.is_lost = payload.is_lost

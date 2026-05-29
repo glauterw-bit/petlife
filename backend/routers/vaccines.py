@@ -7,7 +7,7 @@ from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 
 from database import get_db, settings
-from models import Pet, Vaccine
+from models import Pet, Vaccine, PetShare, pet_accessible_filter
 from schemas import VaccineCreate, VaccineUpdate, VaccineResponse
 from auth import get_current_user
 from models import User
@@ -15,12 +15,20 @@ from models import User
 router = APIRouter(prefix="/vaccines", tags=["Vacinas"])
 
 
+async def _user_has_pet_access(db: AsyncSession, pet_id: int, user_id: int) -> bool:
+    """True se user é owner OU share aceito."""
+    q = await db.execute(
+        select(Pet.id).where(Pet.id == pet_id, pet_accessible_filter(user_id))
+    )
+    return q.scalar_one_or_none() is not None
+
+
 async def _get_pet_and_verify(pet_id: int, user_id: int, db: AsyncSession) -> Pet:
     result = await db.execute(select(Pet).where(Pet.id == pet_id))
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    if pet.user_id != user_id:
+    if not await _user_has_pet_access(db, pet_id, user_id):
         raise HTTPException(status_code=403, detail="Acesso negado")
     return pet
 
@@ -32,7 +40,7 @@ async def _get_vaccine_and_verify(vaccine_id: int, user_id: int, db: AsyncSessio
     vaccine = result.scalar_one_or_none()
     if not vaccine:
         raise HTTPException(status_code=404, detail="Vacina não encontrada")
-    if vaccine.pet.user_id != user_id:
+    if not await _user_has_pet_access(db, vaccine.pet_id, user_id):
         raise HTTPException(status_code=403, detail="Acesso negado")
     return vaccine
 
@@ -83,7 +91,7 @@ async def get_upcoming_vaccine_reminders(
     future = now + timedelta(days=days_ahead)
 
     pet_result = await db.execute(
-        select(Pet.id).where(Pet.user_id == current_user.id)
+        select(Pet.id).where(pet_accessible_filter(current_user.id))
     )
     pet_ids = [row[0] for row in pet_result.fetchall()]
 

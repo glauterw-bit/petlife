@@ -4,16 +4,25 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { ArrowLeft, Share2, Trash2, Smile, Frown, Meh, Calendar, Trophy } from 'lucide-react'
+import { ArrowLeft, Share2, Trash2, Smile, Frown, Meh, Trophy, Heart, Download, Instagram, MessageCircle, X } from 'lucide-react'
 import { Share } from '@capacitor/share'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { walks, type Walk } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
-import { celebrate, hapticMedium, hapticError } from '@/lib/feedback'
+import { celebrate, hapticMedium, hapticError, hapticLight } from '@/lib/feedback'
 import { formatDistance, formatDuration, formatPace, generateShareCard } from '@/lib/walk-utils'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 
 const WalkMap = dynamic(() => import('@/components/walks/WalkMap'), { ssr: false })
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 export default function WalkDetailPage() {
   const router = useRouter()
@@ -27,18 +36,39 @@ export default function WalkDetailPage() {
   const [mood, setMood] = useState<string | null>(null)
   const [savingNote, setSavingNote] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [kudos, setKudos] = useState<{ count: number; mine: boolean }>({ count: 0, mine: false })
+  const [shareSheetOpen, setShareSheetOpen] = useState(false)
 
   useEffect(() => {
     if (!id) return
-    walks.getById(id)
-      .then(w => {
+    Promise.all([
+      walks.getById(id),
+      walks.listKudos(id).catch(() => null),
+    ])
+      .then(([w, k]) => {
         setWalk(w)
         setNote(w.note ?? '')
         setMood(w.mood ?? null)
+        if (k) setKudos({ count: k.kudos_count, mine: k.given_by_me })
       })
       .catch(e => error(e instanceof Error ? e.message : 'Erro ao carregar passeio.'))
       .finally(() => setLoading(false))
   }, [id, error])
+
+  async function toggleKudos() {
+    if (!walk) return
+    void hapticLight()
+    const wasMine = kudos.mine
+    setKudos(k => ({ count: k.count + (wasMine ? -1 : 1), mine: !wasMine }))
+    try {
+      const res = wasMine ? await walks.removeKudos(walk.id) : await walks.giveKudos(walk.id)
+      setKudos({ count: res.kudos_count, mine: res.given })
+      if (!wasMine) celebrate('small')
+    } catch (e) {
+      setKudos({ count: kudos.count, mine: wasMine })
+      error(e instanceof Error ? e.message : 'Erro ao curtir.')
+    }
+  }
 
   async function handleSaveNote() {
     if (!walk) return
@@ -54,72 +84,164 @@ export default function WalkDetailPage() {
     }
   }
 
-  async function handleShare() {
+  async function buildShareCard(): Promise<{ blob: Blob; file: File; text: string } | null> {
+    if (!walk) return null
+    const blob = await generateShareCard({
+      petName: walk.pet_name ?? 'meu pet',
+      petPhotoUrl: walk.pet_photo,
+      distanceMeters: walk.distance_meters,
+      durationSeconds: walk.duration_seconds,
+      pace: walk.avg_pace_seconds_per_km,
+      caloriesEstimated: walk.calories_estimated,
+      mood: walk.mood,
+      routePoints: walk.route_points ?? [],
+      photos: walk.photos ?? [],
+    })
+    const file = new File([blob], `petlife-passeio-${walk.id}.png`, { type: 'image/png' })
+    const text = `Passeio com ${walk.pet_name ?? 'meu pet'} 🐾\n${formatDistance(walk.distance_meters)} em ${formatDuration(walk.duration_seconds)}\n\nfeito no @petlife.app`
+    return { blob, file, text }
+  }
+
+  async function markShared() {
     if (!walk) return
-    setSharing(true)
-    void hapticMedium()
     try {
-      const blob = await generateShareCard({
-        petName: walk.pet_name ?? 'meu pet',
-        petPhotoUrl: walk.pet_photo,
-        distanceMeters: walk.distance_meters,
-        durationSeconds: walk.duration_seconds,
-        pace: walk.avg_pace_seconds_per_km,
-        caloriesEstimated: walk.calories_estimated,
-        mood: walk.mood,
-        routePoints: walk.route_points ?? [],
-        photos: walk.photos ?? [],
-      })
-
-      // Convert blob to file
-      const file = new File([blob], `petlife-passeio-${walk.id}.png`, { type: 'image/png' })
-
-      // Try Capacitor native share first (mobile), fallback to Web Share API
-      const canCapacitor = await Share.canShare().then(r => r.value).catch(() => false)
-      const shareText = `Passeio com ${walk.pet_name ?? 'meu pet'} 🐾\n${formatDistance(walk.distance_meters)} em ${formatDuration(walk.duration_seconds)}\n\nfeito no @petlife.app`
-
-      if (canCapacitor) {
-        // Write blob to temp file via FileReader → data URL
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result as string)
-          reader.onerror = reject
-          reader.readAsDataURL(blob)
-        })
-        await Share.share({
-          title: 'Passeio PetLife',
-          text: shareText,
-          url: dataUrl,
-          dialogTitle: 'Compartilhar passeio',
-        })
-      } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: 'Passeio PetLife',
-          text: shareText,
-          files: [file],
-        })
-      } else {
-        // Fallback: download the card
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = file.name
-        a.click()
-        URL.revokeObjectURL(url)
-      }
-
-      // Marca como compartilhado
       const updated = await walks.update(walk.id, { is_shared: true })
       setWalk(updated)
+    } catch { /* não-crítico */ }
+  }
+
+  async function handleNativeShare() {
+    if (!walk) return
+    setSharing(true)
+    setShareSheetOpen(false)
+    void hapticMedium()
+    try {
+      const built = await buildShareCard()
+      if (!built) return
+      const { blob, file, text } = built
+      const canCapacitor = await Share.canShare().then(r => r.value).catch(() => false)
+      if (canCapacitor) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader()
+          r.onload = () => resolve(r.result as string)
+          r.onerror = reject
+          r.readAsDataURL(blob)
+        })
+        await Share.share({ title: 'Passeio PetLife', text, url: dataUrl, dialogTitle: 'Compartilhar passeio' })
+      } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: 'Passeio PetLife', text, files: [file] })
+      } else {
+        downloadBlob(blob, file.name)
+      }
+      await markShared()
       celebrate('medium')
       success('Compartilhado!')
     } catch (e) {
       void hapticError()
-      // Usuário pode ter cancelado o share — não mostrar erro nesse caso
       const msg = e instanceof Error ? e.message : ''
       if (!msg.toLowerCase().includes('abort') && !msg.toLowerCase().includes('cancel')) {
         error('Erro ao compartilhar.')
       }
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  async function handleShareWhatsApp() {
+    if (!walk) return
+    setSharing(true)
+    setShareSheetOpen(false)
+    void hapticMedium()
+    try {
+      const built = await buildShareCard()
+      if (!built) return
+      const { blob, file, text } = built
+      // iOS/Android: tenta share nativo com arquivo (Whatsapp aparece no sheet)
+      const canCapacitor = await Share.canShare().then(r => r.value).catch(() => false)
+      if (canCapacitor || (navigator.share && navigator.canShare?.({ files: [file] }))) {
+        if (canCapacitor) {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const r = new FileReader()
+            r.onload = () => resolve(r.result as string)
+            r.onerror = reject
+            r.readAsDataURL(blob)
+          })
+          await Share.share({ text, url: dataUrl, dialogTitle: 'Compartilhar no WhatsApp' })
+        } else {
+          await navigator.share({ text, files: [file] })
+        }
+      } else {
+        // Web: baixa imagem + abre wa.me com texto (sem imagem, limitação do WhatsApp Web)
+        downloadBlob(blob, file.name)
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
+        window.open(waUrl, '_blank')
+      }
+      await markShared()
+      success('Compartilhado no WhatsApp!')
+    } catch (e) {
+      void hapticError()
+      const msg = e instanceof Error ? e.message : ''
+      if (!msg.toLowerCase().includes('abort') && !msg.toLowerCase().includes('cancel')) {
+        error('Erro ao compartilhar.')
+      }
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  async function handleShareInstagram() {
+    if (!walk) return
+    setSharing(true)
+    setShareSheetOpen(false)
+    void hapticMedium()
+    try {
+      const built = await buildShareCard()
+      if (!built) return
+      const { blob, file } = built
+      // Mobile: share nativo (Instagram aparece como opção)
+      const canCapacitor = await Share.canShare().then(r => r.value).catch(() => false)
+      if (canCapacitor) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader()
+          r.onload = () => resolve(r.result as string)
+          r.onerror = reject
+          r.readAsDataURL(blob)
+        })
+        await Share.share({ url: dataUrl, dialogTitle: 'Stories no Instagram' })
+        success('Selecione Instagram no menu de compartilhamento!')
+      } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file] })
+        success('Selecione Instagram no menu de compartilhamento!')
+      } else {
+        // Web: baixa imagem e instrui usuário
+        downloadBlob(blob, file.name)
+        success('Imagem baixada — abra o Instagram pra postar nos Stories!')
+      }
+      await markShared()
+    } catch (e) {
+      void hapticError()
+      const msg = e instanceof Error ? e.message : ''
+      if (!msg.toLowerCase().includes('abort') && !msg.toLowerCase().includes('cancel')) {
+        error('Erro ao compartilhar.')
+      }
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  async function handleSaveImage() {
+    if (!walk) return
+    setSharing(true)
+    setShareSheetOpen(false)
+    void hapticLight()
+    try {
+      const built = await buildShareCard()
+      if (!built) return
+      downloadBlob(built.blob, built.file.name)
+      success('Imagem salva!')
+    } catch {
+      void hapticError()
+      error('Erro ao salvar imagem.')
     } finally {
       setSharing(false)
     }
@@ -225,19 +347,42 @@ export default function WalkDetailPage() {
           </div>
         )}
 
+        {/* Kudos */}
+        <div className="mt-4 flex items-center gap-3 bg-white dark:bg-surface-800 rounded-2xl p-4 border border-surface-100 dark:border-surface-700">
+          <button
+            onClick={toggleKudos}
+            aria-label={kudos.mine ? 'Remover kudo' : 'Dar kudo'}
+            className={`tap-target w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-90 ${
+              kudos.mine
+                ? 'bg-pink-500 text-white shadow-lg shadow-pink-200 dark:shadow-pink-900/40'
+                : 'bg-surface-100 dark:bg-surface-700 text-surface-500 dark:text-surface-300'
+            }`}
+          >
+            <Heart className={`w-5 h-5 ${kudos.mine ? 'fill-current' : ''}`} />
+          </button>
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-surface-900 dark:text-white">
+              {kudos.count === 0 ? 'Seja o primeiro a curtir' : `${kudos.count} kudo${kudos.count > 1 ? 's' : ''}`}
+            </div>
+            <div className="text-xs text-surface-500 dark:text-surface-400">
+              {kudos.mine ? 'Você curtiu este passeio' : 'Toque no coração pra reagir'}
+            </div>
+          </div>
+        </div>
+
         {/* Actions */}
         <div className="mt-5 grid grid-cols-2 gap-3">
           <button
-            onClick={handleShare}
+            onClick={() => setShareSheetOpen(true)}
             disabled={sharing}
-            className="flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 text-white py-3.5 rounded-2xl font-semibold transition shadow-lg shadow-primary-200"
+            className="tap-target flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 text-white py-3.5 rounded-2xl font-semibold transition shadow-lg shadow-primary-200"
           >
             <Share2 className="w-5 h-5" />
             {sharing ? 'Preparando...' : 'Compartilhar'}
           </button>
           <button
             onClick={handleDelete}
-            className="flex items-center justify-center gap-2 bg-white dark:bg-surface-800 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 py-3.5 rounded-2xl font-semibold transition"
+            className="tap-target flex items-center justify-center gap-2 bg-white dark:bg-surface-800 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 py-3.5 rounded-2xl font-semibold transition"
           >
             <Trash2 className="w-5 h-5" />
             Apagar
@@ -249,8 +394,86 @@ export default function WalkDetailPage() {
             <Trophy className="w-3.5 h-3.5" /> Compartilhado nas redes
           </div>
         )}
+
+        {/* Share sheet */}
+        {shareSheetOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center"
+            onClick={() => setShareSheetOpen(false)}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              className="w-full sm:max-w-sm bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] animate-slide-up shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-surface-900 dark:text-white">Compartilhar passeio</h3>
+                <button
+                  onClick={() => setShareSheetOpen(false)}
+                  aria-label="Fechar"
+                  className="tap-target rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 flex items-center justify-center"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                <ShareOption
+                  icon={<Instagram className="w-5 h-5" />}
+                  label="Stories no Instagram"
+                  description="Card 1080×1920 pronto"
+                  onClick={handleShareInstagram}
+                  color="instagram"
+                />
+                <ShareOption
+                  icon={<MessageCircle className="w-5 h-5" />}
+                  label="WhatsApp"
+                  description="Manda pra família e amigos"
+                  onClick={handleShareWhatsApp}
+                  color="whatsapp"
+                />
+                <ShareOption
+                  icon={<Share2 className="w-5 h-5" />}
+                  label="Mais opções"
+                  description="Sistema nativo (todos os apps)"
+                  onClick={handleNativeShare}
+                  color="default"
+                />
+                <ShareOption
+                  icon={<Download className="w-5 h-5" />}
+                  label="Salvar imagem"
+                  description="Baixa no rolo de câmera"
+                  onClick={handleSaveImage}
+                  color="default"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
+  )
+}
+
+function ShareOption({
+  icon, label, description, onClick, color,
+}: { icon: React.ReactNode; label: string; description: string; onClick: () => void; color: 'instagram' | 'whatsapp' | 'default' }) {
+  const colorClass = {
+    instagram: 'bg-gradient-to-br from-pink-500 via-fuchsia-500 to-orange-400 text-white',
+    whatsapp: 'bg-green-500 text-white',
+    default: 'bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200',
+  }[color]
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 p-3 rounded-2xl border border-surface-100 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-700/40 transition tap-target text-left"
+    >
+      <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
+        {icon}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-surface-900 dark:text-white">{label}</div>
+        <div className="text-xs text-surface-500 dark:text-surface-400 truncate">{description}</div>
+      </div>
+    </button>
   )
 }
 

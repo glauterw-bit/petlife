@@ -91,7 +91,8 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
         <button
           onClick={() => setOpen(true)}
           aria-label="Abrir chat com Vyron IA"
-          className="fixed bottom-nav md:bottom-6 right-4 md:right-6 z-40 flex items-center gap-2 bg-primary-500 text-white pl-3 pr-4 py-3 rounded-full shadow-xl shadow-primary-300/50 hover:bg-primary-600 transition-all hover:scale-105 animate-pulse-soft"
+          style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
+          className="fixed bottom-nav md:bottom-6 z-40 flex items-center gap-2 bg-primary-500 text-white pl-3 pr-4 py-3 tap-target rounded-full shadow-xl shadow-primary-300/50 hover:bg-primary-600 transition-all hover:scale-105 animate-pulse-soft"
         >
           <MessageCircle className="w-5 h-5" />
           <span className="text-sm font-semibold">Vyron IA</span>
@@ -100,7 +101,13 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
 
       {/* Chat modal */}
       {open && (
-        <div className="fixed bottom-nav md:bottom-6 right-2 md:right-6 left-2 md:left-auto z-40 md:w-96 max-h-[80vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-surface-200 overflow-hidden animate-slide-up">
+        <div
+          style={{
+            right: 'max(0.5rem, env(safe-area-inset-right))',
+            left: 'max(0.5rem, env(safe-area-inset-left))',
+          }}
+          className="fixed bottom-nav md:bottom-6 md:right-6 md:left-auto z-40 md:w-96 max-h-[min(80dvh,640px)] flex flex-col bg-white rounded-2xl shadow-2xl border border-surface-200 overflow-hidden animate-slide-up"
+        >
           {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-primary-500 text-white">
             <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
@@ -150,7 +157,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
           )}
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ maxHeight: '350px' }}>
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
             {messages.map(msg => (
               <div
                 key={msg.id}
@@ -199,20 +206,26 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
           </div>
 
           {/* Input */}
-          <div className="px-3 py-3 border-t border-surface-100 flex gap-2">
+          <div className="px-3 py-3 border-t border-surface-100 flex gap-2 shrink-0 pb-keyboard">
             <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) sendMessage() }}
+              onFocus={() => {
+                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 250)
+              }}
               placeholder="Pergunte algo sobre seu pet..."
-              className="flex-1 text-sm px-3 py-2 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="flex-1 text-base px-3 py-2 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              inputMode="text"
+              enterKeyHint="send"
             />
             <button
               onClick={sendMessage}
+              aria-label="Enviar mensagem"
               disabled={!input.trim() || loading}
-              className="w-10 h-10 bg-primary-500 text-white rounded-xl flex items-center justify-center hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="tap-target bg-primary-500 text-white rounded-xl flex items-center justify-center hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition px-3"
             >
               <Send className="w-4 h-4" />
             </button>
