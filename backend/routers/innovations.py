@@ -13,7 +13,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from database import get_db
-from models import Pet, User, PetWeightHistory, BehaviorPlan, BehaviorCheckIn, Vaccine, Exam, Anamnesis, Reminder, UserChallenge, PetBehaviorLog, PetStory, PetShare, PetRelation
+from models import Pet, User, PetWeightHistory, BehaviorPlan, BehaviorCheckIn, Vaccine, Exam, Anamnesis, Reminder, UserChallenge, PetBehaviorLog, PetStory, PetShare, PetRelation, PetActivityLog, Notification, pet_accessible_filter, log_pet_activity, notify_pet_collaborators
 import secrets as _secrets
 from sqlalchemy import or_
 from database import settings as db_settings
@@ -60,7 +60,7 @@ async def bedtime_story(
     result = await db.execute(
         select(Pet)
         .options(selectinload(Pet.breed))
-        .where(Pet.id == body.pet_id, Pet.user_id == current_user.id)
+        .where(Pet.id == body.pet_id, pet_accessible_filter(current_user.id))
     )
     pet = result.scalar_one_or_none()
     if not pet:
@@ -107,7 +107,7 @@ async def pain_assessment(
         raise HTTPException(status_code=400, detail="Imagem inválida.")
 
     result = await db.execute(
-        select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, Pet.user_id == current_user.id)
+        select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, pet_accessible_filter(current_user.id))
     )
     pet = result.scalar_one_or_none()
     if not pet:
@@ -150,7 +150,7 @@ async def stool_analysis(
         raise HTTPException(status_code=400, detail="Imagem inválida.")
 
     result = await db.execute(
-        select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id)
+        select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id))
     )
     pet = result.scalar_one_or_none()
     if not pet:
@@ -189,7 +189,7 @@ async def add_weight(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -205,6 +205,20 @@ async def add_weight(
     db.add(entry)
     # Atualiza peso atual do pet também
     pet.weight = body.weight_kg
+    actor_first = current_user.name.split()[0]
+    await log_pet_activity(
+        db, pet_id, current_user.id,
+        action="weight_added",
+        summary=f"{actor_first} registrou peso de {body.weight_kg} kg",
+        meta={"weight_kg": body.weight_kg},
+    )
+    await notify_pet_collaborators(
+        db, pet_id, current_user.id,
+        type="weight_added",
+        title=f"{actor_first} atualizou o peso de {pet.name}",
+        body=f"{body.weight_kg} kg registrado",
+        link=f"/pets/{pet_id}",
+    )
     await db.commit()
     await db.refresh(entry)
     return {
@@ -221,7 +235,7 @@ async def get_weight_history(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -285,7 +299,7 @@ async def create_behavior_plan(
     db: AsyncSession = Depends(get_db),
 ):
     pet_q = await db.execute(
-        select(Pet).options(selectinload(Pet.breed)).where(Pet.id == body.pet_id, Pet.user_id == current_user.id)
+        select(Pet).options(selectinload(Pet.breed)).where(Pet.id == body.pet_id, pet_accessible_filter(current_user.id))
     )
     pet = pet_q.scalar_one_or_none()
     if not pet:
@@ -460,7 +474,7 @@ async def petlife_wrapped(
 ):
     from sqlalchemy import func, extract
 
-    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -585,13 +599,27 @@ async def add_behavior_log(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
 
     log = PetBehaviorLog(pet_id=pet_id, **body.model_dump(exclude_none=True))
     db.add(log)
+    actor_first = current_user.name.split()[0]
+    await log_pet_activity(
+        db, pet_id, current_user.id,
+        action="behavior_logged",
+        summary=f"{actor_first} registrou bem-estar ({body.mood or 'check-in'})",
+        meta={"mood": body.mood, "appetite": body.appetite},
+    )
+    await notify_pet_collaborators(
+        db, pet_id, current_user.id,
+        type="behavior_logged",
+        title=f"{actor_first} registrou bem-estar de {pet.name}",
+        body=f"Humor: {body.mood or 'check-in'}",
+        link=f"/pets/{pet_id}",
+    )
     await db.commit()
     await db.refresh(log)
     return {"id": log.id, "logged_at": log.logged_at.isoformat()}
@@ -604,7 +632,7 @@ async def get_behavior_logs(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -646,7 +674,7 @@ async def analyze_behavior(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -694,7 +722,7 @@ async def senior_protocol(
     db: AsyncSession = Depends(get_db),
 ):
     """Pets 7+ anos (cães) ou 10+ (gatos) ganham protocolo semestral curado."""
-    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -790,7 +818,7 @@ async def set_memorial(
     db: AsyncSession = Depends(get_db),
 ):
     pet_q = await db.execute(
-        select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, Pet.user_id == current_user.id)
+        select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, pet_accessible_filter(current_user.id))
     )
     pet = pet_q.scalar_one_or_none()
     if not pet:
@@ -872,7 +900,7 @@ async def add_story(
     db: AsyncSession = Depends(get_db),
 ):
     """Sobe foto + IA gera caption automática + emoção detectada."""
-    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -922,6 +950,20 @@ async def add_story(
         ai_emotion=ai_emotion,
     )
     db.add(story)
+    actor_first = current_user.name.split()[0]
+    await log_pet_activity(
+        db, pet_id, current_user.id,
+        action="story_created",
+        summary=f"{actor_first} postou uma nova foto",
+        meta={"photo_url": photo_url},
+    )
+    await notify_pet_collaborators(
+        db, pet_id, current_user.id,
+        type="story_created",
+        title=f"{actor_first} postou uma foto de {pet.name}",
+        body=ai_caption or user_caption or "Confira a nova foto",
+        link=f"/pets/{pet_id}",
+    )
     await db.commit()
     await db.refresh(story)
 
@@ -942,7 +984,7 @@ async def list_stories(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -1087,6 +1129,7 @@ async def list_pet_shares(
             "invited_at": s.invited_at.isoformat(),
             "accepted_at": s.accepted_at.isoformat() if s.accepted_at else None,
             "is_owner": s.user_id == pet.user_id,
+            "invite_token": s.invite_token if s.status == "pending" else None,
         }
         for s, name, user_email in q.all()
     ]
@@ -1167,16 +1210,64 @@ async def accept_invite(
     share.user_id = current_user.id
     share.status = "accepted"
     share.accepted_at = datetime.utcnow()
-    await db.commit()
 
     pet_q = await db.execute(select(Pet).where(Pet.id == share.pet_id))
     pet = pet_q.scalar_one_or_none()
+
+    # Avisa o tutor original
+    if pet:
+        actor_first = current_user.name.split()[0]
+        db.add(Notification(
+            user_id=share.invited_by_user_id,
+            pet_id=pet.id,
+            actor_user_id=current_user.id,
+            type="invite_accepted",
+            title=f"{actor_first} aceitou o convite",
+            body=f"Agora também é {share.role.replace('_', ' ')} de {pet.name}",
+            link=f"/pets/{pet.id}",
+        ))
+    await db.commit()
     return {
         "message": "Convite aceito",
         "pet_id": share.pet_id,
         "pet_name": pet.name if pet else None,
         "role": share.role,
     }
+
+
+@router.get("/pets/{pet_id}/activity")
+async def list_pet_activity(
+    pet_id: int,
+    limit: int = 30,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Lista atividade recente do pet — quem fez o quê (auditoria pra família/co-tutores)."""
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    q = await db.execute(
+        select(PetActivityLog, User.name)
+        .join(User, PetActivityLog.user_id == User.id)
+        .where(PetActivityLog.pet_id == pet_id)
+        .order_by(PetActivityLog.created_at.desc())
+        .limit(min(limit, 100))
+    )
+    return [
+        {
+            "id": log.id,
+            "user_id": log.user_id,
+            "user_name": user_name,
+            "action": log.action,
+            "summary": log.summary,
+            "meta": log.meta,
+            "created_at": log.created_at.isoformat(),
+            "is_me": log.user_id == current_user.id,
+        }
+        for log, user_name in q.all()
+    ]
 
 
 @router.post("/invites/{token}/decline")
@@ -1248,7 +1339,7 @@ async def add_relation(
     if pet_id == body.related_pet_id:
         raise HTTPException(status_code=400, detail="Pet não pode ter relação consigo mesmo")
 
-    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -1492,7 +1583,7 @@ async def snapshot_triage(
     result = await db.execute(
         select(Pet)
         .options(selectinload(Pet.breed))
-        .where(Pet.id == pet_id, Pet.user_id == current_user.id)
+        .where(Pet.id == pet_id, pet_accessible_filter(current_user.id))
     )
     pet = result.scalar_one_or_none()
     if not pet:

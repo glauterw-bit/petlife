@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 _ai_limiter = Limiter(key_func=get_remote_address)
 
 from database import get_db
-from models import Pet, Anamnesis, Breed, Vaccine, Exam, Reminder, PetBehaviorLog, PetWeightHistory, BehaviorPlan
+from models import Pet, Anamnesis, Breed, Vaccine, Exam, Reminder, PetBehaviorLog, PetWeightHistory, BehaviorPlan, pet_accessible_filter, user_has_pet_access
 from schemas import AIChatRequest, AIChatResponse, AIAnalysisRequest, AIAnalysisResponse
 from auth import get_current_user
 from models import User
@@ -46,7 +46,7 @@ async def ai_chat(
         result = await db.execute(
             select(Pet)
             .options(selectinload(Pet.breed))
-            .where(Pet.id == body.pet_id, Pet.user_id == current_user.id)
+            .where(Pet.id == body.pet_id, pet_accessible_filter(current_user.id))
         )
         pet = result.scalar_one_or_none()
         if pet:
@@ -220,7 +220,7 @@ async def analyze_anamnesis(
     anamnesis = result.scalar_one_or_none()
     if not anamnesis:
         raise HTTPException(status_code=404, detail="Anamnese não encontrada")
-    if anamnesis.pet.user_id != current_user.id:
+    if not await user_has_pet_access(db, anamnesis.pet_id, current_user.id):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     pet = anamnesis.pet

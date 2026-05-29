@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Play, Activity, Flame, Calendar, ChevronRight, MapPin } from 'lucide-react'
+import { Play, Activity, Flame, Calendar, ChevronRight, MapPin, Trophy, Heart } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { walks, type WalkListItem, type WalkStats } from '@/lib/api'
+import { walks, type WalkListItem, type WalkStats, type WalkBadge } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { formatDistance, formatDuration, formatPace } from '@/lib/walk-utils'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
@@ -14,13 +14,19 @@ export default function WalksPage() {
   const { error } = useToast()
   const [items, setItems] = useState<WalkListItem[]>([])
   const [stats, setStats] = useState<WalkStats | null>(null)
+  const [badges, setBadges] = useState<WalkBadge[]>([])
+  const [earnedCount, setEarnedCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.allSettled([walks.list({ limit: 50 }), walks.stats()])
-      .then(([listR, statsR]) => {
+    Promise.allSettled([walks.list({ limit: 50 }), walks.stats(), walks.badges()])
+      .then(([listR, statsR, badgesR]) => {
         if (listR.status === 'fulfilled') setItems(listR.value)
         if (statsR.status === 'fulfilled') setStats(statsR.value)
+        if (badgesR.status === 'fulfilled') {
+          setBadges(badgesR.value.badges)
+          setEarnedCount(badgesR.value.earned_count)
+        }
         if (listR.status === 'rejected') {
           error('Erro ao carregar passeios.')
         }
@@ -53,10 +59,28 @@ export default function WalksPage() {
 
         {/* Stats summary */}
         {stats && stats.total_walks > 0 && (
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
             <SummaryCard icon={<Activity className="w-5 h-5 text-primary-500" />} label="Total" value={String(stats.total_walks)} sub="passeios" />
             <SummaryCard icon={<MapPin className="w-5 h-5 text-blue-500" />} label="Distância" value={formatDistance(stats.total_distance_meters)} sub="acumulada" />
             <SummaryCard icon={<Flame className="w-5 h-5 text-orange-500" />} label="Streak" value={String(stats.current_streak_days)} sub={stats.current_streak_days === 1 ? 'dia' : 'dias'} />
+          </div>
+        )}
+
+        {/* Badges */}
+        {badges.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-amber-500" />
+                <h2 className="text-sm font-semibold text-surface-700 dark:text-surface-200">Conquistas</h2>
+              </div>
+              <span className="text-xs text-surface-500">{earnedCount} de {badges.length}</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2 snap-x">
+              {badges.map(b => (
+                <BadgeChip key={b.key} badge={b} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -85,6 +109,31 @@ export default function WalksPage() {
         )}
       </div>
     </DashboardLayout>
+  )
+}
+
+function BadgeChip({ badge }: { badge: WalkBadge }) {
+  const pct = Math.round(badge.progress * 100)
+  return (
+    <div
+      title={`${badge.name} — ${badge.description}`}
+      className={`snap-start shrink-0 w-28 sm:w-32 rounded-2xl p-3 border text-center transition ${
+        badge.unlocked
+          ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20 border-amber-300 dark:border-amber-700 shadow-sm'
+          : 'bg-white dark:bg-surface-800 border-surface-100 dark:border-surface-700 opacity-70'
+      }`}
+    >
+      <div className={`text-2xl mb-1 ${badge.unlocked ? '' : 'grayscale opacity-50'}`}>{badge.emoji}</div>
+      <div className="text-[11px] font-semibold text-surface-900 dark:text-white leading-tight line-clamp-2 min-h-[28px]">{badge.name}</div>
+      {!badge.unlocked && (
+        <div className="mt-1.5">
+          <div className="h-1 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
+            <div className="h-full bg-primary-500" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="text-[10px] text-surface-500 mt-0.5">{pct}%</div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -147,6 +196,20 @@ function WalkCard({ walk }: { walk: WalkListItem }) {
           <div className="text-[10px] text-surface-500 uppercase tracking-wide">ritmo</div>
         </div>
       </div>
+      {(walk.kudos_count > 0 || walk.is_shared) && (
+        <div className="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700 flex items-center gap-3 text-xs text-surface-500">
+          {walk.kudos_count > 0 && (
+            <span className="flex items-center gap-1">
+              <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" /> {walk.kudos_count}
+            </span>
+          )}
+          {walk.is_shared && (
+            <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400">
+              <Trophy className="w-3.5 h-3.5" /> compartilhado
+            </span>
+          )}
+        </div>
+      )}
     </Link>
   )
 }

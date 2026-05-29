@@ -49,6 +49,7 @@ from routers import (
     lost_pet,
     innovations,
     walks,
+    notifications,
 )
 
 
@@ -90,7 +91,7 @@ app = FastAPI(
         "Sistema completo de gestão de saúde para pets com IA. "
         "Gerencie vacinas, exames, anamneses, rotinas de passeio e mais."
     ),
-    version="1.0.0",
+    version="1.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
@@ -129,6 +130,7 @@ app.include_router(ai_chat.router)
 app.include_router(lost_pet.router)
 app.include_router(innovations.router)
 app.include_router(walks.router)
+app.include_router(notifications.router)
 
 
 @app.get("/public/lost/{pet_id}", tags=["Público"])
@@ -141,7 +143,7 @@ async def public_lost_pet_endpoint(pet_id: int):
 async def root():
     return {
         "app": settings.APP_NAME,
-        "version": "1.0.0",
+        "version": "1.1.0",
         "status": "online",
         "docs": "/docs",
     }

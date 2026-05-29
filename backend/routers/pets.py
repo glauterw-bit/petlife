@@ -6,16 +6,32 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from database import get_db, settings
-from models import Pet, Breed, Vaccine, Exam, Anamnesis, Reminder, WalkRoutine
+from models import Pet, Breed, Vaccine, Exam, Anamnesis, Reminder, WalkRoutine, PetShare
 from schemas import PetCreate, PetUpdate, PetResponse, PetFullProfile
 from auth import get_current_user
-from models import User
+from models import User, pet_accessible_filter
 
 router = APIRouter(prefix="/pets", tags=["Pets"])
 
 
 def _check_pet_ownership(pet: Pet, user_id: int):
+    """Apenas owner — usar para ações destrutivas (delete, transfer)."""
     if pet.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas o tutor principal pode realizar essa ação")
+
+
+async def _check_pet_access(db: AsyncSession, pet: Pet, user_id: int):
+    """Owner OU co-tutor com share aceito — usar para reads e edits comuns."""
+    if pet.user_id == user_id:
+        return
+    share_q = await db.execute(
+        select(PetShare.id).where(
+            PetShare.pet_id == pet.id,
+            PetShare.user_id == user_id,
+            PetShare.status == "accepted",
+        )
+    )
+    if not share_q.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
 
 
@@ -62,7 +78,7 @@ async def list_pets(
     result = await db.execute(
         select(Pet)
         .options(selectinload(Pet.breed))
-        .where(Pet.user_id == current_user.id)
+        .where(pet_accessible_filter(current_user.id))
         .order_by(Pet.created_at.desc())
     )
     return result.scalars().all()
@@ -80,7 +96,7 @@ async def get_pet(
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    _check_pet_ownership(pet, current_user.id)
+    await _check_pet_access(db, pet, current_user.id)
     return pet
 
 
@@ -97,7 +113,7 @@ async def update_pet(
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    _check_pet_ownership(pet, current_user.id)
+    await _check_pet_access(db, pet, current_user.id)
 
     update_fields = pet_data.model_dump(exclude_unset=True)
     for field, value in update_fields.items():
@@ -138,7 +154,7 @@ async def upload_pet_photo(
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    _check_pet_ownership(pet, current_user.id)
+    await _check_pet_access(db, pet, current_user.id)
 
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Arquivo deve ser uma imagem")
@@ -193,5 +209,5 @@ async def get_pet_full_profile(
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    _check_pet_ownership(pet, current_user.id)
+    await _check_pet_access(db, pet, current_user.id)
     return pet

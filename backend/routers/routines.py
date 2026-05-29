@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from database import get_db
-from models import Pet, Breed, WalkRoutine
+from models import Pet, Breed, WalkRoutine, user_has_pet_access
 from schemas import WalkRoutineCreate, WalkRoutineUpdate, WalkRoutineResponse, WalkRoutineGenerateRequest
 from auth import get_current_user
 from models import User
@@ -40,7 +40,7 @@ async def generate_walk_routine(
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    if pet.user_id != current_user.id:
+    if not await user_has_pet_access(db, pet.id, current_user.id):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     pet_info = {
@@ -102,7 +102,7 @@ async def list_routines_for_pet(
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    if pet.user_id != current_user.id:
+    if not await user_has_pet_access(db, pet.id, current_user.id):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     result = await db.execute(
@@ -123,7 +123,7 @@ async def create_routine(
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    if pet.user_id != current_user.id:
+    if not await user_has_pet_access(db, pet.id, current_user.id):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     routine = WalkRoutine(
@@ -153,7 +153,7 @@ async def update_routine(
     routine = result.scalar_one_or_none()
     if not routine:
         raise HTTPException(status_code=404, detail="Rotina não encontrada")
-    if routine.pet.user_id != current_user.id:
+    if not await user_has_pet_access(db, routine.pet_id, current_user.id):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     for field, value in data.model_dump(exclude_unset=True).items():
@@ -175,7 +175,7 @@ async def delete_routine(
     routine = result.scalar_one_or_none()
     if not routine:
         raise HTTPException(status_code=404, detail="Rotina não encontrada")
-    if routine.pet.user_id != current_user.id:
+    if not await user_has_pet_access(db, routine.pet_id, current_user.id):
         raise HTTPException(status_code=403, detail="Acesso negado")
     await db.delete(routine)
     await db.commit()

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
+import { NotificationBell } from './NotificationBell'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { OnboardingModal } from '@/components/onboarding/OnboardingModal'
 import { AIChatWidget } from '@/components/ai/AIChatWidget'
@@ -50,6 +51,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </div>
       </main>
+      {!isVetUser && <NotificationBell />}
       {!isVetUser && <AIChatWidget pets={pets} />}
       {!isVetUser && <BottomNav />}
       {!isVetUser && <OnboardingModal />}

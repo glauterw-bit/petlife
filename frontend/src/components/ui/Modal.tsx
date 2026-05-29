@@ -39,24 +39,27 @@ export function Modal({ open, onClose, title, children, size = 'md', className }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
       <div
         className={cn(
-          'relative bg-white rounded-2xl shadow-2xl w-full animate-slide-up overflow-hidden',
+          'relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full animate-slide-up overflow-hidden flex flex-col',
+          'max-h-[calc(100dvh-env(safe-area-inset-top))] sm:max-h-[min(85dvh,720px)]',
+          'pb-[env(safe-area-inset-bottom)] sm:pb-0',
           sizeClasses[size],
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-surface-200 shrink-0">
             <h2 className="text-lg font-semibold text-surface-900">{title}</h2>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 transition-colors"
+              aria-label="Fechar"
+              className="tap-target -mr-1.5 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 transition-colors flex items-center justify-center"
             >
               <X className="w-5 h-5" />
             </button>
@@ -65,12 +68,13 @@ export function Modal({ open, onClose, title, children, size = 'md', className }
         {!title && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 transition-colors z-10"
+            aria-label="Fechar"
+            className="tap-target absolute top-2 right-2 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 transition-colors z-10 flex items-center justify-center"
           >
             <X className="w-5 h-5" />
           </button>
         )}
-        <div className="p-6 max-h-[80vh] overflow-y-auto">{children}</div>
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 pb-keyboard">{children}</div>
       </div>
     </div>
   )

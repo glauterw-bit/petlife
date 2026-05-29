@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from database import get_db, settings
 from models import (
     User, VetClinic, ClinicVet, Pet, Vaccine, Exam, Anamnesis, Reminder, WalkRoutine, Breed,
-    PetClinicAccess,
+    PetClinicAccess, pet_accessible_filter,
 )
 
 
@@ -325,7 +325,7 @@ async def share_pet_with_clinic(
     """Tutor concede acesso a uma clínica veterinária pra ver o histórico do pet.
     Pré-requisito por LGPD pra qualquer vet acessar dados de saúde do pet.
     """
-    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = pet_q.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -364,7 +364,7 @@ async def revoke_clinic_access(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, Pet.user_id == current_user.id))
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     if not pet_q.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Pet não encontrado")
 

@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey,
-    Enum as SAEnum, JSON
+    Enum as SAEnum, JSON, or_, select as _select
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -460,3 +460,115 @@ class WalkSession(Base):
 
     pet = relationship("Pet", back_populates="walk_sessions")
     user = relationship("User")
+
+
+# ─── Walk social: kudos/likes ────────────────────────────────────────────────
+class WalkKudos(Base):
+    """Curtidas em walks compartilhados (estilo Strava)."""
+    __tablename__ = "walk_kudos"
+    id = Column(Integer, primary_key=True, index=True)
+    walk_id = Column(Integer, ForeignKey("walk_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ─── Activity log: auditoria multi-tutor ─────────────────────────────────────
+class PetActivityLog(Base):
+    """Log de atividade pra família/co-tutores verem quem fez o quê."""
+    __tablename__ = "pet_activity_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    action = Column(String(60), nullable=False)  # e.g. "weight_added", "behavior_logged", "story_created"
+    summary = Column(String(300), nullable=True)
+    meta = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+# ─── Notification: in-app notifications pra co-tutores ───────────────────────
+class Notification(Base):
+    """Notificações in-app — fan-out quando um co-tutor faz algo no pet."""
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=True, index=True)
+    actor_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    type = Column(String(60), nullable=False)  # weight_added | behavior_logged | walk_finished | story_created | invite_accepted | etc
+    title = Column(String(200), nullable=False)
+    body = Column(String(500), nullable=True)
+    link = Column(String(300), nullable=True)  # rota relativa: /pets/123, /walks/456, etc
+    is_read = Column(Boolean, default=False, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+# ─── Multi-tutor access helper ───────────────────────────────────────────────
+def pet_accessible_filter(user_id: int):
+    """SQL filter: pet acessível por owner ou share aceito (multi-tutor sharing)."""
+    return or_(
+        Pet.user_id == user_id,
+        Pet.id.in_(
+            _select(PetShare.pet_id).where(
+                PetShare.user_id == user_id,
+                PetShare.status == "accepted",
+            )
+        ),
+    )
+
+
+async def log_pet_activity(db, pet_id: int, user_id: int, action: str, summary: str = None, meta: dict = None):
+    """Helper pra registrar ação de tutor no activity log (não levanta exceção em falha)."""
+    try:
+        log = PetActivityLog(pet_id=pet_id, user_id=user_id, action=action, summary=summary, meta=meta)
+        db.add(log)
+        await db.flush()
+    except Exception:
+        pass
+
+
+async def user_has_pet_access(db, pet_id: int, user_id: int) -> bool:
+    """True se user é dono OU share aceito do pet. Usar pra autorizar reads/writes comuns."""
+    q = await db.execute(_select(Pet.id).where(Pet.id == pet_id, pet_accessible_filter(user_id)))
+    return q.scalar_one_or_none() is not None
+
+
+async def notify_pet_collaborators(
+    db,
+    pet_id: int,
+    actor_user_id: int,
+    *,
+    type: str,
+    title: str,
+    body: str = None,
+    link: str = None,
+):
+    """Cria Notification pra todos os tutores do pet exceto o autor da ação.
+    Não levanta exceção em falha — best-effort."""
+    try:
+        owner_q = await db.execute(_select(Pet.user_id).where(Pet.id == pet_id))
+        owner_id = owner_q.scalar_one_or_none()
+        recipients = set()
+        if owner_id and owner_id != actor_user_id:
+            recipients.add(owner_id)
+        shares_q = await db.execute(
+            _select(PetShare.user_id).where(
+                PetShare.pet_id == pet_id,
+                PetShare.status == "accepted",
+                PetShare.user_id.is_not(None),
+            )
+        )
+        for (uid,) in shares_q.all():
+            if uid != actor_user_id:
+                recipients.add(uid)
+        for uid in recipients:
+            db.add(Notification(
+                user_id=uid,
+                pet_id=pet_id,
+                actor_user_id=actor_user_id,
+                type=type,
+                title=title,
+                body=body,
+                link=link,
+            ))
+        await db.flush()
+    except Exception:
+        pass

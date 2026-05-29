@@ -522,6 +522,7 @@ export interface WalkListItem {
   pet_id: number
   pet_name?: string | null
   pet_photo?: string | null
+  user_id: number
   started_at: string
   ended_at?: string | null
   duration_seconds: number
@@ -530,6 +531,7 @@ export interface WalkListItem {
   photos_count: number
   mood?: string | null
   is_shared: boolean
+  kudos_count: number
 }
 
 export interface WalkStats {
@@ -538,6 +540,20 @@ export interface WalkStats {
   total_duration_seconds: number
   current_streak_days: number
   avg_distance_meters: number
+  week_distance_meters?: number
+  week_walks?: number
+}
+
+export interface WalkKudosUser {
+  id: number
+  name: string
+}
+
+export interface WalkKudosResponse {
+  walk_id: number
+  users: WalkKudosUser[]
+  kudos_count: number
+  given_by_me: boolean
 }
 
 export const walks = {
@@ -626,6 +642,49 @@ export const walks = {
     const res = await fetch(`${API_URL}/walks/stats${qs}`, { headers: getAuthHeaders() })
     return handleResponse<WalkStats>(res)
   },
+
+  giveKudos: async (walk_id: number) => {
+    const res = await fetch(`${API_URL}/walks/${walk_id}/kudos`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+    return handleResponse<{ walk_id: number; kudos_count: number; given: boolean }>(res)
+  },
+
+  removeKudos: async (walk_id: number) => {
+    const res = await fetch(`${API_URL}/walks/${walk_id}/kudos`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    })
+    return handleResponse<{ walk_id: number; kudos_count: number; given: boolean }>(res)
+  },
+
+  listKudos: async (walk_id: number) => {
+    const res = await fetch(`${API_URL}/walks/${walk_id}/kudos`, { headers: getAuthHeaders() })
+    return handleResponse<WalkKudosResponse>(res)
+  },
+
+  badges: async () => {
+    const res = await fetch(`${API_URL}/walks/badges`, { headers: getAuthHeaders() })
+    return handleResponse<WalkBadgesResponse>(res)
+  },
+}
+
+export interface WalkBadge {
+  key: string
+  name: string
+  emoji: string
+  description: string
+  current: number
+  target: number
+  unlocked: boolean
+  progress: number
+}
+
+export interface WalkBadgesResponse {
+  badges: WalkBadge[]
+  earned_count: number
+  total_count: number
 }
 
 // ── Search / Nearby ───────────────────────────────────
@@ -881,6 +940,62 @@ export const innovations = {
     const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/family-tree`, { headers: getAuthHeaders() })
     return handleResponse<FamilyTree>(res)
   },
+
+  listPetActivity: async (pet_id: number, limit = 30) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/activity?limit=${limit}`, { headers: getAuthHeaders() })
+    return handleResponse<PetActivityEntry[]>(res)
+  },
+}
+
+export interface PetActivityEntry {
+  id: number
+  user_id: number
+  user_name: string
+  action: string
+  summary: string | null
+  meta: Record<string, unknown> | null
+  created_at: string
+  is_me: boolean
+}
+
+// ── Notifications ─────────────────────────────────────
+export interface NotificationItem {
+  id: number
+  pet_id: number | null
+  actor_user_id: number | null
+  type: string
+  title: string
+  body: string | null
+  link: string | null
+  is_read: boolean
+  created_at: string
+}
+
+export const notifications = {
+  list: async (params?: { limit?: number; unread_only?: boolean }) => {
+    const qs = new URLSearchParams()
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.unread_only) qs.set('unread_only', 'true')
+    const url = `${API_URL}/notifications${qs.toString() ? '?' + qs.toString() : ''}`
+    const res = await fetch(url, { headers: getAuthHeaders() })
+    return handleResponse<NotificationItem[]>(res)
+  },
+  unreadCount: async () => {
+    const res = await fetch(`${API_URL}/notifications/unread-count`, { headers: getAuthHeaders() })
+    return handleResponse<{ count: number }>(res)
+  },
+  markRead: async (id: number) => {
+    const res = await fetch(`${API_URL}/notifications/${id}/read`, {
+      method: 'PATCH', headers: getAuthHeaders(),
+    })
+    return handleResponse<{ id: number; is_read: boolean }>(res)
+  },
+  markAllRead: async () => {
+    const res = await fetch(`${API_URL}/notifications/mark-all-read`, {
+      method: 'POST', headers: getAuthHeaders(),
+    })
+    return handleResponse<{ marked_read: boolean }>(res)
+  },
 }
 
 export interface PetShareEntry {
@@ -894,6 +1009,7 @@ export interface PetShareEntry {
   invited_at: string
   accepted_at: string | null
   is_owner: boolean
+  invite_token: string | null
 }
 
 export interface InviteEntry {

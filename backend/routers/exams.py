@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from database import get_db, settings
-from models import Pet, Exam
+from models import Pet, Exam, user_has_pet_access
 from schemas import ExamCreate, ExamUpdate, ExamResponse
 from auth import get_current_user
 from models import User
@@ -19,7 +19,7 @@ async def _verify_pet_ownership(pet_id: int, user_id: int, db: AsyncSession) -> 
     pet = result.scalar_one_or_none()
     if not pet:
         raise HTTPException(status_code=404, detail="Pet não encontrado")
-    if pet.user_id != user_id:
+    if not await user_has_pet_access(db, pet_id, user_id):
         raise HTTPException(status_code=403, detail="Acesso negado")
     return pet
 
@@ -31,7 +31,7 @@ async def _get_exam_verified(exam_id: int, user_id: int, db: AsyncSession) -> Ex
     exam = result.scalar_one_or_none()
     if not exam:
         raise HTTPException(status_code=404, detail="Exame não encontrado")
-    if exam.pet.user_id != user_id:
+    if not await user_has_pet_access(db, exam.pet_id, user_id):
         raise HTTPException(status_code=403, detail="Acesso negado")
     return exam
 
