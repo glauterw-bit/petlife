@@ -15,10 +15,18 @@
 
   html {
     scroll-behavior: smooth;
+    /* Evita scroll horizontal acidental no mobile (webview Capacitor) */
+    overflow-x: hidden;
+    width: 100%;
   }
 
   body {
     @apply bg-surface-50 text-surface-900 font-sans antialiased;
+    /* Trava a largura na viewport — nenhuma tela arrasta pro lado */
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    position: relative;
   }
 }
 

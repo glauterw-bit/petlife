@@ -15,6 +15,26 @@ interface WalkMapProps {
   follow?: boolean
 }
 
+/** Corrige o bug clássico do Leaflet em container que carrega via dynamic import /
+ *  dentro de flexbox: o mapa inicializa com tamanho 0 e renderiza cinza/branco
+ *  até invalidateSize() ser chamado depois do layout estabilizar. */
+function InvalidateOnMount() {
+  const map = useMap()
+  useEffect(() => {
+    const fix = () => map.invalidateSize()
+    // várias tentativas: imediato, após paint, após animações de entrada
+    const t1 = setTimeout(fix, 0)
+    const t2 = setTimeout(fix, 150)
+    const t3 = setTimeout(fix, 450)
+    window.addEventListener('resize', fix)
+    return () => {
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3)
+      window.removeEventListener('resize', fix)
+    }
+  }, [map])
+  return null
+}
+
 function FollowOrFit({
   points,
   currentLat,
@@ -105,6 +125,7 @@ export default function WalkMap({ points, currentLat, currentLng, height = 420, 
           </>
         )}
 
+        <InvalidateOnMount />
         <FollowOrFit
           points={points}
           currentLat={currentLat}
