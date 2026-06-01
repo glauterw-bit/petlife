@@ -102,11 +102,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
       {/* Chat modal */}
       {open && (
         <div
-          style={{
-            right: 'max(0.5rem, env(safe-area-inset-right))',
-            left: 'max(0.5rem, env(safe-area-inset-left))',
-          }}
-          className="fixed bottom-nav md:bottom-6 md:right-6 md:left-auto z-40 md:w-96 max-h-[min(80dvh,640px)] flex flex-col bg-white rounded-2xl shadow-2xl border border-surface-200 overflow-hidden animate-slide-up"
+          className="fixed bottom-nav md:bottom-6 right-2 left-2 md:right-6 md:left-auto z-40 w-auto md:w-96 max-h-[min(80dvh,640px)] flex flex-col bg-white rounded-2xl shadow-2xl border border-surface-200 overflow-hidden animate-slide-up"
         >
           {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-primary-500 text-white">

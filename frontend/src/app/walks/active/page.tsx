@@ -12,7 +12,14 @@ import { hapticMedium, hapticHeavy, hapticSuccess } from '@/lib/feedback'
 import { haversineMeters, formatDistance, formatDuration, formatPace, shouldAcceptPoint } from '@/lib/walk-utils'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 
-const WalkMap = dynamic(() => import('@/components/walks/WalkMap'), { ssr: false })
+const WalkMap = dynamic(() => import('@/components/walks/WalkMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-2xl border border-surface-200 bg-surface-100 dark:bg-surface-800 animate-pulse flex items-center justify-center" style={{ height: 300 }}>
+      <span className="text-sm text-surface-400">Carregando mapa…</span>
+    </div>
+  ),
+})
 
 type Phase = 'choose-pet' | 'tracking' | 'paused' | 'saving'
 

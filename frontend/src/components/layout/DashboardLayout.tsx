@@ -40,14 +40,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   if (!user) return null
 
   return (
-    <div className="flex min-h-screen bg-surface-50">
+    <div className="flex min-h-screen bg-surface-50 w-full max-w-full overflow-x-hidden">
       <Sidebar
         pets={pets}
         activePetId={activePetId}
         onPetChange={p => setActivePetId(p.id)}
       />
-      <main className="flex-1 md:ml-64 min-h-screen pb-nav md:pb-0">
-        <div className="px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] pb-4 md:p-8 max-w-7xl mx-auto animate-fade-in">
+      <main className="flex-1 min-w-0 md:ml-64 min-h-screen pb-nav md:pb-0 overflow-x-hidden">
+        <div className="w-full max-w-7xl mx-auto px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] pb-4 md:p-8 animate-fade-in">
           {children}
         </div>
       </main>
