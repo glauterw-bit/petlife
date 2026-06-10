@@ -10,6 +10,7 @@ import { walks, pets as petsApi, type Pet, type RoutePoint } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { hapticMedium, hapticHeavy, hapticSuccess } from '@/lib/feedback'
 import { haversineMeters, formatDistance, formatDuration, formatPace, shouldAcceptPoint } from '@/lib/walk-utils'
+import { saveActiveWalk, clearActiveWalk, enqueueFinish } from '@/lib/walk-persistence'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 
 const WalkMap = dynamic(() => import('@/components/walks/WalkMap'), {
@@ -80,6 +81,16 @@ export default function ActiveWalkPage() {
       }
     }
   }, [])
+
+  // Persiste snapshot do passeio ativo (resiliência: app fecha/recarrega/sem net)
+  useEffect(() => {
+    if ((phase === 'tracking' || phase === 'paused') && walkId != null) {
+      saveActiveWalk({
+        walkId, petId: selectedPetId, startTs, pausedAccum,
+        routePoints, distance, duration, savedAt: Date.now(),
+      })
+    }
+  }, [phase, walkId, selectedPetId, startTs, pausedAccum, routePoints, distance, duration])
 
   // Timer
   useEffect(() => {
@@ -184,13 +195,15 @@ export default function ActiveWalkPage() {
     }
     if (timerRef.current) clearInterval(timerRef.current)
 
+    const payload = {
+      ended_at: new Date().toISOString(),
+      duration_seconds: duration,
+      distance_meters: distance,
+      route_points: routePoints,
+    }
+
     try {
-      const finished = await walks.finish(walkId, {
-        ended_at: new Date().toISOString(),
-        duration_seconds: duration,
-        distance_meters: distance,
-        route_points: routePoints,
-      })
+      const finished = await walks.finish(walkId, payload)
 
       // Upload photos sequentially
       for (const p of photos) {
@@ -199,11 +212,15 @@ export default function ActiveWalkPage() {
         } catch {}
       }
 
+      clearActiveWalk()
       success(`Passeio salvo: ${formatDistance(distance)} em ${formatDuration(duration)}! 🎉`)
       router.push(`/walks/${finished.id}`)
     } catch (e) {
-      error(e instanceof Error ? e.message : 'Erro ao salvar.')
-      setPhase('paused')
+      // Sem internet / erro de rede: enfileira pra reenviar depois — NÃO perde o passeio
+      enqueueFinish({ walkId, payload, queuedAt: Date.now() })
+      clearActiveWalk()
+      success('Sem conexão agora — seu passeio foi salvo no aparelho e será enviado automaticamente. 📡')
+      router.push('/walks')
     }
   }
 

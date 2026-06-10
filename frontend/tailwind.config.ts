@@ -66,6 +66,7 @@ const config: Config = {
         'slide-up': 'slideUp 0.4s ease-out',
         'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
         'paw-bounce': 'pawBounce 0.6s ease-in-out',
+        'flame': 'flame 1.4s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -83,6 +84,10 @@ const config: Config = {
         pawBounce: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-10px)' },
+        },
+        flame: {
+          '0%, 100%': { transform: 'scale(1) rotate(-2deg)', opacity: '1' },
+          '50%': { transform: 'scale(1.12) rotate(2deg)', opacity: '0.9' },
         },
       },
     },
