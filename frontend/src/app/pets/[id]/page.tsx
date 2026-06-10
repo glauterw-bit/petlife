@@ -30,6 +30,7 @@ import { SeniorProtocolCard } from '@/components/innovations/SeniorProtocolCard'
 import { StoriesFeed } from '@/components/innovations/StoriesFeed'
 import { SharePetModal } from '@/components/innovations/SharePetModal'
 import { FamilyTreeSection } from '@/components/innovations/FamilyTreeSection'
+import { HealthForecast } from '@/components/health/HealthForecast'
 import { BookOpen, Brain, PartyPopper, Smile, Image as ImageIcon, Users, GitFork } from 'lucide-react'
 
 type Tab = 'overview' | 'health' | 'routine' | 'history' | 'anamnesis' | 'care' | 'stories' | 'family'
@@ -313,6 +314,8 @@ export default function PetProfilePage() {
               </div>
             </div>
           </div>
+
+          <HealthForecast pet={pet} />
 
           <WeightChart petId={petId} />
 

@@ -496,6 +496,86 @@ async def get_care_streak(
     }
 
 
+# ─── Health Forecast (previsão preventiva por IA) ────────────────────────────
+
+@router.get("/pets/{pet_id}/health-forecast")
+@_limiter.limit("10/hour")
+async def get_health_forecast(
+    request: Request,
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Previsão preventiva de saúde 6-12 meses por IA, baseada em raça, idade,
+    peso e histórico. NÃO é diagnóstico — antecipa cuidados preventivos."""
+    from health_protocols import get_age_phase
+
+    pet_q = await db.execute(
+        select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, pet_accessible_filter(current_user.id))
+    )
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    species = pet.species.value if hasattr(pet.species, "value") else pet.species
+
+    # peso/tendência
+    wh_q = await db.execute(
+        select(PetWeightHistory).where(PetWeightHistory.pet_id == pet_id)
+        .order_by(PetWeightHistory.measured_at.desc()).limit(5)
+    )
+    weights = wh_q.scalars().all()
+    last_bcs = weights[0].body_condition_score if weights else None
+    weight_trend = None
+    if len(weights) >= 2 and weights[-1].weight_kg:
+        diff = weights[0].weight_kg - weights[-1].weight_kg
+        pct = (diff / weights[-1].weight_kg) * 100
+        weight_trend = "estável" if abs(pct) < 3 else (f"ganho de {pct:.0f}%" if pct > 0 else f"perda de {abs(pct):.0f}%")
+
+    # atividade recente
+    week_ago = datetime.utcnow() - timedelta(days=14)
+    walk_q = await db.execute(
+        select(WalkSession).where(
+            WalkSession.pet_id == pet_id, WalkSession.ended_at.is_not(None),
+            WalkSession.started_at >= week_ago,
+        )
+    )
+    n_walks = len(walk_q.scalars().all())
+    activity_level = "alto" if n_walks >= 8 else ("moderado" if n_walks >= 3 else "baixo")
+
+    breed_issues = None
+    if pet.breed and getattr(pet.breed, "health_issues", None):
+        hi = pet.breed.health_issues
+        breed_issues = hi if isinstance(hi, list) else None
+
+    pet_info = {
+        "name": pet.name,
+        "species": species,
+        "breed_name": pet.breed.name if pet.breed else None,
+        "age": _calculate_age(pet.birth_date),
+        "age_phase": get_age_phase(species, pet.birth_date),
+        "weight": pet.weight,
+    }
+    signals = {
+        "weight_trend": weight_trend,
+        "bcs": last_bcs,
+        "neutered": pet.neutered,
+        "activity_level": activity_level,
+        "breed_health_issues": breed_issues,
+    }
+
+    try:
+        result = await ai_service.generate_health_forecast(pet_info, signals)
+        result["pet_id"] = pet_id
+        result["pet_name"] = pet.name
+        return result
+    except Exception as e:
+        msg = str(e).lower()
+        if "credit balance" in msg or "insufficient" in msg or "billing" in msg:
+            raise HTTPException(status_code=503, detail="Previsão indisponível: crédito Anthropic esgotado.")
+        raise HTTPException(status_code=503, detail="Previsão indisponível no momento. Tente mais tarde.")
+
+
 # ─── Behavior Plans ───────────────────────────────────────────────────────────
 
 class BehaviorPlanCreate(BaseModel):

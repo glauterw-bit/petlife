@@ -379,6 +379,70 @@ Detecte padrões clinicamente relevantes (ex: apetite reduzido 5 dias seguidos, 
         return {"summary": "Análise indisponível.", "patterns": [], "alerts": []}
 
 
+async def generate_health_forecast(pet_info: dict, signals: dict) -> dict:
+    """Previsão preventiva de saúde 6-12 meses baseada em raça, idade, peso e
+    histórico. NÃO é diagnóstico — é orientação preventiva pra antecipar cuidados."""
+    client = get_client()
+    pet_name = pet_info.get("name", "Pet")
+    species = "cão" if pet_info.get("species") == "dog" else "gato"
+    breed = pet_info.get("breed_name") or "SRD (sem raça definida)"
+    age = pet_info.get("age", "idade desconhecida")
+    weight = pet_info.get("weight", "?")
+    phase = pet_info.get("age_phase", "adult")
+
+    sig_lines = []
+    if signals.get("weight_trend"):
+        sig_lines.append(f"Tendência de peso: {signals['weight_trend']}")
+    if signals.get("bcs") is not None:
+        sig_lines.append(f"Condição corporal (BCS 1-9): {signals['bcs']}")
+    if signals.get("neutered") is not None:
+        sig_lines.append(f"Castrado: {'sim' if signals['neutered'] else 'não'}")
+    if signals.get("activity_level"):
+        sig_lines.append(f"Nível de atividade recente: {signals['activity_level']}")
+    if signals.get("breed_health_issues"):
+        sig_lines.append(f"Predisposições conhecidas da raça: {', '.join(signals['breed_health_issues'])}")
+    signals_txt = "\n".join(sig_lines) if sig_lines else "Poucos sinais registrados."
+
+    prompt = f"""Você é um veterinário preventivista experiente fazendo uma avaliação de RISCO FUTURO (não diagnóstico) para {pet_name}, {species} da raça {breed}, {age}, {weight} kg, fase de vida: {phase}.
+
+SINAIS ATUAIS:
+{signals_txt}
+
+Com base em medicina veterinária preventiva (predisposições raciais, idade, condição corporal), liste os riscos de saúde mais relevantes para os PRÓXIMOS 6-12 MESES e o que o tutor pode fazer AGORA pra prevenir. Seja específico e prático. Responda APENAS com JSON válido:
+{{
+  "summary": "1-2 frases sobre o panorama preventivo de {pet_name} em pt-BR, tom acolhedor",
+  "overall_risk": "baixo|moderado|atencao",
+  "risks": [
+    {{
+      "condition": "ex: Doença periodontal",
+      "why": "Por que esse pet tem risco (raça/idade/sinais) — 1 frase",
+      "window": "6 meses|12 meses",
+      "likelihood": "baixa|media|alta",
+      "prevention": "Ação concreta que o tutor faz agora — 1 frase"
+    }}
+  ],
+  "checkups_recommended": ["ex: Hemograma anual", "Avaliação odontológica"],
+  "disclaimer": "Previsão preventiva orientativa baseada em estatística populacional. Não substitui exame clínico individual."
+}}
+
+Liste entre 2 e 5 riscos, os mais prováveis primeiro. Se o pet é jovem e saudável, foque em prevenção (vermifugação, vacinas, peso)."""
+
+    msg = client.messages.create(
+        model=MODEL,
+        max_tokens=1800,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = msg.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {"summary": "Previsão indisponível no momento.", "overall_risk": "baixo", "risks": [], "checkups_recommended": []}
+
+
 async def generate_memorial_text(pet_info: dict, owner_message: str = "") -> dict:
     """Gera texto carinhoso pra memorial — feature sensível, tom respeitoso."""
     client = get_client()
