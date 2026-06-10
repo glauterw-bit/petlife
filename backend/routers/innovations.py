@@ -400,6 +400,102 @@ async def get_health_score(
     return result
 
 
+# ─── Care Streak (sequência de dias cuidando) ────────────────────────────────
+
+@router.get("/pets/{pet_id}/care-streak")
+async def get_care_streak(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Sequência de dias consecutivos com QUALQUER cuidado (passeio, check-in,
+    peso, foto). Recompensa o hábito diário — base da retenção."""
+    from datetime import date as _date
+
+    pet_q = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    horizon = datetime.utcnow() - timedelta(days=120)
+    active_days: set = set()
+
+    walk_q = await db.execute(
+        select(WalkSession.started_at).where(
+            WalkSession.pet_id == pet_id, WalkSession.started_at >= horizon
+        )
+    )
+    for (ts,) in walk_q.all():
+        if ts:
+            active_days.add(ts.date())
+
+    log_q = await db.execute(
+        select(PetBehaviorLog.logged_at).where(
+            PetBehaviorLog.pet_id == pet_id, PetBehaviorLog.logged_at >= horizon
+        )
+    )
+    for (ts,) in log_q.all():
+        if ts:
+            active_days.add(ts.date())
+
+    wt_q = await db.execute(
+        select(PetWeightHistory.measured_at).where(
+            PetWeightHistory.pet_id == pet_id, PetWeightHistory.measured_at >= horizon
+        )
+    )
+    for (ts,) in wt_q.all():
+        if ts:
+            active_days.add(ts.date())
+
+    story_q = await db.execute(
+        select(PetStory.created_at).where(
+            PetStory.pet_id == pet_id, PetStory.created_at >= horizon
+        )
+    )
+    for (ts,) in story_q.all():
+        if ts:
+            active_days.add(ts.date())
+
+    today = _date.today()
+    if today in active_days:
+        cursor = today
+    elif (today - timedelta(days=1)) in active_days:
+        cursor = today - timedelta(days=1)
+    else:
+        cursor = None
+    current = 0
+    while cursor is not None and cursor in active_days:
+        current += 1
+        cursor -= timedelta(days=1)
+
+    best = 0
+    if active_days:
+        run = 0
+        prev = None
+        for d in sorted(active_days):
+            if prev is not None and (d - prev).days == 1:
+                run += 1
+            else:
+                run = 1
+            best = max(best, run)
+            prev = d
+
+    did_today = today in active_days
+    milestones = [3, 7, 14, 30, 60, 100]
+    next_milestone = next((m for m in milestones if m > current), None)
+
+    return {
+        "pet_id": pet_id,
+        "pet_name": pet.name,
+        "current_streak": current,
+        "best_streak": best,
+        "did_today": did_today,
+        "active_days_total": len(active_days),
+        "next_milestone": next_milestone,
+        "days_to_milestone": (next_milestone - current) if next_milestone else None,
+    }
+
+
 # ─── Behavior Plans ───────────────────────────────────────────────────────────
 
 class BehaviorPlanCreate(BaseModel):

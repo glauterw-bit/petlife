@@ -950,6 +950,22 @@ export const innovations = {
     const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/health-score`, { headers: getAuthHeaders() })
     return handleResponse<HealthScore>(res)
   },
+
+  careStreak: async (pet_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/care-streak`, { headers: getAuthHeaders() })
+    return handleResponse<CareStreak>(res)
+  },
+}
+
+export interface CareStreak {
+  pet_id: number
+  pet_name: string
+  current_streak: number
+  best_streak: number
+  did_today: boolean
+  active_days_total: number
+  next_milestone: number | null
+  days_to_milestone: number | null
 }
 
 export interface HealthScoreDimension {

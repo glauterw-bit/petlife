@@ -8,31 +8,51 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { walks, type WalkListItem, type WalkStats, type WalkBadge } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { formatDistance, formatDuration, formatPace } from '@/lib/walk-utils'
+import { flushFinishQueue, getFinishQueue } from '@/lib/walk-persistence'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 
 export default function WalksPage() {
-  const { error } = useToast()
+  const { error, success } = useToast()
   const [items, setItems] = useState<WalkListItem[]>([])
   const [stats, setStats] = useState<WalkStats | null>(null)
   const [badges, setBadges] = useState<WalkBadge[]>([])
   const [earnedCount, setEarnedCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
+  async function loadAll() {
+    const [listR, statsR, badgesR] = await Promise.allSettled([
+      walks.list({ limit: 50 }), walks.stats(), walks.badges(),
+    ])
+    if (listR.status === 'fulfilled') setItems(listR.value)
+    if (statsR.status === 'fulfilled') setStats(statsR.value)
+    if (badgesR.status === 'fulfilled') {
+      setBadges(badgesR.value.badges)
+      setEarnedCount(badgesR.value.earned_count)
+    }
+    if (listR.status === 'rejected') error('Erro ao carregar passeios.')
+  }
+
   useEffect(() => {
-    Promise.allSettled([walks.list({ limit: 50 }), walks.stats(), walks.badges()])
-      .then(([listR, statsR, badgesR]) => {
-        if (listR.status === 'fulfilled') setItems(listR.value)
-        if (statsR.status === 'fulfilled') setStats(statsR.value)
-        if (badgesR.status === 'fulfilled') {
-          setBadges(badgesR.value.badges)
-          setEarnedCount(badgesR.value.earned_count)
-        }
-        if (listR.status === 'rejected') {
-          error('Erro ao carregar passeios.')
-        }
+    async function init() {
+      // Reenvia passeios finalizados offline (não perde caminhada sem sinal)
+      if (getFinishQueue().length > 0) {
+        const sent = await flushFinishQueue((id, payload) => walks.finish(id, payload))
+        if (sent > 0) success(`${sent} passeio(s) salvo(s) offline foram enviados! 📡`)
+      }
+      await loadAll()
+      setLoading(false)
+    }
+    init()
+    // tenta reenviar quando a conexão volta
+    function onOnline() {
+      flushFinishQueue((id, payload) => walks.finish(id, payload)).then(sent => {
+        if (sent > 0) { success(`${sent} passeio(s) enviados!`); loadAll() }
       })
-      .finally(() => setLoading(false))
-  }, [error])
+    }
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (loading) return <DashboardLayout><PageLoader /></DashboardLayout>
 

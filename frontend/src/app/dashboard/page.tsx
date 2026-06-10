@@ -14,6 +14,7 @@ import { formatDate, formatAge, getSpeciesEmoji, getVaccineStatus, getLevelName,
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { HealthScoreCard } from '@/components/health/HealthScoreCard'
 import { DailyCheckin } from '@/components/health/DailyCheckin'
+import { StreakFlame } from '@/components/health/StreakFlame'
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -66,13 +67,14 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Daily check-in + Health Score — engajamento diário */}
+      {/* Daily check-in + Health Score + Streak — engajamento diário */}
       {pets.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           <div className="lg:col-span-2">
             <HealthScoreCard key={scoreRefresh} pet={pets[0]} />
           </div>
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-4">
+            <StreakFlame key={`streak-${scoreRefresh}`} pet={pets[0]} refreshKey={scoreRefresh} />
             <DailyCheckin pet={pets[0]} onDone={() => setScoreRefresh(n => n + 1)} />
           </div>
         </div>
