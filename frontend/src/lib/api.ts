@@ -955,6 +955,29 @@ export const innovations = {
     const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/care-streak`, { headers: getAuthHeaders() })
     return handleResponse<CareStreak>(res)
   },
+
+  healthForecast: async (pet_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/health-forecast`, { headers: getAuthHeaders() })
+    return handleResponse<HealthForecast>(res)
+  },
+}
+
+export interface ForecastRisk {
+  condition: string
+  why: string
+  window: string
+  likelihood: 'baixa' | 'media' | 'alta'
+  prevention: string
+}
+
+export interface HealthForecast {
+  pet_id: number
+  pet_name: string
+  summary: string
+  overall_risk: 'baixo' | 'moderado' | 'atencao'
+  risks: ForecastRisk[]
+  checkups_recommended: string[]
+  disclaimer: string
 }
 
 export interface CareStreak {
