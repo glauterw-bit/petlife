@@ -12,6 +12,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { pets as petsApi, vaccines as vaccinesApi, gamification, reminders as remindersApi, type Pet, type Vaccine, type Reminder, type UserPoints } from '@/lib/api'
 import { formatDate, formatAge, getSpeciesEmoji, getVaccineStatus, getLevelName, getBadgeColor } from '@/lib/utils'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
+import { HealthScoreCard } from '@/components/health/HealthScoreCard'
+import { DailyCheckin } from '@/components/health/DailyCheckin'
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -20,6 +22,7 @@ export default function DashboardPage() {
   const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([])
   const [points, setPoints] = useState<UserPoints | null>(null)
   const [loading, setLoading] = useState(true)
+  const [scoreRefresh, setScoreRefresh] = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -62,6 +65,18 @@ export default function DashboardPage() {
             : 'Adicione seu primeiro pet para começar!'}
         </p>
       </div>
+
+      {/* Daily check-in + Health Score — engajamento diário */}
+      {pets.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div className="lg:col-span-2">
+            <HealthScoreCard key={scoreRefresh} pet={pets[0]} />
+          </div>
+          <div className="lg:col-span-1">
+            <DailyCheckin pet={pets[0]} onDone={() => setScoreRefresh(n => n + 1)} />
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">

@@ -945,6 +945,32 @@ export const innovations = {
     const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/activity?limit=${limit}`, { headers: getAuthHeaders() })
     return handleResponse<PetActivityEntry[]>(res)
   },
+
+  healthScore: async (pet_id: number) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${pet_id}/health-score`, { headers: getAuthHeaders() })
+    return handleResponse<HealthScore>(res)
+  },
+}
+
+export interface HealthScoreDimension {
+  key: string
+  label: string
+  score: number
+  weight: number
+  points: number
+  message: string
+  status: 'great' | 'good' | 'warn' | 'bad'
+}
+
+export interface HealthScore {
+  pet_id: number
+  pet_name: string
+  score: number
+  grade: string
+  tier: 'excelente' | 'saudavel' | 'atencao' | 'cuidado'
+  breakdown: HealthScoreDimension[]
+  top_action: { key: string; label: string; message: string }
+  computed_at: string
 }
 
 export interface PetActivityEntry {
