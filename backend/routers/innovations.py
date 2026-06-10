@@ -13,7 +13,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from database import get_db
-from models import Pet, User, PetWeightHistory, BehaviorPlan, BehaviorCheckIn, Vaccine, Exam, Anamnesis, Reminder, UserChallenge, PetBehaviorLog, PetStory, PetShare, PetRelation, PetActivityLog, Notification, pet_accessible_filter, log_pet_activity, notify_pet_collaborators
+from models import Pet, User, PetWeightHistory, BehaviorPlan, BehaviorCheckIn, Vaccine, Exam, Anamnesis, Reminder, UserChallenge, PetBehaviorLog, PetStory, PetShare, PetRelation, PetActivityLog, Notification, WalkSession, pet_accessible_filter, log_pet_activity, notify_pet_collaborators
 import secrets as _secrets
 from sqlalchemy import or_
 from database import settings as db_settings
@@ -279,6 +279,125 @@ async def get_weight_history(
         ],
         "alert": alert,
     }
+
+
+# ─── Pet Health Score ─────────────────────────────────────────────────────────
+
+@router.get("/pets/{pet_id}/health-score")
+async def get_health_score(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Score 0-100 de saúde/cuidado, cruzando vacinação, peso, atividade,
+    bem-estar e constância. Atualizado a cada chamada (refletindo dados do dia)."""
+    import health_score as hs
+    from datetime import date as _date
+
+    pet_q = await db.execute(
+        select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, pet_accessible_filter(current_user.id))
+    )
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    today = _date.today()
+    now = datetime.utcnow()
+    species = pet.species.value if hasattr(pet.species, "value") else pet.species
+
+    # 1) Vacinação — próximas doses
+    vac_q = await db.execute(select(Vaccine.next_due).where(Vaccine.pet_id == pet_id))
+    next_dues = [row[0] for row in vac_q.all()]
+    dim_vac = hs.score_vaccination(next_dues, today)
+
+    # 2) Peso — último BCS + tendência
+    wh_q = await db.execute(
+        select(PetWeightHistory).where(PetWeightHistory.pet_id == pet_id)
+        .order_by(PetWeightHistory.measured_at.desc()).limit(5)
+    )
+    weights = wh_q.scalars().all()
+    has_weight = len(weights) > 0
+    last_bcs = weights[0].body_condition_score if weights else None
+    trend = None
+    if len(weights) >= 2 and weights[-1].weight_kg:
+        diff = weights[0].weight_kg - weights[-1].weight_kg
+        pct = (diff / weights[-1].weight_kg) * 100
+        trend = "stable" if abs(pct) < 3 else ("up" if pct > 0 else "down")
+    dim_weight = hs.score_weight(last_bcs, trend, has_weight)
+
+    # 3) Atividade — passeios dos últimos 7 dias
+    week_ago = now - timedelta(days=7)
+    walk_q = await db.execute(
+        select(WalkSession).where(
+            WalkSession.pet_id == pet_id,
+            WalkSession.ended_at.is_not(None),
+            WalkSession.started_at >= week_ago,
+        )
+    )
+    week_walks = walk_q.scalars().all()
+    dist_7d = sum(w.distance_meters for w in week_walks)
+    energy = pet.breed.energy_level if pet.breed else None
+    dim_act = hs.score_activity(len(week_walks), dist_7d, species, energy)
+
+    # 4) Bem-estar — behavior logs dos últimos 7 dias
+    bl_q = await db.execute(
+        select(PetBehaviorLog).where(
+            PetBehaviorLog.pet_id == pet_id,
+            PetBehaviorLog.logged_at >= week_ago,
+        ).order_by(PetBehaviorLog.logged_at.desc())
+    )
+    logs = bl_q.scalars().all()
+    dim_well = hs.score_wellbeing(
+        [l.mood for l in logs],
+        [l.appetite for l in logs],
+        len(logs),
+    )
+
+    # 5) Constância — dias ativos nos últimos 14 dias (passeio OU peso OU log)
+    fortnight = now - timedelta(days=14)
+    active_days: set = set()
+    for w in week_walks:
+        active_days.add(w.started_at.date())
+    walk14_q = await db.execute(
+        select(WalkSession.started_at).where(
+            WalkSession.pet_id == pet_id, WalkSession.started_at >= fortnight
+        )
+    )
+    for (ts,) in walk14_q.all():
+        if ts:
+            active_days.add(ts.date())
+    log14_q = await db.execute(
+        select(PetBehaviorLog.logged_at).where(
+            PetBehaviorLog.pet_id == pet_id, PetBehaviorLog.logged_at >= fortnight
+        )
+    )
+    for (ts,) in log14_q.all():
+        if ts:
+            active_days.add(ts.date())
+    wt14_q = await db.execute(
+        select(PetWeightHistory.measured_at).where(
+            PetWeightHistory.pet_id == pet_id, PetWeightHistory.measured_at >= fortnight
+        )
+    )
+    for (ts,) in wt14_q.all():
+        if ts:
+            active_days.add(ts.date())
+    dim_cons = hs.score_consistency(len(active_days))
+
+    result = hs.compute_health_score({
+        "vaccination": dim_vac,
+        "weight": dim_weight,
+        "activity": dim_act,
+        "wellbeing": dim_well,
+        "consistency": dim_cons,
+    })
+    result["pet_id"] = pet_id
+    result["pet_name"] = pet.name
+    result["computed_at"] = now.isoformat()
+    # destaque acionável: pega a dimensão de menor score pra sugerir ação
+    worst = min(result["breakdown"], key=lambda d: d["score"])
+    result["top_action"] = {"key": worst["key"], "label": worst["label"], "message": worst["message"]}
+    return result
 
 
 # ─── Behavior Plans ───────────────────────────────────────────────────────────
