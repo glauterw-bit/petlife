@@ -54,12 +54,47 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     password_reset_code = Column(String(6), nullable=True)
     password_reset_expires = Column(DateTime, nullable=True)
+    # ─── Assinatura (Apple IAP) ──────────────────────────────────────────────
+    premium_tier = Column(String(20), default="free", nullable=False)  # free|plus|pro
+    premium_expires_at = Column(DateTime, nullable=True)  # null = sem assinatura ativa
+    active_product_sku = Column(String(64), nullable=True)  # ex: pro_monthly
+    apple_original_transaction_id = Column(String(128), nullable=True, index=True)
+    trial_used = Column(Boolean, default=False, nullable=False)
 
     pets = relationship("Pet", back_populates="owner", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="user", cascade="all, delete-orphan")
     points = relationship("UserPoints", back_populates="user", uselist=False, cascade="all, delete-orphan")
     challenges = relationship("UserChallenge", back_populates="user", cascade="all, delete-orphan")
     clinic_vets = relationship("ClinicVet", back_populates="user")
+
+
+class QuotaUsage(Base):
+    """Contador mensal de uso de recursos com quota (IA). Reseta por mês-calendário.
+    `month` no formato 'YYYY-MM' (UTC). Uma linha por (user, mês)."""
+    __tablename__ = "quota_usage"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    month = Column(String(7), nullable=False, index=True)  # 'YYYY-MM'
+    ai_chat = Column(Integer, default=0, nullable=False)
+    ai_analysis = Column(Integer, default=0, nullable=False)
+
+
+class IapTransaction(Base):
+    """Log de transações Apple IAP — auditoria de verifyReceipt + webhooks S2S."""
+    __tablename__ = "iap_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    original_transaction_id = Column(String(128), nullable=True, index=True)
+    transaction_id = Column(String(128), nullable=True)
+    product_id = Column(String(128), nullable=True)
+    tier = Column(String(20), nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    source = Column(String(20), nullable=True)  # verify_receipt | webhook
+    notification_type = Column(String(60), nullable=True)  # p/ eventos S2S
+    environment = Column(String(20), nullable=True)  # Sandbox | Production
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
 class Breed(Base):

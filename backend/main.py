@@ -50,6 +50,7 @@ from routers import (
     innovations,
     walks,
     notifications,
+    billing,
 )
 
 
@@ -131,6 +132,8 @@ app.include_router(lost_pet.router)
 app.include_router(innovations.router)
 app.include_router(walks.router)
 app.include_router(notifications.router)
+app.include_router(billing.router)
+app.include_router(billing.webhook_router)
 
 
 @app.get("/public/lost/{pet_id}", tags=["Público"])

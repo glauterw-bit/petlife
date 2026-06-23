@@ -10,6 +10,7 @@ from schemas import BreedResponse
 from auth import get_current_user
 from models import User
 import ai_service
+import subscriptions
 
 router = APIRouter(prefix="/breeds", tags=["Raças"])
 
@@ -73,6 +74,9 @@ async def identify_breed_from_photo(
 ):
     """Recebe uma foto e retorna top 3 raças candidatas via Claude Vision.
     Cada candidato vem com `breed_id` cruzando o catálogo do banco quando achado."""
+    # Quota mensal de análises de IA (free: 3, plus: 30, pro: ∞)
+    await subscriptions.check_quota(db, current_user, "ai_analysis")
+
     media_type = (photo.content_type or "image/jpeg").lower()
     if media_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="Formato de imagem inválido. Use JPG, PNG, WEBP ou GIF.")
@@ -95,6 +99,8 @@ async def identify_breed_from_photo(
                 detail="Identificação por foto temporariamente indisponível. (Crédito da API esgotado)",
             )
         raise HTTPException(status_code=503, detail="Não foi possível identificar agora. Tente novamente.")
+
+    await subscriptions.consume_quota(db, current_user, "ai_analysis")
 
     # Cruza candidatos com o catálogo de raças do banco para devolver breed_id
     candidates = result.get("candidates") or []
