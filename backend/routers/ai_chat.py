@@ -15,6 +15,7 @@ from schemas import AIChatRequest, AIChatResponse, AIAnalysisRequest, AIAnalysis
 from auth import get_current_user
 from models import User
 import ai_service
+import subscriptions
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/ai", tags=["Assistente IA"])
@@ -40,6 +41,9 @@ async def ai_chat(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Quota mensal de mensagens com a Vyron IA (free: 10, plus: 100, pro: ∞)
+    await subscriptions.check_quota(db, current_user, "ai_chat")
+
     pet_info = None
 
     if body.pet_id:
@@ -182,6 +186,7 @@ async def ai_chat(
             question=body.question,
             conversation_history=body.conversation_history,
         )
+        await subscriptions.consume_quota(db, current_user, "ai_chat")
         return AIChatResponse(
             response=response_text,
             pet_name=pet_info["name"] if pet_info else None,

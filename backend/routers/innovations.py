@@ -20,6 +20,7 @@ from database import settings as db_settings
 import os, uuid
 from auth import get_current_user
 import ai_service
+import subscriptions
 
 _limiter = Limiter(key_func=get_remote_address)
 
@@ -57,6 +58,7 @@ async def bedtime_story(
     db: AsyncSession = Depends(get_db),
 ):
     """Gera história de boa noite (~2 min) personalizada com nome, raça, idade."""
+    await subscriptions.check_quota(db, current_user, "ai_analysis")
     result = await db.execute(
         select(Pet)
         .options(selectinload(Pet.breed))
@@ -76,6 +78,7 @@ async def bedtime_story(
 
     try:
         result = await ai_service.generate_bedtime_story(pet_info, mood=body.mood)
+        await subscriptions.consume_quota(db, current_user, "ai_analysis")
         return result
     except Exception as e:
         msg = str(e).lower()
@@ -99,6 +102,7 @@ async def pain_assessment(
     db: AsyncSession = Depends(get_db),
 ):
     """Avaliação de dor por foto facial. Gato: Feline Grimace Scale. Cão: Glasgow."""
+    await subscriptions.check_quota(db, current_user, "ai_analysis")
     media_type = (photo.content_type or "image/jpeg").lower()
     if media_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="Formato inválido.")
@@ -120,6 +124,7 @@ async def pain_assessment(
     b64 = base64.b64encode(contents).decode("ascii")
     try:
         r = await ai_service.assess_pet_pain(b64, media_type, pet_info)
+        await subscriptions.consume_quota(db, current_user, "ai_analysis")
         r["pet_name"] = pet.name
         r["species"] = pet_info["species"]
         return r
@@ -142,6 +147,7 @@ async def stool_analysis(
     db: AsyncSession = Depends(get_db),
 ):
     """Análise visual de fezes — escala fecal 1-7, cor, alertas."""
+    await subscriptions.check_quota(db, current_user, "ai_analysis")
     media_type = (photo.content_type or "image/jpeg").lower()
     if media_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="Formato inválido.")
@@ -163,6 +169,7 @@ async def stool_analysis(
     b64 = base64.b64encode(contents).decode("ascii")
     try:
         r = await ai_service.analyze_stool_from_image(b64, media_type, pet_info)
+        await subscriptions.consume_quota(db, current_user, "ai_analysis")
         r["pet_name"] = pet.name
         return r
     except Exception as e:
@@ -510,6 +517,8 @@ async def get_health_forecast(
     peso e histórico. NÃO é diagnóstico — antecipa cuidados preventivos."""
     from health_protocols import get_age_phase
 
+    await subscriptions.check_quota(db, current_user, "ai_analysis")
+
     pet_q = await db.execute(
         select(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id, pet_accessible_filter(current_user.id))
     )
@@ -566,6 +575,7 @@ async def get_health_forecast(
 
     try:
         result = await ai_service.generate_health_forecast(pet_info, signals)
+        await subscriptions.consume_quota(db, current_user, "ai_analysis")
         result["pet_id"] = pet_id
         result["pet_name"] = pet.name
         return result
@@ -1865,6 +1875,7 @@ async def snapshot_triage(
     db: AsyncSession = Depends(get_db),
 ):
     """Triagem rápida por foto — BCS, olhos, dental, postura. NÃO substitui vet."""
+    await subscriptions.check_quota(db, current_user, "ai_analysis")
     media_type = (photo.content_type or "image/jpeg").lower()
     if media_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="Formato inválido. Use JPG, PNG ou WEBP.")
@@ -1895,6 +1906,7 @@ async def snapshot_triage(
     b64 = base64.b64encode(contents).decode("ascii")
     try:
         result = await ai_service.snapshot_triage_from_image(b64, media_type, pet_info)
+        await subscriptions.consume_quota(db, current_user, "ai_analysis")
         result["pet_name"] = pet.name
         return result
     except Exception as e:

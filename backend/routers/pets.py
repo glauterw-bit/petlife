@@ -10,6 +10,7 @@ from models import Pet, Breed, Vaccine, Exam, Anamnesis, Reminder, WalkRoutine, 
 from schemas import PetCreate, PetUpdate, PetResponse, PetFullProfile
 from auth import get_current_user
 from models import User, pet_accessible_filter
+import subscriptions
 
 router = APIRouter(prefix="/pets", tags=["Pets"])
 
@@ -41,6 +42,9 @@ async def create_pet(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Quota de pets por plano (free: 1, plus: 5, pro: ilimitado)
+    await subscriptions.check_quota(db, current_user, "pets")
+
     if pet_data.breed_id:
         breed_result = await db.execute(select(Breed).where(Breed.id == pet_data.breed_id))
         breed = breed_result.scalar_one_or_none()

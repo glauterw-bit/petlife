@@ -133,6 +133,15 @@ async def _run_migrations():
         "CREATE INDEX IF NOT EXISTS ix_walk_sessions_user_started ON walk_sessions(user_id, started_at DESC)",
         "CREATE INDEX IF NOT EXISTS ix_walk_sessions_pet_started ON walk_sessions(pet_id, started_at DESC)",
         "CREATE INDEX IF NOT EXISTS ix_walk_sessions_active ON walk_sessions(user_id) WHERE ended_at IS NULL",
+        # Assinatura (Apple IAP)
+        "ALTER TABLE users ADD COLUMN premium_tier VARCHAR(20) DEFAULT 'free' NOT NULL",
+        f"ALTER TABLE users ADD COLUMN premium_expires_at {timestamp_type}",
+        "ALTER TABLE users ADD COLUMN active_product_sku VARCHAR(64)",
+        "ALTER TABLE users ADD COLUMN apple_original_transaction_id VARCHAR(128)",
+        "ALTER TABLE users ADD COLUMN trial_used BOOLEAN DEFAULT FALSE NOT NULL",
+        "CREATE INDEX IF NOT EXISTS ix_users_apple_otx ON users(apple_original_transaction_id)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_quota_usage_user_month ON quota_usage(user_id, month)",
+        "CREATE INDEX IF NOT EXISTS ix_iap_tx_original ON iap_transactions(original_transaction_id)",
     ]
     for stmt in migrations:
         try:

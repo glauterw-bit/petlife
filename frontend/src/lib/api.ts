@@ -1388,6 +1388,70 @@ export const ai = {
   },
 }
 
+// ── Billing / Assinatura (Apple IAP) ─────────────────────
+export const billing = {
+  products: async () => {
+    const res = await fetch(`${API_URL}/billing/products`)
+    return handleResponse<BillingCatalog>(res)
+  },
+
+  me: async () => {
+    const res = await fetch(`${API_URL}/billing/me`, { headers: getAuthHeaders() })
+    return handleResponse<BillingMe>(res)
+  },
+
+  verifyIap: async (receipt: string, appleProductId: string) => {
+    const res = await fetch(`${API_URL}/billing/iap/verify`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ receipt, apple_product_id: appleProductId }),
+    })
+    return handleResponse<{ ok: boolean; tier: string; active_product_sku: string; premium_expires_at: string }>(res)
+  },
+
+  restoreIap: async (receipt: string, appleProductId: string) => {
+    const res = await fetch(`${API_URL}/billing/iap/restore`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ receipt, apple_product_id: appleProductId }),
+    })
+    return handleResponse<{ ok: boolean; tier: string; active_product_sku: string; premium_expires_at: string }>(res)
+  },
+}
+
+export type PlanTier = 'free' | 'plus' | 'pro'
+
+export interface BillingProduct {
+  sku: string
+  tier: PlanTier
+  apple_product_id: string
+  name: string
+  price_brl: number
+  cadence: 'monthly' | 'annual'
+  has_trial: boolean
+}
+
+export interface BillingCatalog {
+  products: BillingProduct[]
+  quotas: Record<PlanTier, { pets: number; ai_chat: number; ai_analysis: number }>
+  free_quotas: { pets: number; ai_chat: number; ai_analysis: number }
+  currency: string
+}
+
+export interface BillingMe {
+  tier: PlanTier
+  active_product_sku: string | null
+  premium_expires_at: string | null
+  is_premium: boolean
+  trial_used: boolean
+  usage: {
+    tier: PlanTier
+    month: string
+    limits: { pets: number; ai_chat: number; ai_analysis: number }
+    used: { pets: number; ai_chat: number; ai_analysis: number }
+  }
+}
+
 // ── Types ─────────────────────────────────────────────
 export interface User {
   id: number
