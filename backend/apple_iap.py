@@ -1,25 +1,84 @@
-"""Integração Apple IAP (StoreKit) — validação de recibo + decode de notificações S2S V2.
+"""Integração Apple IAP (StoreKit) — validação de compra + decode de notificações S2S V2.
 
-- verify_receipt(): valida o recibo na Apple (production, com fallback sandbox)
-  e devolve a transação mais recente do produto.
+Dois caminhos de validação:
+  1. App Store Server API (RECOMENDADO) — fetch_transaction(transaction_id):
+     consulta a Apple direto pela transactionId usando a chave .p8 (App Store
+     Connect API key). NÃO precisa de App-Specific Shared Secret nem de 2FA.
+  2. verify_receipt() (legado) — valida o recibo StoreKit 1 via /verifyReceipt,
+     precisa do APPLE_SHARED_SECRET. Mantido como fallback.
+
 - decode_jws_payload(): decodifica o payload de um JWS (App Store Server
-  Notifications V2). NÃO verifica a assinatura (POC) — em produção, validar a
-  cadeia x5c com a CA da Apple usando a lib `jose`/`cryptography`.
+  Notifications V2 e respostas da Server API). A confiança vem de a resposta ter
+  sido obtida do endpoint TLS autenticado da Apple.
 
 Env vars:
-  - APPLE_SHARED_SECRET: App-Specific Shared Secret (ASC → App → General).
-  - APPLE_BUNDLE_ID: app.petlife (opcional, p/ sanity-check do webhook).
+  - App Store Server API (caminho 1): APPLE_INAPP_KEY_ID, APPLE_INAPP_ISSUER_ID,
+    APPLE_INAPP_PRIVATE_KEY (conteúdo do .p8), APPLE_BUNDLE_ID (=app.petlife).
+  - Legado (caminho 2): APPLE_SHARED_SECRET.
 """
 from __future__ import annotations
 
 import base64
 import json
 import os
+import time
 
 import httpx
 
 APPLE_PROD_URL = "https://buy.itunes.apple.com/verifyReceipt"
 APPLE_SANDBOX_URL = "https://sandbox.itunes.apple.com/verifyReceipt"
+
+# App Store Server API (StoreKit) — produção + sandbox
+SERVER_API_PROD = "https://api.storekit.itunes.apple.com"
+SERVER_API_SANDBOX = "https://api.storekit-sandbox.itunes.apple.com"
+
+
+def server_api_configured() -> bool:
+    return all(os.getenv(k, "").strip() for k in
+               ("APPLE_INAPP_KEY_ID", "APPLE_INAPP_ISSUER_ID", "APPLE_INAPP_PRIVATE_KEY"))
+
+
+def _server_api_token() -> str:
+    import jwt  # PyJWT
+    key_id = os.getenv("APPLE_INAPP_KEY_ID", "").strip()
+    issuer = os.getenv("APPLE_INAPP_ISSUER_ID", "").strip()
+    bundle = os.getenv("APPLE_BUNDLE_ID", "app.petlife").strip()
+    private_key = os.getenv("APPLE_INAPP_PRIVATE_KEY", "").strip().replace("\\n", "\n")
+    now = int(time.time())
+    return jwt.encode(
+        {"iss": issuer, "iat": now, "exp": now + 1200, "aud": "appstoreconnect-v1", "bid": bundle},
+        private_key, algorithm="ES256", headers={"kid": key_id, "typ": "JWT"},
+    )
+
+
+async def fetch_transaction(transaction_id: str) -> dict:
+    """Consulta a transação na App Store Server API (prod, fallback sandbox).
+
+    Retorna o payload decodificado do signedTransactionInfo:
+      {productId, expiresDate (ms), originalTransactionId, transactionId,
+       bundleId, environment, ...}. Lança ValueError se não configurada/achada.
+    """
+    if not server_api_configured():
+        raise ValueError("App Store Server API não configurada (faltam env vars APPLE_INAPP_*)")
+    token = _server_api_token()
+    headers = {"Authorization": f"Bearer {token}"}
+    async with httpx.AsyncClient(timeout=20) as client:
+        last = None
+        for base in (SERVER_API_PROD, SERVER_API_SANDBOX):
+            r = await client.get(f"{base}/inApps/v1/transactions/{transaction_id}", headers=headers)
+            last = r
+            if r.status_code == 200:
+                signed = r.json().get("signedTransactionInfo")
+                info = decode_jws_payload(signed) if signed else None
+                if info:
+                    info["environment"] = "Production" if base == SERVER_API_PROD else "Sandbox"
+                    return info
+                raise ValueError("Resposta da Apple sem signedTransactionInfo")
+            if r.status_code == 404:
+                continue  # tenta sandbox
+            if r.status_code in (401, 403):
+                raise ValueError(f"Auth da Server API recusada ({r.status_code}) — confira a chave .p8")
+        raise ValueError(f"Transação não encontrada na Apple (último status {last.status_code if last else '?'})")
 
 
 def _shared_secret() -> str:
