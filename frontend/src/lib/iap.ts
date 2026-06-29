@@ -36,17 +36,23 @@ export function iapAvailable(): boolean {
   return isNativeIos() && !!(window as AnyWindow).CdvPurchase
 }
 
+export interface PurchaseProof {
+  transactionId?: string
+  receipt?: string
+  appleProductId: string
+}
+
 let initialized = false
-let onReceiptCb: ((receipt: string, appleProductId: string) => Promise<void> | void) | null = null
+let onProofCb: ((proof: PurchaseProof) => Promise<void> | void) | null = null
 
 /**
- * Inicializa o store e registra produtos. `onReceipt` é chamado quando uma
- * compra é aprovada (mandar receipt pro backend validar).
+ * Inicializa o store e registra produtos. `onProof` é chamado quando uma
+ * compra é aprovada — manda transactionId (preferido) + receipt pro backend.
  */
 export async function initIap(
-  onReceipt: (receipt: string, appleProductId: string) => Promise<void> | void,
+  onProof: (proof: PurchaseProof) => Promise<void> | void,
 ): Promise<boolean> {
-  onReceiptCb = onReceipt
+  onProofCb = onProof
   if (initialized) return true
   if (!iapAvailable()) return false
 
@@ -63,13 +69,17 @@ export async function initIap(
 
   store.when().approved(async (transaction: any) => {
     try {
+      const transactionId =
+        transaction?.transactionId ||
+        transaction?.nativePurchase?.transactionId ||
+        transaction?.purchaseId
       const receipt =
         transaction?.transactionReceipt ||
         transaction?.parentReceipt?.nativeData?.appStoreReceipt ||
         w.CdvPurchase?.store?.localReceipts?.[0]?.nativeData?.appStoreReceipt
       const productId = transaction?.products?.[0]?.id || transaction?.productId
-      if (receipt && productId && onReceiptCb) {
-        await onReceiptCb(receipt, productId)
+      if ((transactionId || receipt) && productId && onProofCb) {
+        await onProofCb({ transactionId, receipt, appleProductId: productId })
       }
     } catch (e) {
       // erro de validação é tratado na UI via billing.me()

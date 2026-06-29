@@ -68,9 +68,9 @@ export default function PlansPage() {
   useEffect(() => {
     refresh()
     // Inicializa IAP: quando uma compra é aprovada, valida no backend.
-    initIap(async (receipt, appleProductId) => {
+    initIap(async (proof) => {
       try {
-        await billing.verifyIap(receipt, appleProductId)
+        await billing.verifyIap(proof)
         success('Assinatura ativada! 🎉')
         await refresh()
       } catch (err) {

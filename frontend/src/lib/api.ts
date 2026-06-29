@@ -1400,20 +1400,28 @@ export const billing = {
     return handleResponse<BillingMe>(res)
   },
 
-  verifyIap: async (receipt: string, appleProductId: string) => {
+  verifyIap: async (proof: { transactionId?: string; receipt?: string; appleProductId: string }) => {
     const res = await fetch(`${API_URL}/billing/iap/verify`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ receipt, apple_product_id: appleProductId }),
+      body: JSON.stringify({
+        transaction_id: proof.transactionId,
+        receipt: proof.receipt,
+        apple_product_id: proof.appleProductId,
+      }),
     })
     return handleResponse<{ ok: boolean; tier: string; active_product_sku: string; premium_expires_at: string }>(res)
   },
 
-  restoreIap: async (receipt: string, appleProductId: string) => {
+  restoreIap: async (proof: { transactionId?: string; receipt?: string; appleProductId: string }) => {
     const res = await fetch(`${API_URL}/billing/iap/restore`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ receipt, apple_product_id: appleProductId }),
+      body: JSON.stringify({
+        transaction_id: proof.transactionId,
+        receipt: proof.receipt,
+        apple_product_id: proof.appleProductId,
+      }),
     })
     return handleResponse<{ ok: boolean; tier: string; active_product_sku: string; premium_expires_at: string }>(res)
   },
