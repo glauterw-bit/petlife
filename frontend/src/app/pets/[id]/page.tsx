@@ -32,6 +32,7 @@ import { SharePetModal } from '@/components/innovations/SharePetModal'
 import { FamilyTreeSection } from '@/components/innovations/FamilyTreeSection'
 import { HealthForecast } from '@/components/health/HealthForecast'
 import { ExpensesCard } from '@/components/innovations/ExpensesCard'
+import { RecapCard } from '@/components/innovations/RecapCard'
 import { EnrichmentCard } from '@/components/innovations/EnrichmentCard'
 import { petExport } from '@/lib/api'
 import { BookOpen, Brain, PartyPopper, Smile, Image as ImageIcon, Users, GitFork } from 'lucide-react'
@@ -322,6 +323,8 @@ export default function PetProfilePage() {
           <HealthForecast pet={pet} />
 
           <WeightChart petId={petId} />
+
+          <RecapCard petId={petId} />
 
           <EnrichmentCard petId={petId} petName={pet.name} />
 
