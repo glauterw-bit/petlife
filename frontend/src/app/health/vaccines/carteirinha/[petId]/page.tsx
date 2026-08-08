@@ -113,7 +113,7 @@ export default function CarteirinhaPage() {
   const overdue = data?.vaccines.filter(v => vaccineStatus(v.next_due) === 'overdue').length ?? 0
 
   if (loading) return <DashboardLayout><PageLoader /></DashboardLayout>
-  if (!data) return <DashboardLayout><div className="text-center py-20 text-surface-500">Carteirinha não encontrada.</div></DashboardLayout>
+  if (!data) return <DashboardLayout><div className="text-center py-20 text-surface-500 dark:text-surface-400">Carteirinha não encontrada.</div></DashboardLayout>
 
   const pet = data.pet
 
@@ -121,7 +121,7 @@ export default function CarteirinhaPage() {
     <DashboardLayout>
       {/* Toolbar — hidden on print */}
       <div className="flex items-center justify-between mb-6 print:hidden">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-surface-600 hover:text-surface-900 transition">
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-surface-600 dark:text-surface-300 hover:text-surface-900 transition">
           <ArrowLeft className="w-5 h-5" />
           <span className="text-sm font-medium">Voltar</span>
         </button>
@@ -137,7 +137,7 @@ export default function CarteirinhaPage() {
           <button
             onClick={handleShare}
             aria-label="Compartilhar carteirinha"
-            className="flex items-center gap-2 px-4 py-2 border border-surface-200 rounded-xl text-sm font-medium text-surface-700 hover:border-primary-300 hover:text-primary-700 transition"
+            className="flex items-center gap-2 px-4 py-2 border border-surface-200 dark:border-surface-700 rounded-xl text-sm font-medium text-surface-700 dark:text-surface-200 hover:border-primary-300 hover:text-primary-700 transition"
           >
             <Share2 className="w-4 h-4" />
             Compartilhar
@@ -155,7 +155,7 @@ export default function CarteirinhaPage() {
 
       {/* CARD */}
       <div ref={cardRef} className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-3xl shadow-xl border border-surface-100 overflow-hidden print:shadow-none print:border-0">
+        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 overflow-hidden print:shadow-none print:border-0">
 
           {/* Header gradient */}
           <div className="bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-500 px-8 py-8 text-white relative overflow-hidden">
@@ -209,7 +209,7 @@ export default function CarteirinhaPage() {
           </div>
 
           {/* Pet details */}
-          <div className="px-8 py-5 border-b border-surface-100 bg-surface-50/50">
+          <div className="px-8 py-5 border-b border-surface-100 dark:border-surface-700 bg-surface-50/50">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
               {[
                 { label: 'Espécie', value: getSpeciesLabel(pet.species) },
@@ -224,7 +224,7 @@ export default function CarteirinhaPage() {
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-xs text-surface-400 font-medium uppercase tracking-wide">{label}</p>
-                  <p className="text-sm font-semibold text-surface-800 mt-0.5">{value}</p>
+                  <p className="text-sm font-semibold text-surface-800 dark:text-surface-100 mt-0.5">{value}</p>
                 </div>
               ))}
             </div>
@@ -232,7 +232,7 @@ export default function CarteirinhaPage() {
 
           {/* Vaccines list */}
           <div className="px-8 py-6">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-surface-500 mb-4">Histórico de Vacinação</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-4">Histórico de Vacinação</h2>
 
             {data.vaccines.length === 0 ? (
               <div className="text-center py-8 text-surface-400 text-sm">Nenhuma vacina registrada.</div>
@@ -243,32 +243,32 @@ export default function CarteirinhaPage() {
                   const cfg = statusConfig[st]
                   const { Icon } = cfg
                   return (
-                    <div key={v.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-surface-100 hover:border-surface-200 transition bg-white">
+                    <div key={v.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-surface-100 dark:border-surface-700 hover:border-surface-200 transition bg-white dark:bg-surface-800">
                       <div className="mt-0.5">
                         <Icon className={`w-4 h-4 ${cfg.iconColor}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <span className="font-semibold text-sm text-surface-900">{v.name}</span>
+                          <span className="font-semibold text-sm text-surface-900 dark:text-white">{v.name}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${cfg.color}`}>{cfg.label}</span>
                         </div>
                         <div className="flex flex-wrap gap-x-5 gap-y-0.5 mt-1.5">
-                          <span className="text-xs text-surface-500">
-                            <span className="font-medium text-surface-700">Aplicada:</span> {formatDate(v.date_given)}
+                          <span className="text-xs text-surface-500 dark:text-surface-400">
+                            <span className="font-medium text-surface-700 dark:text-surface-200">Aplicada:</span> {formatDate(v.date_given)}
                           </span>
                           {v.next_due && (
-                            <span className="text-xs text-surface-500">
-                              <span className="font-medium text-surface-700">Próxima:</span> {formatDate(v.next_due)}
+                            <span className="text-xs text-surface-500 dark:text-surface-400">
+                              <span className="font-medium text-surface-700 dark:text-surface-200">Próxima:</span> {formatDate(v.next_due)}
                             </span>
                           )}
                           {v.veterinarian && (
-                            <span className="text-xs text-surface-500">
-                              <span className="font-medium text-surface-700">Vet:</span> {v.veterinarian}
+                            <span className="text-xs text-surface-500 dark:text-surface-400">
+                              <span className="font-medium text-surface-700 dark:text-surface-200">Vet:</span> {v.veterinarian}
                             </span>
                           )}
                           {v.lot_number && (
-                            <span className="text-xs text-surface-500">
-                              <span className="font-medium text-surface-700">Lote:</span> {v.lot_number}
+                            <span className="text-xs text-surface-500 dark:text-surface-400">
+                              <span className="font-medium text-surface-700 dark:text-surface-200">Lote:</span> {v.lot_number}
                             </span>
                           )}
                         </div>
@@ -283,7 +283,7 @@ export default function CarteirinhaPage() {
           </div>
 
           {/* Footer with QR code */}
-          <div className="px-8 py-6 border-t border-surface-100 bg-surface-50/50 flex items-end justify-between gap-6 flex-wrap">
+          <div className="px-8 py-6 border-t border-surface-100 dark:border-surface-700 bg-surface-50/50 flex items-end justify-between gap-6 flex-wrap">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <QrCode className="w-4 h-4 text-surface-400" />
@@ -292,21 +292,21 @@ export default function CarteirinhaPage() {
               <img
                 src={qrUrl}
                 alt="QR Code da carteirinha"
-                className="w-28 h-28 rounded-xl border border-surface-200"
+                className="w-28 h-28 rounded-xl border border-surface-200 dark:border-surface-700"
               />
               <p className="text-xs text-surface-400 mt-1.5 max-w-[160px]">Escaneie para verificar a autenticidade</p>
             </div>
 
             <div className="text-right">
               <div className="text-xs text-surface-400 mb-1">Emitida em</div>
-              <div className="text-sm font-semibold text-surface-700">
+              <div className="text-sm font-semibold text-surface-700 dark:text-surface-200">
                 {formatDate(data.generated_at.split('T')[0])}
               </div>
               <div className="mt-4 flex items-center gap-1.5 justify-end">
                 <div className="w-6 h-6 bg-primary-500 rounded-lg flex items-center justify-center">
                   <span className="text-white text-xs font-bold">P</span>
                 </div>
-                <span className="text-sm font-bold text-surface-700">PetLife</span>
+                <span className="text-sm font-bold text-surface-700 dark:text-surface-200">PetLife</span>
               </div>
               <p className="text-xs text-surface-400 mt-0.5">Gestão de saúde pet com IA</p>
             </div>

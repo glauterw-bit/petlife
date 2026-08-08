@@ -15,6 +15,8 @@ import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { HealthScoreCard } from '@/components/health/HealthScoreCard'
 import { DailyCheckin } from '@/components/health/DailyCheckin'
 import { StreakFlame } from '@/components/health/StreakFlame'
+import { syncHealthNotifications } from '@/lib/notifications'
+import { trackHappyMoment } from '@/lib/review'
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -38,6 +40,11 @@ export default function DashboardPage() {
         if (v.status === 'fulfilled') setUpcomingVaccines(v.value)
         if (r.status === 'fulfilled') setUpcomingReminders(r.value)
         if (pts.status === 'fulfilled') setPoints(pts.value)
+        // Agenda notificações locais de vacinas/lembretes (no-op fora do app nativo)
+        void syncHealthNotifications(
+          v.status === 'fulfilled' ? v.value : [],
+          r.status === 'fulfilled' ? r.value : [],
+        )
       } finally {
         setLoading(false)
       }
@@ -75,7 +82,7 @@ export default function DashboardPage() {
           </div>
           <div className="lg:col-span-1 space-y-4">
             <StreakFlame key={`streak-${scoreRefresh}`} pet={pets[0]} refreshKey={scoreRefresh} />
-            <DailyCheckin pet={pets[0]} onDone={() => setScoreRefresh(n => n + 1)} />
+            <DailyCheckin pet={pets[0]} onDone={() => { setScoreRefresh(n => n + 1); trackHappyMoment('checkin') }} />
           </div>
         </div>
       )}
@@ -137,7 +144,7 @@ export default function DashboardPage() {
             {pets.length === 0 ? (
               <div className="text-center py-8">
                 <div className="text-5xl mb-3">🐾</div>
-                <p className="text-surface-500 mb-4">Nenhum pet cadastrado ainda</p>
+                <p className="text-surface-500 dark:text-surface-400 mb-4">Nenhum pet cadastrado ainda</p>
                 <Link
                   href="/pets/new"
                   className="inline-flex items-center gap-2 bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-600 transition"
@@ -253,7 +260,7 @@ export default function DashboardPage() {
               </div>
               <div className="w-full bg-white/20 rounded-full h-2 mb-4">
                 <div
-                  className="bg-white h-2 rounded-full transition-all"
+                  className="bg-white dark:bg-surface-800 h-2 rounded-full transition-all"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>

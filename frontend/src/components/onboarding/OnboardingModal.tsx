@@ -70,7 +70,7 @@ export function OnboardingModal({ forceOpen = false }: OnboardingModalProps) {
           aria-label="Pular onboarding"
           className="absolute right-3 top-3 p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-700 transition z-10"
         >
-          <X className="w-4 h-4 text-surface-500" />
+          <X className="w-4 h-4 text-surface-500 dark:text-surface-400" />
         </button>
 
         <div className={cn('bg-gradient-to-br p-8 pt-12 text-center', s.bg)}>

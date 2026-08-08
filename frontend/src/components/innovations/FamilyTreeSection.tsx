@@ -121,14 +121,14 @@ export function FamilyTreeSection({ petId, petName }: { petId: number; petName: 
                 <PetThumb pet={p} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-surface-900 dark:text-white truncate">{p.pet_name}</p>
-                  <p className="text-xs text-surface-500">{RELATION_LABEL[p.relation || '']} · {p.owner_name}</p>
+                  <p className="text-xs text-surface-500 dark:text-surface-400">{RELATION_LABEL[p.relation || '']} · {p.owner_name}</p>
                 </div>
                 {p.is_inbound ? (
                   <button onClick={() => confirmRel(p.relation_id)} aria-label="Confirmar" className="p-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600">
                     <Check className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <button onClick={() => removeRel(p.relation_id)} aria-label="Cancelar" className="p-1.5 rounded-lg text-surface-500 hover:text-red-600">
+                  <button onClick={() => removeRel(p.relation_id)} aria-label="Cancelar" className="p-1.5 rounded-lg text-surface-500 dark:text-surface-400 hover:text-red-600">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -151,7 +151,7 @@ export function FamilyTreeSection({ petId, petName }: { petId: number; petName: 
                   <PetThumb pet={m} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-surface-900 dark:text-white truncate">{m.pet_name}</p>
-                    <p className="text-xs text-surface-500 truncate">{m.breed ?? '—'}</p>
+                    <p className="text-xs text-surface-500 dark:text-surface-400 truncate">{m.breed ?? '—'}</p>
                   </div>
                   <button onClick={() => removeRel(m.relation_id)} aria-label="Remover" className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded-lg bg-white/90 dark:bg-surface-800/90 text-red-500 transition">
                     <X className="w-3 h-3" />

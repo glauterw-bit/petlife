@@ -46,7 +46,7 @@ export default function BehaviorPlanPage() {
 
   return (
     <DashboardLayout>
-      <button onClick={() => router.back()} className="flex items-center gap-2 text-surface-600 hover:text-surface-900 mb-4">
+      <button onClick={() => router.back()} className="flex items-center gap-2 text-surface-600 dark:text-surface-300 hover:text-surface-900 mb-4">
         <ArrowLeft className="w-4 h-4" /> Voltar
       </button>
 
@@ -101,7 +101,7 @@ export default function BehaviorPlanPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-xs font-bold text-purple-600 dark:text-purple-300">DIA {dayNum}</span>
-                        <span className="text-xs text-surface-500">{ex.duration_min} min</span>
+                        <span className="text-xs text-surface-500 dark:text-surface-400">{ex.duration_min} min</span>
                         {done && <CheckCircle className="w-4 h-4 text-emerald-500" />}
                       </div>
                       <p className="font-semibold text-sm text-surface-900 dark:text-white">{ex.title}</p>
@@ -110,7 +110,7 @@ export default function BehaviorPlanPage() {
                   </div>
                   {!done && plan.status === 'active' && (
                     <div className="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700">
-                      <p className="text-xs text-surface-500 mb-2">Como foi hoje? Marca o progresso (0-10):</p>
+                      <p className="text-xs text-surface-500 dark:text-surface-400 mb-2">Como foi hoje? Marca o progresso (0-10):</p>
                       <div className="flex gap-1 flex-wrap">
                         {[0,1,2,3,4,5,6,7,8,9,10].map(s => (
                           <button

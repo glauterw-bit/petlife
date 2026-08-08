@@ -102,7 +102,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
       {/* Chat modal */}
       {open && (
         <div
-          className="fixed bottom-nav md:bottom-6 right-2 left-2 md:right-6 md:left-auto z-40 w-auto md:w-96 max-h-[min(80dvh,640px)] flex flex-col bg-white rounded-2xl shadow-2xl border border-surface-200 overflow-hidden animate-slide-up"
+          className="fixed bottom-nav md:bottom-6 right-2 left-2 md:right-6 md:left-auto z-40 w-auto md:w-96 max-h-[min(80dvh,640px)] flex flex-col bg-white dark:bg-surface-800 rounded-2xl shadow-2xl border border-surface-200 dark:border-surface-700 overflow-hidden animate-slide-up"
         >
           {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-primary-500 text-white">
@@ -123,19 +123,19 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
 
           {/* Pet selector */}
           {pets.length > 0 && (
-            <div className="px-3 py-2 border-b border-surface-100 relative">
+            <div className="px-3 py-2 border-b border-surface-100 dark:border-surface-700 relative">
               <button
                 onClick={() => setPetDropdown(v => !v)}
-                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-50 hover:bg-surface-100 transition text-sm"
+                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-50 dark:bg-surface-900/60 hover:bg-surface-100 transition text-sm"
               >
                 <span>{getSpeciesEmoji(selectedPet?.species)}</span>
-                <span className="text-surface-700 font-medium">
+                <span className="text-surface-700 dark:text-surface-200 font-medium">
                   {selectedPet?.name ?? 'Selecionar pet'}
                 </span>
                 <ChevronDown className={cn('w-4 h-4 text-surface-400 ml-auto transition-transform', petDropdown && 'rotate-180')} />
               </button>
               {petDropdown && (
-                <div className="absolute left-3 right-3 top-full mt-1 bg-white border border-surface-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                <div className="absolute left-3 right-3 top-full mt-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl shadow-lg z-10 overflow-hidden">
                   {pets.map(p => (
                     <button
                       key={p.id}
@@ -172,7 +172,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
                     'max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed',
                     msg.role === 'user'
                       ? 'bg-primary-500 text-white rounded-tr-sm'
-                      : 'bg-surface-100 text-surface-800 rounded-tl-sm'
+                      : 'bg-surface-100 dark:bg-surface-700 text-surface-800 dark:text-surface-100 rounded-tl-sm'
                   )}
                 >
                   {msg.content}
@@ -185,7 +185,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
                 <div className="w-7 h-7 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
                   <Bot className="w-4 h-4 text-primary-600" />
                 </div>
-                <div className="bg-surface-100 rounded-2xl rounded-tl-sm px-3 py-2">
+                <div className="bg-surface-100 dark:bg-surface-700 rounded-2xl rounded-tl-sm px-3 py-2">
                   <div className="flex gap-1">
                     {[0, 1, 2].map(i => (
                       <div
@@ -202,7 +202,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
           </div>
 
           {/* Input */}
-          <div className="px-3 py-3 border-t border-surface-100 flex gap-2 shrink-0 pb-keyboard">
+          <div className="px-3 py-3 border-t border-surface-100 dark:border-surface-700 flex gap-2 shrink-0 pb-keyboard">
             <input
               ref={inputRef}
               type="text"
@@ -213,7 +213,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
                 setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 250)
               }}
               placeholder="Pergunte algo sobre seu pet..."
-              className="flex-1 text-base px-3 py-2 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="flex-1 text-base px-3 py-2 border border-surface-200 dark:border-surface-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               inputMode="text"
               enterKeyHint="send"
             />

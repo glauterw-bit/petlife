@@ -26,8 +26,8 @@ export default function PetsPage() {
     <DashboardLayout>
       <div className="flex items-center justify-between mb-5 md:mb-6 pl-12 md:pl-0">
         <div className="min-w-0">
-          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Meus Pets</h1>
-          <p className="text-sm md:text-base text-surface-500 mt-1">
+          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">Meus Pets</h1>
+          <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">
             {petList.length > 0 ? `${petList.length} pet${petList.length > 1 ? 's' : ''} cadastrado${petList.length > 1 ? 's' : ''}` : 'Adicione seu primeiro pet!'}
           </p>
         </div>
@@ -48,7 +48,7 @@ export default function PetsPage() {
             placeholder="Buscar por nome ou raça..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full max-w-md pl-10 pr-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full max-w-md pl-10 pr-4 py-2.5 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
       )}
@@ -60,8 +60,8 @@ export default function PetsPage() {
           <div className="text-7xl mb-4">🐾</div>
           {petList.length === 0 ? (
             <>
-              <h2 className="text-xl font-semibold text-surface-900 mb-2">Nenhum pet cadastrado</h2>
-              <p className="text-surface-500 mb-6">Adicione seu companheiro favorito e comece a cuidar com IA!</p>
+              <h2 className="text-xl font-semibold text-surface-900 dark:text-white mb-2">Nenhum pet cadastrado</h2>
+              <p className="text-surface-500 dark:text-surface-400 mb-6">Adicione seu companheiro favorito e comece a cuidar com IA!</p>
               <Link
                 href="/pets/new"
                 className="inline-flex items-center gap-2 bg-primary-500 text-white px-8 py-3 rounded-2xl font-medium hover:bg-primary-600 transition"
@@ -71,7 +71,7 @@ export default function PetsPage() {
               </Link>
             </>
           ) : (
-            <p className="text-surface-500">Nenhum pet encontrado para "{search}"</p>
+            <p className="text-surface-500 dark:text-surface-400">Nenhum pet encontrado para "{search}"</p>
           )}
         </div>
       ) : (
@@ -79,9 +79,9 @@ export default function PetsPage() {
           {filtered.map(pet => <PetCard key={pet.id} pet={pet} />)}
           <Link
             href="/pets/new"
-            className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-surface-200 rounded-2xl p-8 hover:border-primary-300 hover:bg-primary-50 transition group min-h-[200px]"
+            className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-surface-200 dark:border-surface-700 rounded-2xl p-8 hover:border-primary-300 hover:bg-primary-50 transition group min-h-[200px]"
           >
-            <div className="w-12 h-12 rounded-xl bg-surface-100 group-hover:bg-primary-100 flex items-center justify-center transition">
+            <div className="w-12 h-12 rounded-xl bg-surface-100 dark:bg-surface-700 group-hover:bg-primary-100 flex items-center justify-center transition">
               <Plus className="w-6 h-6 text-surface-400 group-hover:text-primary-600 transition" />
             </div>
             <span className="text-sm font-medium text-surface-400 group-hover:text-primary-600 transition">

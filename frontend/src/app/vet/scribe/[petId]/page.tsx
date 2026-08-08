@@ -87,7 +87,7 @@ export default function VetScribePage() {
   }
 
   if (isLoading || !isVetUser) {
-    return <div className="min-h-screen flex items-center justify-center text-surface-500">Carregando…</div>
+    return <div className="min-h-screen flex items-center justify-center text-surface-500 dark:text-surface-400">Carregando…</div>
   }
 
   return (
@@ -199,7 +199,7 @@ function SoapSection({ title, content, onCopy, copied }: { title: string; conten
     <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-4">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-bold text-surface-900 dark:text-white">{title}</h3>
-        <button onClick={onCopy} className="text-xs flex items-center gap-1 text-surface-500 hover:text-surface-700">
+        <button onClick={onCopy} className="text-xs flex items-center gap-1 text-surface-500 dark:text-surface-400 hover:text-surface-700">
           {copied ? <><Check className="w-3.5 h-3.5 text-emerald-500" /> Copiado</> : <><Copy className="w-3.5 h-3.5" /> Copiar</>}
         </button>
       </div>
@@ -211,7 +211,7 @@ function SoapSection({ title, content, onCopy, copied }: { title: string; conten
 function PlanList({ label, items }: { label: string; items: string[] }) {
   return (
     <div className="mt-2">
-      <p className="text-xs uppercase tracking-wide text-surface-500 font-semibold mb-1">{label}</p>
+      <p className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 font-semibold mb-1">{label}</p>
       <ul className="space-y-0.5">
         {items.map((it, i) => (
           <li key={i} className="text-sm text-surface-700 dark:text-surface-200 flex items-start gap-2">

@@ -45,7 +45,7 @@ export default function LostPetPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-surface-50 dark:bg-surface-900 flex items-center justify-center">
-        <span className="text-surface-500">Carregando…</span>
+        <span className="text-surface-500 dark:text-surface-400">Carregando…</span>
       </div>
     )
   }

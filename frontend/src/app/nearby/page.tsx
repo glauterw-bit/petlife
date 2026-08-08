@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 const NearbyMap = dynamic(() => import('@/components/nearby/NearbyMap'), {
   ssr: false,
   loading: () => (
-    <div className="rounded-2xl border border-surface-200 bg-surface-50 flex items-center justify-center" style={{ height: 420 }}>
+    <div className="rounded-2xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900/60 flex items-center justify-center" style={{ height: 420 }}>
       <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
     </div>
   ),
@@ -88,12 +88,12 @@ export default function NearbyPage() {
   return (
     <DashboardLayout>
       <div className="mb-5 md:mb-6 pl-12 md:pl-0">
-        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Clínicas e Pet Shops</h1>
-        <p className="text-sm md:text-base text-surface-500 mt-1">Encontre estabelecimentos próximos a você</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">Clínicas e Pet Shops</h1>
+        <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">Encontre estabelecimentos próximos a você</p>
       </div>
 
       {/* Controls */}
-      <div className="bg-white rounded-2xl border border-surface-100 p-5 mb-6">
+      <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5 mb-6">
         <div className="flex flex-wrap items-center gap-4">
           {/* Location status */}
           <div className="flex items-center gap-2">
@@ -122,7 +122,7 @@ export default function NearbyPage() {
                 onClick={() => setType(t.value)}
                 className={cn(
                   'px-3 py-2 rounded-xl text-sm font-medium transition',
-                  type === t.value ? 'bg-primary-500 text-white' : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                  type === t.value ? 'bg-primary-500 text-white' : 'bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 hover:bg-surface-200'
                 )}
               >
                 {t.label}
@@ -132,7 +132,7 @@ export default function NearbyPage() {
 
           {/* Radius */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-surface-600">Raio:</span>
+            <span className="text-sm text-surface-600 dark:text-surface-300">Raio:</span>
             <div className="flex gap-1">
               {RADII.map(r => (
                 <button
@@ -140,7 +140,7 @@ export default function NearbyPage() {
                   onClick={() => setRadius(r.value)}
                   className={cn(
                     'px-3 py-1.5 rounded-xl text-sm font-medium transition',
-                    radius === r.value ? 'bg-accent-500 text-white' : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                    radius === r.value ? 'bg-accent-500 text-white' : 'bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 hover:bg-surface-200'
                   )}
                 >
                   {r.label}
@@ -171,7 +171,7 @@ export default function NearbyPage() {
           />
         </div>
       ) : (
-        <div className="bg-surface-50 border border-surface-200 rounded-2xl p-8 mb-6 text-center text-sm text-surface-500">
+        <div className="bg-surface-50 dark:bg-surface-900/60 border border-surface-200 dark:border-surface-700 rounded-2xl p-8 mb-6 text-center text-sm text-surface-500 dark:text-surface-400">
           Permita o acesso à sua localização para ver o mapa.
         </div>
       )}
@@ -179,28 +179,28 @@ export default function NearbyPage() {
       {/* Results */}
       {searched && !loading && (
         <div>
-          <h2 className="text-lg font-bold text-surface-900 mb-4">
+          <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-4">
             {results.length > 0 ? `${results.length} resultado${results.length > 1 ? 's' : ''} encontrado${results.length > 1 ? 's' : ''}` : 'Nenhum resultado encontrado'}
           </h2>
 
           {results.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-surface-100">
+            <div className="text-center py-12 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
               <div className="text-5xl mb-3">😔</div>
-              <p className="text-surface-600">Nenhum local encontrado nesse raio.</p>
-              <p className="text-sm text-surface-500 mt-1">Tente aumentar o raio de busca.</p>
+              <p className="text-surface-600 dark:text-surface-300">Nenhum local encontrado nesse raio.</p>
+              <p className="text-sm text-surface-500 dark:text-surface-400 mt-1">Tente aumentar o raio de busca.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {results.map((place, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-surface-100 p-5 hover:border-primary-200 hover:shadow-sm transition-all">
+                <div key={i} className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5 hover:border-primary-200 hover:shadow-sm transition-all">
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center text-2xl shrink-0">
                       {type === 'veterinary' ? '🏥' : '🛍'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-surface-900 mb-0.5">{place.name}</h3>
+                      <h3 className="font-semibold text-surface-900 dark:text-white mb-0.5">{place.name}</h3>
                       {place.address && (
-                        <p className="text-sm text-surface-500 flex items-start gap-1.5 mb-1">
+                        <p className="text-sm text-surface-500 dark:text-surface-400 flex items-start gap-1.5 mb-1">
                           <MapPin className="w-3.5 h-3.5 text-surface-400 shrink-0 mt-0.5" />
                           {place.address}
                         </p>
@@ -229,7 +229,7 @@ export default function NearbyPage() {
                     {place.phone && (
                       <a
                         href={`tel:${place.phone}`}
-                        className="flex items-center gap-1.5 text-sm text-surface-700 bg-surface-100 hover:bg-surface-200 px-3 py-2 rounded-xl transition"
+                        className="flex items-center gap-1.5 text-sm text-surface-700 dark:text-surface-200 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 px-3 py-2 rounded-xl transition"
                       >
                         <Phone className="w-4 h-4" />
                         {place.phone}

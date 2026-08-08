@@ -47,19 +47,19 @@ const testimonials = [
 
 export default function VetLandingPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-surface-800">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-surface-100 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-surface-100 dark:border-surface-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary-500 rounded-xl flex items-center justify-center">
               <PawPrint className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-surface-900">PetLife</span>
+            <span className="text-xl font-bold text-surface-900 dark:text-white">PetLife</span>
             <span className="hidden sm:inline text-sm text-surface-400 ml-1">para Veterinários</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/vet/login" className="text-sm font-medium text-surface-700 hover:text-primary-600 px-4 py-2">
+            <Link href="/vet/login" className="text-sm font-medium text-surface-700 dark:text-surface-200 hover:text-primary-600 px-4 py-2">
               Entrar
             </Link>
             <Link href="/vet/register" className="bg-primary-500 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-primary-600 transition">
@@ -89,7 +89,7 @@ export default function VetLandingPage() {
             <div className="flex flex-wrap gap-4">
               <Link
                 href="/vet/register"
-                className="flex items-center gap-2 bg-white text-primary-700 font-bold px-8 py-4 rounded-2xl hover:bg-primary-50 transition hover:scale-105 shadow-xl"
+                className="flex items-center gap-2 bg-white dark:bg-surface-800 text-primary-700 font-bold px-8 py-4 rounded-2xl hover:bg-primary-50 transition hover:scale-105 shadow-xl"
               >
                 Cadastrar minha clínica
                 <ChevronRight className="w-5 h-5" />
@@ -118,22 +118,22 @@ export default function VetLandingPage() {
       </section>
 
       {/* Features */}
-      <section className="py-24 bg-surface-50">
+      <section className="py-24 bg-surface-50 dark:bg-surface-900/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-surface-900 mb-4">Tudo que sua clínica precisa</h2>
-            <p className="text-xl text-surface-600 max-w-2xl mx-auto">
+            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">Tudo que sua clínica precisa</h2>
+            <p className="text-xl text-surface-600 dark:text-surface-300 max-w-2xl mx-auto">
               Uma plataforma completa para oferecer o melhor atendimento veterinário.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((f, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-surface-100 hover:border-primary-200 hover:shadow-md transition-all group">
-                <div className="w-14 h-14 bg-surface-50 group-hover:bg-primary-50 rounded-2xl flex items-center justify-center mb-4 transition">
+              <div key={i} className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-100 dark:border-surface-700 hover:border-primary-200 hover:shadow-md transition-all group">
+                <div className="w-14 h-14 bg-surface-50 dark:bg-surface-900/60 group-hover:bg-primary-50 rounded-2xl flex items-center justify-center mb-4 transition">
                   {f.icon}
                 </div>
-                <h3 className="text-lg font-bold text-surface-900 mb-2">{f.title}</h3>
-                <p className="text-surface-600 text-sm leading-relaxed">{f.desc}</p>
+                <h3 className="text-lg font-bold text-surface-900 dark:text-white mb-2">{f.title}</h3>
+                <p className="text-surface-600 dark:text-surface-300 text-sm leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -141,10 +141,10 @@ export default function VetLandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-white dark:bg-surface-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-surface-900 mb-4">Como funciona para veterinários</h2>
+            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">Como funciona para veterinários</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
@@ -158,8 +158,8 @@ export default function VetLandingPage() {
                   {s.icon}
                 </div>
                 <div className="text-xs font-bold text-primary-600 mb-1">{s.step}</div>
-                <h3 className="font-bold text-surface-900 mb-2">{s.title}</h3>
-                <p className="text-sm text-surface-600">{s.desc}</p>
+                <h3 className="font-bold text-surface-900 dark:text-white mb-2">{s.title}</h3>
+                <p className="text-sm text-surface-600 dark:text-surface-300">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -167,23 +167,23 @@ export default function VetLandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 bg-surface-50">
+      <section className="py-24 bg-surface-50 dark:bg-surface-900/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-surface-900 mb-4">O que os veterinários dizem</h2>
+            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">O que os veterinários dizem</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-surface-100">
+              <div key={i} className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-100 dark:border-surface-700">
                 <div className="flex mb-3">
                   {Array.from({ length: 5 }).map((_, j) => (
                     <Star key={j} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                   ))}
                 </div>
-                <p className="text-surface-700 text-sm leading-relaxed mb-4 italic">"{t.text}"</p>
+                <p className="text-surface-700 dark:text-surface-200 text-sm leading-relaxed mb-4 italic">"{t.text}"</p>
                 <div>
-                  <div className="font-semibold text-surface-900">{t.name}</div>
-                  <div className="text-sm text-surface-500">{t.clinic}</div>
+                  <div className="font-semibold text-surface-900 dark:text-white">{t.name}</div>
+                  <div className="text-sm text-surface-500 dark:text-surface-400">{t.clinic}</div>
                 </div>
               </div>
             ))}
@@ -197,7 +197,7 @@ export default function VetLandingPage() {
           <h2 className="text-4xl font-bold text-white mb-4">Pronto para revolucionar sua clínica?</h2>
           <p className="text-primary-100 text-xl mb-10">Cadastro gratuito. Sem mensalidade. Comece hoje mesmo.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/vet/register" className="bg-white text-primary-700 font-bold px-10 py-4 rounded-2xl hover:bg-primary-50 transition hover:scale-105 shadow-xl flex items-center justify-center gap-2">
+            <Link href="/vet/register" className="bg-white dark:bg-surface-800 text-primary-700 font-bold px-10 py-4 rounded-2xl hover:bg-primary-50 transition hover:scale-105 shadow-xl flex items-center justify-center gap-2">
               <CheckCircle className="w-5 h-5" />
               Cadastrar minha clínica gratuitamente
             </Link>

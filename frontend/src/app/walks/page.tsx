@@ -94,7 +94,7 @@ export default function WalksPage() {
                 <Trophy className="w-4 h-4 text-amber-500" />
                 <h2 className="text-sm font-semibold text-surface-700 dark:text-surface-200">Conquistas</h2>
               </div>
-              <span className="text-xs text-surface-500">{earnedCount} de {badges.length}</span>
+              <span className="text-xs text-surface-500 dark:text-surface-400">{earnedCount} de {badges.length}</span>
             </div>
             <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2 snap-x">
               {badges.map(b => (
@@ -150,7 +150,7 @@ function BadgeChip({ badge }: { badge: WalkBadge }) {
           <div className="h-1 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
             <div className="h-full bg-primary-500" style={{ width: `${pct}%` }} />
           </div>
-          <div className="text-[10px] text-surface-500 mt-0.5">{pct}%</div>
+          <div className="text-[10px] text-surface-500 dark:text-surface-400 mt-0.5">{pct}%</div>
         </div>
       )}
     </div>
@@ -165,7 +165,7 @@ function SummaryCard({ icon, label, value, sub }: { icon: React.ReactNode; label
         {label}
       </div>
       <div className="text-lg md:text-xl font-bold text-surface-900 dark:text-white leading-tight">{value}</div>
-      <div className="text-[10px] text-surface-500">{sub}</div>
+      <div className="text-[10px] text-surface-500 dark:text-surface-400">{sub}</div>
     </div>
   )
 }
@@ -194,7 +194,7 @@ function WalkCard({ walk }: { walk: WalkListItem }) {
           <div className="font-semibold text-surface-900 dark:text-white text-sm truncate group-hover:text-primary-600 transition">
             {walk.pet_name ?? 'Pet'} {moodEmoji && <span className="ml-1">{moodEmoji}</span>}
           </div>
-          <div className="text-xs text-surface-500 flex items-center gap-1.5">
+          <div className="text-xs text-surface-500 dark:text-surface-400 flex items-center gap-1.5">
             <Calendar className="w-3 h-3" />
             {dateStr} · {timeStr}
           </div>
@@ -205,19 +205,19 @@ function WalkCard({ walk }: { walk: WalkListItem }) {
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
           <div className="text-sm md:text-base font-bold text-surface-800 dark:text-white tabular-nums">{formatDistance(walk.distance_meters)}</div>
-          <div className="text-[10px] text-surface-500 uppercase tracking-wide">distância</div>
+          <div className="text-[10px] text-surface-500 dark:text-surface-400 uppercase tracking-wide">distância</div>
         </div>
         <div>
           <div className="text-sm md:text-base font-bold text-surface-800 dark:text-white tabular-nums">{formatDuration(walk.duration_seconds)}</div>
-          <div className="text-[10px] text-surface-500 uppercase tracking-wide">tempo</div>
+          <div className="text-[10px] text-surface-500 dark:text-surface-400 uppercase tracking-wide">tempo</div>
         </div>
         <div>
           <div className="text-sm md:text-base font-bold text-surface-800 dark:text-white tabular-nums">{walk.avg_pace_seconds_per_km ? formatPace(walk.avg_pace_seconds_per_km).replace('/km', '') : '—'}</div>
-          <div className="text-[10px] text-surface-500 uppercase tracking-wide">ritmo</div>
+          <div className="text-[10px] text-surface-500 dark:text-surface-400 uppercase tracking-wide">ritmo</div>
         </div>
       </div>
       {(walk.kudos_count > 0 || walk.is_shared) && (
-        <div className="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700 flex items-center gap-3 text-xs text-surface-500">
+        <div className="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700 flex items-center gap-3 text-xs text-surface-500 dark:text-surface-400">
           {walk.kudos_count > 0 && (
             <span className="flex items-center gap-1">
               <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" /> {walk.kudos_count}

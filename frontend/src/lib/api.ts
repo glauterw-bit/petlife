@@ -32,6 +32,10 @@ async function handleResponse<T>(res: Response): Promise<T> {
       const data = await res.json()
       message = data.detail || data.message || message
     } catch {}
+    // 402 = quota do plano esgotada → abre o funil de upgrade (modal global)
+    if (res.status === 402 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('petlife:quota', { detail: { message } }))
+    }
     throw new Error(message)
   }
   const text = await res.text()

@@ -89,8 +89,8 @@ export default function ChallengesPage() {
   return (
     <DashboardLayout>
       <div className="mb-5 md:mb-6 pl-12 md:pl-0">
-        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Desafios & Gamificação</h1>
-        <p className="text-sm md:text-base text-surface-500 mt-1">Complete desafios e acumule pontos!</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">Desafios & Gamificação</h1>
+        <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">Complete desafios e acumule pontos!</p>
       </div>
 
       {/* Points banner */}
@@ -107,7 +107,7 @@ export default function ChallengesPage() {
                 <span className="text-accent-100">{points.total_points % 1000}/1000 pts</span>
               </div>
               <div className="w-full bg-white/20 rounded-full h-3">
-                <div className="bg-white h-3 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
+                <div className="bg-white dark:bg-surface-800 h-3 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
               </div>
               <div className="text-xs text-accent-100 mt-1">
                 Faltam {points.points_to_next_level} pts para o próximo nível
@@ -128,19 +128,19 @@ export default function ChallengesPage() {
       )}
 
       {/* Section tabs */}
-      <div className="flex gap-1 bg-white rounded-2xl border border-surface-100 p-1.5 mb-6 overflow-x-auto">
+      <div className="flex gap-1 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-1.5 mb-6 overflow-x-auto">
         {sections.map(s => (
           <button
             key={s.id}
             onClick={() => setSection(s.id)}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap',
-              section === s.id ? 'bg-primary-500 text-white' : 'text-surface-600 hover:bg-surface-50'
+              section === s.id ? 'bg-primary-500 text-white' : 'text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/40'
             )}
           >
             {s.label}
             {s.count !== undefined && s.count > 0 && (
-              <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-bold', section === s.id ? 'bg-white/30 text-white' : 'bg-surface-200 text-surface-600')}>
+              <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-bold', section === s.id ? 'bg-white/30 text-white' : 'bg-surface-200 text-surface-600 dark:text-surface-300')}>
                 {s.count}
               </span>
             )}
@@ -153,10 +153,10 @@ export default function ChallengesPage() {
           {section === 'available' && (
             <div>
               {availableChallenges.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border border-surface-100">
+                <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
                   <div className="text-5xl mb-3">🎉</div>
-                  <p className="font-semibold text-surface-900 mb-1">Todos os desafios iniciados!</p>
-                  <p className="text-surface-500 text-sm">Continue completando para ganhar mais pontos.</p>
+                  <p className="font-semibold text-surface-900 dark:text-white mb-1">Todos os desafios iniciados!</p>
+                  <p className="text-surface-500 dark:text-surface-400 text-sm">Continue completando para ganhar mais pontos.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -176,10 +176,10 @@ export default function ChallengesPage() {
           {section === 'active' && (
             <div>
               {activeUC.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border border-surface-100">
+                <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
                   <div className="text-5xl mb-3">🎯</div>
-                  <p className="font-semibold text-surface-900 mb-1">Nenhum desafio ativo</p>
-                  <p className="text-surface-500 text-sm">Inicie um desafio na aba "Disponíveis".</p>
+                  <p className="font-semibold text-surface-900 dark:text-white mb-1">Nenhum desafio ativo</p>
+                  <p className="text-surface-500 dark:text-surface-400 text-sm">Inicie um desafio na aba "Disponíveis".</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -204,10 +204,10 @@ export default function ChallengesPage() {
           {section === 'completed' && (
             <div>
               {completedUC.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border border-surface-100">
+                <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
                   <div className="text-5xl mb-3">🏆</div>
-                  <p className="font-semibold text-surface-900 mb-1">Nenhum desafio concluído ainda</p>
-                  <p className="text-surface-500 text-sm">Complete seus desafios ativos para ver aqui!</p>
+                  <p className="font-semibold text-surface-900 dark:text-white mb-1">Nenhum desafio concluído ainda</p>
+                  <p className="text-surface-500 dark:text-surface-400 text-sm">Complete seus desafios ativos para ver aqui!</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -222,10 +222,10 @@ export default function ChallengesPage() {
           )}
 
           {section === 'leaderboard' && (
-            <div className="bg-white rounded-2xl border border-surface-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-surface-100 flex items-center gap-2">
+            <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 overflow-hidden">
+              <div className="px-6 py-4 border-b border-surface-100 dark:border-surface-700 flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-accent-500" />
-                <h2 className="font-bold text-surface-900">Ranking de Tutores</h2>
+                <h2 className="font-bold text-surface-900 dark:text-white">Ranking de Tutores</h2>
               </div>
               {leaderboard.length === 0 ? (
                 <div className="text-center py-12 text-surface-400">
@@ -238,9 +238,9 @@ export default function ChallengesPage() {
                       <div className={cn(
                         'w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm',
                         i === 0 ? 'bg-yellow-100 text-yellow-700' :
-                        i === 1 ? 'bg-surface-200 text-surface-700' :
+                        i === 1 ? 'bg-surface-200 text-surface-700 dark:text-surface-200' :
                         i === 2 ? 'bg-orange-100 text-orange-700' :
-                        'bg-surface-100 text-surface-600'
+                        'bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300'
                       )}>
                         {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : entry.rank}
                       </div>
@@ -248,7 +248,7 @@ export default function ChallengesPage() {
                         {entry.user_name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-surface-900">{entry.user_name}</div>
+                        <div className="font-semibold text-surface-900 dark:text-white">{entry.user_name}</div>
                         <div className={cn('inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border mt-0.5', getBadgeColor(entry.level))}>
                           <Medal className="w-3 h-3" />
                           {getLevelName(entry.level)}

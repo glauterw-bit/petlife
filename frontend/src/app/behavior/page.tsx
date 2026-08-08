@@ -116,10 +116,10 @@ export default function BehaviorPlansPage() {
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     p.status === 'active' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300' :
                     p.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                    'bg-surface-100 text-surface-600'
+                    'bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300'
                   }`}>{p.status}</span>
                 </div>
-                <div className="text-xs text-surface-500 space-y-1">
+                <div className="text-xs text-surface-500 dark:text-surface-400 space-y-1">
                   <div>Intensidade: <strong className="capitalize">{p.intensity}</strong></div>
                   <div>Check-ins: <strong>{p.check_ins_count}/{p.duration_weeks * 7}</strong></div>
                   {p.average_progress !== null && (
@@ -138,7 +138,7 @@ export default function BehaviorPlansPage() {
           <div className="bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto animate-slide-up shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-surface-100 dark:border-surface-700 sticky top-0 bg-white/95 dark:bg-surface-800/95 backdrop-blur z-10">
               <h2 className="font-bold text-surface-900 dark:text-white">Criar plano comportamental</h2>
-              <p className="text-xs text-surface-500 mt-0.5">3 perguntas — IA cria o curriculum</p>
+              <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">3 perguntas — IA cria o curriculum</p>
             </div>
             <div className="p-5 space-y-5">
               <div>

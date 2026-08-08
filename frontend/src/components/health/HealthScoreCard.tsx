@@ -89,7 +89,7 @@ export function HealthScoreCard({ pet }: { pet: Pet }) {
       {/* breakdown expansível */}
       <button
         onClick={() => setExpanded(v => !v)}
-        className="mt-4 w-full flex items-center justify-center gap-1 text-xs font-medium text-surface-500 hover:text-surface-700 dark:hover:text-surface-200 tap-target transition"
+        className="mt-4 w-full flex items-center justify-center gap-1 text-xs font-medium text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 tap-target transition"
       >
         {expanded ? 'Ocultar detalhes' : 'Ver o que compõe o score'}
         <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
