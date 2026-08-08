@@ -68,6 +68,10 @@ class ForgotPasswordResponse(BaseModel):
     # Em dev (sem SMTP configurado): retorna o código direto pra desbloquear o fluxo.
     code: Optional[str] = None
     expires_in_minutes: int = 30
+    # False quando o servidor não tem transporte de e-mail (Resend/SMTP) —
+    # a UI usa isso pra orientar o usuário a falar com o suporte em vez de
+    # esperar um e-mail que nunca vai chegar.
+    email_configured: bool = True
 
 
 class ResetPasswordRequest(BaseModel):

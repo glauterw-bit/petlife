@@ -11,7 +11,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [result, setResult] = useState<{ message: string; code: string | null } | null>(null)
+  const [result, setResult] = useState<{ message: string; code: string | null; emailConfigured: boolean } | null>(null)
   const [copied, setCopied] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     try {
       const res = await auth.forgotPassword(email.trim().toLowerCase())
-      setResult({ message: res.message, code: res.code })
+      setResult({ message: res.message, code: res.code, emailConfigured: res.email_configured !== false })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao solicitar redefinição.')
     } finally {
@@ -100,9 +100,22 @@ export default function ForgotPasswordPage() {
             </form>
           ) : (
             <div className="space-y-4">
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-800">
+              <div className={`rounded-xl p-4 text-sm border ${
+                result.emailConfigured
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-amber-50 border-amber-200 text-amber-800'
+              }`}>
                 {result.message}
               </div>
+
+              {!result.emailConfigured && (
+                <a
+                  href={`mailto:glauterw@gmail.com?subject=${encodeURIComponent('PetLife — recuperação de senha')}&body=${encodeURIComponent(`Olá! Esqueci minha senha do PetLife. Meu e-mail de cadastro: ${email.trim().toLowerCase()}`)}`}
+                  className="block w-full text-center bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 font-semibold py-3 rounded-xl hover:bg-surface-200 dark:hover:bg-surface-600 transition"
+                >
+                  ✉️ Falar com o suporte
+                </a>
+              )}
 
               {result.code && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">

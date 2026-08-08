@@ -92,7 +92,7 @@ export const auth = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     })
-    return handleResponse<{ message: string; code: string | null; expires_in_minutes: number }>(res)
+    return handleResponse<{ message: string; code: string | null; expires_in_minutes: number; email_configured?: boolean }>(res)
   },
 
   resetPassword: async (email: string, code: string, new_password: string) => {

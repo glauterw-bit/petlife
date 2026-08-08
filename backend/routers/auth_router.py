@@ -203,11 +203,53 @@ async def forgot_password(request: Request, data: ForgotPasswordRequest, db: Asy
         if not sent:
             logger.error("Failed to send password reset email to %s", user.email)
 
+    from email_service import email_configured
+    configured = email_configured()
     return ForgotPasswordResponse(
-        message="Se este e-mail existir, enviaremos instruções com o código de redefinição em alguns minutos.",
+        message=(
+            "Se este e-mail existir, enviaremos instruções com o código de redefinição em alguns minutos."
+            if configured
+            else "O envio automático de e-mail está temporariamente indisponível. Fale com o suporte pra receber seu código de redefinição."
+        ),
         code=None,
         expires_in_minutes=RESET_CODE_TTL_MINUTES,
+        email_configured=configured,
     )
+
+
+@router.post("/admin/generate-reset")
+@_auth_limiter.limit("10/hour")
+async def admin_generate_reset(
+    request: Request,
+    data: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Gera código de redefinição SEM depender de e-mail — para o suporte/dono.
+
+    Protegido pelo header X-Admin-Secret (env ADMIN_RESET_SECRET). Permite
+    atender usuários que esqueceram a senha enquanto não há transporte de
+    e-mail configurado: o suporte gera o código e passa por outro canal
+    (WhatsApp etc.); o usuário digita o código + nova senha em /auth/reset.
+    """
+    import hmac as _hmac
+    admin_secret = os.getenv("ADMIN_RESET_SECRET", "")
+    provided = request.headers.get("X-Admin-Secret", "")
+    if not admin_secret:
+        raise HTTPException(status_code=503, detail="Recurso desabilitado (ADMIN_RESET_SECRET não configurado).")
+    if not provided or not _hmac.compare_digest(provided, admin_secret):
+        raise HTTPException(status_code=403, detail="Não autorizado.")
+
+    result = await db.execute(select(User).where(User.email == data.email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    code = f"{secrets.randbelow(900000) + 100000}"
+    user.password_reset_code = code
+    user.password_reset_expires = datetime.utcnow() + timedelta(minutes=RESET_CODE_TTL_MINUTES)
+    await db.commit()
+    logger.info("Admin reset code generated for %s", user.email)
+    return {"email": user.email, "code": code, "expires_in_minutes": RESET_CODE_TTL_MINUTES}
 
 
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
