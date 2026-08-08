@@ -43,12 +43,12 @@ function ResetPasswordInner() {
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-primary-50 flex items-center justify-center p-4">
-        <div className="max-w-md text-center bg-white rounded-3xl shadow-xl border border-emerald-100 p-10 animate-slide-up">
+        <div className="max-w-md text-center bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-emerald-100 p-10 animate-slide-up">
           <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-2xl flex items-center justify-center mb-4">
             <CheckCircle className="w-9 h-9 text-emerald-600" />
           </div>
-          <h1 className="text-xl font-bold text-surface-900 mb-2">Senha redefinida!</h1>
-          <p className="text-sm text-surface-500">Redirecionando para o login…</p>
+          <h1 className="text-xl font-bold text-surface-900 dark:text-white mb-2">Senha redefinida!</h1>
+          <p className="text-sm text-surface-500 dark:text-surface-400">Redirecionando para o login…</p>
         </div>
       </div>
     )
@@ -62,14 +62,14 @@ function ResetPasswordInner() {
             <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200">
               <PawPrint className="w-9 h-9 text-white" />
             </div>
-            <span className="text-2xl font-bold text-surface-900">PetLife</span>
+            <span className="text-2xl font-bold text-surface-900 dark:text-white">PetLife</span>
           </Link>
-          <h1 className="text-xl font-semibold text-surface-700 mt-4">Redefinir senha</h1>
-          <p className="text-surface-500 text-sm mt-1">Use o código de 6 dígitos enviado pra você</p>
+          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">Redefinir senha</h1>
+          <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">Use o código de 6 dígitos enviado pra você</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-surface-100 p-8">
-          <Link href="/auth/forgot" className="inline-flex items-center gap-1.5 text-sm text-surface-500 hover:text-surface-700 mb-6">
+        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 p-8">
+          <Link href="/auth/forgot" className="inline-flex items-center gap-1.5 text-sm text-surface-500 dark:text-surface-400 hover:text-surface-700 mb-6">
             <ArrowLeft className="w-4 h-4" />
             Voltar
           </Link>
@@ -83,7 +83,7 @@ function ResetPasswordInner() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">E-mail</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">E-mail</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -92,13 +92,13 @@ function ResetPasswordInner() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="seu@email.com"
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-sm text-surface-900 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Código (6 dígitos)</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Código (6 dígitos)</label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -110,13 +110,13 @@ function ResetPasswordInner() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   maxLength={6}
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-lg font-mono tracking-widest text-surface-900 placeholder-surface-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-lg font-mono tracking-widest text-surface-900 dark:text-white placeholder-surface-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Nova senha</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Nova senha</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -125,7 +125,7 @@ function ResetPasswordInner() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-12 py-3 border border-surface-200 rounded-xl text-sm text-surface-900 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  className="w-full pl-10 pr-12 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                 />
                 <button
                   type="button"
@@ -139,7 +139,7 @@ function ResetPasswordInner() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Confirmar nova senha</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Confirmar nova senha</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -148,7 +148,7 @@ function ResetPasswordInner() {
                   value={confirm}
                   onChange={e => setConfirm(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-sm text-surface-900 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                 />
               </div>
             </div>
@@ -172,7 +172,7 @@ function ResetPasswordInner() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-surface-500 text-sm">Carregando…</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-surface-500 dark:text-surface-400 text-sm">Carregando…</div>}>
       <ResetPasswordInner />
     </Suspense>
   )

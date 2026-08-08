@@ -46,7 +46,7 @@ export function Modal({ open, onClose, title, children, size = 'md', className }
       />
       <div
         className={cn(
-          'relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full animate-slide-up overflow-hidden flex flex-col',
+          'relative bg-white dark:bg-surface-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full animate-slide-up overflow-hidden flex flex-col',
           'max-h-[calc(100dvh-env(safe-area-inset-top))] sm:max-h-[min(85dvh,720px)]',
           'pb-[env(safe-area-inset-bottom)] sm:pb-0',
           sizeClasses[size],
@@ -54,8 +54,8 @@ export function Modal({ open, onClose, title, children, size = 'md', className }
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-surface-200 shrink-0">
-            <h2 className="text-lg font-semibold text-surface-900">{title}</h2>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-surface-200 dark:border-surface-700 shrink-0">
+            <h2 className="text-lg font-semibold text-surface-900 dark:text-white">{title}</h2>
             <button
               onClick={onClose}
               aria-label="Fechar"

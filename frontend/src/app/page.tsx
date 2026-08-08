@@ -47,23 +47,23 @@ const steps = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-surface-800">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-surface-100 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-surface-100 dark:border-surface-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary-500 rounded-xl flex items-center justify-center">
               <PawPrint className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-surface-900">PetLife</span>
+            <span className="text-xl font-bold text-surface-900 dark:text-white">PetLife</span>
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-surface-600 hover:text-primary-600 transition-colors">Funcionalidades</a>
-            <a href="#how" className="text-sm text-surface-600 hover:text-primary-600 transition-colors">Como funciona</a>
-            <Link href="/vet" className="text-sm text-surface-600 hover:text-primary-600 transition-colors">Para Clínicas</Link>
+            <a href="#features" className="text-sm text-surface-600 dark:text-surface-300 hover:text-primary-600 transition-colors">Funcionalidades</a>
+            <a href="#how" className="text-sm text-surface-600 dark:text-surface-300 hover:text-primary-600 transition-colors">Como funciona</a>
+            <Link href="/vet" className="text-sm text-surface-600 dark:text-surface-300 hover:text-primary-600 transition-colors">Para Clínicas</Link>
           </nav>
           <div className="flex items-center gap-3">
-            <Link href="/auth/login" className="text-sm font-medium text-surface-700 hover:text-primary-600 transition-colors px-4 py-2">
+            <Link href="/auth/login" className="text-sm font-medium text-surface-700 dark:text-surface-200 hover:text-primary-600 transition-colors px-4 py-2">
               Entrar
             </Link>
             <Link href="/auth/register" className="bg-primary-500 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-primary-600 transition-colors">
@@ -89,12 +89,12 @@ export default function LandingPage() {
               <Star className="w-4 h-4" />
               Plataforma #1 para tutores de pets no Brasil
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold text-surface-900 leading-tight mb-6">
+            <h1 className="text-5xl md:text-6xl font-bold text-surface-900 dark:text-white leading-tight mb-6">
               PetLife —{' '}
               <span className="text-primary-500">o cuidado</span>{' '}
               que seu pet merece
             </h1>
-            <p className="text-xl text-surface-600 mb-8 leading-relaxed">
+            <p className="text-xl text-surface-600 dark:text-surface-300 mb-8 leading-relaxed">
               Gerencie vacinas, exames, rotinas de passeio e muito mais com o poder da Inteligência Artificial.
               Tudo num só lugar, de graça.
             </p>
@@ -108,7 +108,7 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="/vet"
-                className="flex items-center gap-2 bg-white text-surface-700 font-semibold px-8 py-4 rounded-2xl border-2 border-surface-200 hover:border-primary-300 transition-all hover:scale-105"
+                className="flex items-center gap-2 bg-white dark:bg-surface-800 text-surface-700 dark:text-surface-200 font-semibold px-8 py-4 rounded-2xl border-2 border-surface-200 dark:border-surface-700 hover:border-primary-300 transition-all hover:scale-105"
               >
                 <Stethoscope className="w-5 h-5 text-primary-500" />
                 Para clínicas veterinárias
@@ -122,7 +122,7 @@ export default function LandingPage() {
               ].map(s => (
                 <div key={s.label}>
                   <div className="text-2xl font-bold text-primary-600">{s.value}</div>
-                  <div className="text-xs text-surface-500">{s.label}</div>
+                  <div className="text-xs text-surface-500 dark:text-surface-400">{s.label}</div>
                 </div>
               ))}
             </div>
@@ -131,12 +131,12 @@ export default function LandingPage() {
           {/* Illustration / Mock UI */}
           <div className="hidden md:block animate-slide-up">
             <div className="relative">
-              <div className="bg-white rounded-3xl shadow-2xl p-6 border border-surface-100">
+              <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-2xl p-6 border border-surface-100 dark:border-surface-700">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 bg-primary-100 rounded-2xl flex items-center justify-center text-2xl">🐕</div>
                   <div>
-                    <div className="font-bold text-surface-900">Thor</div>
-                    <div className="text-sm text-surface-500">Golden Retriever • 3 anos</div>
+                    <div className="font-bold text-surface-900 dark:text-white">Thor</div>
+                    <div className="text-sm text-surface-500 dark:text-surface-400">Golden Retriever • 3 anos</div>
                   </div>
                   <div className="ml-auto bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">
                     Saúde ótima ✅
@@ -146,21 +146,21 @@ export default function LandingPage() {
                   <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl">
                     <div className="flex items-center gap-2">
                       <Shield className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-medium text-surface-700">Antirrábica</span>
+                      <span className="text-sm font-medium text-surface-700 dark:text-surface-200">Antirrábica</span>
                     </div>
                     <span className="text-xs text-green-600 font-medium">Em dia</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-xl">
                     <div className="flex items-center gap-2">
                       <Bell className="w-4 h-4 text-yellow-600" />
-                      <span className="text-sm font-medium text-surface-700">V10 — vence em 15 dias</span>
+                      <span className="text-sm font-medium text-surface-700 dark:text-surface-200">V10 — vence em 15 dias</span>
                     </div>
                     <span className="text-xs text-yellow-600 font-medium">Atenção ⚠️</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-primary-50 rounded-xl">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-primary-600" />
-                      <span className="text-sm font-medium text-surface-700">Passeio: 7h, 12h, 18h</span>
+                      <span className="text-sm font-medium text-surface-700 dark:text-surface-200">Passeio: 7h, 12h, 18h</span>
                     </div>
                     <span className="text-xs text-primary-600 font-medium">Rotina IA</span>
                   </div>
@@ -168,24 +168,24 @@ export default function LandingPage() {
                 <div className="mt-4 flex items-center gap-2 p-3 bg-accent-50 rounded-xl">
                   <Trophy className="w-5 h-5 text-accent-500" />
                   <div>
-                    <div className="text-sm font-bold text-surface-900">Nível 4 — Protetor</div>
+                    <div className="text-sm font-bold text-surface-900 dark:text-white">Nível 4 — Protetor</div>
                     <div className="w-full bg-surface-200 rounded-full h-1.5 mt-1">
                       <div className="bg-accent-500 h-1.5 rounded-full" style={{ width: '65%' }} />
                     </div>
                   </div>
-                  <span className="ml-auto text-xs text-surface-500">650/1000 pts</span>
+                  <span className="ml-auto text-xs text-surface-500 dark:text-surface-400">650/1000 pts</span>
                 </div>
               </div>
               {/* Floating cards */}
-              <div className="absolute -top-6 -right-6 bg-white rounded-2xl shadow-lg p-3 border border-surface-100 flex items-center gap-2">
+              <div className="absolute -top-6 -right-6 bg-white dark:bg-surface-800 rounded-2xl shadow-lg p-3 border border-surface-100 dark:border-surface-700 flex items-center gap-2">
                 <span className="text-2xl">🐈</span>
                 <div>
-                  <div className="text-xs font-bold text-surface-900">Luna</div>
+                  <div className="text-xs font-bold text-surface-900 dark:text-white">Luna</div>
                   <div className="text-xs text-green-600">Exames ok</div>
                 </div>
               </div>
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-lg p-3 border border-surface-100">
-                <div className="text-xs font-medium text-surface-700">🏆 Novo badge!</div>
+              <div className="absolute -bottom-4 -left-4 bg-white dark:bg-surface-800 rounded-2xl shadow-lg p-3 border border-surface-100 dark:border-surface-700">
+                <div className="text-xs font-medium text-surface-700 dark:text-surface-200">🏆 Novo badge!</div>
                 <div className="text-xs text-accent-600 font-semibold">Tutor Exemplar</div>
               </div>
             </div>
@@ -194,11 +194,11 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="py-24 bg-surface-50">
+      <section id="features" className="py-24 bg-surface-50 dark:bg-surface-900/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-surface-900 mb-4">Tudo que seu pet precisa</h2>
-            <p className="text-xl text-surface-600 max-w-2xl mx-auto">
+            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">Tudo que seu pet precisa</h2>
+            <p className="text-xl text-surface-600 dark:text-surface-300 max-w-2xl mx-auto">
               Uma plataforma completa para garantir a saúde, felicidade e bem-estar do seu melhor amigo.
             </p>
           </div>
@@ -206,13 +206,13 @@ export default function LandingPage() {
             {features.map((f, i) => (
               <div
                 key={i}
-                className="bg-white rounded-2xl p-6 border border-surface-100 hover:border-primary-200 hover:shadow-lg transition-all group"
+                className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-100 dark:border-surface-700 hover:border-primary-200 hover:shadow-lg transition-all group"
               >
-                <div className="w-14 h-14 bg-surface-50 group-hover:bg-primary-50 rounded-2xl flex items-center justify-center mb-4 transition-colors">
+                <div className="w-14 h-14 bg-surface-50 dark:bg-surface-900/60 group-hover:bg-primary-50 rounded-2xl flex items-center justify-center mb-4 transition-colors">
                   {f.icon}
                 </div>
-                <h3 className="text-lg font-bold text-surface-900 mb-2">{f.title}</h3>
-                <p className="text-surface-600 text-sm leading-relaxed">{f.desc}</p>
+                <h3 className="text-lg font-bold text-surface-900 dark:text-white mb-2">{f.title}</h3>
+                <p className="text-surface-600 dark:text-surface-300 text-sm leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -220,11 +220,11 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section id="how" className="py-24 bg-white">
+      <section id="how" className="py-24 bg-white dark:bg-surface-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-surface-900 mb-4">Como funciona?</h2>
-            <p className="text-xl text-surface-600">Simples, rápido e eficiente.</p>
+            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">Como funciona?</h2>
+            <p className="text-xl text-surface-600 dark:text-surface-300">Simples, rápido e eficiente.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {steps.map((s, i) => (
@@ -237,8 +237,8 @@ export default function LandingPage() {
                     <ChevronRight className="w-8 h-8" />
                   </div>
                 )}
-                <h3 className="text-xl font-bold text-surface-900 mb-2">{s.title}</h3>
-                <p className="text-surface-600">{s.desc}</p>
+                <h3 className="text-xl font-bold text-surface-900 dark:text-white mb-2">{s.title}</h3>
+                <p className="text-surface-600 dark:text-surface-300">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -261,7 +261,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/auth/register"
-              className="bg-white text-primary-600 font-bold px-10 py-4 rounded-2xl hover:bg-primary-50 transition-all hover:scale-105 shadow-xl"
+              className="bg-white dark:bg-surface-800 text-primary-600 font-bold px-10 py-4 rounded-2xl hover:bg-primary-50 transition-all hover:scale-105 shadow-xl"
             >
               Começar gratuitamente 🐾
             </Link>

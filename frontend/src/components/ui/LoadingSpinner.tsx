@@ -32,7 +32,7 @@ export function LoadingSpinner({ size = 'md', className, text }: LoadingSpinnerP
         {/* Spinner ring */}
         <div className={cn('absolute inset-0 border-2 border-primary-200 border-t-primary-500 rounded-full animate-spin', sizes[size])} />
       </div>
-      {text && <p className="text-sm text-surface-500 animate-pulse-soft">{text}</p>}
+      {text && <p className="text-sm text-surface-500 dark:text-surface-400 animate-pulse-soft">{text}</p>}
     </div>
   )
 }

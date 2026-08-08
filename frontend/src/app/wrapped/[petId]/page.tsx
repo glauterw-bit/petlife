@@ -29,8 +29,8 @@ export default function WrappedPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-amber-400 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-8 max-w-md text-center">
-          <p className="text-surface-700">{error}</p>
+        <div className="bg-white dark:bg-surface-800 rounded-3xl p-8 max-w-md text-center">
+          <p className="text-surface-700 dark:text-surface-200">{error}</p>
           <button onClick={() => router.back()} className="mt-4 text-primary-600 font-semibold">Voltar</button>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function WrappedPage() {
       <div className="flex gap-1 p-3 z-10">
         {slides.map((_, i) => (
           <div key={i} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
-            <div className={`h-full bg-white transition-all duration-500 ${i < step ? 'w-full' : i === step ? 'w-full' : 'w-0'}`} />
+            <div className={`h-full bg-white dark:bg-surface-800 transition-all duration-500 ${i < step ? 'w-full' : i === step ? 'w-full' : 'w-0'}`} />
           </div>
         ))}
       </div>
@@ -127,7 +127,7 @@ export default function WrappedPage() {
           <>
             <button
               onClick={shareWhatsApp}
-              className="w-full flex items-center justify-center gap-2 bg-white text-purple-700 font-bold py-4 rounded-2xl shadow-xl"
+              className="w-full flex items-center justify-center gap-2 bg-white dark:bg-surface-800 text-purple-700 font-bold py-4 rounded-2xl shadow-xl"
             >
               <Share2 className="w-5 h-5" />
               Compartilhar com amigos

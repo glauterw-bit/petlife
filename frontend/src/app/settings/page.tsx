@@ -61,24 +61,24 @@ export default function SettingsPage() {
     <DashboardLayout>
       <div className="max-w-2xl">
         <div className="mb-5 md:mb-6 pl-12 md:pl-0">
-          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Configurações</h1>
-          <p className="text-sm md:text-base text-surface-500 mt-1">Gerencie as informações da sua conta</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">Configurações</h1>
+          <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">Gerencie as informações da sua conta</p>
         </div>
 
         {/* Profile */}
-        <div className="bg-white rounded-2xl border border-surface-100 p-6 mb-6">
+        <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6 mb-6">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
               <User className="w-5 h-5 text-primary-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-surface-900">Informações Pessoais</h2>
-              <p className="text-sm text-surface-500">Atualize seus dados de perfil</p>
+              <h2 className="font-semibold text-surface-900 dark:text-white">Informações Pessoais</h2>
+              <p className="text-sm text-surface-500 dark:text-surface-400">Atualize seus dados de perfil</p>
             </div>
           </div>
           <form onSubmit={handleProfileSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Nome completo</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Nome completo</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -86,25 +86,25 @@ export default function SettingsPage() {
                   required
                   value={profileForm.name}
                   onChange={setP('name')}
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">E-mail</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">E-mail</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
                   type="email"
                   value={user?.email ?? ''}
                   disabled
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-sm bg-surface-50 text-surface-500 cursor-not-allowed"
+                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm bg-surface-50 dark:bg-surface-900/60 text-surface-500 dark:text-surface-400 cursor-not-allowed"
                 />
               </div>
               <p className="text-xs text-surface-400 mt-1">O e-mail não pode ser alterado.</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Telefone</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Telefone</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -112,7 +112,7 @@ export default function SettingsPage() {
                   value={profileForm.phone}
                   onChange={setP('phone')}
                   placeholder="(11) 99999-9999"
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -128,19 +128,19 @@ export default function SettingsPage() {
         </div>
 
         {/* Password */}
-        <div className="bg-white rounded-2xl border border-surface-100 p-6">
+        <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 bg-accent-100 rounded-xl flex items-center justify-center">
               <Lock className="w-5 h-5 text-accent-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-surface-900">Alterar Senha</h2>
-              <p className="text-sm text-surface-500">Mantenha sua conta segura</p>
+              <h2 className="font-semibold text-surface-900 dark:text-white">Alterar Senha</h2>
+              <p className="text-sm text-surface-500 dark:text-surface-400">Mantenha sua conta segura</p>
             </div>
           </div>
           <form onSubmit={handlePassSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Nova senha</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Nova senha</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -149,7 +149,7 @@ export default function SettingsPage() {
                   value={passForm.password}
                   onChange={setPw('password')}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full pl-10 pr-10 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400">
                   {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -157,7 +157,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Confirmar nova senha</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Confirmar nova senha</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -166,7 +166,7 @@ export default function SettingsPage() {
                   value={passForm.confirm}
                   onChange={setPw('confirm')}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>

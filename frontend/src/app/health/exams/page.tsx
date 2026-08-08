@@ -99,8 +99,8 @@ export default function ExamsPage() {
     <DashboardLayout>
       <div className="flex items-start justify-between gap-3 mb-5 md:mb-6 pl-12 md:pl-0">
         <div className="min-w-0">
-          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Exames</h1>
-          <p className="text-sm md:text-base text-surface-500 mt-1">{examList.length} exame{examList.length !== 1 ? 's' : ''} registrado{examList.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">Exames</h1>
+          <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">{examList.length} exame{examList.length !== 1 ? 's' : ''} registrado{examList.length !== 1 ? 's' : ''}</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -120,15 +120,15 @@ export default function ExamsPage() {
             placeholder="Buscar exame..."
             value={searchQ}
             onChange={e => setSearchQ(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full pl-9 pr-4 py-2.5 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
         {petList.length > 1 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <Filter className="w-4 h-4 text-surface-500" />
-            <button onClick={() => setFilterPet('')} className={`px-3 py-1.5 rounded-xl text-sm font-medium transition ${filterPet === '' ? 'bg-primary-500 text-white' : 'bg-white border border-surface-200 text-surface-700'}`}>Todos</button>
+            <Filter className="w-4 h-4 text-surface-500 dark:text-surface-400" />
+            <button onClick={() => setFilterPet('')} className={`px-3 py-1.5 rounded-xl text-sm font-medium transition ${filterPet === '' ? 'bg-primary-500 text-white' : 'bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-200'}`}>Todos</button>
             {petList.map(p => (
-              <button key={p.id} onClick={() => setFilterPet(p.id)} className={`px-3 py-1.5 rounded-xl text-sm font-medium transition ${filterPet === p.id ? 'bg-primary-500 text-white' : 'bg-white border border-surface-200 text-surface-700'}`}>
+              <button key={p.id} onClick={() => setFilterPet(p.id)} className={`px-3 py-1.5 rounded-xl text-sm font-medium transition ${filterPet === p.id ? 'bg-primary-500 text-white' : 'bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-200'}`}>
                 {p.species === 'dog' ? '🐕' : '🐈'} {p.name}
               </button>
             ))}
@@ -140,10 +140,10 @@ export default function ExamsPage() {
         filtered.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-6xl mb-3">🔬</div>
-            <h2 className="text-xl font-semibold text-surface-900 mb-2">
+            <h2 className="text-xl font-semibold text-surface-900 dark:text-white mb-2">
               {examList.length === 0 ? 'Nenhum exame registrado' : 'Nenhum resultado encontrado'}
             </h2>
-            <p className="text-surface-500 mb-6">
+            <p className="text-surface-500 dark:text-surface-400 mb-6">
               {examList.length === 0 ? 'Registre o primeiro exame do seu pet!' : 'Tente outros filtros.'}
             </p>
             {examList.length === 0 && (
@@ -163,46 +163,46 @@ export default function ExamsPage() {
       <Modal open={showModal} onClose={() => setShowModal(false)} title="Novo Exame" size="lg">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-surface-700 mb-1.5">Pet *</label>
-            <select required value={form.pet_id} onChange={set('pet_id')} className="w-full px-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white">
+            <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Pet *</label>
+            <select required value={form.pet_id} onChange={set('pet_id')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800">
               <option value="">Selecionar pet</option>
               {petList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Nome do exame *</label>
-              <input required type="text" value={form.name} onChange={set('name')} placeholder="Ex: Hemograma completo" className="w-full px-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Nome do exame *</label>
+              <input required type="text" value={form.name} onChange={set('name')} placeholder="Ex: Hemograma completo" className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Tipo *</label>
-              <select required value={form.type} onChange={set('type')} className="w-full px-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white">
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Tipo *</label>
+              <select required value={form.type} onChange={set('type')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800">
                 {EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Data *</label>
-              <input required type="date" value={form.date} onChange={set('date')} className="w-full px-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white" />
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Data *</label>
+              <input required type="date" value={form.date} onChange={set('date')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Veterinário</label>
-              <input type="text" value={form.vet_name} onChange={set('vet_name')} placeholder="Nome do veterinário" className="w-full px-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Veterinário</label>
+              <input type="text" value={form.vet_name} onChange={set('vet_name')} placeholder="Nome do veterinário" className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-surface-700 mb-1.5">Resultado</label>
-            <textarea value={form.result} onChange={set('result')} rows={3} placeholder="Descreva o resultado do exame..." className="w-full px-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
+            <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Resultado</label>
+            <textarea value={form.result} onChange={set('result')} rows={3} placeholder="Descreva o resultado do exame..." className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-surface-700 mb-1.5">Observações</label>
-            <textarea value={form.notes} onChange={set('notes')} rows={2} className="w-full px-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
+            <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Observações</label>
+            <textarea value={form.notes} onChange={set('notes')} rows={2} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-surface-700 mb-1.5">Arquivo do exame</label>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setExamFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-surface-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary-50 file:text-primary-700 file:font-medium hover:file:bg-primary-100" />
+            <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Arquivo do exame</label>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setExamFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-surface-600 dark:text-surface-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary-50 file:text-primary-700 file:font-medium hover:file:bg-primary-100" />
           </div>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 border border-surface-200 rounded-xl text-sm font-medium text-surface-700 hover:bg-surface-50 transition">Cancelar</button>
+            <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm font-medium text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700/40 transition">Cancelar</button>
             <button type="submit" disabled={submitting} className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-60 transition flex items-center justify-center gap-2">
               {submitting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
               {submitting ? 'Salvando...' : 'Registrar Exame'}

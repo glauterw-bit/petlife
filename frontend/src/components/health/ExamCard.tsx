@@ -15,7 +15,7 @@ const examTypeColors: Record<string, string> = {
   'raio-x': 'bg-blue-50 text-blue-700',
   'ultrassom': 'bg-purple-50 text-purple-700',
   'fezes': 'bg-amber-50 text-amber-700',
-  'default': 'bg-surface-100 text-surface-600',
+  'default': 'bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300',
 }
 
 export function ExamCard({ exam, onDelete }: ExamCardProps) {
@@ -23,26 +23,26 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
   const colorClass = examTypeColors[colorKey]
 
   return (
-    <div className="bg-white rounded-xl border border-surface-100 p-4 hover:border-primary-200 hover:shadow-sm transition-all">
+    <div className="bg-white dark:bg-surface-800 rounded-xl border border-surface-100 dark:border-surface-700 p-4 hover:border-primary-200 hover:shadow-sm transition-all">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center shrink-0">
           <FileText className="w-5 h-5 text-primary-600" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 flex-wrap">
-            <h4 className="font-semibold text-surface-900">{exam.name}</h4>
+            <h4 className="font-semibold text-surface-900 dark:text-white">{exam.name}</h4>
             <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${colorClass}`}>
               {exam.type}
             </span>
           </div>
 
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-            <div className="flex items-center gap-1.5 text-xs text-surface-500">
+            <div className="flex items-center gap-1.5 text-xs text-surface-500 dark:text-surface-400">
               <Calendar className="w-3.5 h-3.5" />
               {formatDate(exam.date)}
             </div>
             {exam.vet_name && (
-              <div className="flex items-center gap-1.5 text-xs text-surface-500">
+              <div className="flex items-center gap-1.5 text-xs text-surface-500 dark:text-surface-400">
                 <User className="w-3.5 h-3.5" />
                 Dr. {exam.vet_name}
               </div>
@@ -50,14 +50,14 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
           </div>
 
           {exam.result && (
-            <div className="mt-3 p-2.5 bg-surface-50 rounded-lg">
-              <p className="text-xs font-medium text-surface-700 mb-0.5">Resultado:</p>
-              <p className="text-xs text-surface-600 leading-relaxed">{exam.result}</p>
+            <div className="mt-3 p-2.5 bg-surface-50 dark:bg-surface-900/60 rounded-lg">
+              <p className="text-xs font-medium text-surface-700 dark:text-surface-200 mb-0.5">Resultado:</p>
+              <p className="text-xs text-surface-600 dark:text-surface-300 leading-relaxed">{exam.result}</p>
             </div>
           )}
 
           {exam.notes && (
-            <p className="mt-2 text-xs text-surface-500 italic">{exam.notes}</p>
+            <p className="mt-2 text-xs text-surface-500 dark:text-surface-400 italic">{exam.notes}</p>
           )}
 
           <div className="mt-3 flex items-center gap-3">

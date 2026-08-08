@@ -45,10 +45,10 @@ export default function VetDashboardPage() {
             <Stethoscope className="w-5 h-5 text-primary-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-surface-900">
+            <h1 className="text-2xl font-bold text-surface-900 dark:text-white">
               Olá, {user?.name ?? 'Veterinário'}! 🐾
             </h1>
-            <p className="text-surface-500 text-sm">Portal veterinário — Seus pacientes</p>
+            <p className="text-surface-500 dark:text-surface-400 text-sm">Portal veterinário — Seus pacientes</p>
           </div>
         </div>
       </div>
@@ -87,19 +87,19 @@ export default function VetDashboardPage() {
           placeholder="Buscar paciente por nome ou tutor..."
           value={searchQ}
           onChange={e => handleSearch(e.target.value)}
-          className="w-full max-w-lg pl-10 pr-10 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full max-w-lg pl-10 pr-10 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
       </div>
 
       {/* Patient list */}
       {loading ? <PageLoader /> : (
         patients.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl border border-surface-100">
+          <div className="text-center py-20 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
             <div className="text-6xl mb-3">🐾</div>
-            <h2 className="text-xl font-semibold text-surface-900 mb-2">
+            <h2 className="text-xl font-semibold text-surface-900 dark:text-white mb-2">
               {searchQ ? 'Nenhum paciente encontrado' : 'Nenhum paciente registrado'}
             </h2>
-            <p className="text-surface-500 text-sm">
+            <p className="text-surface-500 dark:text-surface-400 text-sm">
               {searchQ ? 'Tente outro nome.' : 'Os pacientes aparecerão aqui quando tutores associarem seus pets à sua clínica.'}
             </p>
           </div>
@@ -109,7 +109,7 @@ export default function VetDashboardPage() {
               <Link
                 key={p.pet_id}
                 href={`/vet/patient/${p.pet_id}`}
-                className="bg-white rounded-2xl border border-surface-100 p-5 hover:border-primary-300 hover:shadow-md transition-all group"
+                className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5 hover:border-primary-300 hover:shadow-md transition-all group"
               >
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-50 to-accent-50 flex items-center justify-center overflow-hidden shrink-0">
@@ -120,25 +120,25 @@ export default function VetDashboardPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-surface-900 group-hover:text-primary-600 transition">{p.pet_name}</h3>
-                    <p className="text-sm text-surface-500">{p.breed ?? getSpeciesEmoji(p.species)}</p>
+                    <h3 className="font-bold text-surface-900 dark:text-white group-hover:text-primary-600 transition">{p.pet_name}</h3>
+                    <p className="text-sm text-surface-500 dark:text-surface-400">{p.breed ?? getSpeciesEmoji(p.species)}</p>
                   </div>
                   <ArrowRight className="w-5 h-5 text-surface-300 group-hover:text-primary-500 group-hover:translate-x-1 transition" />
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-surface-600">
+                  <div className="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
                     <PawPrint className="w-4 h-4 text-surface-400" />
-                    <span>Tutor: <span className="font-medium text-surface-800">{p.owner_name}</span></span>
+                    <span>Tutor: <span className="font-medium text-surface-800 dark:text-surface-100">{p.owner_name}</span></span>
                   </div>
                   {p.owner_phone && (
-                    <div className="flex items-center gap-2 text-sm text-surface-600">
+                    <div className="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
                       <Phone className="w-4 h-4 text-surface-400" />
                       <span>{p.owner_phone}</span>
                     </div>
                   )}
                   {p.last_visit && (
-                    <div className="flex items-center gap-2 text-sm text-surface-600">
+                    <div className="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
                       <Calendar className="w-4 h-4 text-surface-400" />
                       <span>Última visita: {formatDate(p.last_visit)}</span>
                     </div>

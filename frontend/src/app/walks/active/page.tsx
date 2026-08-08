@@ -11,12 +11,13 @@ import { useToast } from '@/components/ui/ToastContext'
 import { hapticMedium, hapticHeavy, hapticSuccess } from '@/lib/feedback'
 import { haversineMeters, formatDistance, formatDuration, formatPace, shouldAcceptPoint } from '@/lib/walk-utils'
 import { saveActiveWalk, clearActiveWalk, enqueueFinish } from '@/lib/walk-persistence'
+import { trackHappyMoment } from '@/lib/review'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 
 const WalkMap = dynamic(() => import('@/components/walks/WalkMap'), {
   ssr: false,
   loading: () => (
-    <div className="rounded-2xl border border-surface-200 bg-surface-100 dark:bg-surface-800 animate-pulse flex items-center justify-center" style={{ height: 300 }}>
+    <div className="rounded-2xl border border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 animate-pulse flex items-center justify-center" style={{ height: 300 }}>
       <span className="text-sm text-surface-400">Carregando mapa…</span>
     </div>
   ),
@@ -214,6 +215,7 @@ export default function ActiveWalkPage() {
 
       clearActiveWalk()
       success(`Passeio salvo: ${formatDistance(distance)} em ${formatDuration(duration)}! 🎉`)
+      trackHappyMoment('walk')
       router.push(`/walks/${finished.id}`)
     } catch (e) {
       // Sem internet / erro de rede: enfileira pra reenviar depois — NÃO perde o passeio
@@ -276,7 +278,7 @@ export default function ActiveWalkPage() {
                     </div>
                     <div className="flex-1">
                       <div className="font-semibold text-surface-900 dark:text-white">{p.name}</div>
-                      <div className="text-xs text-surface-500">{p.breed?.name ?? '—'}</div>
+                      <div className="text-xs text-surface-500 dark:text-surface-400">{p.breed?.name ?? '—'}</div>
                     </div>
                     {selectedPetId === p.id && <div className="w-6 h-6 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm">✓</div>}
                   </button>
@@ -318,13 +320,13 @@ export default function ActiveWalkPage() {
               <div className="text-3xl md:text-4xl font-bold text-surface-900 dark:text-white tabular-nums">
                 {formatDistance(distance)}
               </div>
-              <div className="text-xs uppercase tracking-wide text-surface-500 mt-1">distância</div>
+              <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">distância</div>
             </div>
             <div>
               <div className={`text-3xl md:text-4xl font-bold tabular-nums ${phase === 'paused' ? 'text-amber-500' : 'text-surface-900 dark:text-white'}`}>
                 {formatDuration(duration)}
               </div>
-              <div className="text-xs uppercase tracking-wide text-surface-500 mt-1">
+              <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">
                 {phase === 'paused' ? 'pausado' : 'tempo'}
               </div>
             </div>
@@ -332,7 +334,7 @@ export default function ActiveWalkPage() {
               <div className="text-3xl md:text-4xl font-bold text-surface-900 dark:text-white tabular-nums">
                 {distance > 0 && duration > 0 ? formatPace(duration / (distance / 1000)).replace('/km', '') : '—'}
               </div>
-              <div className="text-xs uppercase tracking-wide text-surface-500 mt-1">ritmo/km</div>
+              <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">ritmo/km</div>
             </div>
           </div>
 
@@ -392,7 +394,7 @@ export default function ActiveWalkPage() {
         </div>
 
         {/* GPS status */}
-        <div className="mt-3 flex items-center justify-center gap-2 text-xs text-surface-500">
+        <div className="mt-3 flex items-center justify-center gap-2 text-xs text-surface-500 dark:text-surface-400">
           <MapPin className={`w-3.5 h-3.5 ${currentPos ? 'text-green-500' : 'text-red-500 animate-pulse'}`} />
           {currentPos ? 'GPS ativo' : 'Aguardando GPS...'}
         </div>

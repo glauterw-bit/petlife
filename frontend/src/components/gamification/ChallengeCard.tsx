@@ -35,18 +35,18 @@ export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, l
   return (
     <div
       className={cn(
-        'bg-white rounded-2xl border p-5 transition-all hover:shadow-md',
-        isCompleted ? 'border-green-200 bg-green-50/30' : 'border-surface-100 hover:border-primary-200',
+        'bg-white dark:bg-surface-800 rounded-2xl border p-5 transition-all hover:shadow-md',
+        isCompleted ? 'border-green-200 bg-green-50/30' : 'border-surface-100 dark:border-surface-700 hover:border-primary-200',
       )}
     >
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-12 h-12 rounded-xl bg-surface-50 flex items-center justify-center text-2xl shrink-0">
+        <div className="w-12 h-12 rounded-xl bg-surface-50 dark:bg-surface-900/60 flex items-center justify-center text-2xl shrink-0">
           {catIcon}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-surface-900 leading-tight">{challenge.title}</h3>
-          <p className="text-sm text-surface-500 mt-0.5 line-clamp-2">{challenge.description}</p>
+          <h3 className="font-bold text-surface-900 dark:text-white leading-tight">{challenge.title}</h3>
+          <p className="text-sm text-surface-500 dark:text-surface-400 mt-0.5 line-clamp-2">{challenge.description}</p>
         </div>
       </div>
 
@@ -60,7 +60,7 @@ export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, l
           {challenge.points} pts
         </span>
         {challenge.duration_days && (
-          <span className="flex items-center gap-1 text-xs text-surface-500 px-2.5 py-0.5 rounded-full bg-surface-100">
+          <span className="flex items-center gap-1 text-xs text-surface-500 dark:text-surface-400 px-2.5 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700">
             <Clock className="w-3 h-3" />
             {challenge.duration_days} dias
           </span>
@@ -71,7 +71,7 @@ export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, l
       {challenge.requirements && challenge.requirements.length > 0 && (
         <ul className="mb-3 space-y-0.5">
           {challenge.requirements.map((req, i) => (
-            <li key={i} className="flex items-center gap-1.5 text-xs text-surface-600">
+            <li key={i} className="flex items-center gap-1.5 text-xs text-surface-600 dark:text-surface-300">
               <span className="w-1 h-1 rounded-full bg-surface-400" />
               {req}
             </li>
@@ -82,7 +82,7 @@ export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, l
       {/* Progress bar for active */}
       {isActive && (
         <div className="mb-3">
-          <div className="flex justify-between text-xs text-surface-500 mb-1">
+          <div className="flex justify-between text-xs text-surface-500 dark:text-surface-400 mb-1">
             <span>Progresso</span>
             <span>{progress}%</span>
           </div>

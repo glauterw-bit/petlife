@@ -13,7 +13,7 @@ function iconFor(type: string) {
     case 'behavior_logged': return <Activity className="w-4 h-4 text-amber-500" />
     case 'story_created': return <ImageIcon className="w-4 h-4 text-fuchsia-500" />
     case 'invite_accepted': return <UserCheck className="w-4 h-4 text-cyan-500" />
-    default: return <Bell className="w-4 h-4 text-surface-500" />
+    default: return <Bell className="w-4 h-4 text-surface-500 dark:text-surface-400" />
   }
 }
 
@@ -110,14 +110,14 @@ export function NotificationBell() {
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-surface-700 dark:text-surface-200" />
                 <h2 className="text-sm font-semibold text-surface-900 dark:text-white">Notificações</h2>
-                {unread > 0 && <span className="text-xs text-surface-500">({unread} novas)</span>}
+                {unread > 0 && <span className="text-xs text-surface-500 dark:text-surface-400">({unread} novas)</span>}
               </div>
               <div className="flex items-center gap-1">
                 {items.some(n => !n.is_read) && (
                   <button
                     onClick={markAllRead}
                     title="Marcar todas como lidas"
-                    className="tap-target rounded-lg text-surface-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 flex items-center justify-center"
+                    className="tap-target rounded-lg text-surface-500 dark:text-surface-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 flex items-center justify-center"
                   >
                     <MailCheck className="w-4 h-4" />
                   </button>
@@ -125,7 +125,7 @@ export function NotificationBell() {
                 <button
                   onClick={() => setOpen(false)}
                   aria-label="Fechar"
-                  className="tap-target rounded-lg text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-700 flex items-center justify-center"
+                  className="tap-target rounded-lg text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 flex items-center justify-center"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -134,9 +134,9 @@ export function NotificationBell() {
 
             <div className="overflow-y-auto flex-1">
               {loading ? (
-                <div className="p-8 text-center text-sm text-surface-500">Carregando…</div>
+                <div className="p-8 text-center text-sm text-surface-500 dark:text-surface-400">Carregando…</div>
               ) : items.length === 0 ? (
-                <div className="p-8 text-center text-sm text-surface-500">
+                <div className="p-8 text-center text-sm text-surface-500 dark:text-surface-400">
                   Tudo em dia 🎉<br />
                   <span className="text-xs">Quando alguém da família mexer no perfil do pet, aparece aqui.</span>
                 </div>

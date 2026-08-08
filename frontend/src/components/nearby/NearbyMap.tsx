@@ -51,7 +51,7 @@ export default function NearbyMap({ userLat, userLon, results, type, onSelect }:
   const ref = useRef<L.Map | null>(null)
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-surface-200 bg-white shadow-sm" style={{ height: 420 }}>
+    <div className="rounded-2xl overflow-hidden border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-sm" style={{ height: 420 }}>
       <MapContainer
         ref={ref as never}
         center={[userLat, userLon]}
@@ -82,7 +82,7 @@ export default function NearbyMap({ userLat, userLon, results, type, onSelect }:
               <Popup>
                 <div className="text-sm">
                   <div className="font-semibold mb-1">{r.name}</div>
-                  {r.address && <div className="text-surface-600 mb-1">{r.address}</div>}
+                  {r.address && <div className="text-surface-600 dark:text-surface-300 mb-1">{r.address}</div>}
                   {r.distance_km != null && (
                     <div className="text-xs text-primary-700 font-medium">📍 {r.distance_km.toFixed(1)} km</div>
                   )}

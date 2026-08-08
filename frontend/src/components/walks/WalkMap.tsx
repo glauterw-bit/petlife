@@ -82,7 +82,7 @@ export default function WalkMap({ points, currentLat, currentLng, height = 420, 
   )
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-surface-200 dark:border-surface-700 bg-white shadow-sm" style={{ height }}>
+    <div className="rounded-2xl overflow-hidden border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-sm" style={{ height }}>
       <MapContainer
         ref={ref as never}
         center={initialCenter}

@@ -16,7 +16,7 @@ import { PageLoader } from '@/components/ui/LoadingSpinner'
 const WalkMap = dynamic(() => import('@/components/walks/WalkMap'), {
   ssr: false,
   loading: () => (
-    <div className="rounded-2xl border border-surface-200 bg-surface-100 dark:bg-surface-800 animate-pulse flex items-center justify-center" style={{ height: 320 }}>
+    <div className="rounded-2xl border border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 animate-pulse flex items-center justify-center" style={{ height: 320 }}>
       <span className="text-sm text-surface-400">Carregando mapa…</span>
     </div>
   ),
@@ -270,7 +270,7 @@ export default function WalkDetailPage() {
   if (!walk) {
     return (
       <DashboardLayout>
-        <p className="text-center text-surface-500 mt-12">Passeio não encontrado.</p>
+        <p className="text-center text-surface-500 dark:text-surface-400 mt-12">Passeio não encontrado.</p>
       </DashboardLayout>
     )
   }
@@ -487,7 +487,7 @@ function ShareOption({
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 border border-surface-100 dark:border-surface-700">
-      <div className="text-xs uppercase tracking-wide text-surface-500 mb-1">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-1">{label}</div>
       <div className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white tabular-nums">{value}</div>
     </div>
   )

@@ -14,7 +14,7 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
     return (
       <div className="text-center py-12">
         <div className="text-5xl mb-3">💉</div>
-        <p className="text-surface-500">Nenhuma vacina registrada ainda.</p>
+        <p className="text-surface-500 dark:text-surface-400">Nenhuma vacina registrada ainda.</p>
         <p className="text-sm text-surface-400 mt-1">Adicione a primeira vacina do seu pet!</p>
       </div>
     )
@@ -59,14 +59,14 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
               {/* Dot */}
               <div className={`absolute left-3.5 top-4 w-3 h-3 rounded-full border-2 border-white ${s.dot} shadow`} />
 
-              <div className="flex-1 bg-white rounded-xl border border-surface-100 p-4 hover:border-surface-200 transition">
+              <div className="flex-1 bg-white dark:bg-surface-800 rounded-xl border border-surface-100 dark:border-surface-700 p-4 hover:border-surface-200 transition">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-2">
                     {s.icon}
                     <div>
-                      <h4 className="font-semibold text-surface-900">{v.name}</h4>
+                      <h4 className="font-semibold text-surface-900 dark:text-white">{v.name}</h4>
                       {v.vet_name && (
-                        <p className="text-xs text-surface-500">Dr. {v.vet_name}</p>
+                        <p className="text-xs text-surface-500 dark:text-surface-400">Dr. {v.vet_name}</p>
                       )}
                     </div>
                   </div>
@@ -76,26 +76,26 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1">
-                  <div className="text-xs text-surface-500">
-                    <span className="font-medium text-surface-700">Aplicada:</span>{' '}
+                  <div className="text-xs text-surface-500 dark:text-surface-400">
+                    <span className="font-medium text-surface-700 dark:text-surface-200">Aplicada:</span>{' '}
                     {formatDate(v.date_applied)}
                   </div>
                   {v.next_due_date && (
-                    <div className="text-xs text-surface-500">
-                      <span className="font-medium text-surface-700">Próxima:</span>{' '}
+                    <div className="text-xs text-surface-500 dark:text-surface-400">
+                      <span className="font-medium text-surface-700 dark:text-surface-200">Próxima:</span>{' '}
                       {formatDate(v.next_due_date)}
                     </div>
                   )}
                   {v.lot_number && (
-                    <div className="text-xs text-surface-500">
-                      <span className="font-medium text-surface-700">Lote:</span>{' '}
+                    <div className="text-xs text-surface-500 dark:text-surface-400">
+                      <span className="font-medium text-surface-700 dark:text-surface-200">Lote:</span>{' '}
                       {v.lot_number}
                     </div>
                   )}
                 </div>
 
                 {v.notes && (
-                  <p className="mt-2 text-xs text-surface-500 italic">{v.notes}</p>
+                  <p className="mt-2 text-xs text-surface-500 dark:text-surface-400 italic">{v.notes}</p>
                 )}
 
                 <div className="mt-3 flex items-center gap-3">

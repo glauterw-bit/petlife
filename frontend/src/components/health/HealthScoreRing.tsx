@@ -37,7 +37,7 @@ export function HealthScoreRing({ score, grade, size = 160, stroke = 14, startWh
           strokeWidth={stroke}
           className="text-surface-100 dark:text-surface-700"
         />
-        {/* arco do score */}
+        {/* arco do score — com brilho suave da própria cor */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -48,7 +48,10 @@ export function HealthScoreRing({ score, grade, size = 160, stroke = 14, startWh
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          style={{ transition: reduced ? 'none' : 'stroke-dashoffset 1.1s cubic-bezier(0.16, 1, 0.3, 1)' }}
+          style={{
+            transition: reduced ? 'none' : 'stroke-dashoffset 1.1s cubic-bezier(0.16, 1, 0.3, 1)',
+            filter: reduced ? 'none' : `drop-shadow(0 0 5px ${color}59)`,
+          }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">

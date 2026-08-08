@@ -74,7 +74,7 @@ export default function PublicCarteirinhaPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-emerald-50 flex items-center justify-center">
-        <div className="text-surface-500 text-sm">Verificando carteirinha…</div>
+        <div className="text-surface-500 dark:text-surface-400 text-sm">Verificando carteirinha…</div>
       </div>
     )
   }
@@ -82,12 +82,12 @@ export default function PublicCarteirinhaPage() {
   if (errorMsg || !data) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-surface-50 flex items-center justify-center px-4">
-        <div className="max-w-md text-center bg-white rounded-3xl shadow-lg border border-red-100 p-10">
+        <div className="max-w-md text-center bg-white dark:bg-surface-800 rounded-3xl shadow-lg border border-red-100 p-10">
           <div className="w-16 h-16 mx-auto bg-red-50 rounded-2xl flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
-          <h1 className="text-xl font-bold text-surface-900 mb-2">Verificação falhou</h1>
-          <p className="text-sm text-surface-500">{errorMsg ?? 'Não foi possível carregar a carteirinha.'}</p>
+          <h1 className="text-xl font-bold text-surface-900 dark:text-white mb-2">Verificação falhou</h1>
+          <p className="text-sm text-surface-500 dark:text-surface-400">{errorMsg ?? 'Não foi possível carregar a carteirinha.'}</p>
         </div>
       </div>
     )
@@ -110,7 +110,7 @@ export default function PublicCarteirinhaPage() {
           </div>
           <button
             onClick={() => window.print()}
-            className="hidden sm:flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-white border border-emerald-200 px-3 py-1.5 rounded-xl hover:bg-emerald-50 transition"
+            className="hidden sm:flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-white dark:bg-surface-800 border border-emerald-200 px-3 py-1.5 rounded-xl hover:bg-emerald-50 transition"
           >
             <Printer className="w-3.5 h-3.5" />
             Imprimir
@@ -120,7 +120,7 @@ export default function PublicCarteirinhaPage() {
 
       {/* CARD */}
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-3xl shadow-xl border border-surface-100 overflow-hidden print:shadow-none print:border-0">
+        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 overflow-hidden print:shadow-none print:border-0">
           {/* Header gradient */}
           <div className="bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-500 px-8 py-8 text-white relative overflow-hidden">
             <div className="absolute inset-0 opacity-10">
@@ -171,7 +171,7 @@ export default function PublicCarteirinhaPage() {
           </div>
 
           {/* Pet details */}
-          <div className="px-8 py-5 border-b border-surface-100 bg-surface-50/50">
+          <div className="px-8 py-5 border-b border-surface-100 dark:border-surface-700 bg-surface-50/50">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
               {[
                 { label: 'Espécie', value: getSpeciesLabel(pet.species) },
@@ -186,7 +186,7 @@ export default function PublicCarteirinhaPage() {
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-xs text-surface-400 font-medium uppercase tracking-wide">{label}</p>
-                  <p className="text-sm font-semibold text-surface-800 mt-0.5">{value}</p>
+                  <p className="text-sm font-semibold text-surface-800 dark:text-surface-100 mt-0.5">{value}</p>
                 </div>
               ))}
             </div>
@@ -194,7 +194,7 @@ export default function PublicCarteirinhaPage() {
 
           {/* Vaccines */}
           <div className="px-8 py-6">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-surface-500 mb-4">Histórico de Vacinação</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-4">Histórico de Vacinação</h2>
 
             {data.vaccines.length === 0 ? (
               <div className="text-center py-8 text-surface-400 text-sm">Nenhuma vacina registrada.</div>
@@ -205,30 +205,30 @@ export default function PublicCarteirinhaPage() {
                   const cfg = statusConfig[st]
                   const { Icon } = cfg
                   return (
-                    <div key={v.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-surface-100 bg-white">
+                    <div key={v.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-surface-100 dark:border-surface-700 bg-white dark:bg-surface-800">
                       <div className="mt-0.5"><Icon className={`w-4 h-4 ${cfg.iconColor}`} /></div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <span className="font-semibold text-sm text-surface-900">{v.name}</span>
+                          <span className="font-semibold text-sm text-surface-900 dark:text-white">{v.name}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${cfg.color}`}>{cfg.label}</span>
                         </div>
                         <div className="flex flex-wrap gap-x-5 gap-y-0.5 mt-1.5">
-                          <span className="text-xs text-surface-500">
-                            <span className="font-medium text-surface-700">Aplicada:</span> {formatDate(v.date_given)}
+                          <span className="text-xs text-surface-500 dark:text-surface-400">
+                            <span className="font-medium text-surface-700 dark:text-surface-200">Aplicada:</span> {formatDate(v.date_given)}
                           </span>
                           {v.next_due && (
-                            <span className="text-xs text-surface-500">
-                              <span className="font-medium text-surface-700">Próxima:</span> {formatDate(v.next_due)}
+                            <span className="text-xs text-surface-500 dark:text-surface-400">
+                              <span className="font-medium text-surface-700 dark:text-surface-200">Próxima:</span> {formatDate(v.next_due)}
                             </span>
                           )}
                           {v.veterinarian && (
-                            <span className="text-xs text-surface-500">
-                              <span className="font-medium text-surface-700">Vet:</span> {v.veterinarian}
+                            <span className="text-xs text-surface-500 dark:text-surface-400">
+                              <span className="font-medium text-surface-700 dark:text-surface-200">Vet:</span> {v.veterinarian}
                             </span>
                           )}
                           {v.lot_number && (
-                            <span className="text-xs text-surface-500">
-                              <span className="font-medium text-surface-700">Lote:</span> {v.lot_number}
+                            <span className="text-xs text-surface-500 dark:text-surface-400">
+                              <span className="font-medium text-surface-700 dark:text-surface-200">Lote:</span> {v.lot_number}
                             </span>
                           )}
                         </div>
@@ -243,27 +243,27 @@ export default function PublicCarteirinhaPage() {
           </div>
 
           {/* Footer */}
-          <div className="px-8 py-6 border-t border-surface-100 bg-surface-50/50 flex items-end justify-between gap-6 flex-wrap">
+          <div className="px-8 py-6 border-t border-surface-100 dark:border-surface-700 bg-surface-50/50 flex items-end justify-between gap-6 flex-wrap">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
                 <span className="text-xs text-emerald-700 font-semibold uppercase tracking-wide">Documento verificado</span>
               </div>
-              <p className="text-xs text-surface-500 mt-1 max-w-[260px]">
+              <p className="text-xs text-surface-500 dark:text-surface-400 mt-1 max-w-[260px]">
                 Esta carteirinha foi gerada pelo sistema PetLife e é validada digitalmente.
               </p>
             </div>
 
             <div className="text-right">
               <div className="text-xs text-surface-400 mb-1">Emitida em</div>
-              <div className="text-sm font-semibold text-surface-700">
+              <div className="text-sm font-semibold text-surface-700 dark:text-surface-200">
                 {formatDate(data.generated_at.split('T')[0])}
               </div>
               <div className="mt-4 flex items-center gap-1.5 justify-end">
                 <div className="w-6 h-6 bg-primary-500 rounded-lg flex items-center justify-center">
                   <span className="text-white text-xs font-bold">P</span>
                 </div>
-                <span className="text-sm font-bold text-surface-700">PetLife</span>
+                <span className="text-sm font-bold text-surface-700 dark:text-surface-200">PetLife</span>
               </div>
               <p className="text-xs text-surface-400 mt-0.5">Gestão de saúde pet com IA</p>
             </div>

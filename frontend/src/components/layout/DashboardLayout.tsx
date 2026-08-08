@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { OnboardingModal } from '@/components/onboarding/OnboardingModal'
 import { AIChatWidget } from '@/components/ai/AIChatWidget'
+import { QuotaUpsellModal } from '@/components/billing/QuotaUpsellModal'
 import { pets as petsApi, type Pet } from '@/lib/api'
 
 interface DashboardLayoutProps {
@@ -41,7 +42,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   if (!user) return null
 
   return (
-    <div className="flex min-h-screen bg-surface-50 w-full max-w-full overflow-x-hidden">
+    <div className="flex min-h-screen bg-surface-50 dark:bg-surface-900/60 w-full max-w-full overflow-x-hidden">
       <Sidebar
         pets={pets}
         activePetId={activePetId}
@@ -56,6 +57,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {!isVetUser && <AIChatWidget pets={pets} />}
       {!isVetUser && <BottomNav />}
       {!isVetUser && <OnboardingModal />}
+      {!isVetUser && <QuotaUpsellModal />}
     </div>
   )
 }

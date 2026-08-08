@@ -11,7 +11,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-emerald-50 py-8 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <Link href="/" className="inline-flex items-center gap-2 text-surface-600 hover:text-surface-900">
+          <Link href="/" className="inline-flex items-center gap-2 text-surface-600 dark:text-surface-300 hover:text-surface-900">
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Voltar</span>
           </Link>
@@ -19,15 +19,15 @@ export default function PrivacyPage() {
             <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
               <PawPrint className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-surface-900">PetLife</span>
+            <span className="font-bold text-surface-900 dark:text-white">PetLife</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-surface-100 p-8 sm:p-10">
-          <h1 className="text-3xl font-bold text-surface-900 mb-1">Política de Privacidade</h1>
-          <p className="text-sm text-surface-500 mb-8">Última atualização: 10 de maio de 2026</p>
+        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 p-8 sm:p-10">
+          <h1 className="text-3xl font-bold text-surface-900 dark:text-white mb-1">Política de Privacidade</h1>
+          <p className="text-sm text-surface-500 dark:text-surface-400 mb-8">Última atualização: 10 de maio de 2026</p>
 
-          <div className="prose prose-sm max-w-none text-surface-700 leading-relaxed space-y-6">
+          <div className="prose prose-sm max-w-none text-surface-700 dark:text-surface-200 leading-relaxed space-y-6">
             <p>
               Esta Política explica como o PetLife coleta, usa e protege seus dados pessoais.
               Em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018) e
@@ -35,21 +35,21 @@ export default function PrivacyPage() {
             </p>
 
             <section>
-              <h2 className="text-lg font-bold text-surface-900 mt-6 mb-2">1. Dados que coletamos</h2>
+              <h2 className="text-lg font-bold text-surface-900 dark:text-white mt-6 mb-2">1. Dados que coletamos</h2>
               <ul className="list-disc pl-5 space-y-1">
                 <li><strong>Cadastro:</strong> nome, e-mail, telefone (opcional), senha (hash bcrypt — nunca em texto claro)</li>
                 <li><strong>Pet:</strong> nome, espécie, raça, datas, peso, microchip, foto, histórico de vacinas e exames</li>
                 <li><strong>Localização:</strong> apenas quando você abre &quot;Buscar clínicas próximas&quot; — em primeiro plano e em tempo real</li>
                 <li><strong>Uso e diagnóstico:</strong> logs anonimizados, identificador único do dispositivo (Apple IDFV)</li>
               </ul>
-              <p className="mt-2 text-surface-600 text-sm">
+              <p className="mt-2 text-surface-600 dark:text-surface-300 text-sm">
                 Não coletamos: dados bancários, conteúdo de mensagens fora do app, localização em background,
                 contatos do celular (exceto se você convidar família como co-tutor).
               </p>
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-surface-900 mt-6 mb-2">2. Como usamos seus dados</h2>
+              <h2 className="text-lg font-bold text-surface-900 dark:text-white mt-6 mb-2">2. Como usamos seus dados</h2>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Prover funcionalidades do app (pets, lembretes, IA)</li>
                 <li>Personalizar análises da IA Vyron com base nas características do seu pet</li>
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-surface-900 mt-6 mb-2">3. Inteligência Artificial</h2>
+              <h2 className="text-lg font-bold text-surface-900 dark:text-white mt-6 mb-2">3. Inteligência Artificial</h2>
               <p>
                 A Vyron IA e a identificação de raça por foto usam o modelo Claude da Anthropic.
                 Quando você usa esses recursos, sua pergunta e/ou foto é enviada à Anthropic via
@@ -73,7 +73,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-surface-900 mt-6 mb-2">4. Compartilhamento</h2>
+              <h2 className="text-lg font-bold text-surface-900 dark:text-white mt-6 mb-2">4. Compartilhamento</h2>
               <ul className="list-disc pl-5 space-y-1">
                 <li><strong>Nunca vendemos seus dados.</strong></li>
                 <li>Compartilhamos com Anthropic apenas o necessário para IA.</li>
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-surface-900 mt-6 mb-2">5. Seus direitos (LGPD)</h2>
+              <h2 className="text-lg font-bold text-surface-900 dark:text-white mt-6 mb-2">5. Seus direitos (LGPD)</h2>
               <p>Você pode:</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Solicitar uma cópia de todos os seus dados</li>
@@ -98,7 +98,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-surface-900 mt-6 mb-2">6. Segurança</h2>
+              <h2 className="text-lg font-bold text-surface-900 dark:text-white mt-6 mb-2">6. Segurança</h2>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Banco Postgres com backup automático (Railway)</li>
                 <li>Comunicação 100% HTTPS/TLS</li>
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-surface-900 mt-6 mb-2">7. Crianças</h2>
+              <h2 className="text-lg font-bold text-surface-900 dark:text-white mt-6 mb-2">7. Crianças</h2>
               <p>
                 O PetLife não é destinado a menores de 13 anos. Se você é responsável legal e identificou que uma
                 criança usa o app, entre em contato para exclusão.
@@ -117,7 +117,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-surface-900 mt-6 mb-2">8. Contato</h2>
+              <h2 className="text-lg font-bold text-surface-900 dark:text-white mt-6 mb-2">8. Contato</h2>
               <p>
                 <strong>Responsável pelos dados:</strong> Glauter Wanderson Ferreira Correia<br />
                 <strong>E-mail:</strong> <a href="mailto:glauterw@gmail.com" className="text-primary-600 underline">glauterw@gmail.com</a><br />
@@ -125,7 +125,7 @@ export default function PrivacyPage() {
               </p>
             </section>
 
-            <p className="text-sm text-surface-500 italic mt-8">
+            <p className="text-sm text-surface-500 dark:text-surface-400 italic mt-8">
               Ao usar o PetLife você concorda com esta Política de Privacidade.
             </p>
           </div>

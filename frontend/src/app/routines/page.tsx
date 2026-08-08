@@ -55,33 +55,33 @@ export default function RoutinesPage() {
   return (
     <DashboardLayout>
       <div className="mb-5 md:mb-6 pl-12 md:pl-0">
-        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">Rotinas de Passeio</h1>
-        <p className="text-sm md:text-base text-surface-500 mt-1">Rotinas personalizadas por IA para cada pet</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">Rotinas de Passeio</h1>
+        <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">Rotinas personalizadas por IA para cada pet</p>
       </div>
 
       {loading ? <PageLoader /> : petList.length === 0 ? (
         <div className="text-center py-20">
           <div className="text-6xl mb-3">🦮</div>
-          <p className="text-surface-700 font-medium mb-2">Nenhum pet cadastrado</p>
+          <p className="text-surface-700 dark:text-surface-200 font-medium mb-2">Nenhum pet cadastrado</p>
           <a href="/pets/new" className="text-primary-600 hover:underline text-sm">Cadastrar pet</a>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Pet list */}
           <div className="space-y-2">
-            <p className="text-sm font-medium text-surface-500 mb-3">Seus pets</p>
+            <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mb-3">Seus pets</p>
             {petList.map(p => {
               const hasRoutine = (routinesMap[p.id] ?? []).length > 0
               return (
                 <button
                   key={p.id}
                   onClick={() => setActivePetId(p.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition text-left ${activePetId === p.id ? 'bg-primary-50 border-2 border-primary-300' : 'bg-white border border-surface-200 hover:border-primary-200'}`}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition text-left ${activePetId === p.id ? 'bg-primary-50 border-2 border-primary-300' : 'bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 hover:border-primary-200'}`}
                 >
                   <span className="text-2xl">{getSpeciesEmoji(p.species)}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-surface-900 text-sm">{p.name}</div>
-                    <div className="text-xs text-surface-500">{hasRoutine ? '✅ Com rotina' : '⚡ Sem rotina'}</div>
+                    <div className="font-medium text-surface-900 dark:text-white text-sm">{p.name}</div>
+                    <div className="text-xs text-surface-500 dark:text-surface-400">{hasRoutine ? '✅ Com rotina' : '⚡ Sem rotina'}</div>
                   </div>
                 </button>
               )
@@ -91,13 +91,13 @@ export default function RoutinesPage() {
           {/* Routine detail */}
           <div className="lg:col-span-3">
             {activePet && (
-              <div className="bg-white rounded-2xl border border-surface-100 p-6">
+              <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <span className="text-3xl">{getSpeciesEmoji(activePet.species)}</span>
                     <div>
-                      <h2 className="text-xl font-bold text-surface-900">{activePet.name}</h2>
-                      <p className="text-sm text-surface-500">{activePet.breed?.name ?? 'Sem raça'}</p>
+                      <h2 className="text-xl font-bold text-surface-900 dark:text-white">{activePet.name}</h2>
+                      <p className="text-sm text-surface-500 dark:text-surface-400">{activePet.breed?.name ?? 'Sem raça'}</p>
                     </div>
                   </div>
                   <button
@@ -115,10 +115,10 @@ export default function RoutinesPage() {
                 </div>
 
                 {!activeRoutine ? (
-                  <div className="text-center py-12 bg-surface-50 rounded-2xl">
+                  <div className="text-center py-12 bg-surface-50 dark:bg-surface-900/60 rounded-2xl">
                     <div className="text-5xl mb-3 animate-paw-bounce">🐾</div>
-                    <p className="text-surface-600 mb-4">Nenhuma rotina gerada ainda para {activePet.name}</p>
-                    <p className="text-sm text-surface-500">Clique em "Gerar Rotina IA" para criar uma rotina personalizada baseada na raça, idade e nível de energia.</p>
+                    <p className="text-surface-600 dark:text-surface-300 mb-4">Nenhuma rotina gerada ainda para {activePet.name}</p>
+                    <p className="text-sm text-surface-500 dark:text-surface-400">Clique em "Gerar Rotina IA" para criar uma rotina personalizada baseada na raça, idade e nível de energia.</p>
                   </div>
                 ) : (
                   <>
@@ -142,7 +142,7 @@ export default function RoutinesPage() {
 
                     {/* Time slots */}
                     <div className="mb-6">
-                      <h3 className="text-sm font-semibold text-surface-700 mb-3 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3 flex items-center gap-2">
                         <Clock className="w-4 h-4 text-primary-500" />
                         Horários Recomendados
                       </h3>
@@ -158,11 +158,11 @@ export default function RoutinesPage() {
 
                     {/* Weekly grid */}
                     <div className="mb-6">
-                      <h3 className="text-sm font-semibold text-surface-700 mb-3">Grade Semanal</h3>
+                      <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3">Grade Semanal</h3>
                       <div className="grid grid-cols-7 gap-1">
                         {DAYS_OF_WEEK.map((day, i) => (
                           <div key={day} className="text-center">
-                            <div className="text-xs font-medium text-surface-500 mb-1">{day}</div>
+                            <div className="text-xs font-medium text-surface-500 dark:text-surface-400 mb-1">{day}</div>
                             <div className="space-y-1">
                               {activeRoutine.walk_times.map((t, j) => (
                                 <div
@@ -180,22 +180,22 @@ export default function RoutinesPage() {
 
                     {/* Exercise type */}
                     {activeRoutine.exercise_type && (
-                      <div className="mb-6 p-3 bg-surface-50 rounded-xl">
-                        <span className="text-sm font-medium text-surface-700">Tipo de exercício: </span>
-                        <span className="text-sm text-surface-600">{activeRoutine.exercise_type}</span>
+                      <div className="mb-6 p-3 bg-surface-50 dark:bg-surface-900/60 rounded-xl">
+                        <span className="text-sm font-medium text-surface-700 dark:text-surface-200">Tipo de exercício: </span>
+                        <span className="text-sm text-surface-600 dark:text-surface-300">{activeRoutine.exercise_type}</span>
                       </div>
                     )}
 
                     {/* Tips */}
                     {activeRoutine.tips && activeRoutine.tips.length > 0 && (
                       <div>
-                        <h3 className="text-sm font-semibold text-surface-700 mb-3 flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3 flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-500" />
                           Dicas da IA
                         </h3>
                         <ul className="space-y-2">
                           {activeRoutine.tips.map((tip, i) => (
-                            <li key={i} className="flex items-start gap-2.5 text-sm text-surface-600 bg-green-50 rounded-xl px-3 py-2.5">
+                            <li key={i} className="flex items-start gap-2.5 text-sm text-surface-600 dark:text-surface-300 bg-green-50 rounded-xl px-3 py-2.5">
                               <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                               {tip}
                             </li>

@@ -126,7 +126,7 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
             <p className="text-sm text-surface-400 text-center py-6">Você ainda não compartilhou {petName} com ninguém.</p>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-surface-500 font-semibold">Pessoas com acesso</p>
+              <p className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 font-semibold">Pessoas com acesso</p>
               {activeShares.map(s => (
                 <div key={s.id} className="flex items-start gap-3 p-3 bg-surface-50 dark:bg-surface-700/40 rounded-xl">
                   <div className="w-9 h-9 bg-cyan-100 dark:bg-cyan-900/40 rounded-xl flex items-center justify-center shrink-0">
@@ -151,7 +151,7 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                         onClick={() => copyLink(s.invite_token!)}
                         aria-label="Copiar link do convite"
                         title="Copiar link"
-                        className="tap-target p-1.5 rounded-lg text-surface-500 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition"
+                        className="tap-target p-1.5 rounded-lg text-surface-500 dark:text-surface-400 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition"
                       >
                         {copiedToken === s.invite_token
                           ? <Check className="w-3.5 h-3.5 text-green-600" />
@@ -162,7 +162,7 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                       onClick={() => revoke(s.id)}
                       aria-label="Revogar acesso"
                       title="Revogar"
-                      className="tap-target p-1.5 rounded-lg text-surface-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                      className="tap-target p-1.5 rounded-lg text-surface-500 dark:text-surface-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

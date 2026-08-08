@@ -48,14 +48,14 @@ export default function ForgotPasswordPage() {
             <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200">
               <PawPrint className="w-9 h-9 text-white" />
             </div>
-            <span className="text-2xl font-bold text-surface-900">PetLife</span>
+            <span className="text-2xl font-bold text-surface-900 dark:text-white">PetLife</span>
           </Link>
-          <h1 className="text-xl font-semibold text-surface-700 mt-4">Recuperar senha</h1>
-          <p className="text-surface-500 text-sm mt-1">Vamos enviar um código de 6 dígitos pra você</p>
+          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">Recuperar senha</h1>
+          <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">Vamos enviar um código de 6 dígitos pra você</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-surface-100 p-8">
-          <Link href="/auth/login" className="inline-flex items-center gap-1.5 text-sm text-surface-500 hover:text-surface-700 mb-6">
+        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 p-8">
+          <Link href="/auth/login" className="inline-flex items-center gap-1.5 text-sm text-surface-500 dark:text-surface-400 hover:text-surface-700 mb-6">
             <ArrowLeft className="w-4 h-4" />
             Voltar ao login
           </Link>
@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
           {!result ? (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
                   E-mail cadastrado
                 </label>
                 <div className="relative">
@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
                     onChange={e => setEmail(e.target.value)}
                     placeholder="seu@email.com"
                     autoFocus
-                    className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-sm text-surface-900 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                    className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                   />
                 </div>
               </div>
@@ -109,8 +109,8 @@ export default function ForgotPasswordPage() {
                   <p className="text-xs uppercase font-semibold tracking-wide text-amber-700 mb-2">
                     ⚠ Modo desenvolvimento — código exibido aqui
                   </p>
-                  <div className="flex items-center justify-between gap-3 bg-white rounded-lg border border-amber-200 px-4 py-3">
-                    <span className="text-2xl font-mono font-bold text-surface-900 tracking-widest">
+                  <div className="flex items-center justify-between gap-3 bg-white dark:bg-surface-800 rounded-lg border border-amber-200 px-4 py-3">
+                    <span className="text-2xl font-mono font-bold text-surface-900 dark:text-white tracking-widest">
                       {result.code}
                     </span>
                     <button
