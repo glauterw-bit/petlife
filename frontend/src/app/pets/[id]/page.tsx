@@ -31,6 +31,9 @@ import { StoriesFeed } from '@/components/innovations/StoriesFeed'
 import { SharePetModal } from '@/components/innovations/SharePetModal'
 import { FamilyTreeSection } from '@/components/innovations/FamilyTreeSection'
 import { HealthForecast } from '@/components/health/HealthForecast'
+import { ExpensesCard } from '@/components/innovations/ExpensesCard'
+import { EnrichmentCard } from '@/components/innovations/EnrichmentCard'
+import { petExport } from '@/lib/api'
 import { BookOpen, Brain, PartyPopper, Smile, Image as ImageIcon, Users, GitFork } from 'lucide-react'
 
 type Tab = 'overview' | 'health' | 'routine' | 'history' | 'anamnesis' | 'care' | 'stories' | 'family'
@@ -191,6 +194,7 @@ export default function PetProfilePage() {
         <QuickAction icon={<PartyPopper className="w-4 h-4" />} label="Wrapped" onClick={() => router.push(`/wrapped/${petId}`)} color="pink" />
         <QuickAction icon={<ImageIcon className="w-4 h-4" />} label="Stories" onClick={() => setTab('stories' as Tab)} color="teal" />
         <QuickAction icon={<Users className="w-4 h-4" />} label="Compartilhar" onClick={() => setShareOpen(true)} color="cyan" />
+        <QuickAction icon={<span className="text-base">📄</span>} label="PDF p/ vet" onClick={() => { petExport.sharePdf(petId, pet.name).catch(() => {}) }} color="emerald" />
         <QuickAction icon={<GitFork className="w-4 h-4" />} label="Família" onClick={() => setTab('family' as Tab)} color="fuchsia" />
       </div>
 
@@ -318,6 +322,10 @@ export default function PetProfilePage() {
           <HealthForecast pet={pet} />
 
           <WeightChart petId={petId} />
+
+          <EnrichmentCard petId={petId} petName={pet.name} />
+
+          <ExpensesCard petId={petId} />
 
           <SeniorProtocolCard petId={petId} />
 

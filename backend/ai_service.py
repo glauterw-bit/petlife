@@ -1084,3 +1084,36 @@ SAIDA:
     )
 
     return response.content[0].text
+
+
+async def generate_enrichment_activities(pet_info: dict) -> dict:
+    """Bem-estar mental: 3 atividades de enriquecimento do dia, personalizadas
+    por espécie/raça/idade/energia. Tendência 2026: saúde mental do pet."""
+    client = get_client()
+    species = "cão" if pet_info.get("species") == "dog" else "gato"
+    breed = pet_info.get("breed_name") or "SRD"
+    age = pet_info.get("age", "adulto")
+    prompt = f"""Você é a Vyron, veterinária virtual do PetLife especializada em bem-estar animal.
+Crie 3 atividades de ENRIQUECIMENTO AMBIENTAL pra hoje, personalizadas pra:
+{pet_info.get('name', 'Pet')} — {species}, raça {breed}, {age}.
+
+Regras: atividades práticas com itens caseiros, seguras, 5-15 min cada.
+Varie os tipos: mental (farejar/resolver), física e vínculo tutor-pet.
+
+Responda APENAS em JSON válido:
+{{"activities": [{{"title": "nome curto e divertido", "emoji": "1 emoji", "how": "como fazer em 2-3 frases", "minutes": 10, "benefit": "benefício em 1 frase", "type": "mental|fisica|vinculo"}}], "tip": "1 dica curta de bem-estar do dia"}}"""
+
+    response = client.messages.create(
+        model=CHAT_MODEL,
+        max_tokens=900,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = response.content[0].text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        import re
+        m = re.search(r"\{.*\}", text, re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        raise ValueError("Resposta da IA em formato inesperado")

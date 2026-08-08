@@ -68,6 +68,21 @@ class User(Base):
     clinic_vets = relationship("ClinicVet", back_populates="user")
 
 
+class PetExpense(Base):
+    """Controle de gastos do pet — alimentação, saúde, higiene etc.
+    Base pros insights de custo mensal (paridade com líderes do nicho)."""
+    __tablename__ = "pet_expenses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = Column(String(30), nullable=False)  # alimentacao|saude|higiene|acessorios|servicos|outros
+    amount = Column(Float, nullable=False)  # BRL
+    description = Column(String(200), nullable=True)
+    spent_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 class QuotaUsage(Base):
     """Contador mensal de uso de recursos com quota (IA). Reseta por mês-calendário.
     `month` no formato 'YYYY-MM' (UTC). Uma linha por (user, mês)."""
