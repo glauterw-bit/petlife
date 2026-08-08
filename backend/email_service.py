@@ -1,15 +1,22 @@
-"""Email service via Resend.
+"""Email service — Resend OU SMTP genérico (ex.: Gmail), o que estiver configurado.
 
-Setup:
-  1. Sign up at https://resend.com (free tier: 100 emails/day, 3k/month)
-  2. Set RESEND_API_KEY env var (Railway dashboard)
-  3. Set RESEND_FROM_EMAIL (default: onboarding@resend.dev — works for testing
-     without domain verification; for production verify your own domain)
+Opção A — Resend (conta em resend.com):
+  RESEND_API_KEY + RESEND_FROM_EMAIL
 
-When RESEND_API_KEY is not set, emails are logged but not sent (dev mode).
+Opção B — SMTP (qualquer provedor; Gmail funciona com App Password, sem conta nova):
+  SMTP_HOST (ex.: smtp.gmail.com), SMTP_PORT (587), SMTP_USER, SMTP_PASS,
+  SMTP_FROM (opcional; default = SMTP_USER)
+  Gmail: myaccount.google.com/apppasswords (requer 2FA na conta Google).
+
+Sem nenhum dos dois: e-mails são logados mas NÃO enviados (modo dev), e
+`email_configured()` retorna False pra UI poder avisar o usuário com honestidade.
 """
+import asyncio
 import os
 import logging
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Optional
 import httpx
 
@@ -19,13 +26,47 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "PetLife <onboarding@resend.dev>")
 RESEND_URL = "https://api.resend.com/emails"
 
+SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "").strip()
+SMTP_PASS = os.getenv("SMTP_PASS", "").strip()
+SMTP_FROM = os.getenv("SMTP_FROM", "").strip() or SMTP_USER
+
+
+def email_configured() -> bool:
+    """True se existe algum transporte real de e-mail (Resend ou SMTP)."""
+    return bool(RESEND_API_KEY) or bool(SMTP_HOST and SMTP_USER and SMTP_PASS)
+
+
+def _send_smtp_sync(to: str, subject: str, html: str, text: Optional[str]) -> None:
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = SMTP_FROM
+    msg["To"] = to
+    if text:
+        msg.attach(MIMEText(text, "plain", "utf-8"))
+    msg.attach(MIMEText(html, "html", "utf-8"))
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
+        s.starttls()
+        s.login(SMTP_USER, SMTP_PASS)
+        s.sendmail(SMTP_FROM, [to], msg.as_string())
+
 
 async def send_email(to: str, subject: str, html: str, text: Optional[str] = None) -> bool:
     """Returns True if delivery succeeded (or dev-logged), False on transport error."""
+    # Sem Resend, tenta SMTP (ex.: Gmail) antes de cair no modo dev
     if not RESEND_API_KEY:
+        if SMTP_HOST and SMTP_USER and SMTP_PASS:
+            try:
+                await asyncio.to_thread(_send_smtp_sync, to, subject, html, text)
+                logger.info("Email sent via SMTP to=%s subject=%r", to, subject)
+                return True
+            except Exception as e:
+                logger.error("SMTP send failed to=%s: %s", to, e)
+                return False
         logger.warning(
-            "RESEND_API_KEY not set — email NOT sent. Would send to=%s subject=%r",
-            to, subject,
+            "No email transport configured (RESEND_API_KEY/SMTP_*) — email NOT sent. "
+            "Would send to=%s subject=%r", to, subject,
         )
         return True  # dev mode — treat as success so the API doesn't fail
 
