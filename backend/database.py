@@ -142,6 +142,7 @@ async def _run_migrations():
         "CREATE INDEX IF NOT EXISTS ix_users_apple_otx ON users(apple_original_transaction_id)",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_quota_usage_user_month ON quota_usage(user_id, month)",
         "CREATE INDEX IF NOT EXISTS ix_iap_tx_original ON iap_transactions(original_transaction_id)",
+        "CREATE INDEX IF NOT EXISTS ix_pet_expenses_pet_spent ON pet_expenses(pet_id, spent_at)",
     ]
     for stmt in migrations:
         try:

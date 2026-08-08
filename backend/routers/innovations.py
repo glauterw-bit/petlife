@@ -586,6 +586,47 @@ async def get_health_forecast(
         raise HTTPException(status_code=503, detail="Previsão indisponível no momento. Tente mais tarde.")
 
 
+# ─── Bem-estar mental: enriquecimento diário por IA ──────────────────────────
+
+@router.get("/pets/{pet_id}/enrichment")
+@_limiter.limit("10/hour")
+async def get_enrichment(
+    request: Request,
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """3 atividades de enriquecimento ambiental do dia (mental/física/vínculo),
+    personalizadas por espécie/raça/idade. Saúde mental do pet — sob demanda."""
+    await subscriptions.check_quota(db, current_user, "ai_analysis")
+
+    pet_q = await db.execute(
+        select(Pet).options(selectinload(Pet.breed))
+        .where(Pet.id == pet_id, pet_accessible_filter(current_user.id))
+    )
+    pet = pet_q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    pet_info = {
+        "name": pet.name,
+        "species": pet.species.value if hasattr(pet.species, "value") else pet.species,
+        "breed_name": pet.breed.name if pet.breed else None,
+        "age": _calculate_age(pet.birth_date),
+    }
+    try:
+        result = await ai_service.generate_enrichment_activities(pet_info)
+        await subscriptions.consume_quota(db, current_user, "ai_analysis")
+        result["pet_id"] = pet_id
+        result["pet_name"] = pet.name
+        return result
+    except Exception as e:
+        msg = str(e).lower()
+        if "credit balance" in msg or "insufficient" in msg or "billing" in msg:
+            raise HTTPException(status_code=503, detail="Atividades indisponíveis: crédito Anthropic esgotado.")
+        raise HTTPException(status_code=503, detail="Não foi possível gerar as atividades agora. Tente de novo.")
+
+
 # ─── Behavior Plans ───────────────────────────────────────────────────────────
 
 class BehaviorPlanCreate(BaseModel):

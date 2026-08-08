@@ -1431,6 +1431,82 @@ export const billing = {
   },
 }
 
+// ── Gastos do pet ─────────────────────────────────────
+export const expenses = {
+  add: async (petId: number, data: { category: string; amount: number; description?: string; spent_at?: string }) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/expenses`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data),
+    })
+    return handleResponse<{ id: number; ok: boolean }>(res)
+  },
+  list: async (petId: number) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/expenses`, { headers: getAuthHeaders() })
+    return handleResponse<PetExpense[]>(res)
+  },
+  remove: async (petId: number, expenseId: number) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/expenses/${expenseId}`, {
+      method: 'DELETE', headers: getAuthHeaders(),
+    })
+    return handleResponse<void>(res)
+  },
+  summary: async (petId: number) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/expenses/summary`, { headers: getAuthHeaders() })
+    return handleResponse<ExpenseSummary>(res)
+  },
+}
+
+export interface PetExpense {
+  id: number
+  category: string
+  category_label: string
+  amount: number
+  description: string | null
+  spent_at: string
+}
+
+export interface ExpenseSummary {
+  month_total: number
+  by_category: Array<{ category: string; label: string; total: number }>
+  months: Array<{ month: string; total: number }>
+}
+
+// ── Bem-estar / enriquecimento por IA ─────────────────
+export const enrichment = {
+  get: async (petId: number) => {
+    const res = await fetch(`${API_URL}/innovations/pets/${petId}/enrichment`, { headers: getAuthHeaders() })
+    return handleResponse<EnrichmentDay>(res)
+  },
+}
+
+export interface EnrichmentDay {
+  activities: Array<{ title: string; emoji: string; how: string; minutes: number; benefit: string; type: string }>
+  tip: string
+  pet_id: number
+  pet_name: string
+}
+
+// ── Exportação PDF (histórico pro veterinário) ────────
+export const petExport = {
+  /** Baixa o PDF e compartilha (Web Share c/ arquivo no iOS; download no desktop). */
+  sharePdf: async (petId: number, petName: string) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/export/pdf`, { headers: getAuthHeaders() })
+    if (!res.ok) throw new Error('Não foi possível gerar o PDF agora.')
+    const blob = await res.blob()
+    const file = new File([blob], `petlife-${petName.toLowerCase()}-historico.pdf`, { type: 'application/pdf' })
+    const nav = navigator as Navigator & { canShare?: (d?: { files?: File[] }) => boolean }
+    if (nav.share && nav.canShare?.({ files: [file] })) {
+      await nav.share({ files: [file], title: `Histórico de saúde — ${petName}` })
+    } else {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.name
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 4000)
+    }
+  },
+}
+
 export type PlanTier = 'free' | 'plus' | 'pro'
 
 export interface BillingProduct {
