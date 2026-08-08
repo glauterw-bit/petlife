@@ -163,7 +163,7 @@ export default function PetProfilePage() {
   return (
     <DashboardLayout>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5 md:mb-6 pl-12 md:pl-0">
+      <div className="flex items-center gap-3 mb-5 md:mb-6 ">
         <button onClick={() => router.back()} aria-label="Voltar" className="p-2 rounded-xl hover:bg-surface-100 transition tap-target flex items-center justify-center">
           <ArrowLeft className="w-5 h-5 text-surface-600 dark:text-surface-300" />
         </button>

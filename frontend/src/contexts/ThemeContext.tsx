@@ -2,59 +2,43 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
-type Theme = 'light' | 'dark' | 'system'
+/**
+ * Tema do PetLife: CLARO é o padrão do app; escuro é escolha explícita do
+ * usuário nas Configurações. Não seguimos mais o tema do sistema — usuários
+ * com o celular no escuro reclamavam do app "mudar sozinho".
+ */
+type Theme = 'light' | 'dark'
 
 interface ThemeContextValue {
   theme: Theme
-  resolvedTheme: 'light' | 'dark'
+  resolvedTheme: Theme
   setTheme: (t: Theme) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
-function resolveTheme(t: Theme): 'light' | 'dark' {
-  if (t === 'system') {
-    if (typeof window === 'undefined') return 'light'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  }
-  return t
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system')
-  const [resolvedTheme, setResolved] = useState<'light' | 'dark'>('light')
+  const [theme, setThemeState] = useState<Theme>('light')
 
   useEffect(() => {
-    const stored = (typeof window !== 'undefined' && localStorage.getItem('petlife_theme')) as Theme | null
-    const initial = stored || 'system'
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('petlife_theme') : null
+    // Migração: quem tinha 'system' passa a claro (novo padrão). Só 'dark' explícito persiste.
+    const initial: Theme = stored === 'dark' ? 'dark' : 'light'
     setThemeState(initial)
-    const resolved = resolveTheme(initial)
-    setResolved(resolved)
-    document.documentElement.classList.toggle('dark', resolved === 'dark')
-  }, [])
-
-  useEffect(() => {
-    if (theme !== 'system') return
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = () => {
-      const r = mq.matches ? 'dark' : 'light'
-      setResolved(r)
-      document.documentElement.classList.toggle('dark', r === 'dark')
+    document.documentElement.classList.toggle('dark', initial === 'dark')
+    if (stored !== 'dark' && stored !== 'light') {
+      try { localStorage.setItem('petlife_theme', initial) } catch {}
     }
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [theme])
+  }, [])
 
   const setTheme = (t: Theme) => {
     setThemeState(t)
-    localStorage.setItem('petlife_theme', t)
-    const resolved = resolveTheme(t)
-    setResolved(resolved)
-    document.documentElement.classList.toggle('dark', resolved === 'dark')
+    try { localStorage.setItem('petlife_theme', t) } catch {}
+    document.documentElement.classList.toggle('dark', t === 'dark')
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme: theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   )

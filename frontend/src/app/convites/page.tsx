@@ -72,7 +72,7 @@ function InvitesContent() {
 
   return (
     <DashboardLayout>
-      <div className="mb-5 md:mb-6 pl-12 md:pl-0">
+      <div className="mb-5 md:mb-6 ">
         <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2 leading-tight">
           <MailOpen className="w-6 h-6 text-cyan-600 shrink-0" />
           Convites

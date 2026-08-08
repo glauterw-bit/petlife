@@ -63,7 +63,7 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       {/* Welcome */}
-      <div className="mb-6 md:mb-8 pl-14 md:pl-0">
+      <div className="mb-6 md:mb-8 ">
         <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">
           Olá, {user?.name?.split(' ')[0] ?? 'Tutor'}! 👋
         </h1>
@@ -77,10 +77,10 @@ export default function DashboardPage() {
       {/* Daily check-in + Health Score + Streak — engajamento diário */}
       {pets.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 reveal">
             <HealthScoreCard key={scoreRefresh} pet={pets[0]} />
           </div>
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-4 reveal" style={{ ['--i' as string]: 1 }}>
             <StreakFlame key={`streak-${scoreRefresh}`} pet={pets[0]} refreshKey={scoreRefresh} />
             <DailyCheckin pet={pets[0]} onDone={() => { setScoreRefresh(n => n + 1); trackHappyMoment('checkin') }} />
           </div>
@@ -116,7 +116,7 @@ export default function DashboardPage() {
             tint: 'text-accent-600 bg-accent-50 dark:text-accent-300 dark:bg-accent-500/15',
           },
         ].map((s, i) => (
-          <div key={i} className="bg-white dark:bg-surface-800 rounded-2xl p-3 md:p-4 border border-surface-100 dark:border-surface-700 relative">
+          <div key={i} className="reveal pressable bg-white dark:bg-surface-800 rounded-2xl p-3 md:p-4 border border-surface-100 dark:border-surface-700 relative" style={{ ['--i' as string]: i }}>
             {s.alert && (
               <span className="absolute top-3 right-3 flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
@@ -159,7 +159,7 @@ export default function DashboardPage() {
                   <Link
                     key={pet.id}
                     href={`/pets/${pet.id}`}
-                    className="flex items-center gap-4 p-3 rounded-xl dark:hover:bg-surface-700/40 hover:bg-surface-50 transition group"
+                    className="pressable flex items-center gap-4 p-3 rounded-xl dark:hover:bg-surface-700/40 hover:bg-surface-50 transition group"
                   >
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-50 to-accent-50 flex items-center justify-center text-3xl shrink-0 overflow-hidden">
                       {pet.photo_url ? (
@@ -232,7 +232,7 @@ export default function DashboardPage() {
                 <Link
                   key={a.href}
                   href={a.href}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition text-center ${a.color}`}
+                  className={`pressable flex flex-col items-center gap-2 p-3 rounded-xl transition text-center ${a.color}`}
                 >
                   {a.icon}
                   <span className="text-xs font-medium">{a.label}</span>
