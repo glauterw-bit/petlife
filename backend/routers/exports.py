@@ -17,7 +17,8 @@ from sqlalchemy.orm import selectinload
 from database import get_db
 from auth import get_current_user
 from models import (
-    Pet, User, Vaccine, Exam, Anamnesis, PetWeightHistory, pet_accessible_filter,
+    Pet, User, Vaccine, Exam, Anamnesis, PetWeightHistory, PetStory, PetExpense,
+    WalkSession, pet_accessible_filter,
 )
 
 router = APIRouter(prefix="/pets", tags=["Exportação"])
@@ -136,6 +137,67 @@ def _build_pdf(pet: Pet, vaccines, exams, weights, anamneses, tutor_name: str) -
 
     doc.build(el)
     return buf.getvalue()
+
+
+@router.get("/{pet_id}/monthly-recap")
+async def monthly_recap(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Recap do mês do pet — números pro card compartilhável (sem IA, sem quota)."""
+    from sqlalchemy import func
+
+    q = await db.execute(
+        select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id))
+    )
+    pet = q.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+
+    walks_q = await db.execute(
+        select(func.count(WalkSession.id), func.coalesce(func.sum(WalkSession.distance_meters), 0.0),
+               func.coalesce(func.sum(WalkSession.duration_seconds), 0))
+        .where(WalkSession.pet_id == pet_id, WalkSession.ended_at.is_not(None),
+               WalkSession.started_at >= month_start)
+    )
+    n_walks, dist_m, dur_s = walks_q.one()
+
+    stories_q = await db.execute(
+        select(func.count(PetStory.id)).where(PetStory.pet_id == pet_id, PetStory.created_at >= month_start)
+    )
+    vaccines_q = await db.execute(
+        select(func.count(Vaccine.id)).where(Vaccine.pet_id == pet_id, Vaccine.date_given >= month_start)
+    )
+    expenses_q = await db.execute(
+        select(func.coalesce(func.sum(PetExpense.amount), 0.0))
+        .where(PetExpense.pet_id == pet_id, PetExpense.spent_at >= month_start)
+    )
+    # variação de peso no mês (primeira vs última medição do mês)
+    w_q = await db.execute(
+        select(PetWeightHistory.weight_kg).where(
+            PetWeightHistory.pet_id == pet_id, PetWeightHistory.measured_at >= month_start
+        ).order_by(PetWeightHistory.measured_at)
+    )
+    weights = [w for (w,) in w_q.all()]
+
+    MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    return {
+        "pet_id": pet_id,
+        "pet_name": pet.name,
+        "month_label": f"{MESES[now.month - 1].capitalize()} de {now.year}",
+        "walks": int(n_walks or 0),
+        "distance_km": round((dist_m or 0) / 1000, 1),
+        "active_minutes": int((dur_s or 0) // 60),
+        "stories": int(stories_q.scalar() or 0),
+        "vaccines": int(vaccines_q.scalar() or 0),
+        "expenses_total": round(expenses_q.scalar() or 0, 2),
+        "weight_delta_kg": round(weights[-1] - weights[0], 1) if len(weights) >= 2 else None,
+    }
 
 
 @router.get("/{pet_id}/export/pdf")

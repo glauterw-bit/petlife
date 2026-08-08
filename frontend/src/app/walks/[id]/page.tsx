@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { ArrowLeft, Share2, Trash2, Smile, Frown, Meh, Trophy, Heart, Download, Instagram, MessageCircle, X } from 'lucide-react'
 import { Share } from '@capacitor/share'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { PaceChart } from '@/components/walks/PaceChart'
 import { walks, type Walk } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { celebrate, hapticMedium, hapticError, hapticLight } from '@/lib/feedback'
@@ -303,6 +304,8 @@ export default function WalkDetailPage() {
           height={320}
           follow={false}
         />
+
+        {(walk.route_points?.length ?? 0) >= 4 && <PaceChart points={walk.route_points ?? []} />}
 
         {/* Big stats */}
         <div className="mt-4 grid grid-cols-2 gap-3">

@@ -1485,6 +1485,27 @@ export interface EnrichmentDay {
   pet_name: string
 }
 
+// ── Recap mensal ──────────────────────────────────────
+export const recap = {
+  monthly: async (petId: number) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/monthly-recap`, { headers: getAuthHeaders() })
+    return handleResponse<MonthlyRecap>(res)
+  },
+}
+
+export interface MonthlyRecap {
+  pet_id: number
+  pet_name: string
+  month_label: string
+  walks: number
+  distance_km: number
+  active_minutes: number
+  stories: number
+  vaccines: number
+  expenses_total: number
+  weight_delta_kg: number | null
+}
+
 // ── Exportação PDF (histórico pro veterinário) ────────
 export const petExport = {
   /** Baixa o PDF e compartilha (Web Share c/ arquivo no iOS; download no desktop). */
