@@ -57,10 +57,10 @@ export default function DashboardPage() {
     <DashboardLayout>
       {/* Welcome */}
       <div className="mb-6 md:mb-8 pl-14 md:pl-0">
-        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 leading-tight">
+        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">
           Olá, {user?.name?.split(' ')[0] ?? 'Tutor'}! 👋
         </h1>
-        <p className="text-sm md:text-base text-surface-500 mt-1">
+        <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">
           {pets.length > 0
             ? `Você tem ${pets.length} pet${pets.length > 1 ? 's' : ''} sob seus cuidados.`
             : 'Adicione seu primeiro pet para começar!'}
@@ -80,42 +80,45 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stats */}
+      {/* Stats — cartões unificados (superfície neutra + chip de ícone colorido) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
         {[
           {
-            icon: <PawPrint className="w-6 h-6 text-primary-500" />,
+            icon: <PawPrint className="w-5 h-5" />,
             label: 'Total de Pets',
             value: pets.length,
-            bg: 'bg-primary-50',
+            tint: 'text-primary-600 bg-primary-50 dark:text-primary-300 dark:bg-primary-500/15',
           },
           {
-            icon: <Syringe className="w-6 h-6 text-yellow-500" />,
+            icon: <Syringe className="w-5 h-5" />,
             label: 'Vacinas Próximas',
             value: upcomingVaccines.filter(v => getVaccineStatus(v.next_due_date) === 'upcoming').length,
-            bg: 'bg-yellow-50',
+            tint: 'text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15',
             alert: overdueVaccines.length > 0,
           },
           {
-            icon: <Bell className="w-6 h-6 text-blue-500" />,
+            icon: <Bell className="w-5 h-5" />,
             label: 'Lembretes (7d)',
             value: upcomingReminders.length,
-            bg: 'bg-blue-50',
+            tint: 'text-blue-600 bg-blue-50 dark:text-blue-300 dark:bg-blue-500/15',
           },
           {
-            icon: <Trophy className="w-6 h-6 text-accent-500" />,
+            icon: <Trophy className="w-5 h-5" />,
             label: 'Pontos',
             value: points?.total_points ?? 0,
-            bg: 'bg-accent-50',
+            tint: 'text-accent-600 bg-accent-50 dark:text-accent-300 dark:bg-accent-500/15',
           },
         ].map((s, i) => (
-          <div key={i} className={`${s.bg} rounded-2xl p-3 md:p-4 border border-surface-100 relative`}>
+          <div key={i} className="bg-white dark:bg-surface-800 rounded-2xl p-3 md:p-4 border border-surface-100 dark:border-surface-700 relative">
             {s.alert && (
-              <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full" />
+              <span className="absolute top-3 right-3 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+              </span>
             )}
-            {s.icon}
-            <div className="text-xl md:text-2xl font-bold text-surface-900 mt-1.5 md:mt-2 leading-tight">{s.value}</div>
-            <div className="text-xs md:text-sm text-surface-600 leading-tight">{s.label}</div>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.tint}`}>{s.icon}</div>
+            <div className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white mt-2 leading-tight tabular-nums">{s.value}</div>
+            <div className="text-xs md:text-sm text-surface-500 dark:text-surface-400 leading-tight">{s.label}</div>
           </div>
         ))}
       </div>
@@ -124,9 +127,9 @@ export default function DashboardPage() {
         {/* Left column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Pet cards */}
-          <div className="bg-white rounded-2xl border border-surface-100 p-5">
+          <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-surface-900">Meus Pets</h2>
+              <h2 className="text-lg font-bold text-surface-900 dark:text-white">Meus Pets</h2>
               <Link href="/pets" className="text-sm text-primary-600 hover:underline flex items-center gap-1">
                 Ver todos <ArrowRight className="w-4 h-4" />
               </Link>
@@ -149,7 +152,7 @@ export default function DashboardPage() {
                   <Link
                     key={pet.id}
                     href={`/pets/${pet.id}`}
-                    className="flex items-center gap-4 p-3 rounded-xl hover:bg-surface-50 transition group"
+                    className="flex items-center gap-4 p-3 rounded-xl dark:hover:bg-surface-700/40 hover:bg-surface-50 transition group"
                   >
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-50 to-accent-50 flex items-center justify-center text-3xl shrink-0 overflow-hidden">
                       {pet.photo_url ? (
@@ -159,8 +162,8 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-surface-900 group-hover:text-primary-600 transition">{pet.name}</div>
-                      <div className="text-sm text-surface-500">{pet.breed?.name ?? '—'} • {formatAge(pet.birth_date)}</div>
+                      <div className="font-semibold text-surface-900 dark:text-white group-hover:text-primary-600 transition">{pet.name}</div>
+                      <div className="text-sm text-surface-500 dark:text-surface-400">{pet.breed?.name ?? '—'} • {formatAge(pet.birth_date)}</div>
                     </div>
                     <ArrowRight className="w-4 h-4 text-surface-300 group-hover:text-primary-500 group-hover:translate-x-1 transition" />
                   </Link>
@@ -176,9 +179,9 @@ export default function DashboardPage() {
 
           {/* Upcoming vaccines */}
           {upcomingVaccines.length > 0 && (
-            <div className="bg-white rounded-2xl border border-surface-100 p-5">
+            <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-surface-900 flex items-center gap-2">
+                <h2 className="text-lg font-bold text-surface-900 dark:text-white flex items-center gap-2">
                   <Syringe className="w-5 h-5 text-yellow-500" />
                   Vacinas em Atenção
                 </h2>
@@ -194,8 +197,8 @@ export default function DashboardPage() {
                     <div key={v.id} className={`flex items-center gap-3 p-3 rounded-xl ${isOverdue ? 'bg-red-50 border border-red-100' : 'bg-yellow-50 border border-yellow-100'}`}>
                       <Shield className={`w-5 h-5 ${isOverdue ? 'text-red-500' : 'text-yellow-500'}`} />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-surface-900">{v.name}</div>
-                        <div className="text-xs text-surface-500">{v.pet?.name ?? ''} • Vence: {formatDate(v.next_due_date)}</div>
+                        <div className="text-sm font-medium text-surface-900 dark:text-white">{v.name}</div>
+                        <div className="text-xs text-surface-500 dark:text-surface-400">{v.pet?.name ?? ''} • Vence: {formatDate(v.next_due_date)}</div>
                       </div>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
                         {isOverdue ? '🔴 Atrasada' : '⚠️ Próxima'}
@@ -208,8 +211,8 @@ export default function DashboardPage() {
           )}
 
           {/* Quick actions */}
-          <div className="bg-white rounded-2xl border border-surface-100 p-5">
-            <h2 className="text-lg font-bold text-surface-900 mb-4">Ações Rápidas</h2>
+          <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
+            <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-4">Ações Rápidas</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
                 { href: '/walks/active', icon: <Footprints className="w-5 h-5" />, label: 'Passear agora', color: 'text-primary-600 bg-primary-50 hover:bg-primary-100' },
@@ -276,9 +279,9 @@ export default function DashboardPage() {
           )}
 
           {/* Reminders */}
-          <div className="bg-white rounded-2xl border border-surface-100 p-5">
+          <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-surface-900 flex items-center gap-2">
+              <h2 className="text-base font-bold text-surface-900 dark:text-white flex items-center gap-2">
                 <Bell className="w-4 h-4 text-blue-500" />
                 Lembretes
               </h2>
@@ -291,10 +294,10 @@ export default function DashboardPage() {
                   <div key={r.id} className="flex items-center gap-2 text-sm">
                     <CheckCircle className={`w-4 h-4 shrink-0 ${r.completed ? 'text-green-400' : 'text-surface-300'}`} />
                     <div className="flex-1 min-w-0">
-                      <div className={`font-medium truncate ${r.completed ? 'line-through text-surface-400' : 'text-surface-800'}`}>
+                      <div className={`font-medium truncate ${r.completed ? 'line-through text-surface-400' : 'text-surface-800 dark:text-surface-100'}`}>
                         {r.title}
                       </div>
-                      <div className="text-xs text-surface-500">{formatDate(r.due_date)}</div>
+                      <div className="text-xs text-surface-500 dark:text-surface-400">{formatDate(r.due_date)}</div>
                     </div>
                   </div>
                 ))}
