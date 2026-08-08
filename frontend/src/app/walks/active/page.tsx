@@ -242,7 +242,7 @@ export default function ActiveWalkPage() {
     return (
       <DashboardLayout>
         <div className="max-w-md mx-auto">
-          <div className="mb-6 pl-12 md:pl-0">
+          <div className="mb-6 ">
             <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white">Novo passeio</h1>
             <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">
               Selecione qual pet vai passear hoje
@@ -303,7 +303,7 @@ export default function ActiveWalkPage() {
   // Tracking / paused / saving UI
   return (
     <DashboardLayout>
-      <div className="max-w-md mx-auto pl-12 md:pl-0">
+      <div className="max-w-md mx-auto ">
         {/* Mapa */}
         <WalkMap
           points={routePoints}

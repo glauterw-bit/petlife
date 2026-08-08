@@ -65,7 +65,7 @@ export default function BehaviorPlansPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-start justify-between gap-3 mb-5 md:mb-6 pl-12 md:pl-0">
+      <div className="flex items-start justify-between gap-3 mb-5 md:mb-6 ">
         <div className="min-w-0 flex-1">
           <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2 leading-tight">
             <Brain className="w-6 h-6 md:w-7 md:h-7 text-purple-600 shrink-0" />

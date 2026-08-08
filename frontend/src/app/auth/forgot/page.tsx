@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
           <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">Vamos enviar um código de 6 dígitos pra você</p>
         </div>
 
-        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 p-8">
+        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 p-6 sm:p-8">
           <Link href="/auth/login" className="inline-flex items-center gap-1.5 text-sm text-surface-500 dark:text-surface-400 hover:text-surface-700 mb-6">
             <ArrowLeft className="w-4 h-4" />
             Voltar ao login
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-500 text-white font-semibold py-3.5 rounded-xl hover:bg-primary-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-primary-200 flex items-center justify-center gap-2"
+                className="pressable w-full bg-primary-500 text-white font-semibold py-3.5 rounded-xl hover:bg-primary-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-primary-200 flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -142,7 +142,7 @@ export default function ForgotPasswordPage() {
 
               <button
                 onClick={goReset}
-                className="w-full bg-primary-500 text-white font-semibold py-3.5 rounded-xl hover:bg-primary-600 transition-all hover:shadow-lg hover:shadow-primary-200"
+                className="pressable w-full bg-primary-500 text-white font-semibold py-3.5 rounded-xl hover:bg-primary-600 transition-all hover:shadow-lg hover:shadow-primary-200"
               >
                 Continuar para redefinir senha
               </button>

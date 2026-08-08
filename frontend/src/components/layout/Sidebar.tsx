@@ -230,38 +230,10 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
   )
 
   return (
-    <>
-      {/* Mobile toggle */}
-      <button
-        aria-label="Abrir menu"
-        className="fixed top-safe left-3 z-50 md:hidden bg-white/95 backdrop-blur shadow-md rounded-xl p-2 border border-surface-200 dark:border-surface-700 tap-target flex items-center justify-center"
-        onClick={() => setMobileOpen(true)}
-      >
-        <Menu className="w-5 h-5 text-surface-700 dark:text-surface-200" />
-      </button>
-
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 z-40 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Mobile sidebar */}
-      <aside
-        className={cn(
-          'fixed top-0 left-0 bottom-0 w-72 bg-white dark:bg-surface-800 border-r border-surface-200 dark:border-surface-700 z-50 transition-transform md:hidden',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
-        <SidebarContent />
-      </aside>
-
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-64 min-h-screen bg-white dark:bg-surface-800 border-r border-surface-200 dark:border-surface-700 fixed top-0 left-0 bottom-0">
-        <SidebarContent />
-      </aside>
-    </>
+    // No mobile a navegação é 100% pela BottomNav (abas + "Mais") — sem
+    // hamburger nem gaveta lateral. A sidebar existe só no desktop (md+).
+    <aside className="hidden md:flex flex-col w-64 min-h-screen bg-white dark:bg-surface-800 border-r border-surface-200 dark:border-surface-700 fixed top-0 left-0 bottom-0">
+      <SidebarContent />
+    </aside>
   )
 }
