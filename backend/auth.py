@@ -65,6 +65,16 @@ async def get_current_user(
 
     if user is None:
         raise credentials_exception
+
+    # Marca atividade (DAU/WAU/MAU) com throttle de 1h pra não escrever a cada request
+    try:
+        now = datetime.utcnow()
+        if user.last_seen_at is None or (now - user.last_seen_at) > timedelta(hours=1):
+            user.last_seen_at = now
+            await db.flush()
+    except Exception:
+        pass
+
     return user
 
 

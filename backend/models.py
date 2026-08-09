@@ -60,6 +60,8 @@ class User(Base):
     active_product_sku = Column(String(64), nullable=True)  # ex: pro_monthly
     apple_original_transaction_id = Column(String(128), nullable=True, index=True)
     trial_used = Column(Boolean, default=False, nullable=False)
+    # Última atividade (atualizado com throttle no get_current_user) — base de DAU/WAU/MAU
+    last_seen_at = Column(DateTime, nullable=True, index=True)
 
     pets = relationship("Pet", back_populates="owner", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="user", cascade="all, delete-orphan")

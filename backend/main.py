@@ -53,6 +53,7 @@ from routers import (
     billing,
     exports,
     expenses,
+    admin_stats,
 )
 
 
@@ -138,6 +139,7 @@ app.include_router(billing.router)
 app.include_router(billing.webhook_router)
 app.include_router(exports.router)
 app.include_router(expenses.router)
+app.include_router(admin_stats.router)
 
 
 @app.get("/public/lost/{pet_id}", tags=["Público"])

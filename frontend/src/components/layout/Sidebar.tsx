@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   PawPrint, LayoutDashboard, Heart, Syringe, FlaskConical,
   Route, Trophy, MapPin, Settings, LogOut, Menu, X, Brain, MailOpen,
-  ChevronDown, ChevronRight, Plus, CreditCard, Footprints, Crown
+  ChevronDown, ChevronRight, Plus, CreditCard, Footprints, Crown, BarChart3
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { cn, getSpeciesEmoji } from '@/lib/utils'
@@ -214,6 +214,22 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
             </Link>
           )
         })}
+        {user?.email?.toLowerCase() === 'glauterw@gmail.com' && (
+          <Link
+            href="/admin"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+              isActive('/admin')
+                ? 'bg-primary-50 text-primary-700'
+                : 'text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/40 hover:text-surface-900'
+            )}
+          >
+            <span className={isActive('/admin') ? 'text-primary-600' : 'text-surface-500 dark:text-surface-400'}>
+              <BarChart3 className="w-5 h-5" />
+            </span>
+            Painel Admin
+          </Link>
+        )}
       </nav>
 
       {/* Logout */}
