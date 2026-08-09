@@ -145,6 +145,8 @@ async def _run_migrations():
         "CREATE INDEX IF NOT EXISTS ix_pet_expenses_pet_spent ON pet_expenses(pet_id, spent_at)",
         f"ALTER TABLE users ADD COLUMN last_seen_at {timestamp_type}",
         "CREATE INDEX IF NOT EXISTS ix_users_last_seen ON users(last_seen_at)",
+        "CREATE INDEX IF NOT EXISTS ix_usage_events_event_created ON usage_events(event, created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_usage_events_user_created ON usage_events(user_id, created_at)",
     ]
     for stmt in migrations:
         try:

@@ -184,6 +184,8 @@ async def monthly_recap(
     )
     weights = [w for (w,) in w_q.all()]
 
+    from routers.events import track_event
+    await track_event(db, current_user.id, "recap_view")
     MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
              "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
     return {
@@ -219,6 +221,8 @@ async def export_pet_pdf(
     pes = (await db.execute(select(PetWeightHistory).where(PetWeightHistory.pet_id == pet_id).order_by(PetWeightHistory.measured_at.desc()).limit(15))).scalars().all()
     ana = (await db.execute(select(Anamnesis).where(Anamnesis.pet_id == pet_id).order_by(Anamnesis.created_at.desc()).limit(8))).scalars().all()
 
+    from routers.events import track_event
+    await track_event(db, current_user.id, "pdf_export")
     try:
         pdf = _build_pdf(pet, vac, exa, pes, ana, current_user.name)
     except Exception as e:

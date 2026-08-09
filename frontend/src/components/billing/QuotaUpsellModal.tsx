@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Crown, X } from 'lucide-react'
+import { track } from '@/lib/track'
 
 export function QuotaUpsellModal() {
   const router = useRouter()
@@ -17,6 +18,7 @@ export function QuotaUpsellModal() {
     const onQuota = (e: Event) => {
       const detail = (e as CustomEvent<{ message?: string }>).detail
       setMessage(detail?.message || 'Você atingiu o limite do seu plano.')
+      track('paywall_shown')
     }
     window.addEventListener('petlife:quota', onQuota)
     return () => window.removeEventListener('petlife:quota', onQuota)

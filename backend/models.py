@@ -85,6 +85,17 @@ class PetExpense(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class UsageEvent(Base):
+    """Evento de uso (telemetria própria, LGPD-friendly: só user_id + nome do evento).
+    Alimenta o painel admin: aberturas do app, funções usadas, funil do paywall."""
+    __tablename__ = "usage_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    event = Column(String(40), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
 class QuotaUsage(Base):
     """Contador mensal de uso de recursos com quota (IA). Reseta por mês-calendário.
     `month` no formato 'YYYY-MM' (UTC). Uma linha por (user, mês)."""

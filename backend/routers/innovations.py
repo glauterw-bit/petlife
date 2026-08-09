@@ -617,6 +617,8 @@ async def get_enrichment(
     try:
         result = await ai_service.generate_enrichment_activities(pet_info)
         await subscriptions.consume_quota(db, current_user, "ai_analysis")
+        from routers.events import track_event
+        await track_event(db, current_user.id, "enrichment")
         result["pet_id"] = pet_id
         result["pet_name"] = pet.name
         return result

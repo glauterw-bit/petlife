@@ -12,6 +12,7 @@ import { OnboardingModal } from '@/components/onboarding/OnboardingModal'
 import { AIChatWidget } from '@/components/ai/AIChatWidget'
 import { QuotaUpsellModal } from '@/components/billing/QuotaUpsellModal'
 import { pets as petsApi, type Pet } from '@/lib/api'
+import { trackAppOpenOnce } from '@/lib/track'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -28,6 +29,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       router.push('/auth/login')
     }
   }, [user, isLoading, router])
+
+  useEffect(() => {
+    if (user) trackAppOpenOnce()
+  }, [user])
 
   useEffect(() => {
     if (user && !isVetUser) {
