@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
-import { adminStats, type AdminStats } from '@/lib/api'
+import { adminStats, type AdminStats, type AdminUser } from '@/lib/api'
 import { useChartTheme } from '@/lib/charts'
 
 /**
@@ -19,13 +19,17 @@ export default function AdminPage() {
   const router = useRouter()
   const { palette, ink } = useChartTheme()
   const [data, setData] = useState<AdminStats | null>(null)
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [search, setSearch] = useState('')
   const [denied, setDenied] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
   async function load() {
     try {
       setRefreshing(true)
-      setData(await adminStats.get())
+      const [st, us] = await Promise.all([adminStats.get(), adminStats.users().catch(() => ({ total: 0, users: [] }))])
+      setData(st)
+      setUsers(us.users)
     } catch {
       setDenied(true)
       setTimeout(() => router.replace('/dashboard'), 1500)
@@ -117,6 +121,120 @@ export default function AdminPage() {
             ))}
           </div>
           <p className="text-[11px] text-surface-400 mt-2">passeios + ações registradas (peso, fotos, check-ins…)</p>
+        </div>
+      </div>
+
+      {/* Aberturas + Funil */}
+      <div className="grid lg:grid-cols-2 gap-4 mt-4">
+        <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
+          <h3 className="font-bold text-surface-900 dark:text-white mb-1">📱 Aberturas do app</h3>
+          <p className="text-[11px] text-surface-400 mb-3">rastreadas a partir de ago/2026 (1x por sessão)</p>
+          <div className="grid grid-cols-4 gap-2 mb-4 text-center">
+            <div><div className="text-xl font-bold text-surface-900 dark:text-white tabular-nums">{data.opens.total}</div><div className="text-[10px] text-surface-400">total</div></div>
+            <div><div className="text-xl font-bold text-surface-900 dark:text-white tabular-nums">{data.opens.unique_users}</div><div className="text-[10px] text-surface-400">usuários</div></div>
+            <div><div className="text-xl font-bold text-surface-900 dark:text-white tabular-nums">{data.opens.reopeners}</div><div className="text-[10px] text-surface-400">reabriram (2+ dias)</div></div>
+            <div><div className="text-xl font-bold text-surface-900 dark:text-white tabular-nums">{data.opens.avg_per_user}</div><div className="text-[10px] text-surface-400">média/usuário</div></div>
+          </div>
+          <div className="flex items-end gap-1.5 h-20">
+            {data.opens.by_day.map(o => (
+              <div key={o.day} className="flex-1 flex flex-col items-center gap-1" title={`${o.day}: ${o.opens}`}>
+                <div className="w-full rounded-t" style={{ height: `${Math.max((o.opens / Math.max(...data.opens.by_day.map(x => x.opens), 1)) * 62, o.opens ? 4 : 2)}px`, background: palette[2], opacity: 0.85 }} />
+                <span className="text-[8px]" style={{ color: ink.axis }}>{o.day.slice(0, 2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
+          <h3 className="font-bold text-surface-900 dark:text-white mb-3">🎯 Ativação & retenção</h3>
+          <div className="space-y-2.5">
+            {[
+              { label: 'Cadastraram', v: data.activation.signed_up, pct: 100 },
+              { label: 'Criaram um pet (ativação)', v: data.activation.created_pet, pct: data.activation.created_pet_pct },
+              { label: 'Ativos nos últimos 7 dias', v: data.activation.still_active_7d, pct: data.activation.signed_up ? Math.round(100 * data.activation.still_active_7d / data.activation.signed_up) : 0 },
+              { label: 'Ativos nos últimos 30 dias', v: data.activation.still_active_30d, pct: data.activation.signed_up ? Math.round(100 * data.activation.still_active_30d / data.activation.signed_up) : 0 },
+            ].map(row => (
+              <div key={row.label}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-surface-600 dark:text-surface-300">{row.label}</span>
+                  <span className="font-bold text-surface-900 dark:text-white tabular-nums">{row.v} <span className="text-surface-400 font-normal">({row.pct}%)</span></span>
+                </div>
+                <div className="h-2 rounded-full bg-surface-100 dark:bg-surface-700 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${row.pct}%`, background: palette[0] }} />
+                </div>
+              </div>
+            ))}
+            <p className="text-[11px] text-surface-400 pt-1">
+              Retenção 7d (voltou depois da 1ª semana): <b className="text-surface-600 dark:text-surface-300">{data.activation.retained_7d}/{data.activation.retained_7d_base} ({data.activation.retained_7d_pct}%)</b>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Funções mais usadas */}
+      <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
+        <h3 className="font-bold text-surface-900 dark:text-white mb-3">🏆 Funções mais usadas — últimos 30 dias</h3>
+        {data.top_features.length === 0 ? (
+          <p className="text-sm text-surface-400">Sem uso registrado ainda.</p>
+        ) : (
+          <div className="space-y-2">
+            {data.top_features.map((f, i) => (
+              <div key={f.name} className="flex items-center gap-3">
+                <span className="text-xs text-surface-500 dark:text-surface-400 w-40 shrink-0 truncate">{f.name}</span>
+                <div className="flex-1 h-4 rounded-full bg-surface-100 dark:bg-surface-700 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${Math.max((f.count / data.top_features[0].count) * 100, 3)}%`, background: palette[i % 5], opacity: 0.9 }} />
+                </div>
+                <span className="text-xs font-bold text-surface-900 dark:text-white tabular-nums w-10 text-right">{f.count}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Usuários */}
+      <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <h3 className="font-bold text-surface-900 dark:text-white">👥 Usuários ({users.length})</h3>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="buscar nome, e-mail ou telefone…"
+            className="text-sm px-3 py-2 rounded-xl border border-surface-200 dark:border-surface-700 dark:bg-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500 w-64"
+          />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[720px]">
+            <thead>
+              <tr className="text-left text-surface-400 border-b border-surface-100 dark:border-surface-700">
+                <th className="py-2 pr-3 font-semibold">Nome</th>
+                <th className="py-2 pr-3 font-semibold">E-mail</th>
+                <th className="py-2 pr-3 font-semibold">Telefone</th>
+                <th className="py-2 pr-3 font-semibold">Plano</th>
+                <th className="py-2 pr-3 font-semibold text-right">Pets</th>
+                <th className="py-2 pr-3 font-semibold text-right">Aberturas</th>
+                <th className="py-2 pr-3 font-semibold text-right">Passeios</th>
+                <th className="py-2 pr-3 font-semibold">Último acesso</th>
+                <th className="py-2 font-semibold">Desde</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users
+                .filter(u => !search || `${u.name} ${u.email} ${u.phone ?? ''}`.toLowerCase().includes(search.toLowerCase()))
+                .map(u => (
+                  <tr key={u.id} className="border-b border-surface-50 dark:border-surface-700/50 hover:bg-surface-50 dark:hover:bg-surface-700/30">
+                    <td className="py-2 pr-3 font-medium text-surface-900 dark:text-white whitespace-nowrap">{u.name}{u.is_vet ? ' 🩺' : ''}</td>
+                    <td className="py-2 pr-3 text-surface-600 dark:text-surface-300">{u.email}</td>
+                    <td className="py-2 pr-3 text-surface-600 dark:text-surface-300 whitespace-nowrap">{u.phone || '—'}</td>
+                    <td className="py-2 pr-3">{u.tier === 'free' ? '🆓' : u.tier === 'plus' ? '✨' : '👑'}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{u.pets}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{u.opens}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{u.walks}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap text-surface-600 dark:text-surface-300">{u.last_seen_at ? new Date(u.last_seen_at + 'Z').toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'nunca'}</td>
+                    <td className="py-2 whitespace-nowrap text-surface-500 dark:text-surface-400">{u.created_at ? new Date(u.created_at + 'Z').toLocaleDateString('pt-BR') : '—'}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

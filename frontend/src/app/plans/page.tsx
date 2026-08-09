@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useToast } from '@/components/ui/ToastContext'
 import { billing, type BillingCatalog, type BillingMe, type PlanTier } from '@/lib/api'
 import { initIap, purchaseProduct, restorePurchases, iapAvailable } from '@/lib/iap'
+import { track } from '@/lib/track'
 
 type Cadence = 'monthly' | 'annual'
 
@@ -66,6 +67,7 @@ export default function PlansPage() {
   }
 
   useEffect(() => {
+    track('plans_view')
     refresh()
     // Inicializa IAP: quando uma compra é aprovada, valida no backend.
     initIap(async (proof) => {

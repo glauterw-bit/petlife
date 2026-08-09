@@ -5,6 +5,7 @@ import { Share2, Footprints, Camera, Syringe, Wallet, Clock } from 'lucide-react
 import { recap, type MonthlyRecap } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { trackHappyMoment } from '@/lib/review'
+import { track } from '@/lib/track'
 
 function brl(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -42,6 +43,7 @@ export function RecapCard({ petId }: { petId: number }) {
       if (nav.share) {
         await nav.share({ text: lines.join('\n') })
         trackHappyMoment('recap_share')
+        track('recap_share')
       } else {
         await navigator.clipboard.writeText(lines.join('\n'))
         error('Resumo copiado! Cole no WhatsApp 📋')

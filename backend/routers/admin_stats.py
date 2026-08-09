@@ -17,7 +17,8 @@ from database import get_db
 from auth import get_current_user
 from models import (
     User, Pet, Vaccine, Exam, Reminder, WalkSession, PetStory, PetExpense,
-    QuotaUsage, IapTransaction, PetActivityLog, Anamnesis,
+    QuotaUsage, IapTransaction, PetActivityLog, Anamnesis, UsageEvent,
+    PetWeightHistory, PetBehaviorLog,
 )
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -114,8 +115,62 @@ async def admin_stats(
         a = await count(select(func.count(PetActivityLog.id)).where(PetActivityLog.created_at >= day, PetActivityLog.created_at < nxt))
         activity.append({"day": day.strftime("%d/%m"), "events": w + a})
 
+    # ── Aberturas do app (usage_events: app_open) ──
+    opens_total = await count(select(func.count(UsageEvent.id)).where(UsageEvent.event == "app_open"))
+    opens_30d = await count(select(func.count(UsageEvent.id)).where(UsageEvent.event == "app_open", UsageEvent.created_at >= d30))
+    openers = await count(select(func.count(func.distinct(UsageEvent.user_id))).where(UsageEvent.event == "app_open"))
+    # reabriram = usuários com app_open em 2+ DIAS distintos
+    day_expr = func.date(UsageEvent.created_at)
+    sub = select(UsageEvent.user_id, func.count(func.distinct(day_expr)).label("dias")).where(UsageEvent.event == "app_open").group_by(UsageEvent.user_id).subquery()
+    reopeners = await count(select(func.count()).select_from(sub).where(sub.c.dias >= 2))
+    opens_by_day = []
+    for i in range(13, -1, -1):
+        day = datetime(now.year, now.month, now.day) - timedelta(days=i)
+        nxt = day + timedelta(days=1)
+        c = await count(select(func.count(UsageEvent.id)).where(UsageEvent.event == "app_open", UsageEvent.created_at >= day, UsageEvent.created_at < nxt))
+        opens_by_day.append({"day": day.strftime("%d/%m"), "opens": c})
+
+    # ── Funções mais usadas (30d — tabelas de domínio + eventos + IA do mês) ──
+    async def c30(model, col):
+        return await count(select(func.count(model.id)).where(col >= d30))
+    features = {
+        "Passeios": await count(select(func.count(WalkSession.id)).where(WalkSession.started_at >= d30, WalkSession.ended_at.is_not(None))),
+        "Vyron IA (chat)": ai_chat_month,
+        "Análises de IA": ai_analysis_month,
+        "Peso registrado": await c30(PetWeightHistory, PetWeightHistory.measured_at),
+        "Check-in diário": await c30(PetBehaviorLog, PetBehaviorLog.logged_at),
+        "Momentos (fotos)": await c30(PetStory, PetStory.created_at),
+        "Gastos": await c30(PetExpense, PetExpense.spent_at),
+        "Vacinas": await c30(Vaccine, Vaccine.created_at),
+        "Exames": await c30(Exam, Exam.created_at),
+        "Lembretes": await c30(Reminder, Reminder.created_at),
+    }
+    for ev, label in [("pdf_export", "PDF pro vet"), ("recap_view", "Recap do mês"), ("recap_share", "Recap compartilhado"), ("plans_view", "Tela de planos"), ("paywall_shown", "Paywall exibido"), ("enrichment", "Bem-estar IA")]:
+        features[label] = await count(select(func.count(UsageEvent.id)).where(UsageEvent.event == ev, UsageEvent.created_at >= d30))
+    top_features = sorted([{"name": k, "count": v} for k, v in features.items() if v > 0], key=lambda x: -x["count"])[:12]
+
+    # ── Ativação & retenção ──
+    with_pet = await count(select(func.count(func.distinct(Pet.user_id))))
+    older_7d = await count(select(func.count(User.id)).where(User.created_at < d7))
+    retained_7d = await count(select(func.count(User.id)).where(User.created_at < d7, User.last_seen_at >= d7))
+    activation = {
+        "signed_up": total_users,
+        "created_pet": with_pet,
+        "created_pet_pct": round(100 * with_pet / total_users, 1) if total_users else 0,
+        "still_active_7d": wau,
+        "still_active_30d": mau,
+        "retained_7d": retained_7d,
+        "retained_7d_base": older_7d,
+        "retained_7d_pct": round(100 * retained_7d / older_7d, 1) if older_7d else 0,
+    }
+
     return {
         "generated_at": now.isoformat(),
+        "opens": {"total": opens_total, "last_30d": opens_30d, "unique_users": openers,
+                  "reopeners": reopeners, "avg_per_user": round(opens_total / openers, 1) if openers else 0,
+                  "by_day": opens_by_day},
+        "top_features": top_features,
+        "activation": activation,
         "users": {
             "total": total_users, "new_7d": new_7d, "new_30d": new_30d,
             "dau": dau, "wau": wau, "mau": mau,
@@ -133,4 +188,46 @@ async def admin_stats(
         "ai": {"chat_month": ai_chat_month, "analysis_month": ai_analysis_month, "month": month_str},
         "signups_by_month": signups,
         "activity_14d": activity,
+    }
+
+
+@router.get("/users")
+async def admin_users(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    limit: int = 300,
+):
+    """Lista de usuários com contato e sinais de uso — pra análise de experiência."""
+    rows = (await db.execute(
+        select(User).order_by(User.last_seen_at.desc().nullslast(), User.created_at.desc()).limit(min(limit, 500))
+    )).scalars().all()
+
+    pets_by_user = dict((await db.execute(
+        select(Pet.user_id, func.count(Pet.id)).group_by(Pet.user_id)
+    )).all())
+    opens_by_user = dict((await db.execute(
+        select(UsageEvent.user_id, func.count(UsageEvent.id)).where(UsageEvent.event == "app_open").group_by(UsageEvent.user_id)
+    )).all())
+    walks_by_user = dict((await db.execute(
+        select(WalkSession.user_id, func.count(WalkSession.id)).where(WalkSession.ended_at.is_not(None)).group_by(WalkSession.user_id)
+    )).all())
+
+    return {
+        "total": len(rows),
+        "users": [
+            {
+                "id": u.id,
+                "name": u.name,
+                "email": u.email,
+                "phone": u.phone,
+                "tier": u.premium_tier or "free",
+                "is_vet": bool(u.is_vet),
+                "created_at": u.created_at.isoformat() if u.created_at else None,
+                "last_seen_at": u.last_seen_at.isoformat() if u.last_seen_at else None,
+                "pets": int(pets_by_user.get(u.id, 0)),
+                "opens": int(opens_by_user.get(u.id, 0)),
+                "walks": int(walks_by_user.get(u.id, 0)),
+            }
+            for u in rows
+        ],
     }
