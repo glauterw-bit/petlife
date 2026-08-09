@@ -9,6 +9,7 @@ import {
   Settings, CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 
 /**
  * Navegação mobile completa: 4 abas principais + "Mais" (sheet com o resto).
@@ -32,8 +33,13 @@ const MORE = [
   { href: '/settings', label: 'Perfil', Icon: Settings, tint: 'text-surface-600 bg-surface-100 dark:text-surface-300 dark:bg-surface-700' },
 ]
 
+const ADMIN_ITEM = { href: '/admin', label: 'Admin', Icon: LayoutGrid, tint: 'text-primary-700 bg-primary-100 dark:text-primary-300 dark:bg-primary-500/20' }
+
 export function BottomNav() {
   const pathname = usePathname() ?? ''
+  const { user } = useAuth()
+  const isAdmin = user?.email?.toLowerCase() === 'glauterw@gmail.com'
+  const moreItems = isAdmin ? [...MORE, ADMIN_ITEM] : MORE
   const [moreOpen, setMoreOpen] = useState(false)
 
   // fecha o sheet ao navegar e trava o scroll enquanto aberto
@@ -43,7 +49,7 @@ export function BottomNav() {
     return () => { document.body.style.overflow = '' }
   }, [moreOpen])
 
-  const moreActive = MORE.some(m => pathname.startsWith(m.href))
+  const moreActive = moreItems.some(m => pathname.startsWith(m.href))
 
   return (
     <>
@@ -71,7 +77,7 @@ export function BottomNav() {
               </button>
             </div>
             <div className="grid grid-cols-4 gap-3">
-              {MORE.map(({ href, label, Icon, tint }, i) => (
+              {moreItems.map(({ href, label, Icon, tint }, i) => (
                 <Link
                   key={href}
                   href={href}

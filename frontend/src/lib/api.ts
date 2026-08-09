@@ -1485,6 +1485,25 @@ export interface EnrichmentDay {
   pet_name: string
 }
 
+// ── Admin (painel do dono) ────────────────────────────
+export const adminStats = {
+  get: async () => {
+    const res = await fetch(`${API_URL}/admin/stats`, { headers: getAuthHeaders() })
+    return handleResponse<AdminStats>(res)
+  },
+}
+
+export interface AdminStats {
+  generated_at: string
+  users: { total: number; new_7d: number; new_30d: number; dau: number; wau: number; mau: number; active_30d_signals: number; vets: number; by_tier: Record<string, number> }
+  revenue: { iap_transactions: number; paying_users: number }
+  content: { pets: number; pets_by_species: Record<string, number>; vaccines: number; exams: number; reminders: number; anamneses: number; stories: number; expenses_entries: number }
+  walks: { total: number; last_30d: number; km_total: number }
+  ai: { chat_month: number; analysis_month: number; month: string }
+  signups_by_month: Array<{ month: string; count: number }>
+  activity_14d: Array<{ day: string; events: number }>
+}
+
 // ── Recap mensal ──────────────────────────────────────
 export const recap = {
   monthly: async (petId: number) => {
