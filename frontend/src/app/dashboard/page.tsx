@@ -44,6 +44,7 @@ export default function DashboardPage() {
         void syncHealthNotifications(
           v.status === 'fulfilled' ? v.value : [],
           r.status === 'fulfilled' ? r.value : [],
+          p.status === 'fulfilled' ? p.value : [],
         )
       } finally {
         setLoading(false)

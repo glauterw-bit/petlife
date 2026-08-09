@@ -231,3 +231,94 @@ async def admin_users(
             for u in rows
         ],
     }
+
+
+# ─── Mapa de usuários ─────────────────────────────────────────────────────────
+# Localização aproximada: 1º ponto GPS do passeio mais recente do usuário;
+# fallback: DDD do telefone → centróide do estado. Só o admin vê.
+DDD_STATE = {
+    **{d: ("SP", -23.55, -46.63) for d in (11,12,13,14,15,16,17,18,19)},
+    21: ("RJ", -22.91, -43.17), 22: ("RJ", -22.91, -43.17), 24: ("RJ", -22.91, -43.17),
+    27: ("ES", -20.32, -40.34), 28: ("ES", -20.32, -40.34),
+    **{d: ("MG", -19.92, -43.94) for d in (31,32,33,34,35,37,38)},
+    **{d: ("PR", -25.43, -49.27) for d in (41,42,43,44,45,46)},
+    **{d: ("SC", -27.59, -48.55) for d in (47,48,49)},
+    **{d: ("RS", -30.03, -51.23) for d in (51,53,54,55)},
+    61: ("DF", -15.79, -47.88), 62: ("GO", -16.68, -49.25), 64: ("GO", -16.68, -49.25),
+    63: ("TO", -10.18, -48.33), 65: ("MT", -15.60, -56.10), 66: ("MT", -15.60, -56.10),
+    67: ("MS", -20.44, -54.65), 68: ("AC", -9.97, -67.81), 69: ("RO", -8.76, -63.90),
+    **{d: ("BA", -12.97, -38.51) for d in (71,73,74,75,77)},
+    79: ("SE", -10.91, -37.07), 81: ("PE", -8.05, -34.90), 87: ("PE", -8.05, -34.90),
+    82: ("AL", -9.67, -35.74), 83: ("PB", -7.12, -34.88), 84: ("RN", -5.79, -35.21),
+    85: ("CE", -3.72, -38.54), 88: ("CE", -3.72, -38.54), 86: ("PI", -5.09, -42.80), 89: ("PI", -5.09, -42.80),
+    91: ("PA", -1.46, -48.50), 93: ("PA", -1.46, -48.50), 94: ("PA", -1.46, -48.50),
+    92: ("AM", -3.12, -60.02), 97: ("AM", -3.12, -60.02), 95: ("RR", 2.82, -60.67),
+    96: ("AP", 0.03, -51.07), 98: ("MA", -2.53, -44.30), 99: ("MA", -2.53, -44.30),
+}
+
+
+def _ddd_from_phone(phone: str | None):
+    if not phone:
+        return None
+    digits = "".join(ch for ch in phone if ch.isdigit())
+    if digits.startswith("55") and len(digits) >= 12:
+        digits = digits[2:]
+    if len(digits) >= 10:
+        try:
+            return int(digits[:2])
+        except ValueError:
+            return None
+    return None
+
+
+@router.get("/users/locations")
+async def admin_user_locations(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    users = (await db.execute(select(User))).scalars().all()
+
+    # passeio mais recente com rota, por usuário
+    walks = (await db.execute(
+        select(WalkSession.user_id, WalkSession.route_points)
+        .where(WalkSession.route_points.is_not(None))
+        .order_by(WalkSession.user_id, WalkSession.started_at.desc())
+    )).all()
+    gps_by_user = {}
+    for uid, pts in walks:
+        if uid in gps_by_user or not pts:
+            continue
+        try:
+            p = pts[0]
+            gps_by_user[uid] = (round(float(p["lat"]), 2), round(float(p["lng"]), 2))
+        except Exception:
+            continue
+
+    out, by_state = [], {}
+    for u in users:
+        lat = lng = None
+        source = None
+        state = None
+        if u.id in gps_by_user:
+            lat, lng = gps_by_user[u.id]
+            source = "gps"
+        else:
+            ddd = _ddd_from_phone(u.phone)
+            if ddd and ddd in DDD_STATE:
+                state, lat, lng = DDD_STATE[ddd]
+                source = "ddd"
+        if lat is None:
+            continue
+        if state is None:
+            # tenta achar estado pelo DDD mesmo com GPS (pro resumo)
+            ddd = _ddd_from_phone(u.phone)
+            state = DDD_STATE.get(ddd, (None,))[0] if ddd else None
+        if state:
+            by_state[state] = by_state.get(state, 0) + 1
+        out.append({"id": u.id, "name": u.name, "lat": lat, "lng": lng, "source": source, "state": state})
+
+    return {
+        "located": len(out), "total_users": len(users),
+        "by_state": sorted(([{"state": k, "count": v} for k, v in by_state.items()]), key=lambda x: -x["count"]),
+        "points": out,
+    }

@@ -8,7 +8,13 @@ import {
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
-import { adminStats, type AdminStats, type AdminUser } from '@/lib/api'
+import dynamic from 'next/dynamic'
+import { adminStats, type AdminStats, type AdminUser, type AdminLocations } from '@/lib/api'
+
+const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
+  ssr: false,
+  loading: () => <div className="h-[380px] rounded-2xl bg-surface-100 dark:bg-surface-700 animate-pulse" />,
+})
 import { useChartTheme } from '@/lib/charts'
 
 /**
@@ -20,6 +26,7 @@ export default function AdminPage() {
   const { palette, ink } = useChartTheme()
   const [data, setData] = useState<AdminStats | null>(null)
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [locations, setLocations] = useState<AdminLocations | null>(null)
   const [search, setSearch] = useState('')
   const [denied, setDenied] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -27,9 +34,14 @@ export default function AdminPage() {
   async function load() {
     try {
       setRefreshing(true)
-      const [st, us] = await Promise.all([adminStats.get(), adminStats.users().catch(() => ({ total: 0, users: [] }))])
+      const [st, us, loc] = await Promise.all([
+        adminStats.get(),
+        adminStats.users().catch(() => ({ total: 0, users: [] })),
+        adminStats.locations().catch(() => null),
+      ])
       setData(st)
       setUsers(us.users)
+      setLocations(loc)
     } catch {
       setDenied(true)
       setTimeout(() => router.replace('/dashboard'), 1500)
@@ -190,6 +202,31 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* Mapa de usuários */}
+      {locations && locations.points.length > 0 && (
+        <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <h3 className="font-bold text-surface-900 dark:text-white">🗺️ De onde são os usuários</h3>
+            <span className="text-xs text-surface-400">{locations.located} de {locations.total_users} localizados</span>
+          </div>
+          <AdminUserMap points={locations.points} />
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            <span className="text-[11px] text-surface-500 dark:text-surface-400 flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-primary-600 inline-block border-2 border-white shadow" /> GPS (passeio)
+            </span>
+            <span className="text-[11px] text-surface-500 dark:text-surface-400 flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-blue-600 inline-block border-2 border-white shadow" /> Estado (DDD)
+            </span>
+            <span className="flex-1" />
+            {locations.by_state.slice(0, 8).map(s => (
+              <span key={s.state} className="text-[11px] bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300 rounded-full px-2.5 py-1 tabular-nums font-medium">
+                {s.state}: <b>{s.count}</b>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Usuários */}
       <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">

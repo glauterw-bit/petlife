@@ -8,11 +8,12 @@
  * Estratégia: a cada carga do dashboard, cancela as pendentes do app
  * (faixa de IDs própria) e reagenda a partir dos dados frescos — idempotente.
  */
-import type { Vaccine, Reminder } from './api'
+import type { Vaccine, Reminder, Pet } from './api'
 
 // Faixas de ID determinísticas (permitem cancelar/reagendar sem duplicar)
 const VACCINE_BASE = 100_000
 const REMINDER_BASE = 500_000
+const BDAY_BASE = 900_000
 
 function isNative(): boolean {
   if (typeof window === 'undefined') return false
@@ -36,6 +37,7 @@ function at9am(dateStr: string, daysBefore = 0): Date {
 export async function syncHealthNotifications(
   vaccines: Vaccine[],
   reminders: Reminder[],
+  pets: Pet[] = [],
 ): Promise<boolean> {
   if (!isNative()) return false
   try {
@@ -91,6 +93,21 @@ export async function syncHealthNotifications(
           schedule: { at: dayOf },
         })
       }
+    }
+
+    // 🎂 aniversários: próxima ocorrência de cada pet, às 9h
+    for (const p of pets) {
+      if (!p.birth_date) continue
+      const b = new Date(p.birth_date)
+      const nowD = new Date()
+      const next = new Date(nowD.getFullYear(), b.getMonth(), b.getDate(), 9, 0, 0)
+      if (next.getTime() <= now) next.setFullYear(next.getFullYear() + 1)
+      notifs.push({
+        id: BDAY_BASE + p.id,
+        title: `🎂 Hoje é aniversário de ${p.name}!`,
+        body: 'Abra o PetLife pra celebrar e compartilhar o momento 🎉',
+        schedule: { at: next },
+      })
     }
 
     // iOS tolera até 64 pendentes por app — mantém margem
