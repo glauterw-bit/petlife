@@ -1378,7 +1378,8 @@ export const ai = {
     const res = await fetch(`${API_URL}/ai/chat`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ message, pet_id: petId }),
+      // backend espera `question` — mandar `message` quebrava o widget (422)
+      body: JSON.stringify({ question: message, pet_id: petId }),
     })
     return handleResponse<{ response: string }>(res)
   },
