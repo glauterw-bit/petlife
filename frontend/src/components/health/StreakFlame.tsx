@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Flame } from 'lucide-react'
+import { celebrate } from '@/components/ui/CelebrationOverlay'
 import { innovations, type Pet, type CareStreak } from '@/lib/api'
 import { useCountUp, usePrefersReducedMotion } from '@/lib/motion'
 
@@ -33,6 +34,33 @@ export function StreakFlame({ pet, refreshKey }: { pet: Pet; refreshKey?: number
   if (!data) return null
 
   const lit = data.did_today && data.current_streak > 0
+  // 🔥 celebração de marco (7/30/100) — 1x por marco
+  if (typeof window !== 'undefined' && data.current_streak > 0) {
+    for (const m of [100, 30, 7]) {
+      if (data.current_streak >= m) {
+        const key = `petlife_streak_${pet.id}_${m}`
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, '1')
+          setTimeout(() => celebrate({
+            title: `${m} dias de cuidado! 🔥`,
+            message: `${pet.name} tem um tutor dedicado. Streak de ${data.current_streak} dias!`,
+            shareText: `Streak de ${data.current_streak} dias cuidando do ${pet.name} no PetLife 🔥🐾`,
+            trackEvent: 'recap_share',
+            card: {
+              title: `${data.current_streak} dias de cuidado 🔥`,
+              subtitle: 'Care Streak PetLife',
+              emoji: '🔥',
+              stats: [
+                { label: 'dias seguidos', value: String(data.current_streak) },
+                { label: 'tutor dedicado', value: '🏆' },
+              ],
+            },
+          }), 600)
+        }
+        break
+      }
+    }
+  }
   const streak = data.current_streak
   // intensidade da chama escala com o streak (cor mais quente conforme cresce)
   const flameColor = !lit

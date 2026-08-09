@@ -5,6 +5,7 @@ import { Share2, Footprints, Camera, Syringe, Wallet, Clock } from 'lucide-react
 import { recap, type MonthlyRecap } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { trackHappyMoment } from '@/lib/review'
+import { shareCardImage } from '@/lib/shareCard'
 import { track } from '@/lib/track'
 
 function brl(v: number) {
@@ -29,24 +30,24 @@ export function RecapCard({ petId }: { petId: number }) {
 
   async function share() {
     if (!data) return
-    const lines = [
-      `🐾 ${data.month_label} do ${data.pet_name} no PetLife:`,
-      data.walks > 0 ? `🚶 ${data.walks} passeio${data.walks > 1 ? 's' : ''} — ${data.distance_km} km (${data.active_minutes} min ativos)` : null,
-      data.stories > 0 ? `📸 ${data.stories} momento${data.stories > 1 ? 's' : ''} registrado${data.stories > 1 ? 's' : ''}` : null,
-      data.vaccines > 0 ? `💉 ${data.vaccines} vacina${data.vaccines > 1 ? 's' : ''} em dia` : null,
-      data.weight_delta_kg != null ? `⚖️ peso: ${data.weight_delta_kg > 0 ? '+' : ''}${data.weight_delta_kg} kg no mês` : null,
-      '',
-      'Cuido do meu pet com o PetLife 💚 apps.apple.com/br/app/id6768136468',
-    ].filter(l => l !== null)
+    const stats = [
+      data.walks > 0 && { label: 'passeios', value: `${data.walks} · ${data.distance_km} km` },
+      data.active_minutes > 0 && { label: 'min ativos', value: String(data.active_minutes) },
+      data.stories > 0 && { label: 'momentos', value: String(data.stories) },
+      data.vaccines > 0 && { label: 'vacinas em dia', value: String(data.vaccines) },
+    ].filter(Boolean) as Array<{ label: string; value: string }>
     try {
-      const nav = navigator as Navigator & { share?: (d: { text: string }) => Promise<void> }
-      if (nav.share) {
-        await nav.share({ text: lines.join('\n') })
+      const ok = await shareCardImage(
+        {
+          title: `${data.month_label.split(' ')[0]} do ${data.pet_name}`,
+          subtitle: 'Recap do mês 🐾',
+          stats,
+        },
+        `${data.month_label} do ${data.pet_name} no PetLife 🐾`,
+      )
+      if (ok) {
         trackHappyMoment('recap_share')
         track('recap_share')
-      } else {
-        await navigator.clipboard.writeText(lines.join('\n'))
-        error('Resumo copiado! Cole no WhatsApp 📋')
       }
     } catch {}
   }

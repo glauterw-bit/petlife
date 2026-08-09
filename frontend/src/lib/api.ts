@@ -1496,6 +1496,17 @@ export const adminStats = {
     const res = await fetch(`${API_URL}/admin/users`, { headers: getAuthHeaders() })
     return handleResponse<{ total: number; users: AdminUser[] }>(res)
   },
+  locations: async () => {
+    const res = await fetch(`${API_URL}/admin/users/locations`, { headers: getAuthHeaders() })
+    return handleResponse<AdminLocations>(res)
+  },
+}
+
+export interface AdminLocations {
+  located: number
+  total_users: number
+  by_state: Array<{ state: string; count: number }>
+  points: Array<{ id: number; name: string; lat: number; lng: number; source: string | null; state: string | null }>
 }
 
 export interface AdminUser {
