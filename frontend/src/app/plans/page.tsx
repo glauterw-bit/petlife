@@ -256,6 +256,11 @@ export default function PlansPage() {
             A assinatura renova automaticamente. Você pode cancelar a qualquer momento em
             Ajustes &gt; Apple ID &gt; Assinaturas. O período não usado do trial é perdido ao assinar.
           </p>
+          <p className="text-[11px] mt-2">
+            <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener" className="text-emerald-600 hover:underline">Termos de Uso (EULA)</a>
+            <span className="text-gray-300 mx-2">·</span>
+            <a href="/privacy" className="text-emerald-600 hover:underline">Política de Privacidade</a>
+          </p>
         </div>
       </div>
     </DashboardLayout>
