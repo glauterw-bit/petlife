@@ -205,11 +205,20 @@ async def forgot_password(request: Request, data: ForgotPasswordRequest, db: Asy
 
     from email_service import email_configured
     configured = email_configured()
+
+    # Sem transporte de e-mail: registra o pedido pro admin resolver em 1 clique
+    if user and not configured:
+        try:
+            from models import PasswordResetRequest
+            db.add(PasswordResetRequest(user_id=user.id, email=user.email))
+            await db.commit()
+        except Exception:
+            pass
     return ForgotPasswordResponse(
         message=(
             "Se este e-mail existir, enviaremos instruções com o código de redefinição em alguns minutos."
             if configured
-            else "O envio automático de e-mail está temporariamente indisponível. Fale com o suporte pra receber seu código de redefinição."
+            else "Recebemos seu pedido! Nosso suporte vai te enviar o código de redefinição no WhatsApp ou e-mail em instantes."
         ),
         code=None,
         expires_in_minutes=RESET_CODE_TTL_MINUTES,

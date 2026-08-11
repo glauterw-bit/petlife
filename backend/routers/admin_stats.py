@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func
@@ -18,7 +19,7 @@ from auth import get_current_user
 from models import (
     User, Pet, Vaccine, Exam, Reminder, WalkSession, PetStory, PetExpense,
     QuotaUsage, IapTransaction, PetActivityLog, Anamnesis, UsageEvent,
-    PetWeightHistory, PetBehaviorLog,
+    PetWeightHistory, PetBehaviorLog, PasswordResetRequest,
 )
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -321,4 +322,85 @@ async def admin_user_locations(
         "located": len(out), "total_users": len(users),
         "by_state": sorted(([{"state": k, "count": v} for k, v in by_state.items()]), key=lambda x: -x["count"]),
         "points": out,
+    }
+
+
+# ─── Pedidos de redefinição de senha (enquanto não há SMTP) ──────────────────
+@router.get("/reset-requests")
+async def list_reset_requests(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Fila de tutores que pediram redefinição — resolver em 1 clique."""
+    rows = (await db.execute(
+        select(PasswordResetRequest)
+        .where(PasswordResetRequest.resolved_at.is_(None))
+        .order_by(PasswordResetRequest.created_at.desc()).limit(100)
+    )).scalars().all()
+
+    ids = [r.user_id for r in rows if r.user_id]
+    users = {}
+    if ids:
+        for u in (await db.execute(select(User).where(User.id.in_(ids)))).scalars().all():
+            users[u.id] = u
+
+    out = []
+    for r in rows:
+        u = users.get(r.user_id)
+        out.append({
+            "id": r.id,
+            "email": r.email,
+            "name": u.name if u else None,
+            "phone": u.phone if u else None,
+            "created_at": r.created_at.isoformat(),
+        })
+    return {"pending": len(out), "requests": out}
+
+
+@router.post("/reset-requests/{req_id}/code")
+async def generate_reset_code(
+    req_id: int,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Gera o código de redefinição e devolve a mensagem pronta pro WhatsApp."""
+    import secrets as _secrets
+
+    r = (await db.execute(
+        select(PasswordResetRequest).where(PasswordResetRequest.id == req_id)
+    )).scalar_one_or_none()
+    if not r:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+
+    u = (await db.execute(select(User).where(User.email == r.email))).scalar_one_or_none()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    code = f"{_secrets.randbelow(900000) + 100000}"
+    u.password_reset_code = code
+    u.password_reset_expires = datetime.utcnow() + timedelta(minutes=30)
+    r.resolved_at = datetime.utcnow()
+    await db.commit()
+
+    primeiro = (u.name or "").split(" ")[0] or "tutor"
+    link = "https://petlife-frontend-production.up.railway.app/auth/reset"
+    msg = (
+        f"Oi, {primeiro}! Aqui é o suporte do PetLife 🐾\n\n"
+        f"Seu código para redefinir a senha é: {code}\n\n"
+        f"Use em: {link}\n"
+        f"(e-mail: {u.email})\n\n"
+        f"O código vale por 30 minutos."
+    )
+    phone = "".join(ch for ch in (u.phone or "") if ch.isdigit())
+    if phone and not phone.startswith("55"):
+        phone = "55" + phone
+
+    return {
+        "code": code,
+        "email": u.email,
+        "name": u.name,
+        "phone": u.phone,
+        "message": msg,
+        "whatsapp_url": (f"https://wa.me/{phone}?text=" + quote(msg)) if phone else None,
+        "expires_in_minutes": 30,
     }

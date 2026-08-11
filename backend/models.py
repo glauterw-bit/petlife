@@ -85,6 +85,19 @@ class PetExpense(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class PasswordResetRequest(Base):
+    """Pedido de redefinição de senha quando não há transporte de e-mail.
+    O tutor pede pelo app; o admin resolve em 1 clique (gera código e manda
+    por WhatsApp). Some quando o SMTP estiver configurado."""
+    __tablename__ = "password_reset_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    email = Column(String(200), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    resolved_at = Column(DateTime, nullable=True)
+
+
 class UsageEvent(Base):
     """Evento de uso (telemetria própria, LGPD-friendly: só user_id + nome do evento).
     Alimenta o painel admin: aberturas do app, funções usadas, funil do paywall."""

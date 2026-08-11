@@ -147,6 +147,7 @@ async def _run_migrations():
         "CREATE INDEX IF NOT EXISTS ix_users_last_seen ON users(last_seen_at)",
         "CREATE INDEX IF NOT EXISTS ix_usage_events_event_created ON usage_events(event, created_at)",
         "CREATE INDEX IF NOT EXISTS ix_usage_events_user_created ON usage_events(user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_reset_req_created ON password_reset_requests(created_at)",
     ]
     for stmt in migrations:
         try:
