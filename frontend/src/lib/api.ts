@@ -1500,6 +1500,34 @@ export const adminStats = {
     const res = await fetch(`${API_URL}/admin/users/locations`, { headers: getAuthHeaders() })
     return handleResponse<AdminLocations>(res)
   },
+  resetRequests: async () => {
+    const res = await fetch(`${API_URL}/admin/reset-requests`, { headers: getAuthHeaders() })
+    return handleResponse<{ pending: number; requests: ResetRequest[] }>(res)
+  },
+  generateResetCode: async (id: number) => {
+    const res = await fetch(`${API_URL}/admin/reset-requests/${id}/code`, {
+      method: 'POST', headers: getAuthHeaders(),
+    })
+    return handleResponse<ResetCodeResult>(res)
+  },
+}
+
+export interface ResetRequest {
+  id: number
+  email: string
+  name: string | null
+  phone: string | null
+  created_at: string
+}
+
+export interface ResetCodeResult {
+  code: string
+  email: string
+  name: string | null
+  phone: string | null
+  message: string
+  whatsapp_url: string | null
+  expires_in_minutes: number
 }
 
 export interface AdminLocations {

@@ -109,12 +109,10 @@ export default function ForgotPasswordPage() {
               </div>
 
               {!result.emailConfigured && (
-                <a
-                  href={`mailto:glauterw@gmail.com?subject=${encodeURIComponent('PetLife — recuperação de senha')}&body=${encodeURIComponent(`Olá! Esqueci minha senha do PetLife. Meu e-mail de cadastro: ${email.trim().toLowerCase()}`)}`}
-                  className="block w-full text-center bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 font-semibold py-3 rounded-xl hover:bg-surface-200 dark:hover:bg-surface-600 transition"
-                >
-                  ✉️ Falar com o suporte
-                </a>
+                <div className="rounded-xl bg-surface-50 dark:bg-surface-700/40 p-4 text-sm text-surface-600 dark:text-surface-300">
+                  <p className="font-semibold text-surface-800 dark:text-surface-100 mb-1">O que acontece agora</p>
+                  <p>Nosso suporte já foi avisado e vai te mandar o código pelo <b>WhatsApp</b> cadastrado (ou por e-mail). Assim que receber, é só voltar aqui e continuar.</p>
+                </div>
               )}
 
               {result.code && (
