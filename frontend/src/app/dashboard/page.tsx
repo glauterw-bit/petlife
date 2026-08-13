@@ -17,6 +17,9 @@ import { DailyCheckin } from '@/components/health/DailyCheckin'
 import { StreakFlame } from '@/components/health/StreakFlame'
 import { syncHealthNotifications } from '@/lib/notifications'
 import { trackHappyMoment } from '@/lib/review'
+import { PetHero } from '@/components/pets/PetHero'
+import { ReferralCard } from '@/components/growth/ReferralCard'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -63,17 +66,24 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      {/* Welcome */}
-      <div className="mb-6 md:mb-8 ">
-        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">
-          Olá, {user?.name?.split(' ')[0] ?? 'Tutor'}! 👋
-        </h1>
-        <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">
-          {pets.length > 0
-            ? `Você tem ${pets.length} pet${pets.length > 1 ? 's' : ''} sob seus cuidados.`
-            : 'Adicione seu primeiro pet para começar!'}
-        </p>
-      </div>
+      {/* Herói: o pet domina a tela (anel de status + streak). Sem pets, saudação simples. */}
+      {pets.length > 0 ? (
+        <PetHero
+          pet={pets[0]}
+          vaccines={upcomingVaccines}
+          userName={user?.name?.split(' ')[0]}
+          refreshKey={scoreRefresh}
+        />
+      ) : (
+        <div className="mb-6 md:mb-8">
+          <h1 className="font-display text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">
+            Olá, {user?.name?.split(' ')[0] ?? 'Tutor'}! 👋
+          </h1>
+          <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">
+            Adicione seu primeiro pet para começar!
+          </p>
+        </div>
+      )}
 
       {/* Daily check-in + Health Score + Streak — engajamento diário */}
       {pets.length > 0 && (
@@ -143,17 +153,12 @@ export default function DashboardPage() {
               </Link>
             </div>
             {pets.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-5xl mb-3">🐾</div>
-                <p className="text-surface-500 dark:text-surface-400 mb-4">Nenhum pet cadastrado ainda</p>
-                <Link
-                  href="/pets/new"
-                  className="inline-flex items-center gap-2 bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-600 transition"
-                >
-                  <Plus className="w-4 h-4" />
-                  Adicionar pet
-                </Link>
-              </div>
+              <EmptyState
+                title="Cadastre seu primeiro pet!"
+                text="Leva 1 minuto — e a carteirinha digital dele já sai pronta pra compartilhar."
+                ctaLabel="＋ Adicionar pet"
+                ctaHref="/pets/new"
+              />
             ) : (
               <div className="space-y-3">
                 {pets.slice(0, 3).map(pet => (
@@ -245,6 +250,8 @@ export default function DashboardPage() {
 
         {/* Right column */}
         <div className="space-y-6">
+          {/* Convide & Ganhe — recompensa dupla */}
+          <ReferralCard />
           {/* Gamification */}
           {points && (
             <div className="bg-gradient-to-br from-accent-500 to-accent-600 rounded-2xl p-5 text-white">

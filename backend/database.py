@@ -148,6 +148,13 @@ async def _run_migrations():
         "CREATE INDEX IF NOT EXISTS ix_usage_events_event_created ON usage_events(event, created_at)",
         "CREATE INDEX IF NOT EXISTS ix_usage_events_user_created ON usage_events(user_id, created_at)",
         "CREATE INDEX IF NOT EXISTS ix_reset_req_created ON password_reset_requests(created_at)",
+        # Indicação (recompensa dupla) + perfil público do pet
+        "ALTER TABLE users ADD COLUMN referral_code VARCHAR(12)",
+        "ALTER TABLE users ADD COLUMN referred_by_id INTEGER",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_referral_code ON users(referral_code)",
+        "ALTER TABLE pets ADD COLUMN is_public BOOLEAN DEFAULT FALSE NOT NULL",
+        "ALTER TABLE pets ADD COLUMN public_slug VARCHAR(80)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_pets_public_slug ON pets(public_slug)",
     ]
     for stmt in migrations:
         try:

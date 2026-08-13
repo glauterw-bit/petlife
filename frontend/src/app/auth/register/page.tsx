@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, PawPrint, Mail, Lock, User, Phone, AlertCircle, CheckCircle } from 'lucide-react'
+import { Eye, EyeOff, PawPrint, Mail, Lock, User, Phone, AlertCircle, CheckCircle, Gift } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { auth } from '@/lib/api'
 
@@ -12,6 +12,15 @@ export default function RegisterPage() {
   const { loginWithSession } = useAuth()
 
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' })
+  const [referralCode, setReferralCode] = useState('')
+
+  // Convite de indicação via link (?ref=PET-XXXXXX) — recompensa dupla
+  useEffect(() => {
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref')
+      if (ref) setReferralCode(ref.toUpperCase())
+    } catch {}
+  }, [])
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -37,6 +46,7 @@ export default function RegisterPage() {
         email: form.email.trim().toLowerCase(),
         password: form.password,
         phone: form.phone.trim() || undefined,
+        referral_code: referralCode || undefined,
       })
       // Usa diretamente o token + user do response do register (sem segundo login)
       loginWithSession(res.access_token, res.user)
@@ -73,6 +83,12 @@ export default function RegisterPage() {
             <span className="text-2xl font-bold text-surface-900 dark:text-white">PetLife</span>
           </Link>
           <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">Crie sua conta gratuita</h1>
+          {referralCode && (
+            <div className="mt-3 inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-2 text-sm font-medium animate-slide-up">
+              <Gift className="w-4 h-4 shrink-0" />
+              Convite aplicado! Você ganha 30 dias de PetLife+ 🎁
+            </div>
+          )}
           <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">E comece a cuidar do seu pet com IA</p>
         </div>
 

@@ -1,11 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Nunito } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ToastProvider } from '@/components/ui/ToastContext'
 
 const inter = Inter({ subsets: ['latin'] })
+// Display arredondada só para títulos — o "fofo" que o nicho pet pede,
+// mantendo Inter no corpo pra seriedade médica.
+const nunito = Nunito({ subsets: ['latin'], weight: ['700', '800'], variable: '--font-display' })
 
 export const metadata: Metadata = {
   title: 'PetLife — O cuidado que seu pet merece',
@@ -41,7 +44,7 @@ export const viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className="scroll-smooth">
-      <body className={inter.className}>
+      <body className={`${inter.className} ${nunito.variable}`}>
         {/* Prevenir flash de tema errado: lê preferência antes do React hidratar */}
         <script
           dangerouslySetInnerHTML={{

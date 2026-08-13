@@ -54,7 +54,7 @@ export const auth = {
     return handleResponse<{ access_token: string; token_type: string; user: User }>(res)
   },
 
-  register: async (data: { name: string; email: string; password: string; phone?: string }) => {
+  register: async (data: { name: string; email: string; password: string; phone?: string; referral_code?: string }) => {
     const res = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1608,6 +1608,52 @@ export const petExport = {
   },
 }
 
+// ─── Growth: indicação + perfil público do pet ────────────────────────────────
+
+export interface ReferralInfo {
+  code: string
+  referred_count: number
+  bonus_days: number
+  bonus_tier: string
+}
+
+export interface PublicPetProfile {
+  name: string
+  species: 'dog' | 'cat'
+  breed?: string | null
+  birth_date?: string | null
+  photo?: string | null
+  bio?: string | null
+  gender?: string | null
+  is_deceased: boolean
+  stats: {
+    walks_count: number
+    walks_km: number
+    vaccines_total: number
+    vaccines_ok: boolean
+    member_since?: string | null
+  }
+}
+
+export const growth = {
+  myReferral: async () => {
+    const res = await fetch(`${API_URL}/referrals/me`, { headers: getAuthHeaders() })
+    return handleResponse<ReferralInfo>(res)
+  },
+  togglePublicProfile: async (petId: number, isPublic: boolean) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/public-profile`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ is_public: isPublic }),
+    })
+    return handleResponse<{ is_public: boolean; public_slug: string | null }>(res)
+  },
+  publicPet: async (slug: string) => {
+    const res = await fetch(`${API_URL}/public/pet-profile/${slug}`)
+    return handleResponse<PublicPetProfile>(res)
+  },
+}
+
 export type PlanTier = 'free' | 'plus' | 'pro'
 
 export interface BillingProduct {
@@ -1671,6 +1717,8 @@ export interface Pet {
   photo_url?: string
   owner_id?: number
   created_at?: string
+  is_public?: boolean
+  public_slug?: string | null
 }
 
 export interface CreatePetData {

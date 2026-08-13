@@ -44,6 +44,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     phone: Optional[str] = None
+    referral_code: Optional[str] = None  # código de indicação (recompensa dupla)
 
     @field_validator("password")
     @classmethod
@@ -207,6 +208,8 @@ class PetResponse(BaseModel):
     bio: Optional[str] = None
     created_at: datetime
     breed: Optional[BreedResponse] = None
+    is_public: bool = False
+    public_slug: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

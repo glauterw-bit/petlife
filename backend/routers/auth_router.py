@@ -50,6 +50,12 @@ async def register(request: Request, user_data: UserRegister, db: AsyncSession =
 
     points = UserPoints(user_id=user.id, total_points=0, level=1, badges=[])
     db.add(points)
+
+    # Indicação (recompensa dupla): aplica bônus pros dois lados se o código valer
+    if user_data.referral_code:
+        from routers.growth import redeem_referral
+        await redeem_referral(db, user, user_data.referral_code)
+
     await db.commit()
     await db.refresh(user)
 

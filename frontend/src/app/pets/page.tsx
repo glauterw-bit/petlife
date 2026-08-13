@@ -6,6 +6,7 @@ import { Plus, Search } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PetCard } from '@/components/pets/PetCard'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { pets as petsApi, type Pet } from '@/lib/api'
 
 export default function PetsPage() {
@@ -56,22 +57,16 @@ export default function PetsPage() {
       {loading ? (
         <PageLoader />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="text-7xl mb-4">🐾</div>
+        <div className="py-10">
           {petList.length === 0 ? (
-            <>
-              <h2 className="text-xl font-semibold text-surface-900 dark:text-white mb-2">Nenhum pet cadastrado</h2>
-              <p className="text-surface-500 dark:text-surface-400 mb-6">Adicione seu companheiro favorito e comece a cuidar com IA!</p>
-              <Link
-                href="/pets/new"
-                className="inline-flex items-center gap-2 bg-primary-500 text-white px-8 py-3 rounded-2xl font-medium hover:bg-primary-600 transition"
-              >
-                <Plus className="w-5 h-5" />
-                Cadastrar meu primeiro pet
-              </Link>
-            </>
+            <EmptyState
+              title="Nenhum pet cadastrado"
+              text="Adicione seu companheiro favorito e comece a cuidar com IA!"
+              ctaLabel="＋ Cadastrar meu primeiro pet"
+              ctaHref="/pets/new"
+            />
           ) : (
-            <p className="text-surface-500 dark:text-surface-400">Nenhum pet encontrado para "{search}"</p>
+            <p className="text-center text-surface-500 dark:text-surface-400">Nenhum pet encontrado para "{search}"</p>
           )}
         </div>
       ) : (

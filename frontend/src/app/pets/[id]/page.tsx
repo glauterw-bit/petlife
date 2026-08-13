@@ -29,6 +29,7 @@ import { BehaviorLogModal } from '@/components/innovations/BehaviorLogModal'
 import { SeniorProtocolCard } from '@/components/innovations/SeniorProtocolCard'
 import { StoriesFeed } from '@/components/innovations/StoriesFeed'
 import { SharePetModal } from '@/components/innovations/SharePetModal'
+import { PublicProfileModal } from '@/components/growth/PublicProfileModal'
 import { FamilyTreeSection } from '@/components/innovations/FamilyTreeSection'
 import { HealthForecast } from '@/components/health/HealthForecast'
 import { ExpensesCard } from '@/components/innovations/ExpensesCard'
@@ -61,6 +62,7 @@ export default function PetProfilePage() {
   const [stoolOpen, setStoolOpen] = useState(false)
   const [behaviorLogOpen, setBehaviorLogOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const [publicOpen, setPublicOpen] = useState(false)
 
   // Anamnesis form
   const [anamForm, setAnamForm] = useState({ symptoms: '', duration: '', behavior_changes: '', appetite: '', water_intake: '', medications: '', notes: '' })
@@ -183,6 +185,7 @@ export default function PetProfilePage() {
       <StoolAnalysisModal petId={petId} petName={pet.name} open={stoolOpen} onClose={() => setStoolOpen(false)} />
       <BehaviorLogModal petId={petId} petName={pet.name} open={behaviorLogOpen} onClose={() => setBehaviorLogOpen(false)} />
       <SharePetModal petId={petId} petName={pet.name} open={shareOpen} onClose={() => setShareOpen(false)} />
+      <PublicProfileModal pet={pet} open={publicOpen} onClose={() => setPublicOpen(false)} />
 
       {/* Quick actions IA — flex-wrap em mobile, horizontal scroll em telas maiores */}
       <div className="flex flex-wrap md:flex-nowrap gap-2 md:overflow-x-auto pb-2 mb-4 md:-mx-4 md:px-4 lg:mx-0 lg:px-0 no-scrollbar">
@@ -195,6 +198,7 @@ export default function PetProfilePage() {
         <QuickAction icon={<PartyPopper className="w-4 h-4" />} label="Wrapped" onClick={() => router.push(`/wrapped/${petId}`)} color="pink" />
         <QuickAction icon={<ImageIcon className="w-4 h-4" />} label="Stories" onClick={() => setTab('stories' as Tab)} color="teal" />
         <QuickAction icon={<Users className="w-4 h-4" />} label="Compartilhar" onClick={() => setShareOpen(true)} color="cyan" />
+        <QuickAction icon={<span className="text-base">🔗</span>} label="Link do pet" onClick={() => setPublicOpen(true)} color="primary" />
         <QuickAction icon={<span className="text-base">📄</span>} label="PDF p/ vet" onClick={() => { petExport.sharePdf(petId, pet.name).catch(() => {}) }} color="emerald" />
         <QuickAction icon={<GitFork className="w-4 h-4" />} label="Família" onClick={() => setTab('family' as Tab)} color="fuchsia" />
       </div>

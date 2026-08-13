@@ -62,6 +62,9 @@ class User(Base):
     trial_used = Column(Boolean, default=False, nullable=False)
     # Última atividade (atualizado com throttle no get_current_user) — base de DAU/WAU/MAU
     last_seen_at = Column(DateTime, nullable=True, index=True)
+    # ─── Indicação (recompensa dupla) ────────────────────────────────────────
+    referral_code = Column(String(12), unique=True, nullable=True, index=True)
+    referred_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     pets = relationship("Pet", back_populates="owner", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="user", cascade="all, delete-orphan")
@@ -188,6 +191,9 @@ class Pet(Base):
     is_deceased = Column(Boolean, default=False, nullable=False)
     deceased_at = Column(DateTime, nullable=True)
     memorial_text = Column(Text, nullable=True)
+    # Perfil público compartilhável (petlife.app/p/<slug>) — opt-in do tutor
+    is_public = Column(Boolean, default=False, nullable=False)
+    public_slug = Column(String(80), unique=True, nullable=True, index=True)
 
     owner = relationship("User", back_populates="pets")
     breed = relationship("Breed", back_populates="pets")

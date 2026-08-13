@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/ToastContext'
 import { billing, type BillingCatalog, type BillingMe, type PlanTier } from '@/lib/api'
 import { initIap, purchaseProduct, restorePurchases, iapAvailable } from '@/lib/iap'
 import { track } from '@/lib/track'
+import { ReferralCard } from '@/components/growth/ReferralCard'
 
 type Cadence = 'monthly' | 'annual'
 
@@ -261,6 +262,11 @@ export default function PlansPage() {
             <span className="text-gray-300 mx-2">·</span>
             <a href="/privacy" className="text-emerald-600 hover:underline">Política de Privacidade</a>
           </p>
+        </div>
+
+        {/* Prefere não pagar? Indique e ganhe */}
+        <div className="max-w-md mx-auto mt-8">
+          <ReferralCard />
         </div>
       </div>
     </DashboardLayout>
