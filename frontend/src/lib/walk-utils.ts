@@ -150,9 +150,9 @@ export async function generateShareCard(opts: {
     ctx.fillStyle = '#ffffff'
     ctx.fillText('Passeio com ' + opts.petName, hx + 44, hy + hh - 56)
     ctx.restore()
-    // badge do mapa no canto inferior direito
+    // badge do mapa no canto superior direito (nome fica livre embaixo)
     if (opts.routePoints.length >= 2) {
-      const bs = 260, bx = hx + hw - bs - 32, by = hy + hh - bs - 32
+      const bs = 240, bx = hx + hw - bs - 28, by = hy + 28
       ctx.save()
       roundRect(ctx, bx, by, bs, bs, 24)
       ctx.fillStyle = 'rgba(255,255,255,0.96)'
