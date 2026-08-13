@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy import select, desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from media import absolute_media_url
 
 from database import get_db, settings
 from auth import get_current_user
@@ -76,7 +77,7 @@ def _serialize(walk: WalkSession, include_route: bool = True) -> dict:
         "share_image_url": walk.share_image_url,
         "created_at": walk.created_at,
         "pet_name": walk.pet.name if walk.pet else None,
-        "pet_photo": walk.pet.photo if walk.pet else None,
+        "pet_photo": absolute_media_url(walk.pet.photo) if walk.pet else None,
     }
     if include_route:
         data["route_points"] = walk.route_points or []
@@ -245,7 +246,7 @@ async def list_walks(
             "id": w.id,
             "pet_id": w.pet_id,
             "pet_name": w.pet.name if w.pet else None,
-            "pet_photo": w.pet.photo if w.pet else None,
+            "pet_photo": absolute_media_url(w.pet.photo) if w.pet else None,
             "user_id": w.user_id,
             "started_at": w.started_at,
             "ended_at": w.ended_at,

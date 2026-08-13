@@ -219,11 +219,8 @@ class PetResponse(BaseModel):
         # model_validator roda também na serialização do FastAPI (o classmethod
         # antigo não rodava — fotos voltavam null e caíam no emoji).
         if self.photo and not self.photo_url:
-            if self.photo.startswith("/"):
-                from database import get_settings
-                self.photo_url = get_settings().PUBLIC_API_URL.rstrip("/") + self.photo
-            else:
-                self.photo_url = self.photo
+            from media import absolute_media_url
+            self.photo_url = absolute_media_url(self.photo)
         return self
 
 
