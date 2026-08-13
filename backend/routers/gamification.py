@@ -11,7 +11,7 @@ from schemas import (
 )
 from auth import get_current_user
 
-router = APIRouter(tags=["Gamificação"])
+router = APIRouter(prefix="/gamification", tags=["Gamificação"])
 
 POINTS_PER_LEVEL = 100
 
