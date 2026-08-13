@@ -46,6 +46,9 @@ export default function WalkDetailPage() {
   const [sharing, setSharing] = useState(false)
   const [kudos, setKudos] = useState<{ count: number; mine: boolean }>({ count: 0, mine: false })
   const [shareSheetOpen, setShareSheetOpen] = useState(false)
+  // Card pré-gerado: navigator.share precisa ser chamado no MESMO gesto do toque
+  // (senão o iOS bloqueia com "erro ao compartilhar"). Geramos ao abrir a tela.
+  const [prepared, setPrepared] = useState<{ file: File; blob: Blob; text: string } | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -62,6 +65,18 @@ export default function WalkDetailPage() {
       .catch(e => error(e instanceof Error ? e.message : 'Erro ao carregar passeio.'))
       .finally(() => setLoading(false))
   }, [id, error])
+
+  // Pré-gera o card assim que o passeio carrega (e regenera se mudar humor/nota),
+  // pra que o compartilhamento seja instantâneo e preserve o gesto do usuário.
+  useEffect(() => {
+    if (!walk) return
+    let cancelled = false
+    buildShareCard().then(built => {
+      if (!cancelled && built) setPrepared(built)
+    }).catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walk?.id, walk?.mood])
 
   async function toggleKudos() {
     if (!walk) return
@@ -110,25 +125,6 @@ export default function WalkDetailPage() {
     return { blob, file, text }
   }
 
-  /**
-   * Compartilha a IMAGEM como arquivo via Web Share API (Level 2).
-   * Funciona no WKWebView (iOS) e WebView (Android) — Instagram/WhatsApp aceitam
-   * a imagem. Evita o bug "impossível compartilhar link" que acontecia quando
-   * mandávamos um data URL no campo `url` do Capacitor Share (Instagram trata como link).
-   * Retorna true se compartilhou/baixou; lança só em cancelamento do usuário.
-   */
-  async function shareImageFile(file: File, blob: Blob, text: string): Promise<boolean> {
-    const nav = navigator as Navigator & { canShare?: (d?: { files?: File[] }) => boolean }
-    if (nav.share && nav.canShare?.({ files: [file] })) {
-      await nav.share({ files: [file], text })
-      return true
-    }
-    // Fallback (desktop / navegador sem Web Share de arquivos): baixa a imagem
-    downloadBlob(blob, file.name)
-    success('Imagem salva! Abra o app da rede social e poste 📲')
-    return true
-  }
-
   async function markShared() {
     if (!walk) return
     try {
@@ -137,28 +133,50 @@ export default function WalkDetailPage() {
     } catch { /* não-crítico */ }
   }
 
-  async function runShare(instruction?: string) {
+  /**
+   * Compartilha JÁ, no gesto do toque. navigator.share precisa ser chamado
+   * de forma síncrona a partir do clique — por isso usamos o card pré-gerado
+   * (`prepared`) e NÃO colocamos await antes de nav.share. Se o card ainda não
+   * estiver pronto, gera na hora (pode pedir um segundo toque no iOS).
+   */
+  function runShare(instruction?: string) {
     if (!walk || sharing) return
-    setSharing(true)
-    setShareSheetOpen(false)
     void hapticMedium()
-    try {
-      const built = await buildShareCard()
-      if (!built) return
-      await shareImageFile(built.file, built.blob, built.text)
-      await markShared()
-      celebrate('medium')
-      if (instruction) success(instruction)
-      else success('Compartilhado!')
-    } catch (e) {
-      void hapticError()
+    setShareSheetOpen(false)
+
+    const finishOk = () => { void markShared(); celebrate('medium'); success(instruction ?? 'Compartilhado!') }
+    const finishErr = (e: unknown) => {
       const msg = e instanceof Error ? e.message.toLowerCase() : ''
-      if (!msg.includes('abort') && !msg.includes('cancel')) {
-        error('Erro ao compartilhar. Tente "Salvar imagem" e poste manualmente.')
-      }
-    } finally {
-      setSharing(false)
+      if (msg.includes('abort') || msg.includes('cancel')) return
+      void hapticError()
+      error('Não consegui abrir o compartilhamento. Use "Salvar imagem" e poste depois.')
     }
+    const nav = navigator as Navigator & { canShare?: (d?: { files?: File[] }) => boolean }
+
+    // Caminho ideal: card pronto → share síncrono (gesto preservado).
+    if (prepared && nav.share && nav.canShare?.({ files: [prepared.file] })) {
+      nav.share({ files: [prepared.file], text: prepared.text }).then(finishOk).catch(finishErr)
+      return
+    }
+
+    // Card ainda não pronto (ou sem Web Share de arquivos): gera e baixa a imagem.
+    setSharing(true)
+    buildShareCard()
+      .then(built => {
+        if (!built) return
+        if (nav.share && nav.canShare?.({ files: [built.file] })) {
+          // pode falhar por gesto expirado; se falhar, cai no catch e baixa
+          return nav.share({ files: [built.file], text: built.text }).then(finishOk)
+        }
+        downloadBlob(built.blob, built.file.name)
+        success('Imagem salva! Abra o Instagram e poste nos Stories 📲')
+      })
+      .catch(built => {
+        // gesto expirou no fallback: garante que o usuário tem a imagem
+        if (prepared) downloadBlob(prepared.blob, prepared.file.name)
+        finishErr(built)
+      })
+      .finally(() => setSharing(false))
   }
 
   const handleNativeShare = () => runShare()
