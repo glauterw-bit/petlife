@@ -78,6 +78,18 @@ export function getBounds(points: RoutePoint[]): {
  * Inclui mapa do trajeto, stats, nome do pet, branding.
  * Retorna data URL pra share.
  */
+/** Carrega imagem cross-origin p/ canvas (com timeout — nunca trava o share). */
+function loadCardImage(url: string): Promise<HTMLImageElement | null> {
+  return new Promise(resolve => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = url
+    setTimeout(() => resolve(null), 4000)
+  })
+}
+
 export async function generateShareCard(opts: {
   petName: string
   petPhotoUrl?: string | null
@@ -106,17 +118,45 @@ export async function generateShareCard(opts: {
 
   // Header — Logo + branding
   ctx.fillStyle = '#ffffff'
-  ctx.font = 'bold 64px -apple-system, sans-serif'
+  ctx.font = 'bold 60px -apple-system, sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillText('🐾 PetLife', W / 2, 140)
+  ctx.fillText('🐾 PetLife', W / 2, 108)
 
-  ctx.font = '38px -apple-system, sans-serif'
-  ctx.fillStyle = '#d1fae5'
-  ctx.fillText('passeio com ' + opts.petName, W / 2, 200)
+  // Foto do pet — o herói do card (círculo com anel branco)
+  const petImg = opts.petPhotoUrl ? await loadCardImage(opts.petPhotoUrl) : null
+  const avCx = W / 2
+  const avCy = 250
+  const avR = 84
+  ctx.save()
+  ctx.beginPath()
+  ctx.arc(avCx, avCy, avR + 7, 0, Math.PI * 2)
+  ctx.fillStyle = '#ffffff'
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(avCx, avCy, avR, 0, Math.PI * 2)
+  ctx.clip()
+  if (petImg) {
+    const s = Math.max((avR * 2) / petImg.width, (avR * 2) / petImg.height)
+    const dw = petImg.width * s, dh = petImg.height * s
+    ctx.drawImage(petImg, avCx - dw / 2, avCy - dh / 2, dw, dh)
+  } else {
+    ctx.fillStyle = '#d1fae5'
+    ctx.fillRect(avCx - avR, avCy - avR, avR * 2, avR * 2)
+    ctx.fillStyle = '#059669'
+    ctx.font = '90px -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('🐶', avCx, avCy + 32)
+  }
+  ctx.restore()
+
+  ctx.font = 'bold 44px -apple-system, sans-serif'
+  ctx.fillStyle = '#ffffff'
+  ctx.textAlign = 'center'
+  ctx.fillText('passeio com ' + opts.petName, W / 2, 400)
 
   // Map area — desenhar a rota
-  const mapY = 280
-  const mapH = 700
+  const mapY = 450
+  const mapH = 560
   const mapPad = 80
   ctx.fillStyle = 'rgba(255,255,255,0.95)'
   roundRect(ctx, mapPad, mapY, W - mapPad * 2, mapH, 32)
@@ -175,12 +215,18 @@ export async function generateShareCard(opts: {
     ctx.fillText(moodText, W / 2, 1610)
   }
 
-  // Footer — date + branding
+  // Footer — data + CTA App Store (viralização)
+  ctx.textAlign = 'center'
   ctx.font = '28px -apple-system, sans-serif'
   ctx.fillStyle = 'rgba(255,255,255,0.7)'
   const date = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
-  ctx.fillText(date, W / 2, 1780)
-  ctx.fillText('petlife.app', W / 2, 1830)
+  ctx.fillText(date, W / 2, 1730)
+  ctx.font = 'bold 34px -apple-system, sans-serif'
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText('Cuide do seu pet com o PetLife 🐾', W / 2, 1800)
+  ctx.font = '28px -apple-system, sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'
+  ctx.fillText('apps.apple.com/br/app/id6768136468', W / 2, 1848)
 
   // To blob
   return new Promise<Blob>((resolve, reject) => {

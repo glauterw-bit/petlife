@@ -8,7 +8,6 @@ import { ArrowLeft, Share2, Trash2, Smile, Frown, Meh, Trophy, Heart, Download, 
 import { Share } from '@capacitor/share'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PaceChart } from '@/components/walks/PaceChart'
-import { shareCardImage } from '@/lib/shareCard'
 import { track } from '@/lib/track'
 import { walks, type Walk } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
@@ -310,23 +309,11 @@ export default function WalkDetailPage() {
         {(walk.route_points?.length ?? 0) >= 4 && <PaceChart points={walk.route_points ?? []} />}
 
       <button
-        onClick={async () => {
-          const km = (walk.distance_meters / 1000).toFixed(2)
-          const min = Math.round(walk.duration_seconds / 60)
-          const ok = await shareCardImage({
-            title: `Passeio com ${walk.pet_name ?? 'meu pet'} 🐾`,
-            subtitle: 'Passeio PetLife',
-            emoji: '🚶',
-            stats: [
-              { label: 'distância', value: `${km} km` },
-              { label: 'duração', value: `${min} min` },
-            ],
-          }, `Passeio de ${km} km com ${walk.pet_name ?? 'meu pet'} no PetLife 🐾`)
-          if (ok) track('recap_share')
-        }}
-        className="pressable w-full mt-3 py-3 rounded-xl bg-primary-500 hover:bg-primary-600 text-white font-semibold text-sm"
+        onClick={() => { track('recap_share'); void handleNativeShare() }}
+        disabled={sharing}
+        className="pressable w-full mt-3 py-3 rounded-xl bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-semibold text-sm"
       >
-        📸 Compartilhar card do passeio
+        {sharing ? 'Preparando card...' : '📸 Compartilhar card do passeio'}
       </button>
 
         {/* Big stats */}
