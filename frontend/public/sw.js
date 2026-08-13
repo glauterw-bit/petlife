@@ -1,6 +1,6 @@
 // PetLife — service worker mínimo
 // Estratégia: stale-while-revalidate para assets estáticos, network-first para HTML/API.
-const VERSION = 'petlife-v1'
+const VERSION = 'petlife-v2'
 const STATIC_CACHE = `static-${VERSION}`
 
 self.addEventListener('install', (event) => {
