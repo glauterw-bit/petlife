@@ -187,8 +187,8 @@ export default function PetProfilePage() {
       <SharePetModal petId={petId} petName={pet.name} open={shareOpen} onClose={() => setShareOpen(false)} />
       <PublicProfileModal pet={pet} open={publicOpen} onClose={() => setPublicOpen(false)} />
 
-      {/* Quick actions IA — flex-wrap em mobile, horizontal scroll em telas maiores */}
-      <div className="flex flex-wrap md:flex-nowrap gap-2 md:overflow-x-auto pb-2 mb-4 md:-mx-4 md:px-4 lg:mx-0 lg:px-0 no-scrollbar">
+      {/* Quick actions IA — grade uniforme (bordas alinhadas, sem sobras irregulares) */}
+      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4 items-stretch">
         <QuickAction icon={<Sparkles className="w-4 h-4" />} label="Triagem geral" onClick={() => setSnapshotOpen(true)} color="primary" />
         <QuickAction icon={<Heart className="w-4 h-4" />} label="Avaliar dor" onClick={() => setPainOpen(true)} color="rose" />
         <QuickAction icon={<span className="text-base">💩</span>} label="Fezes" onClick={() => setStoolOpen(true)} color="amber" />
@@ -723,10 +723,10 @@ function QuickAction({ icon, label, onClick, color }: { icon: React.ReactNode; l
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 ${cls} text-white text-xs md:text-sm font-semibold px-3 py-2 md:px-4 md:py-2.5 rounded-xl transition shadow-md whitespace-nowrap shrink-0`}
+      className={`pressable flex flex-col items-center justify-start gap-1.5 ${cls} text-white rounded-2xl px-1.5 py-2.5 transition shadow-sm w-full h-full min-h-[72px]`}
     >
-      {icon}
-      {label}
+      <span className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">{icon}</span>
+      <span className="text-[10px] leading-tight font-semibold text-center line-clamp-2">{label}</span>
     </button>
   )
 }
