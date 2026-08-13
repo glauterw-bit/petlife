@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
+import { MobileBackBar } from './MobileBackBar'
 import { NotificationBell } from './NotificationBell'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
@@ -85,6 +86,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       />
       <main className="flex-1 min-w-0 md:ml-64 min-h-screen pb-nav md:pb-0 overflow-x-hidden">
         <div className="w-full max-w-7xl mx-auto px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] pb-4 md:p-8 animate-fade-in">
+          <MobileBackBar />
           <ErrorBoundary>{children}</ErrorBoundary>
         </div>
       </main>

@@ -20,19 +20,22 @@
 
   html {
     scroll-behavior: smooth;
-    /* Evita scroll horizontal acidental no mobile (webview Capacitor) */
-    overflow-x: hidden;
+    /* clip (não hidden): no iOS Safari, overflow-x:hidden no body ainda permite
+       arrasto horizontal; clip corta de verdade sem criar container de scroll. */
+    overflow-x: clip;
     width: 100%;
+    overscroll-behavior-x: none;
   }
 
   body {
     @apply bg-surface-50 text-surface-900 font-sans antialiased;
     /* Trava a largura na viewport — nenhuma tela arrasta pro lado */
-    overflow-x: hidden;
+    overflow-x: clip;
     width: 100%;
     /* 100% (não 100vw): 100vw inclui a barra de rolagem e cria 1-15px de arrasto lateral */
     max-width: 100%;
     position: relative;
+    overscroll-behavior-x: none;
   }
 }
 

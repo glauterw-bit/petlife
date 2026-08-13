@@ -46,8 +46,8 @@ export function ReferralCard() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-primary-500 to-emerald-600 rounded-2xl p-5 text-white overflow-hidden relative">
-      <div className="absolute -top-6 -right-6 text-[88px] opacity-15 rotate-12 select-none" aria-hidden>🎁</div>
+    <div className="bg-gradient-to-br from-primary-500 to-emerald-600 rounded-2xl p-5 text-white overflow-hidden relative max-w-full">
+      <div className="absolute top-0 right-0 text-[80px] opacity-15 rotate-12 select-none pointer-events-none" aria-hidden>🎁</div>
       <div className="flex items-center gap-2 mb-1.5">
         <Gift className="w-5 h-5" />
         <span className="font-semibold">Convide & Ganhe</span>
