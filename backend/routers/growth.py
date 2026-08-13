@@ -165,12 +165,17 @@ async def public_pet_profile(slug: str, db: AsyncSession = Depends(get_db)):
     vaccines_total = vac_total_q.scalar() or 0
     vaccines_ok = (vac_overdue_q.scalar() or 0) == 0
 
+    from database import get_settings
+    photo = pet.photo
+    if photo and photo.startswith("/"):
+        photo = get_settings().PUBLIC_API_URL.rstrip("/") + photo
+
     return {
         "name": pet.name,
         "species": pet.species.value if hasattr(pet.species, "value") else str(pet.species),
         "breed": pet.breed.name if pet.breed else None,
         "birth_date": pet.birth_date.isoformat() if pet.birth_date else None,
-        "photo": pet.photo,
+        "photo": photo,
         "bio": pet.bio,
         "gender": pet.gender.value if pet.gender else None,
         "is_deceased": pet.is_deceased,

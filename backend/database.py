@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int = 10485760
     APP_NAME: str = "PetLife"
     PORT: int = 8030
+    # Base pública da API — usada pra montar URLs absolutas de uploads (fotos)
+    PUBLIC_API_URL: str = "https://petlife-backend-production.up.railway.app"
 
     class Config:
         env_file = ".env"

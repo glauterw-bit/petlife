@@ -213,13 +213,18 @@ class PetResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
-    @classmethod
-    def model_validate(cls, obj, *args, **kwargs):
-        # Popula photo_url a partir de photo (campo do DB)
-        instance = super().model_validate(obj, *args, **kwargs)
-        if instance.photo and not instance.photo_url:
-            instance.photo_url = instance.photo
-        return instance
+    @model_validator(mode="after")
+    def _fill_photo_url(self):
+        # Popula photo_url ABSOLUTA a partir de photo (campo do DB).
+        # model_validator roda também na serialização do FastAPI (o classmethod
+        # antigo não rodava — fotos voltavam null e caíam no emoji).
+        if self.photo and not self.photo_url:
+            if self.photo.startswith("/"):
+                from database import get_settings
+                self.photo_url = get_settings().PUBLIC_API_URL.rstrip("/") + self.photo
+            else:
+                self.photo_url = self.photo
+        return self
 
 
 class PetFullProfile(PetResponse):
