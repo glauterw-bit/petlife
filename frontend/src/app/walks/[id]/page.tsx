@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { ArrowLeft, Share2, Trash2, Smile, Frown, Meh, Trophy, Heart, Download, Instagram, MessageCircle, X } from 'lucide-react'
-import { Share } from '@capacitor/share'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PaceChart } from '@/components/walks/PaceChart'
 import { track } from '@/lib/track'
@@ -111,6 +110,25 @@ export default function WalkDetailPage() {
     return { blob, file, text }
   }
 
+  /**
+   * Compartilha a IMAGEM como arquivo via Web Share API (Level 2).
+   * Funciona no WKWebView (iOS) e WebView (Android) — Instagram/WhatsApp aceitam
+   * a imagem. Evita o bug "impossível compartilhar link" que acontecia quando
+   * mandávamos um data URL no campo `url` do Capacitor Share (Instagram trata como link).
+   * Retorna true se compartilhou/baixou; lança só em cancelamento do usuário.
+   */
+  async function shareImageFile(file: File, blob: Blob, text: string): Promise<boolean> {
+    const nav = navigator as Navigator & { canShare?: (d?: { files?: File[] }) => boolean }
+    if (nav.share && nav.canShare?.({ files: [file] })) {
+      await nav.share({ files: [file], text })
+      return true
+    }
+    // Fallback (desktop / navegador sem Web Share de arquivos): baixa a imagem
+    downloadBlob(blob, file.name)
+    success('Imagem salva! Abra o app da rede social e poste 📲')
+    return true
+  }
+
   async function markShared() {
     if (!walk) return
     try {
@@ -119,124 +137,33 @@ export default function WalkDetailPage() {
     } catch { /* não-crítico */ }
   }
 
-  async function handleNativeShare() {
-    if (!walk) return
+  async function runShare(instruction?: string) {
+    if (!walk || sharing) return
     setSharing(true)
     setShareSheetOpen(false)
     void hapticMedium()
     try {
       const built = await buildShareCard()
       if (!built) return
-      const { blob, file, text } = built
-      const canCapacitor = await Share.canShare().then(r => r.value).catch(() => false)
-      if (canCapacitor) {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const r = new FileReader()
-          r.onload = () => resolve(r.result as string)
-          r.onerror = reject
-          r.readAsDataURL(blob)
-        })
-        await Share.share({ title: 'Passeio PetLife', text, url: dataUrl, dialogTitle: 'Compartilhar passeio' })
-      } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title: 'Passeio PetLife', text, files: [file] })
-      } else {
-        downloadBlob(blob, file.name)
-      }
+      await shareImageFile(built.file, built.blob, built.text)
       await markShared()
       celebrate('medium')
-      success('Compartilhado!')
+      if (instruction) success(instruction)
+      else success('Compartilhado!')
     } catch (e) {
       void hapticError()
-      const msg = e instanceof Error ? e.message : ''
-      if (!msg.toLowerCase().includes('abort') && !msg.toLowerCase().includes('cancel')) {
-        error('Erro ao compartilhar.')
+      const msg = e instanceof Error ? e.message.toLowerCase() : ''
+      if (!msg.includes('abort') && !msg.includes('cancel')) {
+        error('Erro ao compartilhar. Tente "Salvar imagem" e poste manualmente.')
       }
     } finally {
       setSharing(false)
     }
   }
 
-  async function handleShareWhatsApp() {
-    if (!walk) return
-    setSharing(true)
-    setShareSheetOpen(false)
-    void hapticMedium()
-    try {
-      const built = await buildShareCard()
-      if (!built) return
-      const { blob, file, text } = built
-      // iOS/Android: tenta share nativo com arquivo (Whatsapp aparece no sheet)
-      const canCapacitor = await Share.canShare().then(r => r.value).catch(() => false)
-      if (canCapacitor || (navigator.share && navigator.canShare?.({ files: [file] }))) {
-        if (canCapacitor) {
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const r = new FileReader()
-            r.onload = () => resolve(r.result as string)
-            r.onerror = reject
-            r.readAsDataURL(blob)
-          })
-          await Share.share({ text, url: dataUrl, dialogTitle: 'Compartilhar no WhatsApp' })
-        } else {
-          await navigator.share({ text, files: [file] })
-        }
-      } else {
-        // Web: baixa imagem + abre wa.me com texto (sem imagem, limitação do WhatsApp Web)
-        downloadBlob(blob, file.name)
-        const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
-        window.open(waUrl, '_blank')
-      }
-      await markShared()
-      success('Compartilhado no WhatsApp!')
-    } catch (e) {
-      void hapticError()
-      const msg = e instanceof Error ? e.message : ''
-      if (!msg.toLowerCase().includes('abort') && !msg.toLowerCase().includes('cancel')) {
-        error('Erro ao compartilhar.')
-      }
-    } finally {
-      setSharing(false)
-    }
-  }
-
-  async function handleShareInstagram() {
-    if (!walk) return
-    setSharing(true)
-    setShareSheetOpen(false)
-    void hapticMedium()
-    try {
-      const built = await buildShareCard()
-      if (!built) return
-      const { blob, file } = built
-      // Mobile: share nativo (Instagram aparece como opção)
-      const canCapacitor = await Share.canShare().then(r => r.value).catch(() => false)
-      if (canCapacitor) {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const r = new FileReader()
-          r.onload = () => resolve(r.result as string)
-          r.onerror = reject
-          r.readAsDataURL(blob)
-        })
-        await Share.share({ url: dataUrl, dialogTitle: 'Stories no Instagram' })
-        success('Selecione Instagram no menu de compartilhamento!')
-      } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file] })
-        success('Selecione Instagram no menu de compartilhamento!')
-      } else {
-        // Web: baixa imagem e instrui usuário
-        downloadBlob(blob, file.name)
-        success('Imagem baixada — abra o Instagram pra postar nos Stories!')
-      }
-      await markShared()
-    } catch (e) {
-      void hapticError()
-      const msg = e instanceof Error ? e.message : ''
-      if (!msg.toLowerCase().includes('abort') && !msg.toLowerCase().includes('cancel')) {
-        error('Erro ao compartilhar.')
-      }
-    } finally {
-      setSharing(false)
-    }
-  }
+  const handleNativeShare = () => runShare()
+  const handleShareWhatsApp = () => runShare('Escolha o WhatsApp no menu 📲')
+  const handleShareInstagram = () => runShare('Escolha o Instagram no menu 📸')
 
   async function handleSaveImage() {
     if (!walk) return
