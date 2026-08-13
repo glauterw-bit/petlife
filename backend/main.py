@@ -217,11 +217,13 @@ async def public_vaccination_card(pet_id: int):
 
 @app.get("/health", tags=["Status"])
 async def health_check():
+    from email_service import email_configured
     return JSONResponse(
         content={
             "status": "healthy",
             "app": settings.APP_NAME,
             "port": settings.PORT,
+            "email_configured": email_configured(),
         }
     )
 
