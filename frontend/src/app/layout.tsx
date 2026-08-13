@@ -66,6 +66,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   navigator.serviceWorker.register('/sw.js').catch(() => {});
                 });
               }
+              // Trava definitiva do arrasto horizontal na WKWebView do iOS:
+              // se a janela rolar de lado (por sub-pixel/rubber-band/webview),
+              // volta pra 0. A rolagem vertical não é afetada; carrosséis rolam
+              // internamente (não mexem no scrollX da janela).
+              (function () {
+                function noX() { if (window.scrollX !== 0) window.scrollTo(0, window.scrollY); }
+                window.addEventListener('scroll', noX, { passive: true });
+                window.addEventListener('touchmove', noX, { passive: true });
+                window.addEventListener('orientationchange', noX);
+                window.addEventListener('resize', noX);
+              })();
             `,
           }}
         />

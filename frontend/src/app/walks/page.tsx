@@ -96,7 +96,7 @@ export default function WalksPage() {
               </div>
               <span className="text-xs text-surface-500 dark:text-surface-400">{earnedCount} de {badges.length}</span>
             </div>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2 snap-x">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 snap-x max-w-full">
               {badges.map(b => (
                 <BadgeChip key={b.key} badge={b} />
               ))}
