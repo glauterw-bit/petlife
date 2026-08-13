@@ -38,6 +38,12 @@ export const viewport = {
   themeColor: '#10b981',
   width: 'device-width',
   initialScale: 1,
+  // Trava a escala em 1:1 — impede a WKWebView do iOS de renderizar o app
+  // "maior que a tela" (exigindo arrasto lateral). Sem isso, o webview podia
+  // escalar/assumir uma largura maior que a do aparelho.
+  maximumScale: 1,
+  minimumScale: 1,
+  userScalable: false,
   viewportFit: 'cover' as const,
 }
 
@@ -66,17 +72,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   navigator.serviceWorker.register('/sw.js').catch(() => {});
                 });
               }
-              // Trava definitiva do arrasto horizontal na WKWebView do iOS:
-              // se a janela rolar de lado (por sub-pixel/rubber-band/webview),
-              // volta pra 0. A rolagem vertical não é afetada; carrosséis rolam
-              // internamente (não mexem no scrollX da janela).
-              (function () {
-                function noX() { if (window.scrollX !== 0) window.scrollTo(0, window.scrollY); }
-                window.addEventListener('scroll', noX, { passive: true });
-                window.addEventListener('touchmove', noX, { passive: true });
-                window.addEventListener('orientationchange', noX);
-                window.addEventListener('resize', noX);
-              })();
             `,
           }}
         />
