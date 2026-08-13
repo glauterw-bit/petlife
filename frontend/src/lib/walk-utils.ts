@@ -116,58 +116,80 @@ export async function generateShareCard(opts: {
   ctx.fillStyle = grad
   ctx.fillRect(0, 0, W, H)
 
+  const mapPad = 80
+
   // Header — Logo + branding
   ctx.fillStyle = '#ffffff'
-  ctx.font = 'bold 60px -apple-system, sans-serif'
+  ctx.font = 'bold 56px -apple-system, sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillText('🐾 PetLife', W / 2, 108)
+  ctx.fillText('🐾 PetLife', W / 2, 100)
 
-  // Foto do pet — o herói do card (círculo com anel branco)
-  const petImg = opts.petPhotoUrl ? await loadCardImage(opts.petPhotoUrl) : null
-  const avCx = W / 2
-  const avCy = 250
-  const avR = 84
-  ctx.save()
-  ctx.beginPath()
-  ctx.arc(avCx, avCy, avR + 7, 0, Math.PI * 2)
-  ctx.fillStyle = '#ffffff'
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(avCx, avCy, avR, 0, Math.PI * 2)
-  ctx.clip()
-  if (petImg) {
-    const s = Math.max((avR * 2) / petImg.width, (avR * 2) / petImg.height)
-    const dw = petImg.width * s, dh = petImg.height * s
-    ctx.drawImage(petImg, avCx - dw / 2, avCy - dh / 2, dw, dh)
+  // Carrega a foto do passeio (tirada na hora) — herói estilo Strava. Fallback: foto do perfil.
+  const walkPhotoUrl = opts.photos && opts.photos.length > 0 ? opts.photos[0] : null
+  const heroImg = walkPhotoUrl ? await loadCardImage(walkPhotoUrl) : null
+  const petImg = !heroImg && opts.petPhotoUrl ? await loadCardImage(opts.petPhotoUrl) : null
+
+  if (heroImg) {
+    // ── LAYOUT STRAVA: foto grande do momento + badge do mapa + nome sobreposto ──
+    const hx = mapPad, hy = 150, hw = W - mapPad * 2, hh = 900
+    ctx.save()
+    roundRect(ctx, hx, hy, hw, hh, 36)
+    ctx.clip()
+    const s = Math.max(hw / heroImg.width, hh / heroImg.height)
+    const dw = heroImg.width * s, dh = heroImg.height * s
+    ctx.drawImage(heroImg, hx + (hw - dw) / 2, hy + (hh - dh) / 2, dw, dh)
+    // gradiente inferior pra legibilidade do nome
+    const og = ctx.createLinearGradient(0, hy + hh - 320, 0, hy + hh)
+    og.addColorStop(0, 'rgba(0,0,0,0)')
+    og.addColorStop(1, 'rgba(0,0,0,0.62)')
+    ctx.fillStyle = og
+    ctx.fillRect(hx, hy + hh - 320, hw, 320)
+    // nome do pet sobreposto (bottom-left)
+    ctx.textAlign = 'left'
+    ctx.font = 'bold 68px -apple-system, sans-serif'
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText('Passeio com ' + opts.petName, hx + 44, hy + hh - 56)
+    ctx.restore()
+    // badge do mapa no canto inferior direito
+    if (opts.routePoints.length >= 2) {
+      const bs = 260, bx = hx + hw - bs - 32, by = hy + hh - bs - 32
+      ctx.save()
+      roundRect(ctx, bx, by, bs, bs, 24)
+      ctx.fillStyle = 'rgba(255,255,255,0.96)'
+      ctx.fill()
+      ctx.clip()
+      drawRoute(ctx, opts.routePoints, bx + 24, by + 24, bs - 48, bs - 48)
+      ctx.restore()
+      ctx.lineWidth = 6; ctx.strokeStyle = '#ffffff'
+      roundRect(ctx, bx, by, bs, bs, 24); ctx.stroke()
+    }
   } else {
-    ctx.fillStyle = '#d1fae5'
-    ctx.fillRect(avCx - avR, avCy - avR, avR * 2, avR * 2)
-    ctx.fillStyle = '#059669'
-    ctx.font = '90px -apple-system, sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText('🐶', avCx, avCy + 32)
-  }
-  ctx.restore()
-
-  ctx.font = 'bold 44px -apple-system, sans-serif'
-  ctx.fillStyle = '#ffffff'
-  ctx.textAlign = 'center'
-  ctx.fillText('passeio com ' + opts.petName, W / 2, 400)
-
-  // Map area — desenhar a rota
-  const mapY = 450
-  const mapH = 560
-  const mapPad = 80
-  ctx.fillStyle = 'rgba(255,255,255,0.95)'
-  roundRect(ctx, mapPad, mapY, W - mapPad * 2, mapH, 32)
-  ctx.fill()
-
-  if (opts.routePoints.length >= 2) {
-    drawRoute(ctx, opts.routePoints, mapPad + 40, mapY + 40, W - mapPad * 2 - 80, mapH - 80)
-  } else {
-    ctx.fillStyle = '#10b981'
-    ctx.font = '32px -apple-system, sans-serif'
-    ctx.fillText('🗺️', W / 2, mapY + mapH / 2 + 12)
+    // ── LAYOUT SEM FOTO: círculo do pet + mapa grande ──
+    const avCx = W / 2, avCy = 250, avR = 84
+    ctx.save()
+    ctx.beginPath(); ctx.arc(avCx, avCy, avR + 7, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill()
+    ctx.beginPath(); ctx.arc(avCx, avCy, avR, 0, Math.PI * 2); ctx.clip()
+    if (petImg) {
+      const s = Math.max((avR * 2) / petImg.width, (avR * 2) / petImg.height)
+      const dw = petImg.width * s, dh = petImg.height * s
+      ctx.drawImage(petImg, avCx - dw / 2, avCy - dh / 2, dw, dh)
+    } else {
+      ctx.fillStyle = '#d1fae5'; ctx.fillRect(avCx - avR, avCy - avR, avR * 2, avR * 2)
+      ctx.fillStyle = '#059669'; ctx.font = '90px -apple-system, sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText('🐶', avCx, avCy + 32)
+    }
+    ctx.restore()
+    ctx.font = 'bold 44px -apple-system, sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'
+    ctx.fillText('passeio com ' + opts.petName, W / 2, 400)
+    const mapY = 450, mapH = 560
+    ctx.fillStyle = 'rgba(255,255,255,0.95)'
+    roundRect(ctx, mapPad, mapY, W - mapPad * 2, mapH, 32); ctx.fill()
+    if (opts.routePoints.length >= 2) {
+      drawRoute(ctx, opts.routePoints, mapPad + 40, mapY + 40, W - mapPad * 2 - 80, mapH - 80)
+    } else {
+      ctx.fillStyle = '#10b981'; ctx.font = '32px -apple-system, sans-serif'
+      ctx.fillText('🗺️', W / 2, mapY + mapH / 2 + 12)
+    }
   }
 
   // Stats section

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { ArrowLeft, Share2, Trash2, Smile, Frown, Meh, Trophy, Heart, Download, Instagram, MessageCircle, X } from 'lucide-react'
+import { ArrowLeft, Share2, Trash2, Smile, Frown, Meh, Trophy, Heart, Download, Instagram, MessageCircle, X, Camera } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PaceChart } from '@/components/walks/PaceChart'
 import { track } from '@/lib/track'
@@ -49,6 +49,7 @@ export default function WalkDetailPage() {
   // Card pré-gerado: navigator.share precisa ser chamado no MESMO gesto do toque
   // (senão o iOS bloqueia com "erro ao compartilhar"). Geramos ao abrir a tela.
   const [prepared, setPrepared] = useState<{ file: File; blob: Blob; text: string } | null>(null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -123,6 +124,25 @@ export default function WalkDetailPage() {
     const file = new File([blob], `petlife-passeio-${walk.id}.png`, { type: 'image/png' })
     const text = `Passeio com ${walk.pet_name ?? 'meu pet'} 🐾\n${formatDistance(walk.distance_meters)} em ${formatDuration(walk.duration_seconds)}\n\nfeito no @petlife.app`
     return { blob, file, text }
+  }
+
+  async function handleCapturePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // permite recapturar a mesma foto
+    if (!file || !walk) return
+    setUploadingPhoto(true)
+    void hapticLight()
+    try {
+      const updated = await walks.uploadPhoto(walk.id, file)
+      setWalk(updated) // dispara o useEffect que regenera o card com a foto
+      celebrate('small')
+      success('Foto adicionada ao card! 📸')
+    } catch (err) {
+      void hapticError()
+      error(err instanceof Error ? err.message : 'Não consegui adicionar a foto.')
+    } finally {
+      setUploadingPhoto(false)
+    }
   }
 
   async function markShared() {
@@ -252,6 +272,21 @@ export default function WalkDetailPage() {
         />
 
         {(walk.route_points?.length ?? 0) >= 4 && <PaceChart points={walk.route_points ?? []} />}
+
+      {/* Foto do momento — vira o herói do card (estilo Strava) */}
+      <label
+        className={`pressable w-full mt-3 py-3 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 text-sm font-semibold cursor-pointer transition ${
+          (walk.photos?.length ?? 0) > 0
+            ? 'border-emerald-300 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30'
+            : 'border-primary-300 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-950/30'
+        } ${uploadingPhoto ? 'opacity-60 pointer-events-none' : ''}`}
+      >
+        <Camera className="w-4 h-4" />
+        {uploadingPhoto
+          ? 'Enviando foto...'
+          : (walk.photos?.length ?? 0) > 0 ? 'Trocar foto do passeio 📸' : 'Tirar foto com o pet agora 📸'}
+        <input type="file" accept="image/*" capture="environment" onChange={handleCapturePhoto} className="hidden" />
+      </label>
 
       <button
         onClick={() => { track('recap_share'); void handleNativeShare() }}

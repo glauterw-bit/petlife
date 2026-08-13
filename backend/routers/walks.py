@@ -64,7 +64,7 @@ def _serialize(walk: WalkSession, include_route: bool = True) -> dict:
         "ended_at": walk.ended_at,
         "duration_seconds": walk.duration_seconds,
         "distance_meters": walk.distance_meters,
-        "photos": walk.photos or [],
+        "photos": [absolute_media_url(p) for p in (walk.photos or [])],
         "note": walk.note,
         "mood": walk.mood,
         "weather": walk.weather,
