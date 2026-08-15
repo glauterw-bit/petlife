@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
-import { pets as petsApi, vaccines as vaccinesApi, gamification, reminders as remindersApi, type Pet, type Vaccine, type Reminder, type UserPoints } from '@/lib/api'
+import { pets as petsApi, vaccines as vaccinesApi, walks as walksApi, gamification, reminders as remindersApi, type Pet, type Vaccine, type Reminder, type UserPoints } from '@/lib/api'
 import { formatDate, formatAge, getSpeciesEmoji, getVaccineStatus, getLevelName, getBadgeColor } from '@/lib/utils'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { HealthScoreCard } from '@/components/health/HealthScoreCard'
@@ -19,6 +19,7 @@ import { syncHealthNotifications } from '@/lib/notifications'
 import { trackHappyMoment } from '@/lib/review'
 import { PetHero } from '@/components/pets/PetHero'
 import { ReferralCard } from '@/components/growth/ReferralCard'
+import { OnboardingChecklist } from '@/components/growth/OnboardingChecklist'
 import { EmptyState } from '@/components/ui/EmptyState'
 
 export default function DashboardPage() {
@@ -29,20 +30,26 @@ export default function DashboardPage() {
   const [points, setPoints] = useState<UserPoints | null>(null)
   const [loading, setLoading] = useState(true)
   const [scoreRefresh, setScoreRefresh] = useState(0)
+  const [hasVaccine, setHasVaccine] = useState(false)
+  const [hasWalk, setHasWalk] = useState(false)
 
   useEffect(() => {
     async function load() {
       try {
-        const [p, v, r, pts] = await Promise.allSettled([
+        const [p, v, r, pts, allVax, recentWalks] = await Promise.allSettled([
           petsApi.list(),
           vaccinesApi.getUpcoming(30),
           remindersApi.getUpcoming(7),
           gamification.getUserPoints(),
+          vaccinesApi.list(),
+          walksApi.list({ limit: 1 }),
         ])
         if (p.status === 'fulfilled') setPets(p.value)
         if (v.status === 'fulfilled') setUpcomingVaccines(v.value)
         if (r.status === 'fulfilled') setUpcomingReminders(r.value)
         if (pts.status === 'fulfilled') setPoints(pts.value)
+        if (allVax.status === 'fulfilled') setHasVaccine((allVax.value?.length ?? 0) > 0)
+        if (recentWalks.status === 'fulfilled') setHasWalk((recentWalks.value?.length ?? 0) > 0)
         // Agenda notificações locais de vacinas/lembretes (no-op fora do app nativo)
         void syncHealthNotifications(
           v.status === 'fulfilled' ? v.value : [],
@@ -83,6 +90,16 @@ export default function DashboardPage() {
             Adicione seu primeiro pet para começar!
           </p>
         </div>
+      )}
+
+      {/* Primeiros passos — guia de ativação (some sozinho quando concluído/dispensado) */}
+      {pets.length > 0 && (
+        <OnboardingChecklist
+          pet={pets[0]}
+          hasVaccine={hasVaccine}
+          hasWalk={hasWalk}
+          firstName={user?.name?.split(' ')[0]}
+        />
       )}
 
       {/* Daily check-in + Health Score + Streak — engajamento diário */}

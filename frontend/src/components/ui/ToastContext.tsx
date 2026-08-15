@@ -33,9 +33,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast, success, error, warning, info }}>
       {children}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      {/*
+        Respeita a safe-area (notch / Dynamic Island) pra o banner NÃO ficar
+        cortado no topo, e desce o suficiente pra não colidir com o sininho
+        (que também fica no canto superior direito). Insets laterais evitam
+        corte nas bordas em telas estreitas.
+      */}
+      <div
+        className="fixed z-50 flex flex-col items-end gap-2 pointer-events-none"
+        style={{
+          top: 'calc(env(safe-area-inset-top) + 3.5rem)',
+          right: 'max(0.75rem, env(safe-area-inset-right))',
+          left: 'max(0.75rem, env(safe-area-inset-left))',
+        }}
+      >
         {toasts.map(t => (
-          <div key={t.id} className="pointer-events-auto">
+          <div key={t.id} className="pointer-events-auto w-full max-w-sm">
             <Toast toast={t} onRemove={removeToast} />
           </div>
         ))}
