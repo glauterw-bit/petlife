@@ -1504,6 +1504,11 @@ export const adminStats = {
     const res = await fetch(`${API_URL}/admin/reset-requests`, { headers: getAuthHeaders() })
     return handleResponse<{ pending: number; requests: ResetRequest[] }>(res)
   },
+  /** O que os tutores mais perguntam à Vyron — por tema (sem texto das perguntas). */
+  aiTopics: async (days = 90) => {
+    const res = await fetch(`${API_URL}/admin/ai-topics?days=${days}`, { headers: getAuthHeaders() })
+    return handleResponse<AiTopicsReport>(res)
+  },
   generateResetCode: async (id: number) => {
     const res = await fetch(`${API_URL}/admin/reset-requests/${id}/code`, {
       method: 'POST', headers: getAuthHeaders(),
@@ -1553,7 +1558,7 @@ export interface AdminUser {
 
 export interface AdminStats {
   generated_at: string
-  opens: { total: number; last_30d: number; unique_users: number; reopeners: number; avg_per_user: number; by_day: Array<{ day: string; opens: number }> }
+  opens: { total: number; last_30d: number; unique_users: number; reopeners: number; avg_per_user: number; by_day: Array<{ day: string; opens: number; users?: number }> }
   top_features: Array<{ name: string; count: number }>
   activation: { signed_up: number; created_pet: number; created_pet_pct: number; still_active_7d: number; still_active_30d: number; retained_7d: number; retained_7d_base: number; retained_7d_pct: number }
   users: { total: number; new_7d: number; new_30d: number; dau: number; wau: number; mau: number; active_30d_signals: number; vets: number; by_tier: Record<string, number> }
@@ -1633,6 +1638,13 @@ export interface PublicPetProfile {
     vaccines_ok: boolean
     member_since?: string | null
   }
+}
+
+export interface AiTopicsReport {
+  total: number
+  days: number
+  topics: Array<{ topic: string; label: string; count: number; pct: number }>
+  by_species: Record<string, number>
 }
 
 export interface FeedbackItem {

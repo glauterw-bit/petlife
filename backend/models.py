@@ -669,3 +669,19 @@ class Feedback(Base):
     can_contact = Column(Boolean, default=False, nullable=False)
     source = Column(String(40), nullable=True)       # de onde veio (popup_2026_08)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class AiTopicLog(Base):
+    """Tema das perguntas feitas à Vyron IA — SEM o texto da pergunta.
+
+    Só a categoria (ver ai_topics.py) é gravada, para mapear o que os tutores
+    mais precisam sem armazenar conteúdo pessoal.
+    """
+
+    __tablename__ = "ai_topic_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    topic = Column(String(40), nullable=False, index=True)
+    species = Column(String(10), nullable=True)   # dog/cat — dá pra cruzar tema x espécie
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)

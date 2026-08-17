@@ -9,7 +9,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import dynamic from 'next/dynamic'
-import { adminStats, feedback as feedbackApi, type AdminStats, type AdminUser, type AdminLocations, type ResetRequest, type FeedbackList } from '@/lib/api'
+import { adminStats, feedback as feedbackApi, type AdminStats, type AdminUser, type AdminLocations, type ResetRequest, type FeedbackList, type AiTopicsReport } from '@/lib/api'
 
 const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
   ssr: false,
@@ -29,6 +29,7 @@ export default function AdminPage() {
   const [locations, setLocations] = useState<AdminLocations | null>(null)
   const [resetReqs, setResetReqs] = useState<ResetRequest[]>([])
   const [fb, setFb] = useState<FeedbackList | null>(null)
+  const [topics, setTopics] = useState<AiTopicsReport | null>(null)
   const [codeFor, setCodeFor] = useState<{ id: number; code: string; wa: string | null; msg: string } | null>(null)
   const [search, setSearch] = useState('')
   const [denied, setDenied] = useState(false)
@@ -37,18 +38,20 @@ export default function AdminPage() {
   async function load() {
     try {
       setRefreshing(true)
-      const [st, us, loc, rr, fbs] = await Promise.all([
+      const [st, us, loc, rr, fbs, tps] = await Promise.all([
         adminStats.get(),
         adminStats.users().catch(() => ({ total: 0, users: [] })),
         adminStats.locations().catch(() => null),
         adminStats.resetRequests().catch(() => ({ pending: 0, requests: [] })),
         feedbackApi.list().catch(() => null),
+        adminStats.aiTopics().catch(() => null),
       ])
       setData(st)
       setUsers(us.users)
       setLocations(loc)
       setResetReqs(rr.requests)
       setFb(fbs)
+      setTopics(tps)
     } catch {
       setDenied(true)
       setTimeout(() => router.replace('/dashboard'), 1500)
@@ -145,6 +148,60 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* O que perguntam à Vyron IA — só temas, sem o texto das perguntas */}
+      {topics && (
+        <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl p-4 md:p-5 mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
+            <h3 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
+              🤖 O que perguntam à Vyron IA
+              <span className="text-xs font-medium text-surface-500 dark:text-surface-400 tabular-nums">
+                ({topics.total} pergunta{topics.total === 1 ? '' : 's'} · {topics.days}d)
+              </span>
+            </h3>
+            {Object.keys(topics.by_species).length > 0 && (
+              <div className="flex gap-1.5">
+                {Object.entries(topics.by_species).map(([sp, n]) => (
+                  <span key={sp} className="text-[11px] bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300 rounded-full px-2.5 py-1 tabular-nums font-medium">
+                    {sp === 'dog' ? '🐶' : '🐱'} {n}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <p className="text-[11px] text-surface-400 mb-3">
+            Só o tema é registrado — o texto das perguntas nunca é armazenado.
+          </p>
+
+          {topics.total === 0 ? (
+            <p className="text-xs text-surface-500 dark:text-surface-400 py-3 text-center">
+              Ainda sem dados. O mapeamento começou agora — os temas aparecem conforme os tutores usarem a Vyron.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {topics.topics.map(t => (
+                <div key={t.topic} className="flex items-center gap-3">
+                  <span className="text-xs text-surface-700 dark:text-surface-200 w-[168px] shrink-0 truncate">
+                    {t.label}
+                  </span>
+                  <div className="flex-1 h-2 bg-surface-100 dark:bg-surface-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.max(t.pct, 1.5)}%`,
+                        background: palette[0],
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-surface-900 dark:text-white tabular-nums w-16 text-right">
+                    {t.count} <span className="text-surface-400 font-normal">({t.pct}%)</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -292,14 +349,40 @@ export default function AdminPage() {
             <div><div className="text-xl font-bold text-surface-900 dark:text-white tabular-nums">{data.opens.reopeners}</div><div className="text-[10px] text-surface-400">reabriram (2+ dias)</div></div>
             <div><div className="text-xl font-bold text-surface-900 dark:text-white tabular-nums">{data.opens.avg_per_user}</div><div className="text-[10px] text-surface-400">média/usuário</div></div>
           </div>
-          <div className="flex items-end gap-1.5 h-20">
-            {data.opens.by_day.map(o => (
-              <div key={o.day} className="flex-1 flex flex-col items-center gap-1" title={`${o.day}: ${o.opens}`}>
-                <div className="w-full rounded-t" style={{ height: `${Math.max((o.opens / Math.max(...data.opens.by_day.map(x => x.opens), 1)) * 62, o.opens ? 4 : 2)}px`, background: palette[2], opacity: 0.85 }} />
-                <span className="text-[8px]" style={{ color: ink.axis }}>{o.day.slice(0, 2)}</span>
-              </div>
-            ))}
+          {/* legenda — duas séries, mesma escala (contagem) */}
+          <div className="flex items-center gap-4 mb-2">
+            <span className="flex items-center gap-1.5 text-[11px] text-surface-600 dark:text-surface-300">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ background: palette[0] }} />
+              Pessoas (únicas)
+            </span>
+            <span className="flex items-center gap-1.5 text-[11px] text-surface-600 dark:text-surface-300">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ background: palette[2] }} />
+              Aberturas (total)
+            </span>
           </div>
+          <div className="flex items-end gap-1.5 h-28">
+            {data.opens.by_day.map(o => {
+              const max = Math.max(...data.opens.by_day.map(x => Math.max(x.opens, x.users ?? 0)), 1)
+              const h = (v: number) => Math.max((v / max) * 88, v ? 4 : 2)
+              const users = o.users ?? 0
+              return (
+                <div
+                  key={o.day}
+                  className="flex-1 flex flex-col items-center gap-1 min-w-0"
+                  title={`${o.day} — ${users} pessoa(s), ${o.opens} abertura(s)`}
+                >
+                  <div className="w-full flex items-end justify-center gap-[2px] h-[88px]">
+                    <div className="flex-1 rounded-t" style={{ height: h(users), background: palette[0] }} />
+                    <div className="flex-1 rounded-t" style={{ height: h(o.opens), background: palette[2], opacity: 0.85 }} />
+                  </div>
+                  <span className="text-[8px] tabular-nums" style={{ color: ink.axis }}>{o.day.slice(0, 2)}</span>
+                </div>
+              )
+            })}
+          </div>
+          <p className="text-[10px] text-surface-400 mt-2">
+            Últimos 14 dias · passe o mouse pra ver os números do dia
+          </p>
         </div>
 
         <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">

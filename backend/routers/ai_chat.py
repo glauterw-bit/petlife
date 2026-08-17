@@ -10,7 +10,8 @@ from slowapi.util import get_remote_address
 _ai_limiter = Limiter(key_func=get_remote_address)
 
 from database import get_db
-from models import Pet, Anamnesis, Breed, Vaccine, Exam, Reminder, PetBehaviorLog, PetWeightHistory, BehaviorPlan, pet_accessible_filter, user_has_pet_access
+from models import Pet, Anamnesis, Breed, Vaccine, Exam, Reminder, PetBehaviorLog, PetWeightHistory, BehaviorPlan, AiTopicLog, pet_accessible_filter, user_has_pet_access
+import ai_topics
 from schemas import AIChatRequest, AIChatResponse, AIAnalysisRequest, AIAnalysisResponse
 from auth import get_current_user
 from models import User
@@ -187,6 +188,16 @@ async def ai_chat(
             conversation_history=body.conversation_history,
         )
         await subscriptions.consume_quota(db, current_user, "ai_chat")
+        # Mapeia SÓ o tema da pergunta (nunca o texto) — ver ai_topics.py
+        try:
+            db.add(AiTopicLog(
+                user_id=current_user.id,
+                topic=ai_topics.classify(body.question),
+                species=(pet_info or {}).get("species"),
+            ))
+            await db.commit()
+        except Exception:
+            pass
         return AIChatResponse(
             response=response_text,
             pet_name=pet_info["name"] if pet_info else None,

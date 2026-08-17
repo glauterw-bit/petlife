@@ -129,7 +129,8 @@ async def admin_stats(
         day = datetime(now.year, now.month, now.day) - timedelta(days=i)
         nxt = day + timedelta(days=1)
         c = await count(select(func.count(UsageEvent.id)).where(UsageEvent.event == "app_open", UsageEvent.created_at >= day, UsageEvent.created_at < nxt))
-        opens_by_day.append({"day": day.strftime("%d/%m"), "opens": c})
+        u = await count(select(func.count(func.distinct(UsageEvent.user_id))).where(UsageEvent.event == "app_open", UsageEvent.created_at >= day, UsageEvent.created_at < nxt))
+        opens_by_day.append({"day": day.strftime("%d/%m"), "opens": c, "users": u})
 
     # ── Funções mais usadas (30d — tabelas de domínio + eventos + IA do mês) ──
     async def c30(model, col):
@@ -403,4 +404,50 @@ async def generate_reset_code(
         "message": msg,
         "whatsapp_url": (f"https://wa.me/{phone}?text=" + quote(msg)) if phone else None,
         "expires_in_minutes": 30,
+    }
+
+
+@router.get("/ai-topics")
+async def ai_topics_report(
+    days: int = 90,
+    _: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """O que os tutores mais perguntam à Vyron IA — por TEMA.
+
+    Privacidade: o texto das perguntas nunca é armazenado; só a categoria
+    (classificada localmente em ai_topics.py).
+    """
+    import ai_topics
+    from models import AiTopicLog
+
+    since = datetime.utcnow() - timedelta(days=max(1, min(days, 365)))
+
+    rows = (await db.execute(
+        select(AiTopicLog.topic, func.count(AiTopicLog.id).label("n"))
+        .where(AiTopicLog.created_at >= since)
+        .group_by(AiTopicLog.topic)
+        .order_by(func.count(AiTopicLog.id).desc())
+    )).all()
+
+    total = sum(n for _t, n in rows)
+    by_species = (await db.execute(
+        select(AiTopicLog.species, func.count(AiTopicLog.id))
+        .where(AiTopicLog.created_at >= since, AiTopicLog.species.is_not(None))
+        .group_by(AiTopicLog.species)
+    )).all()
+
+    return {
+        "total": total,
+        "days": days,
+        "topics": [
+            {
+                "topic": t,
+                "label": ai_topics.label(t),
+                "count": n,
+                "pct": round(n * 100 / total, 1) if total else 0,
+            }
+            for t, n in rows
+        ],
+        "by_species": {s: n for s, n in by_species},
     }
