@@ -1635,6 +1635,29 @@ export interface PublicPetProfile {
   }
 }
 
+export const feedback = {
+  status: async (source = 'popup') => {
+    const res = await fetch(`${API_URL}/feedback/status?source=${encodeURIComponent(source)}`, {
+      headers: getAuthHeaders(),
+    })
+    return handleResponse<{ answered: boolean }>(res)
+  },
+  send: async (data: {
+    rating?: number
+    likes_most?: string
+    suggestion?: string
+    can_contact?: boolean
+    source?: string
+  }) => {
+    const res = await fetch(`${API_URL}/feedback`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handleResponse<{ ok: boolean; id: number }>(res)
+  },
+}
+
 export const growth = {
   myReferral: async () => {
     const res = await fetch(`${API_URL}/referrals/me`, { headers: getAuthHeaders() })

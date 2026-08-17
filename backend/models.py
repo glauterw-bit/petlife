@@ -654,3 +654,18 @@ async def notify_pet_collaborators(
         await db.flush()
     except Exception:
         pass
+
+
+class Feedback(Base):
+    """Feedback dos usuários — pesquisa de satisfação e sugestões de melhoria."""
+
+    __tablename__ = "feedbacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    rating = Column(Integer, nullable=True)          # 1-5 (satisfação geral)
+    likes_most = Column(Text, nullable=True)         # o que mais gosta
+    suggestion = Column(Text, nullable=True)         # o que melhorar / o que falta
+    can_contact = Column(Boolean, default=False, nullable=False)
+    source = Column(String(40), nullable=True)       # de onde veio (popup_2026_08)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)

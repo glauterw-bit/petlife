@@ -35,6 +35,7 @@ limiter = Limiter(
 )
 from routers import (
     auth_router,
+    feedback,
     pets,
     breeds,
     vaccines,
@@ -144,6 +145,7 @@ app.include_router(expenses.router)
 app.include_router(admin_stats.router)
 app.include_router(events.router)
 app.include_router(growth.router)
+app.include_router(feedback.router)
 
 
 @app.get("/public/lost/{pet_id}", tags=["Público"])

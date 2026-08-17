@@ -10,6 +10,7 @@ import { NotificationBell } from './NotificationBell'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { OnboardingModal } from '@/components/onboarding/OnboardingModal'
+import { FeedbackModal } from '@/components/feedback/FeedbackModal'
 import { AIChatWidget } from '@/components/ai/AIChatWidget'
 import { QuotaUpsellModal } from '@/components/billing/QuotaUpsellModal'
 import { CelebrationOverlay, celebrate } from '@/components/ui/CelebrationOverlay'
@@ -94,6 +95,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {!isVetUser && <AIChatWidget pets={pets} />}
       {!isVetUser && <BottomNav />}
       {!isVetUser && <OnboardingModal />}
+      {!isVetUser && <FeedbackModal />}
       {!isVetUser && <QuotaUpsellModal />}
       <CelebrationOverlay />
     </div>
