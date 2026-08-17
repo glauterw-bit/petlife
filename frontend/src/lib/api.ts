@@ -1635,7 +1635,30 @@ export interface PublicPetProfile {
   }
 }
 
+export interface FeedbackItem {
+  id: number
+  rating: number | null
+  likes_most: string | null
+  suggestion: string | null
+  can_contact: boolean
+  source: string | null
+  created_at: string | null
+  user_name: string | null
+  user_email: string | null
+}
+
+export interface FeedbackList {
+  total: number
+  avg_rating: number | null
+  items: FeedbackItem[]
+}
+
 export const feedback = {
+  /** Leitura das respostas — só admin (403 pros demais). */
+  list: async (limit = 200) => {
+    const res = await fetch(`${API_URL}/feedback?limit=${limit}`, { headers: getAuthHeaders() })
+    return handleResponse<FeedbackList>(res)
+  },
   status: async (source = 'popup') => {
     const res = await fetch(`${API_URL}/feedback/status?source=${encodeURIComponent(source)}`, {
       headers: getAuthHeaders(),

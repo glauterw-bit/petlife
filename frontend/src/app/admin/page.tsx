@@ -9,7 +9,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import dynamic from 'next/dynamic'
-import { adminStats, type AdminStats, type AdminUser, type AdminLocations, type ResetRequest } from '@/lib/api'
+import { adminStats, feedback as feedbackApi, type AdminStats, type AdminUser, type AdminLocations, type ResetRequest, type FeedbackList } from '@/lib/api'
 
 const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
   ssr: false,
@@ -28,6 +28,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [locations, setLocations] = useState<AdminLocations | null>(null)
   const [resetReqs, setResetReqs] = useState<ResetRequest[]>([])
+  const [fb, setFb] = useState<FeedbackList | null>(null)
   const [codeFor, setCodeFor] = useState<{ id: number; code: string; wa: string | null; msg: string } | null>(null)
   const [search, setSearch] = useState('')
   const [denied, setDenied] = useState(false)
@@ -36,16 +37,18 @@ export default function AdminPage() {
   async function load() {
     try {
       setRefreshing(true)
-      const [st, us, loc, rr] = await Promise.all([
+      const [st, us, loc, rr, fbs] = await Promise.all([
         adminStats.get(),
         adminStats.users().catch(() => ({ total: 0, users: [] })),
         adminStats.locations().catch(() => null),
         adminStats.resetRequests().catch(() => ({ pending: 0, requests: [] })),
+        feedbackApi.list().catch(() => null),
       ])
       setData(st)
       setUsers(us.users)
       setLocations(loc)
       setResetReqs(rr.requests)
+      setFb(fbs)
     } catch {
       setDenied(true)
       setTimeout(() => router.replace('/dashboard'), 1500)
@@ -142,6 +145,93 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Feedback dos usuários — respostas do popup de pesquisa */}
+      {fb && fb.total > 0 && (
+        <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl p-4 md:p-5 mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <h3 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
+              💬 Feedback dos usuários
+              <span className="text-xs font-medium text-surface-500 dark:text-surface-400 tabular-nums">
+                ({fb.total} resposta{fb.total > 1 ? 's' : ''})
+              </span>
+            </h3>
+            {fb.avg_rating != null && (
+              <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 tabular-nums">
+                ⭐ Nota média {fb.avg_rating.toFixed(1)}/5
+              </span>
+            )}
+          </div>
+
+          {/* distribuição das notas */}
+          <div className="flex items-center gap-1.5 mb-4 flex-wrap">
+            {[5, 4, 3, 2, 1].map(n => {
+              const count = fb.items.filter(i => i.rating === n).length
+              const emoji = ['😞', '😕', '🙂', '😃', '🤩'][n - 1]
+              return (
+                <span
+                  key={n}
+                  className="text-xs bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 rounded-full px-2.5 py-1 tabular-nums font-medium"
+                >
+                  {emoji} {count}
+                </span>
+              )
+            })}
+          </div>
+
+          <div className="space-y-2.5 max-h-[520px] overflow-y-auto">
+            {fb.items.map(f => (
+              <div
+                key={f.id}
+                className="rounded-xl border border-surface-100 dark:border-surface-700 p-3 bg-surface-50/60 dark:bg-surface-900/30"
+              >
+                <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                  {f.rating && (
+                    <span className="text-base leading-none">{['😞', '😕', '🙂', '😃', '🤩'][f.rating - 1]}</span>
+                  )}
+                  <span className="text-sm font-semibold text-surface-900 dark:text-white">
+                    {f.user_name || 'Usuário'}
+                  </span>
+                  {f.user_email && (
+                    <a
+                      href={`mailto:${f.user_email}?subject=${encodeURIComponent('Sobre seu feedback no PetLife 🐾')}`}
+                      className="text-[11px] text-primary-600 dark:text-primary-400 hover:underline"
+                    >
+                      {f.user_email}
+                    </a>
+                  )}
+                  {f.created_at && (
+                    <span className="text-[10px] text-surface-400 ml-auto tabular-nums">
+                      {new Date(f.created_at + 'Z').toLocaleString('pt-BR', {
+                        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                      })}
+                    </span>
+                  )}
+                </div>
+                {f.likes_most && (
+                  <p className="text-xs text-surface-700 dark:text-surface-200 leading-snug">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Gosta:</span> {f.likes_most}
+                  </p>
+                )}
+                {f.suggestion && (
+                  <p className="text-xs text-surface-700 dark:text-surface-200 leading-snug mt-1">
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold">Sugere:</span> {f.suggestion}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {fb && fb.total === 0 && (
+        <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl p-5 mb-6 text-center">
+          <h3 className="font-bold text-surface-900 dark:text-white mb-1">💬 Feedback dos usuários</h3>
+          <p className="text-xs text-surface-500 dark:text-surface-400">
+            O popup de pesquisa está no ar. As respostas aparecem aqui assim que chegarem.
+          </p>
         </div>
       )}
 
