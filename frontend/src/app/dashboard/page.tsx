@@ -55,6 +55,7 @@ export default function DashboardPage() {
           v.status === 'fulfilled' ? v.value : [],
           r.status === 'fulfilled' ? r.value : [],
           p.status === 'fulfilled' ? p.value : [],
+          allVax.status === 'fulfilled' ? (allVax.value?.length ?? 0) > 0 : true,
         )
       } finally {
         setLoading(false)

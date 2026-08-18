@@ -14,6 +14,7 @@ import type { Vaccine, Reminder, Pet } from './api'
 const VACCINE_BASE = 100_000
 const REMINDER_BASE = 500_000
 const BDAY_BASE = 900_000
+const ENGAGE_BASE = 700_000
 
 function isNative(): boolean {
   if (typeof window === 'undefined') return false
@@ -38,6 +39,8 @@ export async function syncHealthNotifications(
   vaccines: Vaccine[],
   reminders: Reminder[],
   pets: Pet[] = [],
+  /** true = o tutor já registrou ao menos 1 vacina (não é o mesmo que ter vacina vencendo). */
+  hasAnyVaccine = true,
 ): Promise<boolean> {
   if (!isNative()) return false
   try {
@@ -108,6 +111,49 @@ export async function syncHealthNotifications(
         body: 'Abra o PetLife pra celebrar e compartilhar o momento 🎉',
         schedule: { at: next },
       })
+    }
+
+    // 🐾 Loop de engajamento — o motivo de voltar TODO dia.
+    // Sem isso o app só avisa de vacina (raro) e aniversário (1x/ano): quem
+    // cadastra o pet e não registra vacina nunca mais recebe nada.
+    // Reagendado a cada abertura, então a janela de 7 dias anda junto.
+    const first = pets[0]
+    if (first) {
+      const nome = first.name
+      const semVacina = !hasAnyVaccine
+
+      // Convite diário pro check-in (19h) — alimenta o streak
+      const CHECKIN_COPY = [
+        { t: `Como o ${nome} está hoje?`, b: 'Leva 5 segundos e mantém sua sequência de cuidado 🔥' },
+        { t: `Tudo bem com o ${nome}? 🐾`, b: 'Faça o check-in de hoje e acompanhe o Score de Saúde.' },
+        { t: `Um minutinho pro ${nome}?`, b: 'Registre como ele está e não perca sua sequência.' },
+        { t: `${nome} merece esse cuidado 💚`, b: 'Check-in rápido de hoje no PetLife.' },
+      ]
+      for (let d = 0; d < 7; d++) {
+        const at = new Date()
+        at.setDate(at.getDate() + d)
+        at.setHours(19, 0, 0, 0)
+        if (at.getTime() <= now) continue
+        const c = CHECKIN_COPY[d % CHECKIN_COPY.length]
+        notifs.push({ id: ENGAGE_BASE + d, title: `🐾 ${c.t}`, body: c.b, schedule: { at } })
+      }
+
+      // Empurrão pra completar a carteirinha (só enquanto não houver vacina):
+      // é a ação que destrava o valor real do app e liga os lembretes futuros.
+      if (semVacina) {
+        const DIAS = [1, 3, 7]
+        for (let i = 0; i < DIAS.length; i++) {
+          const at = new Date()
+          at.setDate(at.getDate() + DIAS[i])
+          at.setHours(10, 0, 0, 0)
+          notifs.push({
+            id: ENGAGE_BASE + 100 + i,
+            title: `💉 A carteirinha do ${nome} está vazia`,
+            body: 'Adicione a 1ª vacina e o PetLife avisa você antes de cada reforço vencer.',
+            schedule: { at },
+          })
+        }
+      }
     }
 
     // iOS tolera até 64 pendentes por app — mantém margem

@@ -14,7 +14,9 @@ import { hapticLight, hapticSuccess } from '@/lib/feedback'
  * app, nunca em cima de uma ação do usuário.
  */
 
-const SOURCE = 'popup_2026_08'
+// Bump da versão = a pesquisa volta a aparecer pra todo mundo (o servidor
+// checa "já respondeu?" por origem, então uma origem nova reabre o convite).
+const SOURCE = 'popup_2026_08_v2'
 const DISMISS_KEY = `petlife_feedback_${SOURCE}_dismissed`
 const DELAY_MS = 4000
 
