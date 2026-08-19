@@ -5,6 +5,7 @@ import { Heart, ChevronDown, Syringe, Scale, Footprints, Smile, CalendarCheck, S
 import { innovations, type HealthScore, type Pet } from '@/lib/api'
 import { HealthScoreRing } from './HealthScoreRing'
 import { useInView, STATUS_COLORS, scoreColor } from '@/lib/motion'
+import { useT } from '@/contexts/LocaleContext'
 
 const DIM_ICON: Record<string, React.ReactNode> = {
   vaccination: <Syringe className="w-4 h-4" />,
@@ -14,14 +15,24 @@ const DIM_ICON: Record<string, React.ReactNode> = {
   consistency: <CalendarCheck className="w-4 h-4" />,
 }
 
-const TIER_COPY: Record<string, { label: string; emoji: string }> = {
-  excelente: { label: 'Saúde excelente', emoji: '🌟' },
-  saudavel: { label: 'Saudável', emoji: '💚' },
-  atencao: { label: 'Requer atenção', emoji: '⚠️' },
-  cuidado: { label: 'Precisa de cuidado', emoji: '🩺' },
+const TIER_COPY: Record<string, { labelKey: string; emoji: string }> = {
+  excelente: { labelKey: 'health.tier.excelente', emoji: '🌟' },
+  saudavel: { labelKey: 'health.tier.saudavel', emoji: '💚' },
+  atencao: { labelKey: 'health.tier.atencao', emoji: '⚠️' },
+  cuidado: { labelKey: 'health.tier.cuidado', emoji: '🩺' },
+}
+
+/** As 5 dimensões vêm do backend em PT; o rótulo é traduzido pela chave. */
+const DIM_LABEL_KEY: Record<string, string> = {
+  vaccination: 'health.dim.vaccination',
+  weight: 'health.dim.weight',
+  activity: 'health.dim.activity',
+  wellbeing: 'health.dim.wellbeing',
+  consistency: 'health.dim.consistency',
 }
 
 export function HealthScoreCard({ pet }: { pet: Pet }) {
+  const t = useT()
   const [data, setData] = useState<HealthScore | null>(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
@@ -80,14 +91,14 @@ export function HealthScoreCard({ pet }: { pet: Pet }) {
             <Heart className="w-4 h-4 text-pink-500" />
           </span>
           <h2 className="text-sm font-semibold text-surface-700 dark:text-surface-200 truncate">
-            Saúde do {data.pet_name}
+            {t('health.title', { name: data.pet_name })}
           </h2>
         </div>
         <span
           className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap"
           style={{ color, background: `${color}1f` }}
         >
-          {tier.emoji} {tier.label}
+          {tier.emoji} {t(tier.labelKey)}
         </span>
       </div>
 
@@ -101,7 +112,7 @@ export function HealthScoreCard({ pet }: { pet: Pet }) {
             <div className="flex items-center gap-1.5 mb-1">
               <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color }} />
               <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color }}>
-                Próximo passo
+                {t('health.nextStep')}
               </span>
             </div>
             <div className="text-sm font-bold text-surface-900 dark:text-white leading-snug">
@@ -134,7 +145,7 @@ export function HealthScoreCard({ pet }: { pet: Pet }) {
                 {dim.score}
               </span>
               <span className="text-[9px] text-surface-500 dark:text-surface-400 leading-tight text-center w-full truncate">
-                {dim.label}
+                {DIM_LABEL_KEY[dim.key] ? t(DIM_LABEL_KEY[dim.key]) : dim.label}
               </span>
             </button>
           )
@@ -146,7 +157,7 @@ export function HealthScoreCard({ pet }: { pet: Pet }) {
         onClick={() => setExpanded(v => !v)}
         className="mt-3 w-full flex items-center justify-center gap-1 text-xs font-medium text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 tap-target transition"
       >
-        {expanded ? 'Ocultar detalhes' : 'Ver o que compõe o score'}
+        {expanded ? t('health.hideBreakdown') : t('health.seeBreakdown')}
         <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
@@ -165,7 +176,7 @@ export function HealthScoreCard({ pet }: { pet: Pet }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-surface-800 dark:text-surface-200">{dim.label}</span>
+                      <span className="text-xs font-semibold text-surface-800 dark:text-surface-200">{DIM_LABEL_KEY[dim.key] ? t(DIM_LABEL_KEY[dim.key]) : dim.label}</span>
                       <span className={`text-xs font-bold tabular-nums ${c.text}`}>{dim.score}</span>
                     </div>
                     <div className="h-1.5 bg-surface-100 dark:bg-surface-700 rounded-full mt-1 overflow-hidden">

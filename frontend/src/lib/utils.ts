@@ -1,16 +1,34 @@
 import { format, differenceInYears, differenceInMonths, parseISO, isValid } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { ptBR, enUS, es as esLocale } from 'date-fns/locale'
+
+/**
+ * Locale de datas. Fica num módulo simples (e não num React context) porque
+ * formatDate/formatAge são funções puras chamadas de dezenas de lugares,
+ * inclusive fora de componentes. O LocaleProvider chama setDateLocale() na
+ * troca de idioma.
+ */
+type DateLocaleKey = 'pt-BR' | 'en' | 'es'
+let _dateLocale: DateLocaleKey = 'pt-BR'
+const DF = { 'pt-BR': ptBR, en: enUS, es: esLocale }
+const DATE_FMT: Record<DateLocaleKey, string> = {
+  'pt-BR': 'dd/MM/yyyy',
+  en: 'MM/dd/yyyy',
+  es: 'dd/MM/yyyy',
+}
+
+export function setDateLocale(l: DateLocaleKey) { _dateLocale = l }
+export function getDateLocale(): DateLocaleKey { return _dateLocale }
 
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ')
 }
 
-export function formatDate(dateStr?: string | null, fmt = 'dd/MM/yyyy'): string {
+export function formatDate(dateStr?: string | null, fmt?: string): string {
   if (!dateStr) return '—'
   try {
     const d = parseISO(dateStr)
     if (!isValid(d)) return '—'
-    return format(d, fmt, { locale: ptBR })
+    return format(d, fmt ?? DATE_FMT[_dateLocale], { locale: DF[_dateLocale] })
   } catch {
     return '—'
   }
@@ -23,10 +41,27 @@ export function formatAge(birthDate?: string | null): string {
     if (!isValid(d)) return '—'
     const now = new Date()
     const years = differenceInYears(now, d)
-    if (years > 0) return `${years} ano${years > 1 ? 's' : ''}`
     const months = differenceInMonths(now, d)
-    if (months > 0) return `${months} mês${months > 1 ? 'es' : ''}`
-    return 'Filhote'
+    const L = {
+      'pt-BR': {
+        y: (n: number) => `${n} ano${n > 1 ? 's' : ''}`,
+        m: (n: number) => `${n} mês${n > 1 ? 'es' : ''}`,
+        baby: 'Filhote',
+      },
+      en: {
+        y: (n: number) => `${n} year${n > 1 ? 's' : ''}`,
+        m: (n: number) => `${n} month${n > 1 ? 's' : ''}`,
+        baby: 'Baby',
+      },
+      es: {
+        y: (n: number) => `${n} año${n > 1 ? 's' : ''}`,
+        m: (n: number) => `${n} mes${n > 1 ? 'es' : ''}`,
+        baby: 'Cachorro',
+      },
+    }[_dateLocale]
+    if (years > 0) return L.y(years)
+    if (months > 0) return L.m(months)
+    return L.baby
   } catch {
     return '—'
   }

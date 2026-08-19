@@ -1,7 +1,7 @@
 'use client'
 
 import { useTheme } from '@/contexts/ThemeContext'
-import { useLocale } from '@/contexts/LocaleContext'
+import { useLocale, useT } from '@/contexts/LocaleContext'
 import { LOCALES, LOCALE_FLAG, LOCALE_LABEL } from '@/lib/i18n/types'
 
 import { useState, FormEvent } from 'react'
@@ -13,9 +13,13 @@ import { auth } from '@/lib/api'
 import { setUser } from '@/lib/auth'
 import { useToast } from '@/components/ui/ToastContext'
 
+/** Frase de confirmação exigida pelo backend — não traduzir. */
+const DELETE_CONFIRM_PHRASE = 'APAGAR MINHA CONTA'
+
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
   const { success, error } = useToast()
+  const t = useT()
 
   const [profileForm, setProfileForm] = useState({
     name: user?.name ?? '',
@@ -38,24 +42,24 @@ export default function SettingsPage() {
       const updated = await auth.updateProfile({ name: profileForm.name, phone: profileForm.phone })
       setUser(updated)
       await refreshUser()
-      success('Perfil atualizado com sucesso!')
+      success(t('ac.set.profileSaved'))
     } catch (err: unknown) {
-      error(err instanceof Error ? err.message : 'Erro ao atualizar perfil.')
+      error(err instanceof Error ? err.message : t('ac.set.profileErr'))
     } finally { setSavingProfile(false) }
   }
 
   async function handlePassSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!passForm.current) { error('Informe a senha atual.'); return }
-    if (passForm.password !== passForm.confirm) { error('As senhas não coincidem.'); return }
-    if (passForm.password.length < 6) { error('A senha deve ter pelo menos 6 caracteres.'); return }
+    if (!passForm.current) { error(t('ac.set.currentPassRequired')); return }
+    if (passForm.password !== passForm.confirm) { error(t('ac.err.passMismatch')); return }
+    if (passForm.password.length < 6) { error(t('ac.err.passMin6')); return }
     setSavingPass(true)
     try {
       await auth.changePassword(passForm.current, passForm.password)
-      success('Senha alterada com sucesso!')
+      success(t('ac.set.passChanged'))
       setPassForm({ current: '', password: '', confirm: '' })
     } catch (err: unknown) {
-      error(err instanceof Error ? err.message : 'Erro ao alterar senha.')
+      error(err instanceof Error ? err.message : t('ac.set.passErr'))
     } finally { setSavingPass(false) }
   }
 
@@ -63,8 +67,8 @@ export default function SettingsPage() {
     <DashboardLayout>
       <div className="max-w-2xl">
         <div className="mb-5 md:mb-6 ">
-          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">Configurações</h1>
-          <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">Gerencie as informações da sua conta</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">{t('ac.set.title')}</h1>
+          <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">{t('ac.set.subtitle')}</p>
         </div>
 
         {/* Profile */}
@@ -74,13 +78,13 @@ export default function SettingsPage() {
               <User className="w-5 h-5 text-primary-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-surface-900 dark:text-white">Informações Pessoais</h2>
-              <p className="text-sm text-surface-500 dark:text-surface-400">Atualize seus dados de perfil</p>
+              <h2 className="font-semibold text-surface-900 dark:text-white">{t('ac.set.personal')}</h2>
+              <p className="text-sm text-surface-500 dark:text-surface-400">{t('ac.set.personalDesc')}</p>
             </div>
           </div>
           <form onSubmit={handleProfileSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Nome completo</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.name')}</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -93,7 +97,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">E-mail</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.email')}</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -103,17 +107,17 @@ export default function SettingsPage() {
                   className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm bg-surface-50 dark:bg-surface-900/60 text-surface-500 dark:text-surface-400 cursor-not-allowed"
                 />
               </div>
-              <p className="text-xs text-surface-400 mt-1">O e-mail não pode ser alterado.</p>
+              <p className="text-xs text-surface-400 mt-1">{t('ac.set.emailLocked')}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Telefone</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.phone')}</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
                   type="tel"
                   value={profileForm.phone}
                   onChange={setP('phone')}
-                  placeholder="(11) 99999-9999"
+                  placeholder={t('ac.field.phonePlaceholder')}
                   className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
@@ -124,7 +128,7 @@ export default function SettingsPage() {
               className="flex items-center gap-2 bg-primary-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-60 transition"
             >
               {savingProfile ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-              {savingProfile ? 'Salvando...' : 'Salvar Perfil'}
+              {savingProfile ? t('ac.set.saving') : t('ac.set.saveProfile')}
             </button>
           </form>
         </div>
@@ -136,13 +140,13 @@ export default function SettingsPage() {
               <Lock className="w-5 h-5 text-accent-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-surface-900 dark:text-white">Alterar Senha</h2>
-              <p className="text-sm text-surface-500 dark:text-surface-400">Mantenha sua conta segura</p>
+              <h2 className="font-semibold text-surface-900 dark:text-white">{t('ac.set.changePassword')}</h2>
+              <p className="text-sm text-surface-500 dark:text-surface-400">{t('ac.set.changePasswordDesc')}</p>
             </div>
           </div>
           <form onSubmit={handlePassSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Nova senha</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.newPassword')}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -153,13 +157,13 @@ export default function SettingsPage() {
                   placeholder="••••••••"
                   className="w-full pl-10 pr-10 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
-                <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400">
+                <button type="button" onClick={() => setShowPass(v => !v)} aria-label={showPass ? t('ac.pass.hide') : t('ac.pass.show')} className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400">
                   {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Confirmar nova senha</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.confirmNewPassword')}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -178,7 +182,7 @@ export default function SettingsPage() {
               className="flex items-center gap-2 bg-accent-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-accent-600 disabled:opacity-60 transition"
             >
               {savingPass ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Lock className="w-4 h-4" />}
-              {savingPass ? 'Salvando...' : 'Alterar Senha'}
+              {savingPass ? t('ac.set.saving') : t('ac.set.changePassword')}
             </button>
           </form>
         </div>
@@ -196,28 +200,29 @@ function DangerZone() {
   const { logout } = useAuth()
   const { success, error } = useToast()
   const router = useRouter()
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
   const [deleting, setDeleting] = useState(false)
 
   async function handleDelete() {
-    if (confirmation !== 'APAGAR MINHA CONTA') {
-      error('Digite exatamente "APAGAR MINHA CONTA" para confirmar.')
+    if (confirmation !== DELETE_CONFIRM_PHRASE) {
+      error(t('ac.set.confirmErr', { phrase: DELETE_CONFIRM_PHRASE }))
       return
     }
     if (!password) {
-      error('Informe sua senha.')
+      error(t('ac.set.passRequired'))
       return
     }
     setDeleting(true)
     try {
       await auth.deleteAccount(password, confirmation)
-      success('Conta apagada permanentemente. Sentiremos sua falta. 🐾')
+      success(t('ac.set.deleted'))
       logout()
       router.push('/')
     } catch (e: unknown) {
-      error(e instanceof Error ? e.message : 'Erro ao apagar conta')
+      error(e instanceof Error ? e.message : t('ac.set.deleteErr'))
     } finally {
       setDeleting(false)
     }
@@ -227,11 +232,10 @@ function DangerZone() {
     <div className="bg-white dark:bg-surface-800 rounded-2xl border-2 border-red-200 dark:border-red-900/50 p-6">
       <h2 className="text-lg font-bold text-red-700 dark:text-red-400 mb-1 flex items-center gap-2">
         <AlertTriangle className="w-5 h-5" />
-        Zona Perigosa
+        {t('ac.set.dangerTitle')}
       </h2>
       <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">
-        Apagar sua conta remove permanentemente todos os dados — pets, vacinas, exames, fotos, anamneses, planos, stories.
-        Esta ação é irreversível e cumpre LGPD/GDPR.
+        {t('ac.set.dangerDesc')}
       </p>
 
       {!open ? (
@@ -240,13 +244,13 @@ function DangerZone() {
           className="flex items-center gap-2 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 text-red-700 dark:text-red-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition border border-red-200 dark:border-red-700/50"
         >
           <Trash2 className="w-4 h-4" />
-          Apagar minha conta
+          {t('ac.set.deleteBtn')}
         </button>
       ) : (
         <div className="space-y-3 bg-red-50/50 dark:bg-red-900/10 rounded-xl p-4 border border-red-200 dark:border-red-700/30">
           <div>
             <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
-              Sua senha atual
+              {t('ac.set.currentPassLabel')}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
@@ -260,13 +264,13 @@ function DangerZone() {
           </div>
           <div>
             <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
-              Pra confirmar, digite exatamente: <code className="bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded text-xs">APAGAR MINHA CONTA</code>
+              {t('ac.set.confirmTypeLabel')} <code className="bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded text-xs">{DELETE_CONFIRM_PHRASE}</code>
             </label>
             <input
               type="text"
               value={confirmation}
               onChange={e => setConfirmation(e.target.value)}
-              placeholder="APAGAR MINHA CONTA"
+              placeholder={DELETE_CONFIRM_PHRASE}
               className="w-full px-3 py-2.5 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
@@ -275,15 +279,15 @@ function DangerZone() {
               onClick={() => { setOpen(false); setPassword(''); setConfirmation('') }}
               className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold border border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700"
             >
-              Cancelar
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleDelete}
-              disabled={deleting || confirmation !== 'APAGAR MINHA CONTA' || !password}
+              disabled={deleting || confirmation !== DELETE_CONFIRM_PHRASE || !password}
               className="flex-1 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition"
             >
               {deleting ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              {deleting ? 'Apagando…' : 'Apagar permanentemente'}
+              {deleting ? t('ac.set.deleting') : t('ac.set.deletePermanently')}
             </button>
           </div>
         </div>
@@ -321,14 +325,15 @@ function LanguageSection() {
 
 function ThemeSection() {
   const { theme, setTheme } = useTheme()
+  const t = useT()
   const opts: Array<{ value: 'light' | 'dark'; label: string; icon: string }> = [
-    { value: 'light', label: 'Claro', icon: '☀️' },
-    { value: 'dark', label: 'Escuro', icon: '🌙' },
+    { value: 'light', label: t('ac.set.themeLight'), icon: '☀️' },
+    { value: 'dark', label: t('ac.set.themeDark'), icon: '🌙' },
   ]
   return (
     <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
-      <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-1">Aparência</h2>
-      <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">O PetLife é claro por padrão — ative o modo escuro se preferir.</p>
+      <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-1">{t('ac.set.appearance')}</h2>
+      <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">{t('ac.set.appearanceDesc')}</p>
       <div className="grid grid-cols-2 gap-2">
         {opts.map(o => (
           <button

@@ -13,19 +13,26 @@ import { haversineMeters, formatDistance, formatDuration, formatPace, shouldAcce
 import { saveActiveWalk, clearActiveWalk, enqueueFinish } from '@/lib/walk-persistence'
 import { trackHappyMoment } from '@/lib/review'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
+import { useT } from '@/contexts/LocaleContext'
+
+const MapLoading = () => {
+  const t = useT()
+  return (
+    <div className="rounded-2xl border border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 animate-pulse flex items-center justify-center" style={{ height: 300 }}>
+      <span className="text-sm text-surface-400">{t('pw.map.loading')}</span>
+    </div>
+  )
+}
 
 const WalkMap = dynamic(() => import('@/components/walks/WalkMap'), {
   ssr: false,
-  loading: () => (
-    <div className="rounded-2xl border border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 animate-pulse flex items-center justify-center" style={{ height: 300 }}>
-      <span className="text-sm text-surface-400">Carregando mapa…</span>
-    </div>
-  ),
+  loading: () => <MapLoading />,
 })
 
 type Phase = 'choose-pet' | 'tracking' | 'paused' | 'saving'
 
 export default function ActiveWalkPage() {
+  const t = useT()
   const router = useRouter()
   const { success, error } = useToast()
 
@@ -52,7 +59,7 @@ export default function ActiveWalkPage() {
   useEffect(() => {
     petsApi.list()
       .then(setPets)
-      .catch(() => error('Erro ao carregar pets'))
+      .catch(() => error(t('pw.active.loadPetsError')))
       .finally(() => setPetsLoading(false))
   }, [error])
 
@@ -62,7 +69,7 @@ export default function ActiveWalkPage() {
       .then(active => {
         if (active) {
           // Já tem um passeio ativo — pergunta se quer continuar
-          if (confirm(`Você tem um passeio em andamento com ${active.pet_name}. Continuar?`)) {
+          if (confirm(t('pw.active.resumeConfirm', { name: active.pet_name ?? '' }))) {
             setWalkId(active.id)
             setSelectedPetId(active.pet_id)
             setStartTs(new Date(active.started_at).getTime())
@@ -109,7 +116,7 @@ export default function ActiveWalkPage() {
     try {
       const perms = await Geolocation.requestPermissions()
       if (perms.location !== 'granted' && perms.coarseLocation !== 'granted') {
-        error('Acesso à localização necessário pra registrar o passeio.')
+        error(t('pw.active.needLocation'))
         return false
       }
       const id = await Geolocation.watchPosition(
@@ -128,7 +135,7 @@ export default function ActiveWalkPage() {
       watchIdRef.current = id
       return true
     } catch (e) {
-      error('Erro ao acessar GPS. Verifica permissões.')
+      error(t('pw.active.gpsError'))
       return false
     }
   }
@@ -150,7 +157,7 @@ export default function ActiveWalkPage() {
 
   async function handleStart() {
     if (!selectedPetId) {
-      error('Selecione um pet pra começar.')
+      error(t('pw.active.selectPetFirst'))
       return
     }
     try {
@@ -164,7 +171,7 @@ export default function ActiveWalkPage() {
         // GPS falhou, mas o walk foi criado — usuário pode finalizar sem rota
       }
     } catch (e) {
-      error(e instanceof Error ? e.message : 'Erro ao iniciar passeio.')
+      error(e instanceof Error ? e.message : t('pw.active.startError'))
     }
   }
 
@@ -185,7 +192,7 @@ export default function ActiveWalkPage() {
 
   async function handleFinish() {
     if (!walkId) return
-    if (!confirm('Finalizar passeio?')) return
+    if (!confirm(t('pw.active.finishConfirm'))) return
     setPhase('saving')
     void hapticHeavy()
 
@@ -214,14 +221,14 @@ export default function ActiveWalkPage() {
       }
 
       clearActiveWalk()
-      success(`Passeio salvo: ${formatDistance(distance)} em ${formatDuration(duration)}! 🎉`)
+      success(t('pw.active.savedToast', { distance: formatDistance(distance), duration: formatDuration(duration) }))
       trackHappyMoment('walk')
       router.push(`/walks/${finished.id}`)
     } catch (e) {
       // Sem internet / erro de rede: enfileira pra reenviar depois — NÃO perde o passeio
       enqueueFinish({ walkId, payload, queuedAt: Date.now() })
       clearActiveWalk()
-      success('Sem conexão agora — seu passeio foi salvo no aparelho e será enviado automaticamente. 📡')
+      success(t('pw.active.offlineSaved'))
       router.push('/walks')
     }
   }
@@ -231,7 +238,7 @@ export default function ActiveWalkPage() {
     if (files.length === 0) return
     setPhotos(prev => [...prev, ...files])
     void hapticMedium()
-    success(`Foto adicionada (${photos.length + files.length} no total)`)
+    success(t('pw.active.photoAdded', { count: photos.length + files.length }))
   }
 
   if (petsLoading) return <DashboardLayout><PageLoader /></DashboardLayout>
@@ -243,21 +250,21 @@ export default function ActiveWalkPage() {
       <DashboardLayout>
         <div className="max-w-md mx-auto">
           <div className="mb-6 ">
-            <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white">Novo passeio</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white">{t('pw.active.title')}</h1>
             <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">
-              Selecione qual pet vai passear hoje
+              {t('pw.active.subtitle')}
             </p>
           </div>
 
           {pets.length === 0 ? (
             <div className="bg-white dark:bg-surface-800 rounded-2xl p-8 text-center border border-surface-100 dark:border-surface-700">
               <div className="text-5xl mb-3">🐾</div>
-              <p className="text-surface-600 dark:text-surface-300 mb-4">Você precisa cadastrar um pet primeiro</p>
+              <p className="text-surface-600 dark:text-surface-300 mb-4">{t('pw.active.noPets')}</p>
               <button
                 onClick={() => router.push('/pets/new')}
                 className="inline-flex items-center gap-2 bg-primary-500 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-primary-600 transition"
               >
-                Adicionar pet
+                {t('pw.pets.add')}
               </button>
             </div>
           ) : (
@@ -291,7 +298,7 @@ export default function ActiveWalkPage() {
                 className="w-full flex items-center justify-center gap-2 bg-primary-500 disabled:bg-surface-200 disabled:text-surface-400 text-white px-6 py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-primary-200 hover:bg-primary-600 transition"
               >
                 <Play className="w-6 h-6 fill-current" />
-                Começar passeio
+                {t('pw.active.startWalk')}
               </button>
             </>
           )}
@@ -320,27 +327,29 @@ export default function ActiveWalkPage() {
               <div className="text-3xl md:text-4xl font-bold text-surface-900 dark:text-white tabular-nums">
                 {formatDistance(distance)}
               </div>
-              <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">distância</div>
+              <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">{t('walk.distance')}</div>
             </div>
             <div>
               <div className={`text-3xl md:text-4xl font-bold tabular-nums ${phase === 'paused' ? 'text-amber-500' : 'text-surface-900 dark:text-white'}`}>
                 {formatDuration(duration)}
               </div>
               <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">
-                {phase === 'paused' ? 'pausado' : 'tempo'}
+                {phase === 'paused' ? t('pw.active.paused') : t('walk.time')}
               </div>
             </div>
             <div>
               <div className="text-3xl md:text-4xl font-bold text-surface-900 dark:text-white tabular-nums">
                 {distance > 0 && duration > 0 ? formatPace(duration / (distance / 1000)).replace('/km', '') : '—'}
               </div>
-              <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">ritmo/km</div>
+              <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">{t('pw.active.pacePerKm')}</div>
             </div>
           </div>
 
           {photos.length > 0 && (
             <div className="mt-4 pt-4 border-t border-surface-100 dark:border-surface-700 flex items-center justify-center gap-2 text-sm text-surface-600 dark:text-surface-300">
-              <Camera className="w-4 h-4" /> {photos.length} foto{photos.length > 1 ? 's' : ''} adicionada{photos.length > 1 ? 's' : ''}
+              <Camera className="w-4 h-4" /> {photos.length > 1
+                ? t('pw.active.photosCountMany', { count: photos.length })
+                : t('pw.active.photosCountOne', { count: photos.length })}
             </div>
           )}
         </div>
@@ -353,7 +362,7 @@ export default function ActiveWalkPage() {
             className="flex flex-col items-center justify-center gap-1 py-4 rounded-2xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700 transition"
           >
             <Camera className="w-6 h-6" />
-            <span className="text-xs font-medium">Foto</span>
+            <span className="text-xs font-medium">{t('pw.active.photo')}</span>
           </button>
           <input
             ref={photoInputRef}
@@ -370,7 +379,7 @@ export default function ActiveWalkPage() {
               className="flex flex-col items-center justify-center gap-1 py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white transition shadow-lg shadow-amber-200"
             >
               <Pause className="w-6 h-6 fill-current" />
-              <span className="text-xs font-semibold">Pausar</span>
+              <span className="text-xs font-semibold">{t('pw.active.pause')}</span>
             </button>
           ) : (
             <button
@@ -379,7 +388,7 @@ export default function ActiveWalkPage() {
               className="flex flex-col items-center justify-center gap-1 py-4 rounded-2xl bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 text-white transition shadow-lg shadow-primary-200"
             >
               <Play className="w-6 h-6 fill-current" />
-              <span className="text-xs font-semibold">Continuar</span>
+              <span className="text-xs font-semibold">{t('pw.active.resume')}</span>
             </button>
           )}
 
@@ -389,14 +398,14 @@ export default function ActiveWalkPage() {
             className="flex flex-col items-center justify-center gap-1 py-4 rounded-2xl bg-red-500 hover:bg-red-600 disabled:bg-surface-300 text-white transition shadow-lg shadow-red-200"
           >
             <Square className="w-6 h-6 fill-current" />
-            <span className="text-xs font-semibold">{phase === 'saving' ? 'Salvando...' : 'Finalizar'}</span>
+            <span className="text-xs font-semibold">{phase === 'saving' ? t('pw.common.saving') : t('walk.finish')}</span>
           </button>
         </div>
 
         {/* GPS status */}
         <div className="mt-3 flex items-center justify-center gap-2 text-xs text-surface-500 dark:text-surface-400">
           <MapPin className={`w-3.5 h-3.5 ${currentPos ? 'text-green-500' : 'text-red-500 animate-pulse'}`} />
-          {currentPos ? 'GPS ativo' : 'Aguardando GPS...'}
+          {currentPos ? t('pw.active.gpsOn') : t('pw.active.gpsWaiting')}
         </div>
       </div>
     </DashboardLayout>

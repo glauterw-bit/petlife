@@ -13,14 +13,20 @@ import { useToast } from '@/components/ui/ToastContext'
 import { celebrate, hapticMedium, hapticError, hapticLight } from '@/lib/feedback'
 import { formatDistance, formatDuration, formatPace, generateShareCard } from '@/lib/walk-utils'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
+import { useT } from '@/contexts/LocaleContext'
+
+const MapLoading = () => {
+  const t = useT()
+  return (
+    <div className="rounded-2xl border border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 animate-pulse flex items-center justify-center" style={{ height: 320 }}>
+      <span className="text-sm text-surface-400">{t('pw.map.loading')}</span>
+    </div>
+  )
+}
 
 const WalkMap = dynamic(() => import('@/components/walks/WalkMap'), {
   ssr: false,
-  loading: () => (
-    <div className="rounded-2xl border border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 animate-pulse flex items-center justify-center" style={{ height: 320 }}>
-      <span className="text-sm text-surface-400">Carregando mapa…</span>
-    </div>
-  ),
+  loading: () => <MapLoading />,
 })
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -33,6 +39,7 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export default function WalkDetailPage() {
+  const t = useT()
   const router = useRouter()
   const params = useParams<{ id: string }>()
   const id = Number(params?.id)
@@ -63,7 +70,7 @@ export default function WalkDetailPage() {
         setMood(w.mood ?? null)
         if (k) setKudos({ count: k.kudos_count, mine: k.given_by_me })
       })
-      .catch(e => error(e instanceof Error ? e.message : 'Erro ao carregar passeio.'))
+      .catch(e => error(e instanceof Error ? e.message : t('pw.detail.loadError')))
       .finally(() => setLoading(false))
   }, [id, error])
 
@@ -90,7 +97,7 @@ export default function WalkDetailPage() {
       if (!wasMine) celebrate('small')
     } catch (e) {
       setKudos({ count: kudos.count, mine: wasMine })
-      error(e instanceof Error ? e.message : 'Erro ao curtir.')
+      error(e instanceof Error ? e.message : t('pw.detail.kudosError'))
     }
   }
 
@@ -100,9 +107,9 @@ export default function WalkDetailPage() {
     try {
       const updated = await walks.update(walk.id, { note, mood: mood ?? undefined })
       setWalk(updated)
-      success('Salvo!')
+      success(t('pw.detail.saved'))
     } catch (e) {
-      error(e instanceof Error ? e.message : 'Erro ao salvar.')
+      error(e instanceof Error ? e.message : t('pw.detail.saveError'))
     } finally {
       setSavingNote(false)
     }
@@ -111,7 +118,7 @@ export default function WalkDetailPage() {
   async function buildShareCard(): Promise<{ blob: Blob; file: File; text: string } | null> {
     if (!walk) return null
     const blob = await generateShareCard({
-      petName: walk.pet_name ?? 'meu pet',
+      petName: walk.pet_name ?? t('pw.detail.myPet'),
       petPhotoUrl: walk.pet_photo,
       distanceMeters: walk.distance_meters,
       durationSeconds: walk.duration_seconds,
@@ -122,7 +129,11 @@ export default function WalkDetailPage() {
       photos: walk.photos ?? [],
     })
     const file = new File([blob], `petlife-passeio-${walk.id}.png`, { type: 'image/png' })
-    const text = `Passeio com ${walk.pet_name ?? 'meu pet'} 🐾\n${formatDistance(walk.distance_meters)} em ${formatDuration(walk.duration_seconds)}\n\nfeito no @petlife.app`
+    const text = t('pw.detail.shareText', {
+      name: walk.pet_name ?? t('pw.detail.myPet'),
+      distance: formatDistance(walk.distance_meters),
+      duration: formatDuration(walk.duration_seconds),
+    })
     return { blob, file, text }
   }
 
@@ -136,10 +147,10 @@ export default function WalkDetailPage() {
       const updated = await walks.uploadPhoto(walk.id, file)
       setWalk(updated) // dispara o useEffect que regenera o card com a foto
       celebrate('small')
-      success('Foto adicionada ao card! 📸')
+      success(t('pw.detail.photoAdded'))
     } catch (err) {
       void hapticError()
-      error(err instanceof Error ? err.message : 'Não consegui adicionar a foto.')
+      error(err instanceof Error ? err.message : t('pw.detail.photoError'))
     } finally {
       setUploadingPhoto(false)
     }
@@ -164,12 +175,12 @@ export default function WalkDetailPage() {
     void hapticMedium()
     setShareSheetOpen(false)
 
-    const finishOk = () => { void markShared(); celebrate('medium'); success(instruction ?? 'Compartilhado!') }
+    const finishOk = () => { void markShared(); celebrate('medium'); success(instruction ?? t('pw.detail.shared')) }
     const finishErr = (e: unknown) => {
       const msg = e instanceof Error ? e.message.toLowerCase() : ''
       if (msg.includes('abort') || msg.includes('cancel')) return
       void hapticError()
-      error('Não consegui abrir o compartilhamento. Use "Salvar imagem" e poste depois.')
+      error(t('pw.detail.shareOpenError'))
     }
     const nav = navigator as Navigator & { canShare?: (d?: { files?: File[] }) => boolean }
 
@@ -189,7 +200,7 @@ export default function WalkDetailPage() {
           return nav.share({ files: [built.file], text: built.text }).then(finishOk)
         }
         downloadBlob(built.blob, built.file.name)
-        success('Imagem salva! Abra o Instagram e poste nos Stories 📲')
+        success(t('pw.detail.imageSavedIg'))
       })
       .catch(built => {
         // gesto expirou no fallback: garante que o usuário tem a imagem
@@ -200,8 +211,8 @@ export default function WalkDetailPage() {
   }
 
   const handleNativeShare = () => runShare()
-  const handleShareWhatsApp = () => runShare('Escolha o WhatsApp no menu 📲')
-  const handleShareInstagram = () => runShare('Escolha o Instagram no menu 📸')
+  const handleShareWhatsApp = () => runShare(t('pw.detail.pickWhatsApp'))
+  const handleShareInstagram = () => runShare(t('pw.detail.pickInstagram'))
 
   async function handleSaveImage() {
     if (!walk) return
@@ -212,10 +223,10 @@ export default function WalkDetailPage() {
       const built = await buildShareCard()
       if (!built) return
       downloadBlob(built.blob, built.file.name)
-      success('Imagem salva!')
+      success(t('pw.detail.imageSaved'))
     } catch {
       void hapticError()
-      error('Erro ao salvar imagem.')
+      error(t('pw.detail.imageSaveError'))
     } finally {
       setSharing(false)
     }

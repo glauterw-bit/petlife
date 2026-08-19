@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { Flame } from 'lucide-react'
 import { innovations, type Pet, type Vaccine } from '@/lib/api'
 import { getSpeciesEmoji, getVaccineStatus, formatAge } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 /**
  * Herói do dashboard: a foto do pet DOMINA a tela, com anel de status
@@ -20,6 +21,7 @@ export function PetHero({
   userName?: string
   refreshKey?: number
 }) {
+  const t = useT()
   const [streak, setStreak] = useState<number>(0)
 
   useEffect(() => {
@@ -40,15 +42,15 @@ export function PetHero({
       : 'from-emerald-300 via-primary-500 to-emerald-300'
 
   const statusLabel = hasOverdue
-    ? 'Vacina atrasada — dá uma olhada 🩺'
+    ? t('vaccine.overdue')
     : hasUpcoming
-      ? 'Vacina chegando em breve 💉'
-      : 'Tudo em dia! Continue assim 💚'
+      ? t('vaccine.upcoming')
+      : t('vaccine.ok')
 
   return (
     <div className="flex items-center gap-4 md:gap-5 mb-6 md:mb-8 min-w-0">
       {/* Foto com anel de status */}
-      <Link href={`/pets/${pet.id}`} className="pressable relative shrink-0" aria-label={`Abrir perfil de ${pet.name}`}>
+      <Link href={`/pets/${pet.id}`} className="pressable relative shrink-0" aria-label={t('pw.pets.openProfile', { name: pet.name })}>
         <div className={`w-24 h-24 md:w-28 md:h-28 rounded-full p-[3.5px] bg-gradient-to-tr ${ring}`}>
           <div className="w-full h-full rounded-full p-[3px] bg-white dark:bg-surface-900">
             <div className="w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-primary-50 to-accent-50 flex items-center justify-center">
@@ -78,7 +80,7 @@ export function PetHero({
       {/* Saudação + status */}
       <div className="min-w-0 flex-1">
         <p className="text-sm text-surface-500 dark:text-surface-400 leading-tight truncate">
-          Olá, {userName ?? 'Tutor'}! 👋
+          {t('dash.greeting', { name: userName ?? t('pw.pets.ownerFallback') })}
         </p>
         <h1 className="font-display text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight truncate">
           {pet.name}

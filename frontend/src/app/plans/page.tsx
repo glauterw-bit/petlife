@@ -8,36 +8,38 @@ import { billing, type BillingCatalog, type BillingMe, type PlanTier } from '@/l
 import { initIap, purchaseProduct, restorePurchases, iapAvailable } from '@/lib/iap'
 import { track } from '@/lib/track'
 import { ReferralCard } from '@/components/growth/ReferralCard'
+import { useT } from '@/contexts/LocaleContext'
 
 type Cadence = 'monthly' | 'annual'
 
-const TIER_META: Record<PlanTier, { name: string; tagline: string; icon: typeof Star; accent: string }> = {
-  free: { name: 'Grátis', tagline: 'Pra começar a cuidar', icon: Star, accent: 'text-gray-500' },
-  plus: { name: 'PetLife+', tagline: 'Pra famílias com mais pets', icon: Sparkles, accent: 'text-emerald-600' },
-  pro: { name: 'PetLife Pro', tagline: 'IA sem limites', icon: Crown, accent: 'text-amber-500' },
+/** Metadados visuais + chaves de tradução do nome/tagline de cada tier. */
+const TIER_META: Record<PlanTier, { nameKey: string; taglineKey: string; icon: typeof Star; accent: string }> = {
+  free: { nameKey: 'ac.plans.tier.free', taglineKey: 'ac.plans.tag.free', icon: Star, accent: 'text-gray-500' },
+  plus: { nameKey: 'ac.plans.tier.plus', taglineKey: 'ac.plans.tag.plus', icon: Sparkles, accent: 'text-emerald-600' },
+  pro: { nameKey: 'ac.plans.tier.pro', taglineKey: 'ac.plans.tag.pro', icon: Crown, accent: 'text-amber-500' },
 }
 
 const FEATURES: Record<PlanTier, string[]> = {
   free: [
-    '1 pet',
-    '10 mensagens com a Vyron IA / mês',
-    '3 análises de IA / mês',
-    'Carteira de vacinas + lembretes ilimitados',
-    'Clínicas próximas e passeios ilimitados',
+    'ac.plans.feat.free1',
+    'ac.plans.feat.free2',
+    'ac.plans.feat.free3',
+    'ac.plans.feat.free4',
+    'ac.plans.feat.free5',
   ],
   plus: [
-    'Até 5 pets',
-    '100 mensagens com a Vyron IA / mês',
-    '30 análises de IA / mês',
-    'Tudo do plano Grátis',
-    '30 dias grátis no mensal',
+    'ac.plans.feat.plus1',
+    'ac.plans.feat.plus2',
+    'ac.plans.feat.plus3',
+    'ac.plans.feat.plus4',
+    'ac.plans.feat.plus5',
   ],
   pro: [
-    'Pets ilimitados',
-    'Vyron IA ilimitada',
-    'Análises de IA ilimitadas (raça, triagem, fezes, dor, forecast)',
-    'Tudo do PetLife+',
-    '30 dias grátis no mensal',
+    'ac.plans.feat.pro1',
+    'ac.plans.feat.pro2',
+    'ac.plans.feat.pro3',
+    'ac.plans.feat.pro4',
+    'ac.plans.feat.pro5',
   ],
 }
 
@@ -47,6 +49,7 @@ function brl(v: number) {
 
 export default function PlansPage() {
   const { success, error } = useToast()
+  const t = useT()
   const [catalog, setCatalog] = useState<BillingCatalog | null>(null)
   const [me, setMe] = useState<BillingMe | null>(null)
   const [cadence, setCadence] = useState<Cadence>('monthly')

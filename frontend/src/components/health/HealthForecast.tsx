@@ -5,11 +5,19 @@ import { Sparkles, TrendingUp, ShieldCheck, AlertTriangle, Loader2, Stethoscope 
 import { innovations, type HealthForecast as Forecast, type Pet } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { hapticMedium } from '@/lib/feedback'
+import { useT } from '@/contexts/LocaleContext'
 
-const RISK_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  baixo: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-600 dark:text-emerald-400', label: 'Risco baixo' },
-  moderado: { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-600 dark:text-amber-400', label: 'Risco moderado' },
-  atencao: { bg: 'bg-red-50 dark:bg-red-950/40', text: 'text-red-600 dark:text-red-400', label: 'Requer atenção' },
+const RISK_STYLE: Record<string, { bg: string; text: string; labelKey: string }> = {
+  baixo: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-600 dark:text-emerald-400', labelKey: 'h.forecast.riskLow' },
+  moderado: { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-600 dark:text-amber-400', labelKey: 'h.forecast.riskModerate' },
+  atencao: { bg: 'bg-red-50 dark:bg-red-950/40', text: 'text-red-600 dark:text-red-400', labelKey: 'h.forecast.riskAttention' },
+}
+
+/** Rótulo traduzido da probabilidade devolvida pela IA (valor original em PT). */
+const LIKELIHOOD_KEY: Record<string, string> = {
+  baixa: 'h.forecast.likelihoodLow',
+  media: 'h.forecast.likelihoodMedium',
+  alta: 'h.forecast.likelihoodHigh',
 }
 
 const LIKELIHOOD_COLOR: Record<string, string> = {
@@ -23,6 +31,7 @@ const LIKELIHOOD_COLOR: Record<string, string> = {
  * Sob demanda (chamada de IA): botão "Gerar previsão" → riscos + prevenção.
  */
 export function HealthForecast({ pet }: { pet: Pet }) {
+  const t = useT()
   const { error } = useToast()
   const [data, setData] = useState<Forecast | null>(null)
   const [loading, setLoading] = useState(false)
@@ -34,7 +43,7 @@ export function HealthForecast({ pet }: { pet: Pet }) {
       const res = await innovations.healthForecast(pet.id)
       setData(res)
     } catch (e) {
-      error(e instanceof Error ? e.message : 'Não foi possível gerar a previsão.')
+      error(e instanceof Error ? e.message : t('h.forecast.error'))
     } finally {
       setLoading(false)
     }
@@ -46,9 +55,9 @@ export function HealthForecast({ pet }: { pet: Pet }) {
         <div className="w-12 h-12 mx-auto rounded-2xl bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center mb-3">
           <TrendingUp className="w-6 h-6 text-violet-600 dark:text-violet-400" />
         </div>
-        <h3 className="text-base font-bold text-surface-900 dark:text-white mb-1">Previsão de Saúde</h3>
+        <h3 className="text-base font-bold text-surface-900 dark:text-white mb-1">{t('h.forecast.title')}</h3>
         <p className="text-sm text-surface-500 dark:text-surface-400 mb-4 max-w-xs mx-auto">
-          A IA analisa raça, idade, peso e histórico do {pet.name} pra antecipar riscos dos próximos 6-12 meses e como preveni-los.
+          {t('h.forecast.desc', { name: pet.name })}
         </p>
         <button
           onClick={generate}
@@ -56,7 +65,7 @@ export function HealthForecast({ pet }: { pet: Pet }) {
           className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl font-medium transition tap-target shadow-lg shadow-violet-200 dark:shadow-violet-950"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          {loading ? 'Analisando…' : 'Gerar previsão'}
+          {loading ? t('h.forecast.analyzing') : t('h.forecast.generate')}
         </button>
       </div>
     )
@@ -68,11 +77,11 @@ export function HealthForecast({ pet }: { pet: Pet }) {
     <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5 animate-slide-up">
       <div className="flex items-center gap-2 mb-3">
         <TrendingUp className="w-4 h-4 text-violet-500" />
-        <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200">Previsão de Saúde · {pet.name}</h3>
+        <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200">{t('h.forecast.titleWithPet', { name: pet.name })}</h3>
       </div>
 
       <div className={`rounded-xl p-3 mb-4 ${rk.bg}`}>
-        <div className={`text-xs font-bold uppercase tracking-wide mb-1 ${rk.text}`}>{rk.label}</div>
+        <div className={`text-xs font-bold uppercase tracking-wide mb-1 ${rk.text}`}>{t(rk.labelKey)}</div>
         <p className="text-sm text-surface-700 dark:text-surface-200">{data.summary}</p>
       </div>
 
@@ -85,7 +94,7 @@ export function HealthForecast({ pet }: { pet: Pet }) {
                 <span className="text-sm font-semibold text-surface-900 dark:text-white truncate">{risk.condition}</span>
               </div>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${LIKELIHOOD_COLOR[risk.likelihood] ?? LIKELIHOOD_COLOR.baixa}`}>
-                {risk.likelihood} · {risk.window}
+                {t(LIKELIHOOD_KEY[risk.likelihood] ?? LIKELIHOOD_KEY.baixa)} · {risk.window}
               </span>
             </div>
             <p className="text-xs text-surface-500 dark:text-surface-400 mb-2">{risk.why}</p>
@@ -101,7 +110,7 @@ export function HealthForecast({ pet }: { pet: Pet }) {
         <div className="mt-4 pt-4 border-t border-surface-100 dark:border-surface-700">
           <div className="flex items-center gap-2 mb-2">
             <Stethoscope className="w-4 h-4 text-primary-500" />
-            <span className="text-xs font-semibold text-surface-700 dark:text-surface-200">Check-ups recomendados</span>
+            <span className="text-xs font-semibold text-surface-700 dark:text-surface-200">{t('h.forecast.checkups')}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {data.checkups_recommended.map((c, i) => (

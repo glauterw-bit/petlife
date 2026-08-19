@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, PawPrint, Mail, Lock, AlertCircle, Info } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useT } from '@/contexts/LocaleContext'
 
 export default function LoginPage() {
   return (
@@ -18,6 +19,7 @@ function LoginInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { login } = useAuth()
+  const t = useT()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -40,7 +42,7 @@ function LoginInner() {
       await login(email, password)
       router.push('/dashboard')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro ao entrar. Verifique suas credenciais.')
+      setError(err instanceof Error ? err.message : t('ac.login.error'))
     } finally {
       setLoading(false)
     }
@@ -57,8 +59,8 @@ function LoginInner() {
             </div>
             <span className="text-2xl font-bold text-surface-900 dark:text-white">PetLife</span>
           </Link>
-          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">Bem-vindo de volta!</h1>
-          <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">Entre para cuidar do seu pet</p>
+          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">{t('ac.login.welcome')}</h1>
+          <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">{t('ac.login.subtitle')}</p>
         </div>
 
         {/* Card */}
@@ -66,7 +68,7 @@ function LoginInner() {
           {sessionExpired && !error && (
             <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3 mb-6 text-sm">
               <Info className="w-4 h-4 shrink-0" />
-              Sua sessão expirou. Entre novamente pra continuar.
+              {t('ac.login.sessionExpired')}
             </div>
           )}
           {error && (
@@ -79,7 +81,7 @@ function LoginInner() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
-                E-mail
+                {t('ac.field.email')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
@@ -88,7 +90,7 @@ function LoginInner() {
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
+                  placeholder={t('ac.field.emailPlaceholder')}
                   className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                 />
               </div>
@@ -96,7 +98,7 @@ function LoginInner() {
 
             <div>
               <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
-                Senha
+                {t('ac.field.password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
@@ -128,37 +130,37 @@ function LoginInner() {
               ) : (
                 <PawPrint className="w-5 h-5" />
               )}
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? t('ac.login.submitting') : t('ac.login.submit')}
             </button>
           </form>
 
           <div className="mt-4 text-center">
             <Link href="/auth/forgot" className="text-sm text-primary-600 hover:underline">
-              Esqueci minha senha
+              {t('ac.login.forgot')}
             </Link>
           </div>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-surface-500 dark:text-surface-400">
-              Não tem conta?{' '}
+              {t('ac.login.noAccount')}{' '}
               <Link href="/auth/register" className="text-primary-600 font-semibold hover:underline">
-                Cadastre-se grátis
+                {t('ac.login.signupFree')}
               </Link>
             </p>
           </div>
 
           <div className="mt-4 text-center">
             <p className="text-sm text-surface-500 dark:text-surface-400">
-              É veterinário?{' '}
+              {t('ac.login.isVet')}{' '}
               <Link href="/vet/login" className="text-accent-600 font-semibold hover:underline">
-                Acesso para clínicas
+                {t('ac.login.vetAccess')}
               </Link>
             </p>
           </div>
         </div>
 
         <p className="text-center text-xs text-surface-400 mt-6">
-          © 2026 PetLife — Feito com ❤️ para pets
+          {t('ac.login.footer')}
         </p>
       </div>
     </div>

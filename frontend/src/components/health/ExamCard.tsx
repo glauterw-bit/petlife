@@ -3,10 +3,33 @@
 import { Download, FileText, Calendar, User, Trash2 } from 'lucide-react'
 import { type Exam } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 interface ExamCardProps {
   exam: Exam
   onDelete?: (id: number) => void
+}
+
+/**
+ * Rótulo traduzido dos tipos padrão de exame. O valor gravado no backend
+ * continua em português — só a exibição muda de idioma.
+ */
+const EXAM_TYPE_KEYS: Record<string, string> = {
+  'Hemograma': 'h.examType.hemograma',
+  'Bioquímica': 'h.examType.bioquimica',
+  'Urina (EAS)': 'h.examType.urina',
+  'Fezes': 'h.examType.fezes',
+  'Raio-X': 'h.examType.raiox',
+  'Ultrassom': 'h.examType.ultrassom',
+  'Eletrocardiograma': 'h.examType.ecg',
+  'Oftalmológico': 'h.examType.oftalmologico',
+  'Dermatológico': 'h.examType.dermatologico',
+  'Outros': 'h.examType.outros',
+}
+
+export function examTypeLabel(type: string, t: (key: string) => string): string {
+  const key = EXAM_TYPE_KEYS[type]
+  return key ? t(key) : type
 }
 
 const examTypeColors: Record<string, string> = {
@@ -19,6 +42,7 @@ const examTypeColors: Record<string, string> = {
 }
 
 export function ExamCard({ exam, onDelete }: ExamCardProps) {
+  const t = useT()
   const colorKey = Object.keys(examTypeColors).find(k => exam.type?.toLowerCase().includes(k)) ?? 'default'
   const colorClass = examTypeColors[colorKey]
 
@@ -32,7 +56,7 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <h4 className="font-semibold text-surface-900 dark:text-white">{exam.name}</h4>
             <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${colorClass}`}>
-              {exam.type}
+              {examTypeLabel(exam.type, t)}
             </span>
           </div>
 
@@ -44,14 +68,14 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
             {exam.vet_name && (
               <div className="flex items-center gap-1.5 text-xs text-surface-500 dark:text-surface-400">
                 <User className="w-3.5 h-3.5" />
-                Dr. {exam.vet_name}
+                {t('h.vac.doctor', { name: exam.vet_name })}
               </div>
             )}
           </div>
 
           {exam.result && (
             <div className="mt-3 p-2.5 bg-surface-50 dark:bg-surface-900/60 rounded-lg">
-              <p className="text-xs font-medium text-surface-700 dark:text-surface-200 mb-0.5">Resultado:</p>
+              <p className="text-xs font-medium text-surface-700 dark:text-surface-200 mb-0.5">{t('h.exams.resultLabel')}</p>
               <p className="text-xs text-surface-600 dark:text-surface-300 leading-relaxed">{exam.result}</p>
             </div>
           )}
@@ -69,7 +93,7 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
                 className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium transition"
               >
                 <Download className="w-3.5 h-3.5" />
-                Baixar arquivo
+                {t('h.exams.download')}
               </a>
             )}
             {onDelete && (
@@ -78,7 +102,7 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
                 className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition ml-auto"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                Excluir
+                {t('common.delete')}
               </button>
             )}
           </div>

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import type { RoutePoint } from '@/lib/api'
 import { useChartTheme, smoothPath } from '@/lib/charts'
 import { haversineMeters } from '@/lib/walk-utils'
+import { useT } from '@/contexts/LocaleContext'
 
 const W = 320, H = 96, PAD = 8
 
@@ -12,6 +13,7 @@ const W = 320, H = 96, PAD = 8
  * Dados como beleza: área suave, sem eixo pesado, tooltip por trecho.
  */
 export function PaceChart({ points }: { points: RoutePoint[] }) {
+  const t = useT()
   const { palette, ink } = useChartTheme()
   const [hover, setHover] = useState<number | null>(null)
 
@@ -45,8 +47,8 @@ export function PaceChart({ points }: { points: RoutePoint[] }) {
   return (
     <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-4">
       <div className="flex items-baseline justify-between mb-1">
-        <h3 className="font-bold text-sm text-surface-900 dark:text-white">Ritmo do passeio</h3>
-        <span className="text-[11px] text-surface-400">média por trecho · km/h</span>
+        <h3 className="font-bold text-sm text-surface-900 dark:text-white">{t('pw.chart.paceTitle')}</h3>
+        <span className="text-[11px] text-surface-400">{t('pw.chart.paceSub')}</span>
       </div>
       <div className="relative">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full block">
@@ -67,8 +69,8 @@ export function PaceChart({ points }: { points: RoutePoint[] }) {
               onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
               onClick={() => setHover(i)} />
           ))}
-          <text x={PAD} y={H - 4} fontSize="8.5" fill={ink.axis}>início</text>
-          <text x={W - PAD} y={H - 4} fontSize="8.5" fill={ink.axis} textAnchor="end">fim</text>
+          <text x={PAD} y={H - 4} fontSize="8.5" fill={ink.axis}>{t('pw.chart.start')}</text>
+          <text x={W - PAD} y={H - 4} fontSize="8.5" fill={ink.axis} textAnchor="end">{t('pw.chart.end')}</text>
         </svg>
         {hover != null && (
           <div className="absolute -translate-x-1/2 -translate-y-full pointer-events-none bg-surface-900 dark:bg-surface-700 text-white text-[11px] rounded-lg px-2 py-1 tabular-nums"

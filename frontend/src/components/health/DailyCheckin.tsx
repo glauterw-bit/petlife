@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { innovations, type Pet } from '@/lib/api'
 import { hapticLight, hapticSuccess, celebrate } from '@/lib/feedback'
+import { useT } from '@/contexts/LocaleContext'
 
-const MOODS: { value: 'feliz' | 'neutro' | 'apatico'; emoji: string; label: string }[] = [
-  { value: 'feliz', emoji: '😺', label: 'Ótimo' },
-  { value: 'neutro', emoji: '😐', label: 'Normal' },
-  { value: 'apatico', emoji: '😔', label: 'Pra baixo' },
+const MOODS: { value: 'feliz' | 'neutro' | 'apatico'; emoji: string; labelKey: string }[] = [
+  { value: 'feliz', emoji: '😺', labelKey: 'h.checkin.moodGreat' },
+  { value: 'neutro', emoji: '😐', labelKey: 'h.checkin.moodOk' },
+  { value: 'apatico', emoji: '😔', labelKey: 'h.checkin.moodLow' },
 ]
 
 /**
@@ -16,6 +17,7 @@ const MOODS: { value: 'feliz' | 'neutro' | 'apatico'; emoji: string; label: stri
  * Alimenta o Health Score (bem-estar) e a IA de padrões.
  */
 export function DailyCheckin({ pet, onDone }: { pet: Pet; onDone?: () => void }) {
+  const t = useT()
   const [done, setDone] = useState(false)
   const [saving, setSaving] = useState<string | null>(null)
 
@@ -41,8 +43,8 @@ export function DailyCheckin({ pet, onDone }: { pet: Pet; onDone?: () => void })
           <Check className="w-5 h-5" />
         </div>
         <div>
-          <div className="text-sm font-semibold text-surface-900 dark:text-white">Check-in registrado! 🐾</div>
-          <div className="text-xs text-surface-500 dark:text-surface-400">Obrigado por cuidar do {pet.name} hoje.</div>
+          <div className="text-sm font-semibold text-surface-900 dark:text-white">{t('h.checkin.done')}</div>
+          <div className="text-xs text-surface-500 dark:text-surface-400">{t('h.checkin.doneSub', { name: pet.name })}</div>
         </div>
       </div>
     )
@@ -51,7 +53,7 @@ export function DailyCheckin({ pet, onDone }: { pet: Pet; onDone?: () => void })
   return (
     <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-4">
       <div className="text-sm font-semibold text-surface-800 dark:text-surface-200 mb-3">
-        Como o {pet.name} está hoje?
+        {t('h.checkin.question', { name: pet.name })}
       </div>
       <div className="grid grid-cols-3 gap-2">
         {MOODS.map(m => (
@@ -66,7 +68,7 @@ export function DailyCheckin({ pet, onDone }: { pet: Pet; onDone?: () => void })
             } ${saving && saving !== m.value ? 'opacity-40' : ''}`}
           >
             <span className="text-2xl">{m.emoji}</span>
-            <span className="text-xs font-medium text-surface-600 dark:text-surface-300">{m.label}</span>
+            <span className="text-xs font-medium text-surface-600 dark:text-surface-300">{t(m.labelKey)}</span>
           </button>
         ))}
       </div>

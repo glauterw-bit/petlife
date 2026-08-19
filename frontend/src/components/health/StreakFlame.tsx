@@ -5,6 +5,7 @@ import { Flame } from 'lucide-react'
 import { celebrate } from '@/components/ui/CelebrationOverlay'
 import { innovations, type Pet, type CareStreak } from '@/lib/api'
 import { useCountUp, usePrefersReducedMotion } from '@/lib/motion'
+import { useT } from '@/contexts/LocaleContext'
 
 /**
  * Streak de cuidado com chama animada (estilo Duolingo/Snap).
@@ -13,6 +14,7 @@ import { useCountUp, usePrefersReducedMotion } from '@/lib/motion'
  * - Mostra progresso até o próximo marco (3/7/14/30/60/100).
  */
 export function StreakFlame({ pet, refreshKey }: { pet: Pet; refreshKey?: number }) {
+  const t = useT()
   const [data, setData] = useState<CareStreak | null>(null)
   const [loading, setLoading] = useState(true)
   const reduced = usePrefersReducedMotion()
@@ -42,17 +44,17 @@ export function StreakFlame({ pet, refreshKey }: { pet: Pet; refreshKey?: number
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, '1')
           setTimeout(() => celebrate({
-            title: `${m} dias de cuidado! 🔥`,
-            message: `${pet.name} tem um tutor dedicado. Streak de ${data.current_streak} dias!`,
-            shareText: `Streak de ${data.current_streak} dias cuidando do ${pet.name} no PetLife 🔥🐾`,
+            title: t('h.streak.celebTitle', { count: m }),
+            message: t('h.streak.celebMsg', { name: pet.name, count: data.current_streak }),
+            shareText: t('h.streak.celebShare', { count: data.current_streak, name: pet.name }),
             trackEvent: 'recap_share',
             card: {
-              title: `${data.current_streak} dias de cuidado 🔥`,
-              subtitle: 'Care Streak PetLife',
+              title: t('h.streak.cardTitle', { count: data.current_streak }),
+              subtitle: t('h.streak.cardSubtitle'),
               emoji: '🔥',
               stats: [
-                { label: 'dias seguidos', value: String(data.current_streak) },
-                { label: 'tutor dedicado', value: '🏆' },
+                { label: t('h.streak.statDays'), value: String(data.current_streak) },
+                { label: t('h.streak.statDedicated'), value: '🏆' },
               ],
             },
           }), 600)
@@ -96,15 +98,17 @@ export function StreakFlame({ pet, refreshKey }: { pet: Pet; refreshKey?: number
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold text-surface-900 dark:text-white">
             {streak === 0
-              ? 'Comece sua sequência hoje!'
-              : `${streak} dia${streak > 1 ? 's' : ''} de cuidado 🔥`}
+              ? t('h.streak.start')
+              : streak === 1
+              ? t('h.streak.daysOne', { count: streak })
+              : t('h.streak.daysMany', { count: streak })}
           </div>
           <div className="text-xs text-surface-500 dark:text-surface-400">
             {!data.did_today && streak > 0
-              ? 'Cuide do pet hoje pra não perder a sequência!'
+              ? t('h.streak.keepGoing')
               : data.next_milestone
-              ? `Faltam ${data.days_to_milestone} pro marco de ${data.next_milestone} dias`
-              : `Recorde: ${data.best_streak} dias`}
+              ? t('h.streak.toMilestone', { days: data.days_to_milestone ?? 0, milestone: data.next_milestone })
+              : t('h.streak.best', { count: data.best_streak })}
           </div>
           {/* barra de progresso até o próximo marco */}
           {data.next_milestone && (
@@ -119,7 +123,7 @@ export function StreakFlame({ pet, refreshKey }: { pet: Pet; refreshKey?: number
 
         {data.best_streak > 0 && (
           <div className="text-center shrink-0 px-2">
-            <div className="text-xs text-surface-400 uppercase tracking-wide">recorde</div>
+            <div className="text-xs text-surface-400 uppercase tracking-wide">{t('h.streak.recordLabel')}</div>
             <div className="text-lg font-bold text-surface-700 dark:text-surface-200 tabular-nums">{data.best_streak}</div>
           </div>
         )}

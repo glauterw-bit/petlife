@@ -1,12 +1,9 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
-import { ptBR } from '@/lib/i18n/dict/pt-BR'
-import { en } from '@/lib/i18n/dict/en'
-import { es } from '@/lib/i18n/dict/es'
-import { DEFAULT_LOCALE, coerceLocale, detectLocale, type Dict, type Locale } from '@/lib/i18n/types'
-
-const DICTS: Record<Locale, Dict> = { 'pt-BR': ptBR, en, es }
+import { DICTS } from '@/lib/i18n/dict'
+import { setDateLocale } from '@/lib/utils'
+import { DEFAULT_LOCALE, coerceLocale, detectLocale, type Locale } from '@/lib/i18n/types'
 const STORAGE_KEY = 'petlife_locale'
 
 interface LocaleContextValue {
@@ -30,11 +27,13 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     } catch { /* sem storage */ }
     const resolved = initial ?? detectLocale()
     setLocaleState(resolved)
+    setDateLocale(resolved)
     document.documentElement.lang = resolved
   }, [])
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l)
+    setDateLocale(l)
     try { localStorage.setItem(STORAGE_KEY, l) } catch {}
     document.documentElement.lang = l
   }, [])
@@ -43,7 +42,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     (key: string, vars?: Record<string, string | number>) => {
       // Cai para pt-BR quando a chave ainda não foi traduzida — nunca mostra
       // a chave crua pro usuário.
-      const raw = DICTS[locale]?.[key] ?? ptBR[key] ?? key
+      const raw = DICTS[locale]?.[key] ?? DICTS['pt-BR'][key] ?? key
       if (!vars) return raw
       return raw.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m))
     },
@@ -63,7 +62,7 @@ export function useLocale(): LocaleContextValue {
       locale: DEFAULT_LOCALE,
       setLocale: () => {},
       t: (key, vars) => {
-        const raw = ptBR[key] ?? key
+        const raw = DICTS['pt-BR'][key] ?? key
         return vars ? raw.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : raw
       },
     }

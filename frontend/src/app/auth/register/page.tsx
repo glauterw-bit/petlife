@@ -5,11 +5,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, PawPrint, Mail, Lock, User, Phone, AlertCircle, CheckCircle, Gift } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useT } from '@/contexts/LocaleContext'
 import { auth } from '@/lib/api'
 
 export default function RegisterPage() {
   const router = useRouter()
   const { loginWithSession } = useAuth()
+  const t = useT()
 
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' })
   const [referralCode, setReferralCode] = useState('')
@@ -32,11 +34,11 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
     if (form.password !== form.confirm) {
-      setError('As senhas não coincidem.')
+      setError(t('ac.err.passMismatch'))
       return
     }
     if (form.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.')
+      setError(t('ac.err.passMin6'))
       return
     }
     setLoading(true)
@@ -52,12 +54,12 @@ export default function RegisterPage() {
       loginWithSession(res.access_token, res.user)
       router.push('/pets/new')
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao cadastrar.'
+      const msg = err instanceof Error ? err.message : t('ac.register.errGeneric')
       // Mensagens mais amigáveis para erros comuns
       if (msg.toLowerCase().includes('já cadastrado') || msg.toLowerCase().includes('already')) {
-        setError('Este e-mail já está cadastrado. Tente fazer login.')
+        setError(t('ac.register.errEmailTaken'))
       } else if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('network')) {
-        setError('Sem conexão com o servidor. Verifique sua internet e tente novamente.')
+        setError(t('ac.register.errNetwork'))
       } else {
         setError(msg)
       }
@@ -67,8 +69,8 @@ export default function RegisterPage() {
   }
 
   const checks = [
-    { label: 'Pelo menos 6 caracteres', ok: form.password.length >= 6 },
-    { label: 'Senhas coincidem', ok: form.password.length > 0 && form.password === form.confirm },
+    { label: t('ac.register.check6'), ok: form.password.length >= 6 },
+    { label: t('ac.register.checkMatch'), ok: form.password.length > 0 && form.password === form.confirm },
   ]
 
   return (
@@ -82,14 +84,14 @@ export default function RegisterPage() {
             </div>
             <span className="text-2xl font-bold text-surface-900 dark:text-white">PetLife</span>
           </Link>
-          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">Crie sua conta gratuita</h1>
+          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">{t('ac.register.title')}</h1>
           {referralCode && (
             <div className="mt-3 inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-2 text-sm font-medium animate-slide-up">
               <Gift className="w-4 h-4 shrink-0" />
-              Convite aplicado! Você ganha 30 dias de PetLife+ 🎁
+              {t('ac.register.referralApplied')}
             </div>
           )}
-          <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">E comece a cuidar do seu pet com IA</p>
+          <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">{t('ac.register.subtitle')}</p>
         </div>
 
         {/* Card */}
@@ -103,7 +105,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Nome completo</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.name')}</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -111,14 +113,14 @@ export default function RegisterPage() {
                   required
                   value={form.name}
                   onChange={set('name')}
-                  placeholder="Seu nome"
+                  placeholder={t('ac.field.namePlaceholder')}
                   className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">E-mail</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.email')}</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -126,7 +128,7 @@ export default function RegisterPage() {
                   required
                   value={form.email}
                   onChange={set('email')}
-                  placeholder="seu@email.com"
+                  placeholder={t('ac.field.emailPlaceholder')}
                   className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                 />
               </div>
@@ -134,7 +136,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
-                Telefone <span className="text-surface-400 font-normal">(opcional)</span>
+                {t('ac.field.phone')} <span className="text-surface-400 font-normal">({t('common.optional')})</span>
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
@@ -142,14 +144,14 @@ export default function RegisterPage() {
                   type="tel"
                   value={form.phone}
                   onChange={set('phone')}
-                  placeholder="(11) 99999-9999"
+                  placeholder={t('ac.field.phonePlaceholder')}
                   className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Senha</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.password')}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -171,7 +173,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Confirmar senha</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.confirmPassword')}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
@@ -207,22 +209,22 @@ export default function RegisterPage() {
               ) : (
                 <PawPrint className="w-5 h-5" />
               )}
-              {loading ? 'Criando conta...' : 'Criar conta grátis'}
+              {loading ? t('ac.register.submitting') : t('ac.register.submit')}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-surface-500 dark:text-surface-400">
-              Já tem conta?{' '}
+              {t('ac.register.hasAccount')}{' '}
               <Link href="/auth/login" className="text-primary-600 font-semibold hover:underline">
-                Entrar
+                {t('ac.register.signin')}
               </Link>
             </p>
           </div>
         </div>
 
         <p className="text-center text-xs text-surface-400 mt-6">
-          Ao se cadastrar, você concorda com nossos Termos de Uso.
+          {t('ac.register.terms')}
         </p>
       </div>
     </div>

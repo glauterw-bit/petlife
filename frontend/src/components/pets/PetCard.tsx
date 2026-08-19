@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Calendar, Weight, ChevronRight } from 'lucide-react'
 import { type Pet } from '@/lib/api'
 import { formatAge, getSpeciesEmoji, getSpeciesLabel } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 interface PetCardProps {
   pet: Pet
@@ -12,6 +13,7 @@ interface PetCardProps {
 }
 
 export function PetCard({ pet, className = '' }: PetCardProps) {
+  const t = useT()
   return (
     <Link
       href={`/pets/${pet.id}`}
@@ -36,7 +38,7 @@ export function PetCard({ pet, className = '' }: PetCardProps) {
         </div>
         {pet.gender && (
           <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-0.5 text-xs font-medium text-surface-600 dark:text-surface-300 border border-surface-200 dark:border-surface-700">
-            {pet.gender === 'male' ? '♂ Macho' : '♀ Fêmea'}
+            {pet.gender === 'male' ? `♂ ${t('pet.male')}` : `♀ ${t('pet.female')}`}
           </div>
         )}
       </div>
@@ -75,7 +77,7 @@ export function PetCard({ pet, className = '' }: PetCardProps) {
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
               pet.neutered ? 'bg-green-50 text-green-700' : 'bg-surface-100 dark:bg-surface-700 text-surface-500 dark:text-surface-400'
             }`}>
-              {pet.neutered ? '✂ Castrado(a)' : 'Não castrado(a)'}
+              {pet.neutered ? t('pw.pets.neuteredYes') : t('pw.pets.neuteredNo')}
             </span>
           </div>
         )}

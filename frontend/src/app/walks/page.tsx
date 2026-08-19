@@ -10,8 +10,10 @@ import { useToast } from '@/components/ui/ToastContext'
 import { formatDistance, formatDuration, formatPace } from '@/lib/walk-utils'
 import { flushFinishQueue, getFinishQueue } from '@/lib/walk-persistence'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
+import { useT } from '@/contexts/LocaleContext'
 
 export default function WalksPage() {
+  const t = useT()
   const { error, success } = useToast()
   const [items, setItems] = useState<WalkListItem[]>([])
   const [stats, setStats] = useState<WalkStats | null>(null)
@@ -29,7 +31,7 @@ export default function WalksPage() {
       setBadges(badgesR.value.badges)
       setEarnedCount(badgesR.value.earned_count)
     }
-    if (listR.status === 'rejected') error('Erro ao carregar passeios.')
+    if (listR.status === 'rejected') error(t('pw.walks.loadError'))
   }
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function WalksPage() {
       // Reenvia passeios finalizados offline (não perde caminhada sem sinal)
       if (getFinishQueue().length > 0) {
         const sent = await flushFinishQueue((id, payload) => walks.finish(id, payload))
-        if (sent > 0) success(`${sent} passeio(s) salvo(s) offline foram enviados! 📡`)
+        if (sent > 0) success(t('pw.walks.offlineSent', { count: sent }))
       }
       await loadAll()
       setLoading(false)
@@ -46,7 +48,7 @@ export default function WalksPage() {
     // tenta reenviar quando a conexão volta
     function onOnline() {
       flushFinishQueue((id, payload) => walks.finish(id, payload)).then(sent => {
-        if (sent > 0) { success(`${sent} passeio(s) enviados!`); loadAll() }
+        if (sent > 0) { success(t('pw.walks.offlineSentShort', { count: sent })); loadAll() }
       })
     }
     window.addEventListener('online', onOnline)
@@ -62,27 +64,31 @@ export default function WalksPage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-5 md:mb-6 ">
           <div className="min-w-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">Passeios</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">{t('walk.title')}</h1>
             <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">
-              {items.length === 0 ? 'Cronometre e compartilhe as aventuras' : `${items.length} passeio${items.length > 1 ? 's' : ''} registrado${items.length > 1 ? 's' : ''}`}
+              {items.length === 0
+                ? t('pw.walks.subtitleEmpty')
+                : items.length > 1
+                  ? t('walk.registered', { count: items.length })
+                  : t('pw.walks.registeredOne', { count: items.length })}
             </p>
           </div>
           <Link
             href="/walks/active"
-            aria-label="Iniciar passeio"
+            aria-label={t('walk.start')}
             className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white px-4 py-2.5 rounded-2xl font-semibold shadow-lg shadow-primary-200 transition shrink-0"
           >
             <Play className="w-5 h-5 fill-current" />
-            <span className="hidden xs:inline">Novo</span>
+            <span className="hidden xs:inline">{t('pw.walks.new')}</span>
           </Link>
         </div>
 
         {/* Stats summary */}
         {stats && stats.total_walks > 0 && (
           <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
-            <SummaryCard icon={<Activity className="w-5 h-5 text-primary-500" />} label="Total" value={String(stats.total_walks)} sub="passeios" />
-            <SummaryCard icon={<MapPin className="w-5 h-5 text-blue-500" />} label="Distância" value={formatDistance(stats.total_distance_meters)} sub="acumulada" />
-            <SummaryCard icon={<Flame className="w-5 h-5 text-orange-500" />} label="Streak" value={String(stats.current_streak_days)} sub={stats.current_streak_days === 1 ? 'dia' : 'dias'} />
+            <SummaryCard icon={<Activity className="w-5 h-5 text-primary-500" />} label={t('pw.walks.statTotal')} value={String(stats.total_walks)} sub={t('pw.walks.statTotalSub')} />
+            <SummaryCard icon={<MapPin className="w-5 h-5 text-blue-500" />} label={t('walk.distance')} value={formatDistance(stats.total_distance_meters)} sub={t('pw.walks.statDistanceSub')} />
+            <SummaryCard icon={<Flame className="w-5 h-5 text-orange-500" />} label={t('pw.walks.statStreak')} value={String(stats.current_streak_days)} sub={stats.current_streak_days === 1 ? t('pw.walks.day') : t('pw.walks.days')} />
           </div>
         )}
 
@@ -92,9 +98,9 @@ export default function WalksPage() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-amber-500" />
-                <h2 className="text-sm font-semibold text-surface-700 dark:text-surface-200">Conquistas</h2>
+                <h2 className="text-sm font-semibold text-surface-700 dark:text-surface-200">{t('pw.walks.achievements')}</h2>
               </div>
-              <span className="text-xs text-surface-500 dark:text-surface-400">{earnedCount} de {badges.length}</span>
+              <span className="text-xs text-surface-500 dark:text-surface-400">{t('pw.walks.badgeProgress', { done: earnedCount, total: badges.length })}</span>
             </div>
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 snap-x max-w-full">
               {badges.map(b => (
@@ -108,16 +114,16 @@ export default function WalksPage() {
         {items.length === 0 ? (
           <div className="bg-white dark:bg-surface-800 rounded-3xl p-10 text-center border border-surface-100 dark:border-surface-700">
             <div className="text-6xl mb-3">🦮</div>
-            <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-2">Primeiro passeio chegando!</h2>
+            <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-2">{t('pw.walks.emptyTitle')}</h2>
             <p className="text-sm text-surface-500 dark:text-surface-400 mb-5">
-              Cronometre o passeio do seu pet, capture o trajeto no mapa e compartilhe com a galera.
+              {t('pw.walks.emptyText')}
             </p>
             <Link
               href="/walks/active"
               className="inline-flex items-center gap-2 bg-primary-500 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-primary-600 transition shadow-lg shadow-primary-200"
             >
               <Play className="w-5 h-5 fill-current" />
-              Começar agora
+              {t('pw.walks.startNow')}
             </Link>
           </div>
         ) : (
@@ -171,6 +177,7 @@ function SummaryCard({ icon, label, value, sub }: { icon: React.ReactNode; label
 }
 
 function WalkCard({ walk }: { walk: WalkListItem }) {
+  const t = useT()
   const date = new Date(walk.started_at)
   const dateStr = date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })
   const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -192,7 +199,7 @@ function WalkCard({ walk }: { walk: WalkListItem }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-surface-900 dark:text-white text-sm truncate group-hover:text-primary-600 transition">
-            {walk.pet_name ?? 'Pet'} {moodEmoji && <span className="ml-1">{moodEmoji}</span>}
+            {walk.pet_name ?? t('pw.walks.petFallback')} {moodEmoji && <span className="ml-1">{moodEmoji}</span>}
           </div>
           <div className="text-xs text-surface-500 dark:text-surface-400 flex items-center gap-1.5">
             <Calendar className="w-3 h-3" />
@@ -205,15 +212,15 @@ function WalkCard({ walk }: { walk: WalkListItem }) {
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
           <div className="text-sm md:text-base font-bold text-surface-800 dark:text-white tabular-nums">{formatDistance(walk.distance_meters)}</div>
-          <div className="text-[10px] text-surface-500 dark:text-surface-400 uppercase tracking-wide">distância</div>
+          <div className="text-[10px] text-surface-500 dark:text-surface-400 uppercase tracking-wide">{t('walk.distance')}</div>
         </div>
         <div>
           <div className="text-sm md:text-base font-bold text-surface-800 dark:text-white tabular-nums">{formatDuration(walk.duration_seconds)}</div>
-          <div className="text-[10px] text-surface-500 dark:text-surface-400 uppercase tracking-wide">tempo</div>
+          <div className="text-[10px] text-surface-500 dark:text-surface-400 uppercase tracking-wide">{t('walk.time')}</div>
         </div>
         <div>
           <div className="text-sm md:text-base font-bold text-surface-800 dark:text-white tabular-nums">{walk.avg_pace_seconds_per_km ? formatPace(walk.avg_pace_seconds_per_km).replace('/km', '') : '—'}</div>
-          <div className="text-[10px] text-surface-500 dark:text-surface-400 uppercase tracking-wide">ritmo</div>
+          <div className="text-[10px] text-surface-500 dark:text-surface-400 uppercase tracking-wide">{t('walk.pace')}</div>
         </div>
       </div>
       {(walk.kudos_count > 0 || walk.is_shared) && (
@@ -225,7 +232,7 @@ function WalkCard({ walk }: { walk: WalkListItem }) {
           )}
           {walk.is_shared && (
             <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400">
-              <Trophy className="w-3.5 h-3.5" /> compartilhado
+              <Trophy className="w-3.5 h-3.5" /> {t('pw.walks.shared')}
             </span>
           )}
         </div>
