@@ -293,6 +293,7 @@ async def get_weight_history(
 @router.get("/pets/{pet_id}/health-score")
 async def get_health_score(
     pet_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -404,7 +405,12 @@ async def get_health_score(
     # destaque acionável: pega a dimensão de menor score pra sugerir ação
     worst = min(result["breakdown"], key=lambda d: d["score"])
     result["top_action"] = {"key": worst["key"], "label": worst["label"], "message": worst["message"]}
-    return result
+    # Traduz rótulos/mensagens para o idioma do aparelho (senão o app em
+    # inglês mostra "Constância" e "3 dias ativos…" em português).
+    import content_i18n
+    return content_i18n.localize_health_score(
+        result, content_i18n.locale_from_header(request.headers.get("accept-language"))
+    )
 
 
 # ─── Care Streak (sequência de dias cuidando) ────────────────────────────────

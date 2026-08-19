@@ -14,7 +14,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File, Query
 from sqlalchemy import select, desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -352,6 +352,7 @@ async def get_stats(
 
 @router.get("/badges")
 async def walk_badges(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -416,7 +417,9 @@ async def walk_badges(
         badge("night_owl", "Coruja noturna", "🌙", "Caminhada depois das 22h", 1 if has_night_walk else 0, 1),
     ]
     earned = sum(1 for b in badges if b["unlocked"])
-    return {"badges": badges, "earned_count": earned, "total_count": len(badges)}
+    import content_i18n
+    loc = content_i18n.locale_from_header(request.headers.get("accept-language"))
+    return {"badges": content_i18n.localize_badges(badges, loc), "earned_count": earned, "total_count": len(badges)}
 
 
 @router.get("/{walk_id}", response_model=WalkSessionResponse)

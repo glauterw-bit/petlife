@@ -1,6 +1,7 @@
 import os
 import uuid
 from datetime import datetime, timedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
@@ -66,6 +67,35 @@ async def create_vaccine(
     await db.commit()
     await db.refresh(vaccine)
     return vaccine
+
+
+@router.get("", response_model=list[VaccineResponse])
+async def list_vaccines(
+    pet_id: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Todas as vacinas dos pets acessíveis ao usuário (opcionalmente de um pet).
+
+    O app chama este endpoint na tela de Vacinas. Sem ele a lista vinha vazia
+    para todo mundo, mesmo com vacinas cadastradas.
+    """
+    pet_q = await db.execute(select(Pet.id).where(pet_accessible_filter(current_user.id)))
+    pet_ids = [r[0] for r in pet_q.fetchall()]
+    if pet_id is not None:
+        if pet_id not in pet_ids:
+            raise HTTPException(status_code=404, detail="Pet não encontrado")
+        pet_ids = [pet_id]
+    if not pet_ids:
+        return []
+
+    result = await db.execute(
+        select(Vaccine)
+        .options(selectinload(Vaccine.pet))
+        .where(Vaccine.pet_id.in_(pet_ids))
+        .order_by(Vaccine.date_given.desc())
+    )
+    return result.scalars().all()
 
 
 @router.get("/pet/{pet_id}", response_model=list[VaccineResponse])
