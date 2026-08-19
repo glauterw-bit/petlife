@@ -16,6 +16,7 @@ import { QuotaUpsellModal } from '@/components/billing/QuotaUpsellModal'
 import { CelebrationOverlay, celebrate } from '@/components/ui/CelebrationOverlay'
 import { pets as petsApi, type Pet } from '@/lib/api'
 import { trackAppOpenOnce } from '@/lib/track'
+import { useT } from '@/contexts/LocaleContext'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -24,6 +25,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, isLoading, isVetUser } = useAuth()
   const router = useRouter()
+  const t = useT()
   const [pets, setPets] = useState<Pet[]>([])
   const [activePetId, setActivePetId] = useState<number | undefined>()
 
@@ -52,19 +54,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             if (localStorage.getItem(key)) continue
             localStorage.setItem(key, '1')
             const idade = today.getFullYear() - b.getFullYear()
+            const many = idade > 1
             celebrate({
-              title: `Hoje é aniversário de ${p.name}! 🎂`,
-              message: `${idade} ano${idade > 1 ? 's' : ''} de muito amor. Parabéns! 🎉`,
+              title: t('v.layout.bdayTitle', { name: p.name }),
+              message: many ? t('v.layout.bdayMsg', { years: idade }) : t('v.layout.bdayMsgOne'),
               trackEvent: 'recap_share',
-              shareText: `Hoje é aniversário do ${p.name}! 🎂🐾`,
+              shareText: t('v.layout.bdayShare', { name: p.name }),
               card: {
-                title: `${p.name} faz ${idade} ano${idade > 1 ? 's' : ''}! 🎂`,
-                subtitle: 'Aniversário PetLife',
+                title: many
+                  ? t('v.layout.bdayCard', { name: p.name, years: idade })
+                  : t('v.layout.bdayCardOne', { name: p.name }),
+                subtitle: t('v.layout.bdaySubtitle'),
                 emoji: p.species === 'cat' ? '🐱' : '🐶',
                 petPhotoUrl: p.photo_url || null,
                 stats: [
-                  { label: 'anos de amor', value: String(idade) },
-                  { label: 'sempre no coração', value: '💚' },
+                  { label: many ? t('v.layout.bdayYears') : t('v.layout.bdayYearsOne'), value: String(idade) },
+                  { label: t('v.layout.bdayHeart'), value: '💚' },
                 ],
               },
             })
@@ -73,9 +78,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         }
       }).catch(() => {})
     }
-  }, [user, isVetUser])
+  }, [user, isVetUser, t])
 
-  if (isLoading) return <PageLoader text="Carregando PetLife..." />
+  if (isLoading) return <PageLoader text={t('v.layout.loading')} />
   if (!user) return null
 
   return (

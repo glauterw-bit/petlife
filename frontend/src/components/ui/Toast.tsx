@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CheckCircle, XCircle, AlertCircle, X, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -25,6 +26,7 @@ interface ToastProps {
 }
 
 export function Toast({ toast, onRemove }: ToastProps) {
+  const t = useT()
   const [leaving, setLeaving] = useState(false)
   const [dragX, setDragX] = useState(0)
   const startX = useRef<number | null>(null)
@@ -133,7 +135,7 @@ export function Toast({ toast, onRemove }: ToastProps) {
       )}
       <button
         onClick={dismiss}
-        aria-label="Fechar"
+        aria-label={t('common.close')}
         className="text-surface-400 hover:text-surface-600 dark:text-surface-500 dark:hover:text-surface-300 transition-colors shrink-0"
       >
         <X className="w-4 h-4" />

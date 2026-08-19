@@ -6,16 +6,18 @@ import { Users, Check, X, Loader2, PawPrint, MailOpen } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { innovations, type InviteEntry } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { useT } from '@/contexts/LocaleContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
-const ROLE_LABEL: Record<string, string> = {
-  co_tutor: 'Co-tutor (acesso completo)',
-  sitter: 'Pet sitter (acesso limitado)',
-  familia: 'Família (visualização)',
+const ROLE_LABEL_KEY: Record<string, string> = {
+  co_tutor: 'g.inv.role.coTutor',
+  sitter: 'g.inv.role.sitter',
+  familia: 'g.inv.role.family',
 }
 
 function InvitesContent() {
+  const t = useT()
   const router = useRouter()
   const search = useSearchParams()
   const { success, error } = useToast()
@@ -36,11 +38,11 @@ function InvitesContent() {
     if (token) {
       innovations.acceptInvite(token)
         .then(r => {
-          success(`Você aceitou cuidar de ${r.pet_name}!`)
+          success(t('g.inv.accepted', { name: r.pet_name }))
           load()
           router.replace('/convites')
         })
-        .catch((e: unknown) => error(e instanceof Error ? e.message : 'Não foi possível aceitar (já processado ou expirado).'))
+        .catch((e: unknown) => error(e instanceof Error ? e.message : t('g.inv.errAccept')))
     }
   }, [search])
 
@@ -48,10 +50,10 @@ function InvitesContent() {
     setProcessing(token)
     try {
       const r = await innovations.acceptInvite(token)
-      success(`Você aceitou cuidar de ${r.pet_name}!`)
+      success(t('g.inv.accepted', { name: r.pet_name }))
       await load()
     } catch (e: unknown) {
-      error(e instanceof Error ? e.message : 'Erro')
+      error(e instanceof Error ? e.message : t('g.misc.errorShort'))
     } finally {
       setProcessing(null)
     }
@@ -61,10 +63,10 @@ function InvitesContent() {
     setProcessing(token)
     try {
       await innovations.declineInvite(token)
-      success('Convite recusado')
+      success(t('g.inv.declined'))
       await load()
     } catch (e: unknown) {
-      error(e instanceof Error ? e.message : 'Erro')
+      error(e instanceof Error ? e.message : t('g.misc.errorShort'))
     } finally {
       setProcessing(null)
     }
@@ -75,9 +77,9 @@ function InvitesContent() {
       <div className="mb-5 md:mb-6 ">
         <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2 leading-tight">
           <MailOpen className="w-6 h-6 text-cyan-600 shrink-0" />
-          Convites
+          {t('g.inv.title')}
         </h1>
-        <p className="text-xs md:text-sm text-surface-500 dark:text-surface-400 mt-1">Convites pra cuidar de pets de outras pessoas.</p>
+        <p className="text-xs md:text-sm text-surface-500 dark:text-surface-400 mt-1">{t('g.inv.subtitle')}</p>
       </div>
 
       {loading ? (
@@ -85,8 +87,8 @@ function InvitesContent() {
       ) : invites.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
           <Users className="w-12 h-12 text-surface-300 mx-auto mb-3" />
-          <h3 className="font-bold text-surface-900 dark:text-white mb-1">Nenhum convite pendente</h3>
-          <p className="text-sm text-surface-500 dark:text-surface-400">Quando alguém te convidar pra cuidar de um pet, aparece aqui.</p>
+          <h3 className="font-bold text-surface-900 dark:text-white mb-1">{t('g.inv.emptyTitle')}</h3>
+          <p className="text-sm text-surface-500 dark:text-surface-400">{t('g.inv.emptyText')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -103,9 +105,9 @@ function InvitesContent() {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-surface-900 dark:text-white">{inv.pet_name}</h3>
                   <p className="text-sm text-surface-500 dark:text-surface-400">
-                    Convite de <strong>{inv.inviter_name}</strong>
+                    {t('g.inv.from')} <strong>{inv.inviter_name}</strong>
                   </p>
-                  <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-1">{ROLE_LABEL[inv.role]}</p>
+                  <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-1">{ROLE_LABEL_KEY[inv.role] ? t(ROLE_LABEL_KEY[inv.role]) : inv.role}</p>
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
@@ -115,7 +117,7 @@ function InvitesContent() {
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold border border-surface-200 dark:border-surface-600 text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700 disabled:opacity-60"
                 >
                   <X className="w-4 h-4" />
-                  Recusar
+                  {t('g.inv.decline')}
                 </button>
                 <button
                   onClick={() => accept(inv.invite_token)}
@@ -123,7 +125,7 @@ function InvitesContent() {
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold bg-cyan-500 hover:bg-cyan-600 text-white disabled:opacity-60 transition shadow-md shadow-cyan-500/30"
                 >
                   {processing === inv.invite_token ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  Aceitar
+                  {t('g.inv.accept')}
                 </button>
               </div>
             </div>

@@ -8,12 +8,21 @@ import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { gamification, type Challenge, type UserChallenge, type LeaderboardEntry, type UserPoints } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { celebrateBadge, hapticMedium, hapticError } from '@/lib/feedback'
-import { getLevelName, getBadgeColor } from '@/lib/utils'
+import { getBadgeColor } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 type Section = 'available' | 'active' | 'completed' | 'leaderboard'
 
+/** Mesma escada de níveis de getLevelName(), traduzida. */
+const LEVEL_KEYS = [
+  'g.gam.level1', 'g.gam.level2', 'g.gam.level3', 'g.gam.level4', 'g.gam.level5',
+  'g.gam.level6', 'g.gam.level7', 'g.gam.level8', 'g.gam.level9', 'g.gam.level10',
+]
+const levelKey = (level: number) => LEVEL_KEYS[Math.min(level - 1, LEVEL_KEYS.length - 1)] ?? LEVEL_KEYS[0]
+
 export default function ChallengesPage() {
+  const t = useT()
   const { success, error } = useToast()
   const [challenges, setChallenges] = useState<Challenge[]>([])
   const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([])
@@ -47,10 +56,10 @@ export default function ChallengesPage() {
       const uc = await gamification.startChallenge(challengeId)
       setUserChallenges(prev => [...prev, uc])
       void hapticMedium()
-      success('Desafio iniciado! Boa sorte! 🎯')
+      success(t('g.gam.started'))
     } catch (err: unknown) {
       void hapticError()
-      error(err instanceof Error ? err.message : 'Erro ao iniciar desafio.')
+      error(err instanceof Error ? err.message : t('g.gam.errStart'))
     } finally { setActionLoading(null) }
   }
 
@@ -62,10 +71,10 @@ export default function ChallengesPage() {
       const pts = await gamification.getUserPoints()
       setPoints(pts)
       celebrateBadge()
-      success('Parabéns! Desafio concluído! 🏆')
+      success(t('g.gam.completed'))
     } catch (err: unknown) {
       void hapticError()
-      error(err instanceof Error ? err.message : 'Erro ao completar desafio.')
+      error(err instanceof Error ? err.message : t('g.gam.errComplete'))
     } finally { setActionLoading(null) }
   }
 
@@ -77,20 +86,20 @@ export default function ChallengesPage() {
   const availableChallenges = challenges.filter(c => !activeChallengeIds.has(c.id) && !completedChallengeIds.has(c.id))
 
   const sections: { id: Section; label: string; count?: number }[] = [
-    { id: 'available', label: 'Disponíveis', count: availableChallenges.length },
-    { id: 'active', label: 'Ativos', count: activeUC.length },
-    { id: 'completed', label: 'Concluídos', count: completedUC.length },
-    { id: 'leaderboard', label: '🏆 Ranking' },
+    { id: 'available', label: t('g.gam.tabAvailable'), count: availableChallenges.length },
+    { id: 'active', label: t('g.gam.tabActive'), count: activeUC.length },
+    { id: 'completed', label: t('g.gam.tabCompleted'), count: completedUC.length },
+    { id: 'leaderboard', label: t('g.gam.tabLeaderboard') },
   ]
 
   const progressPct = points ? Math.min(100, ((points.total_points % 1000) / 10)) : 0
-  const levelName = points ? getLevelName(points.level) : 'Iniciante'
+  const levelName = t(levelKey(points ? points.level : 1))
 
   return (
     <DashboardLayout>
       <div className="mb-5 md:mb-6 ">
-        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">Desafios & Gamificação</h1>
-        <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">Complete desafios e acumule pontos!</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">{t('g.gam.title')}</h1>
+        <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">{t('g.gam.subtitle')}</p>
       </div>
 
       {/* Points banner */}
@@ -99,23 +108,23 @@ export default function ChallengesPage() {
           <div className="flex items-center gap-6 flex-wrap">
             <div>
               <div className="text-4xl font-bold">{points.total_points}</div>
-              <div className="text-accent-100 text-sm">pontos totais</div>
+              <div className="text-accent-100 text-sm">{t('g.gam.totalPoints')}</div>
             </div>
             <div className="flex-1 min-w-[200px]">
               <div className="flex justify-between text-sm mb-1.5">
-                <span className="font-semibold">Nível {points.level} — {levelName}</span>
-                <span className="text-accent-100">{points.total_points % 1000}/1000 pts</span>
+                <span className="font-semibold">{t('g.gam.levelLine', { level: points.level, name: levelName })}</span>
+                <span className="text-accent-100">{t('g.gam.ptsProgress', { cur: points.total_points % 1000 })}</span>
               </div>
               <div className="w-full bg-white/20 rounded-full h-3">
                 <div className="bg-white dark:bg-surface-800 h-3 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
               </div>
               <div className="text-xs text-accent-100 mt-1">
-                Faltam {points.points_to_next_level} pts para o próximo nível
+                {t('g.gam.toNextLevel', { n: points.points_to_next_level })}
               </div>
             </div>
             {points.badges_earned.length > 0 && (
               <div>
-                <p className="text-xs text-accent-100 mb-1.5">Badges:</p>
+                <p className="text-xs text-accent-100 mb-1.5">{t('g.gam.badges')}</p>
                 <div className="flex flex-wrap gap-1">
                   {points.badges_earned.map((b, i) => (
                     <span key={i} className="text-xs bg-white/20 rounded-full px-2.5 py-1 font-medium">{b}</span>
@@ -155,8 +164,8 @@ export default function ChallengesPage() {
               {availableChallenges.length === 0 ? (
                 <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
                   <div className="text-5xl mb-3">🎉</div>
-                  <p className="font-semibold text-surface-900 dark:text-white mb-1">Todos os desafios iniciados!</p>
-                  <p className="text-surface-500 dark:text-surface-400 text-sm">Continue completando para ganhar mais pontos.</p>
+                  <p className="font-semibold text-surface-900 dark:text-white mb-1">{t('g.gam.emptyAvailTitle')}</p>
+                  <p className="text-surface-500 dark:text-surface-400 text-sm">{t('g.gam.emptyAvailText')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -178,8 +187,8 @@ export default function ChallengesPage() {
               {activeUC.length === 0 ? (
                 <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
                   <div className="text-5xl mb-3">🎯</div>
-                  <p className="font-semibold text-surface-900 dark:text-white mb-1">Nenhum desafio ativo</p>
-                  <p className="text-surface-500 dark:text-surface-400 text-sm">Inicie um desafio na aba "Disponíveis".</p>
+                  <p className="font-semibold text-surface-900 dark:text-white mb-1">{t('g.gam.emptyActiveTitle')}</p>
+                  <p className="text-surface-500 dark:text-surface-400 text-sm">{t('g.gam.emptyActiveText')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -206,8 +215,8 @@ export default function ChallengesPage() {
               {completedUC.length === 0 ? (
                 <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
                   <div className="text-5xl mb-3">🏆</div>
-                  <p className="font-semibold text-surface-900 dark:text-white mb-1">Nenhum desafio concluído ainda</p>
-                  <p className="text-surface-500 dark:text-surface-400 text-sm">Complete seus desafios ativos para ver aqui!</p>
+                  <p className="font-semibold text-surface-900 dark:text-white mb-1">{t('g.gam.emptyDoneTitle')}</p>
+                  <p className="text-surface-500 dark:text-surface-400 text-sm">{t('g.gam.emptyDoneText')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -225,11 +234,11 @@ export default function ChallengesPage() {
             <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 overflow-hidden">
               <div className="px-6 py-4 border-b border-surface-100 dark:border-surface-700 flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-accent-500" />
-                <h2 className="font-bold text-surface-900 dark:text-white">Ranking de Tutores</h2>
+                <h2 className="font-bold text-surface-900 dark:text-white">{t('g.gam.leaderboardTitle')}</h2>
               </div>
               {leaderboard.length === 0 ? (
                 <div className="text-center py-12 text-surface-400">
-                  <p>Ranking não disponível.</p>
+                  <p>{t('g.gam.leaderboardEmpty')}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-surface-100">
@@ -251,7 +260,7 @@ export default function ChallengesPage() {
                         <div className="font-semibold text-surface-900 dark:text-white">{entry.user_name}</div>
                         <div className={cn('inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border mt-0.5', getBadgeColor(entry.level))}>
                           <Medal className="w-3 h-3" />
-                          {getLevelName(entry.level)}
+                          {t(levelKey(entry.level))}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 font-bold text-accent-700">

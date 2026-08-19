@@ -4,14 +4,16 @@ import { useEffect, useState } from 'react'
 import { X, UserPlus, Mail, Trash2, Loader2, Users, Copy, Check } from 'lucide-react'
 import { innovations, type PetShareEntry } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { useT } from '@/contexts/LocaleContext'
 
-const ROLE_LABEL: Record<string, string> = {
-  co_tutor: 'Co-tutor (acesso completo)',
-  sitter: 'Pet sitter (acesso limitado)',
-  familia: 'Família (visualização)',
+const ROLE_LABEL_KEY: Record<string, string> = {
+  co_tutor: 'g.inv.role.coTutor',
+  sitter: 'g.inv.role.sitter',
+  familia: 'g.inv.role.family',
 }
 
 export function SharePetModal({ petId, petName, open, onClose }: { petId: number; petName: string; open: boolean; onClose: () => void }) {
+  const t = useT()
   const { success, error } = useToast()
   const [shares, setShares] = useState<PetShareEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -28,11 +30,11 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
   useEffect(() => { if (open) load() }, [open, petId])
 
   async function invite() {
-    if (!email.trim() || !email.includes('@')) { error('E-mail inválido'); return }
+    if (!email.trim() || !email.includes('@')) { error(t('g.sh.errEmail')); return }
     setInviting(true)
     try {
       const res = await innovations.invitePetShare(petId, email.trim().toLowerCase(), role)
-      success(res.user_exists ? 'Convite enviado — outro usuário verá em /convites' : 'Convite criado — compartilhe o link com o e-mail')
+      success(res.user_exists ? t('g.sh.inviteSent') : t('g.sh.inviteCreated'))
       const fullUrl = typeof window !== 'undefined'
         ? `${window.location.origin}/convites?token=${res.invite_token}`
         : `/convites?token=${res.invite_token}`
@@ -40,20 +42,20 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
       setEmail('')
       await load()
     } catch (e: unknown) {
-      error(e instanceof Error ? e.message : 'Erro')
+      error(e instanceof Error ? e.message : t('g.misc.errorShort'))
     } finally {
       setInviting(false)
     }
   }
 
   async function revoke(shareId: number) {
-    if (!confirm('Revogar acesso?')) return
+    if (!confirm(t('g.sh.confirmRevoke'))) return
     try {
       await innovations.revokeShare(shareId)
-      success('Acesso revogado')
+      success(t('g.sh.revoked'))
       await load()
     } catch (e: unknown) {
-      error(e instanceof Error ? e.message : 'Erro')
+      error(e instanceof Error ? e.message : t('g.misc.errorShort'))
     }
   }
 
@@ -75,9 +77,9 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
         <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100 dark:border-surface-700 sticky top-0 bg-white/95 dark:bg-surface-800/95 backdrop-blur z-10">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-cyan-500" />
-            <h2 className="font-bold text-surface-900 dark:text-white">Compartilhar {petName}</h2>
+            <h2 className="font-bold text-surface-900 dark:text-white">{t('g.sh.title', { name: petName })}</h2>
           </div>
-          <button onClick={onClose} aria-label="Fechar" className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700">
+          <button onClick={onClose} aria-label={t('common.close')} className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -86,7 +88,7 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
           {/* Invite form */}
           <div>
             <p className="text-sm text-surface-600 dark:text-surface-300 mb-3">
-              Convide co-tutor, pet sitter ou família para acompanhar {petName}.
+              {t('g.sh.desc', { name: petName })}
             </p>
             <div className="space-y-2">
               <div className="relative">
@@ -95,7 +97,7 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="email@exemplo.com"
+                  placeholder={t('g.sh.emailPh')}
                   className="w-full pl-9 pr-3 py-2.5 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
@@ -104,9 +106,9 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                 onChange={e => setRole(e.target.value as 'co_tutor' | 'sitter' | 'familia')}
                 className="w-full px-3 py-2.5 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
-                <option value="co_tutor">Co-tutor (acesso completo)</option>
-                <option value="sitter">Pet sitter (acesso limitado)</option>
-                <option value="familia">Família (visualização)</option>
+                <option value="co_tutor">{t('g.inv.role.coTutor')}</option>
+                <option value="sitter">{t('g.inv.role.sitter')}</option>
+                <option value="familia">{t('g.inv.role.family')}</option>
               </select>
               <button
                 onClick={invite}
@@ -114,7 +116,7 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                 className="w-full flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2.5 rounded-xl disabled:opacity-60 transition shadow-md shadow-cyan-500/30"
               >
                 {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                {inviting ? 'Enviando…' : 'Convidar'}
+                {inviting ? t('g.sh.sending') : t('g.sh.invite')}
               </button>
             </div>
           </div>
@@ -123,10 +125,10 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
           {loading ? (
             <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-surface-400" /></div>
           ) : activeShares.length === 0 ? (
-            <p className="text-sm text-surface-400 text-center py-6">Você ainda não compartilhou {petName} com ninguém.</p>
+            <p className="text-sm text-surface-400 text-center py-6">{t('g.sh.empty', { name: petName })}</p>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 font-semibold">Pessoas com acesso</p>
+              <p className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 font-semibold">{t('g.sh.peopleWithAccess')}</p>
               {activeShares.map(s => (
                 <div key={s.id} className="flex items-start gap-3 p-3 bg-surface-50 dark:bg-surface-700/40 rounded-xl">
                   <div className="w-9 h-9 bg-cyan-100 dark:bg-cyan-900/40 rounded-xl flex items-center justify-center shrink-0">
@@ -136,12 +138,12 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                     <p className="text-sm font-semibold text-surface-900 dark:text-white truncate">
                       {s.user_name ?? s.invite_email}
                     </p>
-                    <p className="text-xs text-surface-500 dark:text-surface-400">{ROLE_LABEL[s.role]}</p>
+                    <p className="text-xs text-surface-500 dark:text-surface-400">{ROLE_LABEL_KEY[s.role] ? t(ROLE_LABEL_KEY[s.role]) : s.role}</p>
                     <p className="text-xs text-surface-400 mt-0.5">
                       {s.status === 'accepted'
-                        ? `Aceito em ${new Date(s.accepted_at!).toLocaleDateString('pt-BR')}`
+                        ? t('g.sh.acceptedOn', { date: new Date(s.accepted_at!).toLocaleDateString('pt-BR') })
                         : s.status === 'pending'
-                        ? 'Aguardando aceitar'
+                        ? t('g.sh.pending')
                         : s.status}
                     </p>
                   </div>
@@ -149,8 +151,8 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                     {s.status === 'pending' && s.invite_token && (
                       <button
                         onClick={() => copyLink(s.invite_token!)}
-                        aria-label="Copiar link do convite"
-                        title="Copiar link"
+                        aria-label={t('g.sh.copyLinkAria')}
+                        title={t('g.sh.copyLink')}
                         className="tap-target p-1.5 rounded-lg text-surface-500 dark:text-surface-400 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition"
                       >
                         {copiedToken === s.invite_token
@@ -160,8 +162,8 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                     )}
                     <button
                       onClick={() => revoke(s.id)}
-                      aria-label="Revogar acesso"
-                      title="Revogar"
+                      aria-label={t('g.sh.revokeAria')}
+                      title={t('g.sh.revoke')}
                       className="tap-target p-1.5 rounded-lg text-surface-500 dark:text-surface-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" />

@@ -21,9 +21,11 @@ import { PetHero } from '@/components/pets/PetHero'
 import { ReferralCard } from '@/components/growth/ReferralCard'
 import { OnboardingChecklist } from '@/components/growth/OnboardingChecklist'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useT } from '@/contexts/LocaleContext'
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const t = useT()
   const [pets, setPets] = useState<Pet[]>([])
   const [upcomingVaccines, setUpcomingVaccines] = useState<Vaccine[]>([])
   const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([])
@@ -85,10 +87,10 @@ export default function DashboardPage() {
       ) : (
         <div className="mb-6 md:mb-8">
           <h1 className="font-display text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">
-            Olá, {user?.name?.split(' ')[0] ?? 'Tutor'}! 👋
+            {t('dash.greeting', { name: user?.name?.split(' ')[0] ?? t('v.dash.defaultUser') })}
           </h1>
           <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">
-            Adicione seu primeiro pet para começar!
+            {t('dash.addFirstPet')}
           </p>
         </div>
       )}
@@ -121,26 +123,26 @@ export default function DashboardPage() {
         {[
           {
             icon: <PawPrint className="w-5 h-5" />,
-            label: 'Total de Pets',
+            label: t('dash.totalPets'),
             value: pets.length,
             tint: 'text-primary-600 bg-primary-50 dark:text-primary-300 dark:bg-primary-500/15',
           },
           {
             icon: <Syringe className="w-5 h-5" />,
-            label: 'Vacinas Próximas',
+            label: t('dash.upcomingVaccines'),
             value: upcomingVaccines.filter(v => getVaccineStatus(v.next_due_date) === 'upcoming').length,
             tint: 'text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15',
             alert: overdueVaccines.length > 0,
           },
           {
             icon: <Bell className="w-5 h-5" />,
-            label: 'Lembretes (7d)',
+            label: t('dash.reminders7d'),
             value: upcomingReminders.length,
             tint: 'text-blue-600 bg-blue-50 dark:text-blue-300 dark:bg-blue-500/15',
           },
           {
             icon: <Trophy className="w-5 h-5" />,
-            label: 'Pontos',
+            label: t('dash.points'),
             value: points?.total_points ?? 0,
             tint: 'text-accent-600 bg-accent-50 dark:text-accent-300 dark:bg-accent-500/15',
           },
@@ -165,16 +167,16 @@ export default function DashboardPage() {
           {/* Pet cards */}
           <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-surface-900 dark:text-white">Meus Pets</h2>
+              <h2 className="text-lg font-bold text-surface-900 dark:text-white">{t('dash.myPets')}</h2>
               <Link href="/pets" className="text-sm text-primary-600 hover:underline flex items-center gap-1">
-                Ver todos <ArrowRight className="w-4 h-4" />
+                {t('common.seeAll')} <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
             {pets.length === 0 ? (
               <EmptyState
-                title="Cadastre seu primeiro pet!"
-                text="Leva 1 minuto — e a carteirinha digital dele já sai pronta pra compartilhar."
-                ctaLabel="＋ Adicionar pet"
+                title={t('dash.emptyPetsTitle')}
+                text={t('dash.emptyPetsText')}
+                ctaLabel={t('dash.emptyPetsCta')}
                 ctaHref="/pets/new"
               />
             ) : (
@@ -201,7 +203,7 @@ export default function DashboardPage() {
                 ))}
                 {pets.length > 3 && (
                   <Link href="/pets" className="block text-center text-sm text-primary-600 hover:underline py-2">
-                    +{pets.length - 3} outros pets
+                    {t('v.dash.morePets', { count: pets.length - 3 })}
                   </Link>
                 )}
               </div>
@@ -214,10 +216,10 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-surface-900 dark:text-white flex items-center gap-2">
                   <Syringe className="w-5 h-5 text-yellow-500" />
-                  Vacinas em Atenção
+                  {t('dash.vaccinesAttention')}
                 </h2>
                 <Link href="/health/vaccines" className="text-sm text-primary-600 hover:underline flex items-center gap-1">
-                  Ver todas <ArrowRight className="w-4 h-4" />
+                  {t('v.dash.seeAllF')} <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
               <div className="space-y-2">
@@ -229,10 +231,10 @@ export default function DashboardPage() {
                       <Shield className={`w-5 h-5 ${isOverdue ? 'text-red-500' : 'text-yellow-500'}`} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-surface-900 dark:text-white">{v.name}</div>
-                        <div className="text-xs text-surface-500 dark:text-surface-400">{v.pet?.name ?? ''} • Vence: {formatDate(v.next_due_date)}</div>
+                        <div className="text-xs text-surface-500 dark:text-surface-400">{v.pet?.name ?? ''} • {t('vaccine.due')}: {formatDate(v.next_due_date)}</div>
                       </div>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {isOverdue ? '🔴 Atrasada' : '⚠️ Próxima'}
+                        {isOverdue ? t('vaccine.badgeOverdue') : t('vaccine.badgeUpcoming')}
                       </span>
                     </div>
                   )
@@ -243,15 +245,15 @@ export default function DashboardPage() {
 
           {/* Quick actions */}
           <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
-            <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-4">Ações Rápidas</h2>
+            <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-4">{t('dash.quickActions')}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
-                { href: '/walks/active', icon: <Footprints className="w-5 h-5" />, label: 'Passear agora', color: 'text-primary-600 bg-primary-50 hover:bg-primary-100' },
-                { href: '/health/vaccines', icon: <Syringe className="w-5 h-5" />, label: 'Nova Vacina', color: 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' },
-                { href: '/health/exams', icon: <FlaskConical className="w-5 h-5" />, label: 'Novo Exame', color: 'text-blue-600 bg-blue-50 hover:bg-blue-100' },
-                { href: '/challenges', icon: <Trophy className="w-5 h-5" />, label: 'Desafios', color: 'text-accent-600 bg-accent-50 hover:bg-accent-100' },
-                { href: '/pets/new', icon: <PawPrint className="w-5 h-5" />, label: 'Novo Pet', color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
-                { href: '/nearby', icon: <TrendingUp className="w-5 h-5" />, label: 'Clínicas Próximas', color: 'text-green-600 bg-green-50 hover:bg-green-100' },
+                { href: '/walks/active', icon: <Footprints className="w-5 h-5" />, label: t('dash.walkNow'), color: 'text-primary-600 bg-primary-50 hover:bg-primary-100' },
+                { href: '/health/vaccines', icon: <Syringe className="w-5 h-5" />, label: t('dash.newVaccine'), color: 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' },
+                { href: '/health/exams', icon: <FlaskConical className="w-5 h-5" />, label: t('dash.newExam'), color: 'text-blue-600 bg-blue-50 hover:bg-blue-100' },
+                { href: '/challenges', icon: <Trophy className="w-5 h-5" />, label: t('dash.challenges'), color: 'text-accent-600 bg-accent-50 hover:bg-accent-100' },
+                { href: '/pets/new', icon: <PawPrint className="w-5 h-5" />, label: t('dash.newPet'), color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
+                { href: '/nearby', icon: <TrendingUp className="w-5 h-5" />, label: t('dash.nearbyClinics'), color: 'text-green-600 bg-green-50 hover:bg-green-100' },
               ].map(a => (
                 <Link
                   key={a.href}
@@ -275,13 +277,13 @@ export default function DashboardPage() {
             <div className="bg-gradient-to-br from-accent-500 to-accent-600 rounded-2xl p-5 text-white">
               <div className="flex items-center gap-2 mb-3">
                 <Trophy className="w-5 h-5" />
-                <span className="font-semibold">Gamificação</span>
+                <span className="font-semibold">{t('v.dash.gamification')}</span>
               </div>
               <div className="text-3xl font-bold mb-0.5">{points.total_points} pts</div>
-              <div className="text-accent-100 text-sm mb-4">Nível {points.level} — {levelName}</div>
+              <div className="text-accent-100 text-sm mb-4">{t('v.dash.level', { level: points.level, name: levelName })}</div>
 
               <div className="mb-1 flex justify-between text-xs text-accent-100">
-                <span>Progresso</span>
+                <span>{t('v.dash.progress')}</span>
                 <span>{points.total_points % 1000}/1000 pts</span>
               </div>
               <div className="w-full bg-white/20 rounded-full h-2 mb-4">
@@ -293,7 +295,7 @@ export default function DashboardPage() {
 
               {points.badges_earned && points.badges_earned.length > 0 && (
                 <div>
-                  <p className="text-xs text-accent-100 mb-2">Badges conquistados:</p>
+                  <p className="text-xs text-accent-100 mb-2">{t('v.dash.badges')}</p>
                   <div className="flex flex-wrap gap-1">
                     {points.badges_earned.map((b, i) => (
                       <span key={i} className="text-xs bg-white/20 rounded-full px-2.5 py-0.5">{b}</span>
@@ -306,7 +308,7 @@ export default function DashboardPage() {
                 href="/challenges"
                 className="mt-4 block text-center text-sm font-semibold bg-white/20 hover:bg-white/30 transition rounded-xl py-2"
               >
-                Ver desafios <Star className="inline w-4 h-4 ml-1" />
+                {t('v.dash.seeChallenges')} <Star className="inline w-4 h-4 ml-1" />
               </Link>
             </div>
           )}
@@ -316,11 +318,11 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-bold text-surface-900 dark:text-white flex items-center gap-2">
                 <Bell className="w-4 h-4 text-blue-500" />
-                Lembretes
+                {t('v.dash.reminders')}
               </h2>
             </div>
             {upcomingReminders.length === 0 ? (
-              <p className="text-sm text-surface-400 text-center py-4">Nenhum lembrete próximo</p>
+              <p className="text-sm text-surface-400 text-center py-4">{t('dash.noReminders')}</p>
             ) : (
               <div className="space-y-2">
                 {upcomingReminders.slice(0, 5).map(r => (

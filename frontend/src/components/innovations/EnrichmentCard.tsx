@@ -5,11 +5,12 @@ import { Sparkles, Loader2, RefreshCw } from 'lucide-react'
 import { enrichment, type EnrichmentDay } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { VyronAvatar } from '@/components/ai/VyronAvatar'
+import { useT } from '@/contexts/LocaleContext'
 
-const TYPE_BADGE: Record<string, string> = {
-  mental: '🧠 mental',
-  fisica: '🏃 física',
-  vinculo: '💚 vínculo',
+const TYPE_BADGE_KEY: Record<string, string> = {
+  mental: 'g.enr.type.mental',
+  fisica: 'g.enr.type.fisica',
+  vinculo: 'g.enr.type.vinculo',
 }
 
 /**
@@ -17,6 +18,7 @@ const TYPE_BADGE: Record<string, string> = {
  * Vyron. Cacheia por dia no localStorage pra não gastar quota à toa.
  */
 export function EnrichmentCard({ petId, petName }: { petId: number; petName: string }) {
+  const t = useT()
   const { error } = useToast()
   const [data, setData] = useState<EnrichmentDay | null>(null)
   const [loading, setLoading] = useState(false)
@@ -42,7 +44,7 @@ export function EnrichmentCard({ petId, petName }: { petId: number; petName: str
       setDone({})
       try { localStorage.setItem(cacheKey, JSON.stringify({ data: res, done: {} })) } catch {}
     } catch (e: unknown) {
-      error(e instanceof Error ? e.message : 'Não foi possível gerar agora.')
+      error(e instanceof Error ? e.message : t('g.enr.errGenerate'))
     } finally { setLoading(false) }
   }
 
@@ -56,17 +58,17 @@ export function EnrichmentCard({ petId, petName }: { petId: number; petName: str
     <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
       <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
         <h3 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary-500" /> Bem-estar de hoje
+          <Sparkles className="w-4 h-4 text-primary-500" /> {t('g.enr.title')}
         </h3>
         {data && (
           <button onClick={generate} disabled={loading}
             className="pressable flex items-center gap-1 text-xs font-semibold text-primary-600 px-2 py-1 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Novas
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> {t('g.enr.new')}
           </button>
         )}
       </div>
       <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">
-        Atividades de enriquecimento pra deixar {petName} mais feliz — criadas pela Vyron.
+        {t('g.enr.subtitle', { name: petName })}
       </p>
 
       {!data ? (
@@ -75,9 +77,9 @@ export function EnrichmentCard({ petId, petName }: { petId: number; petName: str
           <button onClick={generate} disabled={loading}
             className="pressable inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-60">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {loading ? 'Vyron pensando…' : 'Gerar atividades do dia'}
+            {loading ? t('g.enr.thinking') : t('g.enr.generate')}
           </button>
-          <p className="text-[11px] text-surface-400 mt-2">3 atividades de 5–15 min com itens de casa</p>
+          <p className="text-[11px] text-surface-400 mt-2">{t('g.enr.hint')}</p>
         </div>
       ) : (
         <div className="space-y-2.5">
@@ -98,7 +100,7 @@ export function EnrichmentCard({ petId, petName }: { petId: number; petName: str
                   {a.title}
                 </span>
                 <span className="text-[10px] bg-surface-100 dark:bg-surface-700 text-surface-500 dark:text-surface-300 rounded-full px-2 py-0.5">
-                  {TYPE_BADGE[a.type] ?? a.type} · {a.minutes} min
+                  {TYPE_BADGE_KEY[a.type] ? t(TYPE_BADGE_KEY[a.type]) : a.type} · {t('g.misc.min', { n: a.minutes })}
                 </span>
               </div>
               {!done[i] && (
@@ -113,7 +115,7 @@ export function EnrichmentCard({ petId, petName }: { petId: number; petName: str
             <div className="flex items-start gap-2 rounded-xl bg-primary-50/70 dark:bg-primary-900/20 p-3 mt-1">
               <VyronAvatar size={26} state="idle" />
               <p className="text-xs text-surface-600 dark:text-surface-300 leading-relaxed pt-1">
-                <b className="text-primary-700 dark:text-primary-300">Dica da Vyron:</b> {data.tip}
+                <b className="text-primary-700 dark:text-primary-300">{t('g.enr.vyronTip')}</b> {data.tip}
               </p>
             </div>
           )}

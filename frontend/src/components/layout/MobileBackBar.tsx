@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { hapticLight } from '@/lib/feedback'
+import { useT } from '@/contexts/LocaleContext'
 
 // Páginas abertas pelo menu "Mais" (e sub-rotas) que não são abas da barra
 // inferior — precisam de um "voltar" explícito no mobile (o app nativo/PWA
@@ -19,6 +20,7 @@ const BACK_PREFIXES = [
 export function MobileBackBar() {
   const router = useRouter()
   const pathname = usePathname() ?? ''
+  const t = useT()
 
   const show = BACK_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
   if (!show) return null
@@ -36,11 +38,11 @@ export function MobileBackBar() {
     <div className="md:hidden mb-3">
       <button
         onClick={back}
-        aria-label="Voltar"
+        aria-label={t('nav.back')}
         className="pressable inline-flex items-center gap-1.5 text-sm font-medium text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white -ml-1 pr-3 py-1.5 rounded-lg tap-target"
       >
         <ArrowLeft className="w-5 h-5" />
-        Voltar
+        {t('nav.back')}
       </button>
     </div>
   )

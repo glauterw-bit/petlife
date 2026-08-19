@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg'
@@ -37,10 +38,11 @@ export function LoadingSpinner({ size = 'md', className, text }: LoadingSpinnerP
   )
 }
 
-export function PageLoader({ text = 'Carregando...' }: { text?: string }) {
+export function PageLoader({ text }: { text?: string }) {
+  const t = useT()
   return (
     <div className="min-h-[400px] flex items-center justify-center">
-      <LoadingSpinner size="lg" text={text} />
+      <LoadingSpinner size="lg" text={text ?? t('common.loading')} />
     </div>
   )
 }

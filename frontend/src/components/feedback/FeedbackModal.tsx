@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { MessageCircleHeart, X, Send, PartyPopper } from 'lucide-react'
 import { feedback as feedbackApi } from '@/lib/api'
 import { hapticLight, hapticSuccess } from '@/lib/feedback'
+import { useT } from '@/contexts/LocaleContext'
 
 /**
  * Pesquisa de satisfação — aparece UMA vez por usuário.
@@ -21,14 +22,15 @@ const DISMISS_KEY = `petlife_feedback_${SOURCE}_dismissed`
 const DELAY_MS = 4000
 
 const FACES = [
-  { v: 1, emoji: '😞', label: 'Ruim' },
-  { v: 2, emoji: '😕', label: 'Fraco' },
-  { v: 3, emoji: '🙂', label: 'Ok' },
-  { v: 4, emoji: '😃', label: 'Bom' },
-  { v: 5, emoji: '🤩', label: 'Adoro!' },
+  { v: 1, emoji: '😞', labelKey: 'fb.face1' },
+  { v: 2, emoji: '😕', labelKey: 'fb.face2' },
+  { v: 3, emoji: '🙂', labelKey: 'fb.face3' },
+  { v: 4, emoji: '😃', labelKey: 'fb.face4' },
+  { v: 5, emoji: '🤩', labelKey: 'fb.face5' },
 ]
 
 export function FeedbackModal() {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [rating, setRating] = useState<number | null>(null)
   const [likes, setLikes] = useState('')
@@ -98,17 +100,17 @@ export function FeedbackModal() {
               <PartyPopper className="w-10 h-10 text-primary-600 dark:text-primary-400" />
             </div>
             <h2 className="font-display text-xl font-bold text-surface-900 dark:text-white mb-2">
-              Muito obrigado! 💚
+              {t('fb.thanksTitle')}
             </h2>
             <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">
-              Sua opinião vai direto pra fila de melhorias do PetLife. Prometo ler tudo!
+              {t('fb.thanksBody')}
             </p>
           </div>
         ) : (
           <>
             <button
               onClick={dismiss}
-              aria-label="Fechar"
+              aria-label={t('common.close')}
               className="absolute right-3 top-3 p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-700 transition z-10"
             >
               <X className="w-4 h-4 text-surface-500 dark:text-surface-400" />
@@ -119,10 +121,10 @@ export function FeedbackModal() {
                 <MessageCircleHeart className="w-8 h-8 text-primary-600 dark:text-primary-400" />
               </div>
               <h2 className="font-display text-xl font-bold text-surface-900 dark:text-white mb-1.5">
-                Me ajuda a melhorar o PetLife?
+                {t('fb.title')}
               </h2>
               <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">
-                Leva 30 segundos e me diz exatamente o que construir a seguir. 🐾
+                {t('fb.subtitle')}
               </p>
             </div>
 
@@ -130,7 +132,7 @@ export function FeedbackModal() {
               {/* nota por carinha */}
               <div>
                 <label className="block text-sm font-semibold text-surface-800 dark:text-surface-100 mb-2.5">
-                  O que você está achando do app?
+                  {t('fb.rating')}
                 </label>
                 <div className="flex items-center justify-between gap-1.5">
                   {FACES.map(f => {
@@ -139,7 +141,7 @@ export function FeedbackModal() {
                       <button
                         key={f.v}
                         onClick={() => { setRating(f.v); void hapticLight() }}
-                        aria-label={f.label}
+                        aria-label={t(f.labelKey)}
                         aria-pressed={active}
                         className={`pressable flex-1 flex flex-col items-center gap-1 py-2.5 rounded-2xl border transition ${
                           active
@@ -149,7 +151,7 @@ export function FeedbackModal() {
                       >
                         <span className="text-2xl leading-none">{f.emoji}</span>
                         <span className={`text-[10px] font-medium ${active ? 'text-primary-700 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400'}`}>
-                          {f.label}
+                          {t(f.labelKey)}
                         </span>
                       </button>
                     )
@@ -159,28 +161,28 @@ export function FeedbackModal() {
 
               <div>
                 <label className="block text-sm font-semibold text-surface-800 dark:text-surface-100 mb-1.5">
-                  O que você mais gosta? <span className="font-normal text-surface-400">(opcional)</span>
+                  {t('fb.likes')} <span className="font-normal text-surface-400">({t('common.optional')})</span>
                 </label>
                 <textarea
                   value={likes}
                   onChange={e => setLikes(e.target.value)}
                   rows={2}
                   maxLength={2000}
-                  placeholder="Ex.: a carteirinha de vacinação, o passeio com GPS…"
+                  placeholder={t('fb.likesPlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-900 text-sm text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-surface-800 dark:text-surface-100 mb-1.5">
-                  O que falta ou o que melhoraria?
+                  {t('fb.suggestion')}
                 </label>
                 <textarea
                   value={suggestion}
                   onChange={e => setSuggestion(e.target.value)}
                   rows={3}
                   maxLength={2000}
-                  placeholder="Pode ser sincero! Qualquer ideia, problema ou recurso que faz falta."
+                  placeholder={t('fb.suggestionPlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-900 text-sm text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
                 />
               </div>
@@ -193,7 +195,7 @@ export function FeedbackModal() {
                   className="mt-0.5 w-4 h-4 rounded accent-primary-500 shrink-0"
                 />
                 <span className="text-xs text-surface-600 dark:text-surface-300 leading-snug">
-                  Pode me responder por e-mail se precisar de mais detalhes
+                  {t('fb.canContact')}
                 </span>
               </label>
 
@@ -202,7 +204,7 @@ export function FeedbackModal() {
                   onClick={dismiss}
                   className="px-4 py-3 rounded-xl text-sm font-medium text-surface-600 dark:text-surface-300 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 dark:hover:bg-surface-600 transition"
                 >
-                  Agora não
+                  {t('fb.later')}
                 </button>
                 <button
                   onClick={submit}
@@ -214,7 +216,7 @@ export function FeedbackModal() {
                   ) : (
                     <Send className="w-4 h-4" />
                   )}
-                  {sending ? 'Enviando…' : 'Enviar feedback'}
+                  {sending ? t('fb.sending') : t('fb.send')}
                 </button>
               </div>
             </div>

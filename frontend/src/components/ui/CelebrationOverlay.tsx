@@ -11,6 +11,7 @@ import { Share2, X } from 'lucide-react'
 import { VyronAvatar } from '@/components/ai/VyronAvatar'
 import { shareCardImage, type CardSpec } from '@/lib/shareCard'
 import { track } from '@/lib/track'
+import { useT } from '@/contexts/LocaleContext'
 
 export interface CelebrationDetail {
   title: string
@@ -25,6 +26,7 @@ export function celebrate(detail: CelebrationDetail) {
 }
 
 export function CelebrationOverlay() {
+  const t = useT()
   const [detail, setDetail] = useState<CelebrationDetail | null>(null)
   const [sharing, setSharing] = useState(false)
 
@@ -65,7 +67,7 @@ export function CelebrationOverlay() {
         className="w-full max-w-sm bg-white dark:bg-surface-800 rounded-3xl p-6 text-center shadow-2xl animate-slide-up"
         onClick={e => e.stopPropagation()}
       >
-        <button onClick={() => setDetail(null)} aria-label="Fechar"
+        <button onClick={() => setDetail(null)} aria-label={t('common.close')}
           className="absolute-top-right float-right -mt-2 -mr-2 p-1.5 rounded-lg text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700">
           <X className="w-5 h-5" />
         </button>
@@ -75,11 +77,11 @@ export function CelebrationOverlay() {
         {detail.card && (
           <button onClick={doShare} disabled={sharing}
             className="pressable mt-5 w-full py-3 rounded-xl bg-primary-500 hover:bg-primary-600 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60">
-            <Share2 className="w-4 h-4" /> {sharing ? 'Gerando card…' : 'Compartilhar 🎉'}
+            <Share2 className="w-4 h-4" /> {sharing ? t('v.ui.generatingCard') : t('v.ui.shareCta')}
           </button>
         )}
         <button onClick={() => setDetail(null)} className="mt-2 w-full py-2.5 text-sm font-medium text-surface-500 dark:text-surface-400">
-          Fechar
+          {t('common.close')}
         </button>
       </div>
     </div>

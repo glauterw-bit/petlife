@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Camera, Trash2, Loader2, Sparkles } from 'lucide-react'
 import { innovations, type StoryEntry } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { useT } from '@/contexts/LocaleContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
@@ -12,7 +13,15 @@ const EMOTION_EMOJI: Record<string, string> = {
   observador: '👀', relaxado: '😌', atento: '👂', brincalhao: '🤸',
 }
 
+const EMOTION_LABEL_KEY: Record<string, string> = {
+  alegre: 'g.st.emotion.alegre', curioso: 'g.st.emotion.curioso',
+  sonolento: 'g.st.emotion.sonolento', travesso: 'g.st.emotion.travesso',
+  observador: 'g.st.emotion.observador', relaxado: 'g.st.emotion.relaxado',
+  atento: 'g.st.emotion.atento', brincalhao: 'g.st.emotion.brincalhao',
+}
+
 export function StoriesFeed({ petId, petName }: { petId: number; petName: string }) {
+  const t = useT()
   const { success, error } = useToast()
   const [stories, setStories] = useState<StoryEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,22 +44,22 @@ export function StoriesFeed({ petId, petName }: { petId: number; petName: string
       const s = await innovations.addStory(petId, f, caption || undefined)
       setStories([s, ...stories])
       setCaption('')
-      success('Story publicada! IA já criou a legenda 🎉')
+      success(t('g.st.published'))
     } catch (e: unknown) {
-      error(e instanceof Error ? e.message : 'Erro ao publicar.')
+      error(e instanceof Error ? e.message : t('g.st.errPublish'))
     } finally {
       setUploading(false)
     }
   }
 
   async function del(id: number) {
-    if (!confirm('Apagar esta story?')) return
+    if (!confirm(t('g.st.confirmDelete'))) return
     try {
       await innovations.deleteStory(id)
       setStories(stories.filter(s => s.id !== id))
-      success('Story apagada')
+      success(t('g.st.deleted'))
     } catch (e: unknown) {
-      error(e instanceof Error ? e.message : 'Erro.')
+      error(e instanceof Error ? e.message : t('g.misc.error'))
     }
   }
 
@@ -62,7 +71,7 @@ export function StoriesFeed({ petId, petName }: { petId: number; petName: string
           type="text"
           value={caption}
           onChange={e => setCaption(e.target.value)}
-          placeholder="Sua legenda (opcional — IA gera uma)"
+          placeholder={t('g.st.captionPh')}
           className="w-full p-2.5 mb-2 text-sm border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
         <label className="block">
@@ -70,7 +79,7 @@ export function StoriesFeed({ petId, petName }: { petId: number; petName: string
           <div className="flex items-center justify-center gap-2 border-2 border-dashed border-primary-300 dark:border-primary-700 rounded-xl py-3 cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20 transition">
             {uploading ? <Loader2 className="w-5 h-5 text-primary-500 animate-spin" /> : <Camera className="w-5 h-5 text-primary-500" />}
             <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">
-              {uploading ? 'Publicando…' : `Publicar foto de ${petName}`}
+              {uploading ? t('g.st.publishing') : t('g.st.publishPhoto', { name: petName })}
             </span>
           </div>
         </label>
@@ -82,7 +91,7 @@ export function StoriesFeed({ petId, petName }: { petId: number; petName: string
       ) : stories.length === 0 ? (
         <div className="text-center py-12 bg-surface-50 dark:bg-surface-800/50 rounded-2xl">
           <Camera className="w-10 h-10 text-surface-300 mx-auto mb-2" />
-          <p className="text-sm text-surface-500 dark:text-surface-400">Nenhuma story ainda. Publique a primeira!</p>
+          <p className="text-sm text-surface-500 dark:text-surface-400">{t('g.st.empty')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -96,12 +105,12 @@ export function StoriesFeed({ petId, petName }: { petId: number; petName: string
                 />
                 {s.ai_emotion && (
                   <span className="absolute top-2 left-2 bg-black/60 backdrop-blur text-white text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {EMOTION_EMOJI[s.ai_emotion] || '🐾'} {s.ai_emotion}
+                    {EMOTION_EMOJI[s.ai_emotion] || '🐾'} {EMOTION_LABEL_KEY[s.ai_emotion] ? t(EMOTION_LABEL_KEY[s.ai_emotion]) : s.ai_emotion}
                   </span>
                 )}
                 <button
                   onClick={() => del(s.id)}
-                  aria-label="Apagar"
+                  aria-label={t('g.st.deleteAria')}
                   className="absolute top-2 right-2 bg-black/60 backdrop-blur text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-red-500"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

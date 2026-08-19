@@ -6,6 +6,7 @@ import { MapPin, Phone, Star, Navigation, ExternalLink, Loader2 } from 'lucide-r
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { search, type NearbyPlace } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { useT } from '@/contexts/LocaleContext'
 import { cn } from '@/lib/utils'
 
 const NearbyMap = dynamic(() => import('@/components/nearby/NearbyMap'), {
@@ -24,13 +25,15 @@ const RADII = [
   { value: 20, label: '20 km' },
 ]
 
+// `value` vai pro backend — só o rótulo é traduzido.
 const TYPES = [
-  { value: 'veterinary', label: '🏥 Clínicas Veterinárias' },
-  { value: 'petshop', label: '🛍 Pet Shops' },
+  { value: 'veterinary', labelKey: 'v.nearby.typeVet' },
+  { value: 'petshop', labelKey: 'v.nearby.typeShop' },
 ]
 
 export default function NearbyPage() {
   const { error } = useToast()
+  const t = useT()
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null)
   const [type, setType] = useState('veterinary')
   const [radius, setRadius] = useState(5)
@@ -40,7 +43,7 @@ export default function NearbyPage() {
   const [searched, setSearched] = useState(false)
 
   async function getLocation() {
-    if (!navigator.geolocation) { error('Geolocalização não suportada pelo seu navegador.'); return }
+    if (!navigator.geolocation) { error(t('v.nearby.geoUnsupported')); return }
     setLocating(true)
     navigator.geolocation.getCurrentPosition(
       pos => {
@@ -48,7 +51,7 @@ export default function NearbyPage() {
         setLocating(false)
       },
       () => {
-        error('Não foi possível obter sua localização. Verifique as permissões do navegador.')
+        error(t('v.nearby.geoError'))
         setLocating(false)
       }
     )
@@ -59,20 +62,20 @@ export default function NearbyPage() {
   }, [])
 
   async function handleSearch() {
-    if (!coords) { error('Localização não disponível. Clique em "Usar minha localização".'); return }
+    if (!coords) { error(t('v.nearby.noCoords')); return }
     setLoading(true)
     setSearched(true)
     try {
       const res = await search.nearby(coords.lat, coords.lon, type, radius)
       setResults(res)
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Erro desconhecido.'
+      const msg = e instanceof Error ? e.message : t('v.nearby.errUnknown')
       if (msg.toLowerCase().includes('timeout') || msg.includes('504')) {
-        error('A busca demorou demais. Tente um raio menor ou outra região.')
+        error(t('v.nearby.errTimeout'))
       } else if (msg.includes('502') || msg.toLowerCase().includes('mapa')) {
-        error('Serviço de mapa instável. Tente novamente em instantes.')
+        error(t('v.nearby.errMap'))
       } else {
-        error(`Erro ao buscar: ${msg}`)
+        error(t('v.nearby.errSearch', { msg }))
       }
       setResults([])
     } finally { setLoading(false) }
@@ -88,8 +91,8 @@ export default function NearbyPage() {
   return (
     <DashboardLayout>
       <div className="mb-5 md:mb-6 ">
-        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">Clínicas e Pet Shops</h1>
-        <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">Encontre estabelecimentos próximos a você</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">{t('v.nearby.title')}</h1>
+        <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">{t('v.nearby.subtitle')}</p>
       </div>
 
       {/* Controls */}
@@ -100,7 +103,7 @@ export default function NearbyPage() {
             {coords ? (
               <div className="flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-xl">
                 <MapPin className="w-4 h-4" />
-                Localização obtida
+                {t('v.nearby.located')}
               </div>
             ) : (
               <button
@@ -109,30 +112,30 @@ export default function NearbyPage() {
                 className="flex items-center gap-1.5 text-sm text-primary-600 bg-primary-50 hover:bg-primary-100 px-3 py-2 rounded-xl transition"
               >
                 {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-                {locating ? 'Localizando...' : 'Usar minha localização'}
+                {locating ? t('v.nearby.locating') : t('v.nearby.useLocation')}
               </button>
             )}
           </div>
 
           {/* Type toggle */}
           <div className="flex gap-2">
-            {TYPES.map(t => (
+            {TYPES.map(item => (
               <button
-                key={t.value}
-                onClick={() => setType(t.value)}
+                key={item.value}
+                onClick={() => setType(item.value)}
                 className={cn(
                   'px-3 py-2 rounded-xl text-sm font-medium transition',
-                  type === t.value ? 'bg-primary-500 text-white' : 'bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 hover:bg-surface-200'
+                  type === item.value ? 'bg-primary-500 text-white' : 'bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 hover:bg-surface-200'
                 )}
               >
-                {t.label}
+                {t(item.labelKey)}
               </button>
             ))}
           </div>
 
           {/* Radius */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-surface-600 dark:text-surface-300">Raio:</span>
+            <span className="text-sm text-surface-600 dark:text-surface-300">{t('v.nearby.radius')}</span>
             <div className="flex gap-1">
               {RADII.map(r => (
                 <button
@@ -155,7 +158,7 @@ export default function NearbyPage() {
             className="ml-auto flex items-center gap-2 bg-primary-500 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-primary-600 disabled:opacity-60 transition"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-            {loading ? 'Buscando...' : 'Buscar'}
+            {loading ? t('v.nearby.searching') : t('v.nearby.search')}
           </button>
         </div>
       </div>
@@ -172,7 +175,7 @@ export default function NearbyPage() {
         </div>
       ) : (
         <div className="bg-surface-50 dark:bg-surface-900/60 border border-surface-200 dark:border-surface-700 rounded-2xl p-8 mb-6 text-center text-sm text-surface-500 dark:text-surface-400">
-          Permita o acesso à sua localização para ver o mapa.
+          {t('v.nearby.mapPermission')}
         </div>
       )}
 
@@ -180,14 +183,18 @@ export default function NearbyPage() {
       {searched && !loading && (
         <div>
           <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-4">
-            {results.length > 0 ? `${results.length} resultado${results.length > 1 ? 's' : ''} encontrado${results.length > 1 ? 's' : ''}` : 'Nenhum resultado encontrado'}
+            {results.length === 0
+              ? t('v.nearby.noResults')
+              : results.length === 1
+                ? t('v.nearby.resultsOne')
+                : t('v.nearby.resultsMany', { count: results.length })}
           </h2>
 
           {results.length === 0 ? (
             <div className="text-center py-12 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
               <div className="text-5xl mb-3">😔</div>
-              <p className="text-surface-600 dark:text-surface-300">Nenhum local encontrado nesse raio.</p>
-              <p className="text-sm text-surface-500 dark:text-surface-400 mt-1">Tente aumentar o raio de busca.</p>
+              <p className="text-surface-600 dark:text-surface-300">{t('v.nearby.emptyTitle')}</p>
+              <p className="text-sm text-surface-500 dark:text-surface-400 mt-1">{t('v.nearby.emptyText')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -219,7 +226,7 @@ export default function NearbyPage() {
                         )}
                         {place.open_now !== undefined && (
                           <span className={cn('text-xs font-medium px-2.5 py-0.5 rounded-full', place.open_now ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700')}>
-                            {place.open_now ? '🟢 Aberto' : '🔴 Fechado'}
+                            {place.open_now ? t('v.nearby.open') : t('v.nearby.closed')}
                           </span>
                         )}
                       </div>
@@ -240,7 +247,7 @@ export default function NearbyPage() {
                       className="flex items-center gap-1.5 text-sm text-primary-700 bg-primary-50 hover:bg-primary-100 px-3 py-2 rounded-xl transition ml-auto"
                     >
                       <ExternalLink className="w-4 h-4" />
-                      Ver no Maps
+                      {t('v.nearby.viewMaps')}
                     </button>
                   </div>
                 </div>

@@ -9,6 +9,7 @@ import {
   ChevronDown, ChevronRight, Plus, CreditCard, Footprints, Crown, BarChart3
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useT } from '@/contexts/LocaleContext'
 import { cn, getSpeciesEmoji } from '@/lib/utils'
 import type { Pet } from '@/lib/api'
 
@@ -21,36 +22,37 @@ interface SidebarProps {
 interface NavItem {
   href: string
   icon: React.ReactNode
-  label: string
-  children?: { href: string; label: string; icon: React.ReactNode }[]
+  labelKey: string
+  children?: { href: string; labelKey: string; icon: React.ReactNode }[]
 }
 
 const navItems: NavItem[] = [
-  { href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard' },
-  { href: '/pets', icon: <PawPrint className="w-5 h-5" />, label: 'Meus Pets' },
+  { href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" />, labelKey: 'v.side.dashboard' },
+  { href: '/pets', icon: <PawPrint className="w-5 h-5" />, labelKey: 'dash.myPets' },
   {
     href: '/health',
     icon: <Heart className="w-5 h-5" />,
-    label: 'Saúde',
+    labelKey: 'nav.health',
     children: [
-      { href: '/health/vaccines', label: 'Vacinas', icon: <Syringe className="w-4 h-4" /> },
-      { href: '/health/vaccines/carteirinha/__PET__', label: 'Carteirinha Digital', icon: <CreditCard className="w-4 h-4" /> },
-      { href: '/health/exams', label: 'Exames', icon: <FlaskConical className="w-4 h-4" /> },
+      { href: '/health/vaccines', labelKey: 'v.side.vaccines', icon: <Syringe className="w-4 h-4" /> },
+      { href: '/health/vaccines/carteirinha/__PET__', labelKey: 'v.side.card', icon: <CreditCard className="w-4 h-4" /> },
+      { href: '/health/exams', labelKey: 'v.side.exams', icon: <FlaskConical className="w-4 h-4" /> },
     ],
   },
-  { href: '/walks', icon: <Footprints className="w-5 h-5" />, label: 'Passeios' },
-  { href: '/routines', icon: <Route className="w-5 h-5" />, label: 'Rotinas' },
-  { href: '/challenges', icon: <Trophy className="w-5 h-5" />, label: 'Desafios' },
-  { href: '/nearby', icon: <MapPin className="w-5 h-5" />, label: 'Buscar Clínicas' },
-  { href: '/behavior', icon: <Brain className="w-5 h-5" />, label: 'Planos Comportamentais' },
-  { href: '/convites', icon: <MailOpen className="w-5 h-5" />, label: 'Convites' },
-  { href: '/plans', icon: <Crown className="w-5 h-5" />, label: 'Planos' },
-  { href: '/settings', icon: <Settings className="w-5 h-5" />, label: 'Configurações' },
+  { href: '/walks', icon: <Footprints className="w-5 h-5" />, labelKey: 'nav.walks' },
+  { href: '/routines', icon: <Route className="w-5 h-5" />, labelKey: 'v.side.routines' },
+  { href: '/challenges', icon: <Trophy className="w-5 h-5" />, labelKey: 'dash.challenges' },
+  { href: '/nearby', icon: <MapPin className="w-5 h-5" />, labelKey: 'v.side.nearby' },
+  { href: '/behavior', icon: <Brain className="w-5 h-5" />, labelKey: 'v.side.behavior' },
+  { href: '/convites', icon: <MailOpen className="w-5 h-5" />, labelKey: 'v.side.invites' },
+  { href: '/plans', icon: <Crown className="w-5 h-5" />, labelKey: 'v.side.plans' },
+  { href: '/settings', icon: <Settings className="w-5 h-5" />, labelKey: 'v.side.settings' },
 ]
 
 export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const t = useT()
   const { user, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [healthOpen, setHealthOpen] = useState(pathname.startsWith('/health'))
@@ -110,9 +112,9 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
               <span className="text-xl">{getSpeciesEmoji(activePet?.species)}</span>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-surface-900 dark:text-white truncate">
-                  {activePet?.name ?? 'Selecionar pet'}
+                  {activePet?.name ?? t('v.side.selectPet')}
                 </div>
-                <div className="text-xs text-surface-500 dark:text-surface-400 truncate">{activePet?.breed?.name ?? 'Pet ativo'}</div>
+                <div className="text-xs text-surface-500 dark:text-surface-400 truncate">{activePet?.breed?.name ?? t('v.side.activePet')}</div>
               </div>
               <ChevronDown className={cn('w-4 h-4 text-surface-400 transition-transform', petSelectOpen && 'rotate-180')} />
             </button>
@@ -139,7 +141,7 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
                   onClick={() => setPetSelectOpen(false)}
                 >
                   <Plus className="w-4 h-4" />
-                  <span className="text-sm font-medium">Adicionar pet</span>
+                  <span className="text-sm font-medium">{t('v.side.addPet')}</span>
                 </Link>
               </div>
             )}
@@ -165,7 +167,7 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
                   <span className={isActive(item.href) ? 'text-primary-600' : 'text-surface-500 dark:text-surface-400'}>
                     {item.icon}
                   </span>
-                  {item.label}
+                  {t(item.labelKey)}
                   <ChevronRight className={cn('w-4 h-4 ml-auto transition-transform', healthOpen && 'rotate-90')} />
                 </button>
                 {healthOpen && (
@@ -187,7 +189,7 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
                           )}
                         >
                           <span>{child.icon}</span>
-                          {child.label}
+                          {t(child.labelKey)}
                         </Link>
                       )
                     })}
@@ -210,7 +212,7 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
               <span className={isActive(item.href) ? 'text-primary-600' : 'text-surface-500 dark:text-surface-400'}>
                 {item.icon}
               </span>
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           )
         })}
@@ -227,7 +229,7 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
             <span className={isActive('/admin') ? 'text-primary-600' : 'text-surface-500 dark:text-surface-400'}>
               <BarChart3 className="w-5 h-5" />
             </span>
-            Painel Admin
+            {t('v.side.admin')}
           </Link>
         )}
       </nav>
@@ -239,7 +241,7 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-surface-600 dark:text-surface-300 hover:bg-red-50 hover:text-red-600 transition"
         >
           <LogOut className="w-5 h-5" />
-          Sair
+          {t('v.side.logout')}
         </button>
       </div>
     </div>

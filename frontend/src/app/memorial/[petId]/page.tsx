@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Heart, Share2, PawPrint } from 'lucide-react'
+import { useT } from '@/contexts/LocaleContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
@@ -21,6 +22,7 @@ interface MemorialData {
 }
 
 export default function MemorialPage() {
+  const t = useT()
   const params = useParams()
   const petId = Number(params.petId)
   const [data, setData] = useState<MemorialData | null>(null)
@@ -38,7 +40,7 @@ export default function MemorialPage() {
 
   function share() {
     if (!data) return
-    const text = encodeURIComponent(`Em memória de ${data.pet.name} 🕊️\n${typeof window !== 'undefined' ? window.location.href : ''}`)
+    const text = encodeURIComponent(`${t('g.mem.shareText', { name: data.pet.name })}\n${typeof window !== 'undefined' ? window.location.href : ''}`)
     window.open(`https://wa.me/?text=${text}`, '_blank')
   }
 
@@ -46,7 +48,7 @@ export default function MemorialPage() {
     return (
       <div className="min-h-screen bg-stone-900 flex items-center justify-center p-4">
         <div className="bg-stone-800 rounded-2xl p-8 text-center max-w-md text-stone-300">
-          <p>Memorial não encontrado.</p>
+          <p>{t('g.mem.notFound')}</p>
         </div>
       </div>
     )
@@ -55,7 +57,7 @@ export default function MemorialPage() {
   if (!data) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-stone-900 to-stone-950 flex items-center justify-center text-stone-400">
-        Carregando…
+        {t('common.loading')}
       </div>
     )
   }
@@ -66,7 +68,7 @@ export default function MemorialPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <Heart className="w-8 h-8 text-rose-400 mx-auto mb-3" />
-          <p className="text-xs uppercase tracking-widest text-stone-400 font-semibold">Em memória</p>
+          <p className="text-xs uppercase tracking-widest text-stone-400 font-semibold">{t('g.mem.inMemory')}</p>
         </div>
 
         {/* Photo */}
@@ -83,7 +85,7 @@ export default function MemorialPage() {
         {/* Name + dates */}
         <h1 className="text-4xl font-bold text-center mb-2">{data.pet.name}</h1>
         <p className="text-center text-stone-400 text-sm mb-2">
-          {data.pet.species === 'dog' ? 'Cão' : 'Gato'}
+          {data.pet.species === 'dog' ? t('pet.dog') : t('pet.cat')}
           {data.pet.breed && <> · {data.pet.breed}</>}
         </p>
         {(data.pet.birth_date || data.pet.deceased_at) && (
@@ -91,7 +93,7 @@ export default function MemorialPage() {
             {data.pet.birth_date && new Date(data.pet.birth_date).toLocaleDateString('pt-BR')}
             {data.pet.birth_date && data.pet.deceased_at && ' — '}
             {data.pet.deceased_at && new Date(data.pet.deceased_at).toLocaleDateString('pt-BR')}
-            {data.pet.age_years && <> · {data.pet.age_years} anos</>}
+            {data.pet.age_years && <> · {t('g.misc.years', { n: data.pet.age_years })}</>}
           </p>
         )}
 
@@ -104,7 +106,7 @@ export default function MemorialPage() {
 
         {data.owner_name && (
           <p className="text-center text-stone-400 text-sm mb-8">
-            Tutor(a): {data.owner_name}
+            {t('g.mem.guardian', { name: data.owner_name })}
           </p>
         )}
 
@@ -114,13 +116,13 @@ export default function MemorialPage() {
             className="flex items-center gap-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 px-5 py-2.5 rounded-xl font-semibold transition border border-rose-500/30"
           >
             <Share2 className="w-4 h-4" />
-            Compartilhar
+            {t('g.misc.share')}
           </button>
         </div>
 
         <div className="text-center mt-12 text-stone-500 text-xs">
           <PawPrint className="w-4 h-4 inline mr-1" />
-          PetLife — em memória eterna
+          {t('g.mem.footer')}
         </div>
       </div>
     </div>

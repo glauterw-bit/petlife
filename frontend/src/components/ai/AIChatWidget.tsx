@@ -5,11 +5,17 @@ import { X, Send, ChevronDown } from 'lucide-react'
 import { VyronAvatar } from './VyronAvatar'
 import { ai, type Pet } from '@/lib/api'
 import { cn, getSpeciesEmoji } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  /**
+   * Mensagens nossas (boas-vindas, erro) guardam a chave em vez do texto:
+   * assim acompanham a troca de idioma em vez de congelar no idioma inicial.
+   */
+  contentKey?: string
   timestamp: Date
 }
 
@@ -18,12 +24,14 @@ interface AIChatWidgetProps {
 }
 
 export function AIChatWidget({ pets }: AIChatWidgetProps) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
       role: 'assistant',
-      content: 'Oi! Eu sou a Vyron, a veterinária virtual do PetLife 🩺🐾 Pode me perguntar sobre saúde, comportamento, alimentação... Estou aqui pro que seu pet precisar!',
+      content: '',
+      contentKey: 'v.ai.welcome',
       timestamp: new Date(),
     },
   ])
@@ -74,7 +82,8 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
       const errMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Desculpe, tive um problema de conexão. Tente novamente em instantes.',
+        content: '',
+        contentKey: 'v.ai.error',
         timestamp: new Date(),
       }
       setMessages(prev => [...prev, errMsg])
@@ -91,7 +100,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          aria-label="Abrir chat com Vyron IA"
+          aria-label={t('v.ai.openChat')}
           style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
           className="pressable fixed bottom-nav md:bottom-6 z-40 flex items-center gap-2 bg-white dark:bg-surface-800 border-2 border-primary-400 text-primary-700 dark:text-primary-300 pl-1.5 pr-4 py-1.5 tap-target rounded-full shadow-xl shadow-primary-300/40 transition-all hover:scale-105"
         >
@@ -112,7 +121,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
             </div>
             <div className="flex-1">
               <div className="font-bold text-sm">Vyron</div>
-              <div className="text-xs text-primary-100">{loading ? 'pensando…' : 'veterinária virtual • online'}</div>
+              <div className="text-xs text-primary-100">{loading ? t('v.ai.thinking') : t('v.ai.status')}</div>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -131,7 +140,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
               >
                 <span>{getSpeciesEmoji(selectedPet?.species)}</span>
                 <span className="text-surface-700 dark:text-surface-200 font-medium">
-                  {selectedPet?.name ?? 'Selecionar pet'}
+                  {selectedPet?.name ?? t('v.side.selectPet')}
                 </span>
                 <ChevronDown className={cn('w-4 h-4 text-surface-400 ml-auto transition-transform', petDropdown && 'rotate-180')} />
               </button>
@@ -176,7 +185,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
                       : 'bg-surface-100 dark:bg-surface-700 text-surface-800 dark:text-surface-100 rounded-tl-sm'
                   )}
                 >
-                  {msg.content}
+                  {msg.contentKey ? t(msg.contentKey) : msg.content}
                 </div>
               </div>
             ))}
@@ -213,14 +222,14 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
               onFocus={() => {
                 setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 250)
               }}
-              placeholder="Pergunte algo sobre seu pet..."
+              placeholder={t('v.ai.placeholder')}
               className="flex-1 text-base px-3 py-2 border border-surface-200 dark:border-surface-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               inputMode="text"
               enterKeyHint="send"
             />
             <button
               onClick={sendMessage}
-              aria-label="Enviar mensagem"
+              aria-label={t('v.ai.send')}
               disabled={!input.trim() || loading}
               className="tap-target bg-primary-500 text-white rounded-xl flex items-center justify-center hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition px-3"
             >

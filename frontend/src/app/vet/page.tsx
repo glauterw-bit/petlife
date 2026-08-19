@@ -5,47 +5,58 @@ import {
   Stethoscope, Users, FileText, Clock, Shield, Star, ChevronRight,
   PawPrint, CheckCircle, BarChart3, Bell
 } from 'lucide-react'
+import { useT } from '@/contexts/LocaleContext'
 
 const features = [
   {
     icon: <Users className="w-7 h-7 text-primary-500" />,
-    title: 'Gestão de Pacientes',
-    desc: 'Acesse o histórico completo de todos os seus pacientes em segundos.',
+    titleKey: 'v.vet.f1.title',
+    descKey: 'v.vet.f1.desc',
   },
   {
     icon: <FileText className="w-7 h-7 text-accent-500" />,
-    title: 'Prontuários Digitais',
-    desc: 'Vacinas, exames e consultas organizados digitalmente.',
+    titleKey: 'v.vet.f2.title',
+    descKey: 'v.vet.f2.desc',
   },
   {
     icon: <BarChart3 className="w-7 h-7 text-blue-500" />,
-    title: 'Anamneses com IA',
-    desc: 'Visualize anamneses com análise de urgência feita por Inteligência Artificial.',
+    titleKey: 'v.vet.f3.title',
+    descKey: 'v.vet.f3.desc',
   },
   {
     icon: <Bell className="w-7 h-7 text-yellow-500" />,
-    title: 'Alertas Automáticos',
-    desc: 'Veja quais pacientes têm vacinas atrasadas ou exames pendentes.',
+    titleKey: 'v.vet.f4.title',
+    descKey: 'v.vet.f4.desc',
   },
   {
     icon: <Clock className="w-7 h-7 text-purple-500" />,
-    title: 'Acesso Rápido',
-    desc: 'Busque qualquer paciente por nome ou tutor em segundos.',
+    titleKey: 'v.vet.f5.title',
+    descKey: 'v.vet.f5.desc',
   },
   {
     icon: <Shield className="w-7 h-7 text-green-500" />,
-    title: 'Segurança Total',
-    desc: 'Dados dos seus pacientes protegidos com criptografia e controle de acesso.',
+    titleKey: 'v.vet.f6.title',
+    descKey: 'v.vet.f6.desc',
   },
 ]
 
+// Nome e clínica são nomes próprios — só o depoimento é traduzido.
 const testimonials = [
-  { name: 'Dr. Carlos Mendes', clinic: 'Clínica VetCare SP', text: 'A PetLife revolucionou como atendo meus pacientes. Acesso o histórico completo em segundos!' },
-  { name: 'Dra. Ana Ferreira', clinic: 'Hospital Veterinário Central', text: 'As anamneses com análise de IA me ajudam a priorizar casos urgentes antes mesmo da consulta.' },
-  { name: 'Dr. Ricardo Lima', clinic: 'PetClinic Belo Horizonte', text: 'Minha equipe economiza horas por dia. O prontuário digital é excelente!' },
+  { name: 'Dr. Carlos Mendes', clinic: 'Clínica VetCare SP', textKey: 'v.vet.t1.text' },
+  { name: 'Dra. Ana Ferreira', clinic: 'Hospital Veterinário Central', textKey: 'v.vet.t2.text' },
+  { name: 'Dr. Ricardo Lima', clinic: 'PetClinic Belo Horizonte', textKey: 'v.vet.t3.text' },
+]
+
+const steps = [
+  { icon: '📝', step: '01', titleKey: 'v.vet.s1.title', descKey: 'v.vet.s1.desc' },
+  { icon: '👥', step: '02', titleKey: 'v.vet.s2.title', descKey: 'v.vet.s2.desc' },
+  { icon: '🔍', step: '03', titleKey: 'v.vet.s3.title', descKey: 'v.vet.s3.desc' },
+  { icon: '✍️', step: '04', titleKey: 'v.vet.s4.title', descKey: 'v.vet.s4.desc' },
 ]
 
 export default function VetLandingPage() {
+  const t = useT()
+
   return (
     <div className="min-h-screen bg-white dark:bg-surface-800">
       {/* Header */}
@@ -56,14 +67,14 @@ export default function VetLandingPage() {
               <PawPrint className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold text-surface-900 dark:text-white">PetLife</span>
-            <span className="hidden sm:inline text-sm text-surface-400 ml-1">para Veterinários</span>
+            <span className="hidden sm:inline text-sm text-surface-400 ml-1">{t('v.vet.forVets')}</span>
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/vet/login" className="text-sm font-medium text-surface-700 dark:text-surface-200 hover:text-primary-600 px-4 py-2">
-              Entrar
+              {t('v.vet.signIn')}
             </Link>
             <Link href="/vet/register" className="bg-primary-500 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-primary-600 transition">
-              Cadastrar clínica
+              {t('v.vet.registerClinic')}
             </Link>
           </div>
         </div>
@@ -78,38 +89,38 @@ export default function VetLandingPage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-white/10 text-primary-100 text-sm font-medium px-4 py-1.5 rounded-full mb-6 border border-white/20">
               <Stethoscope className="w-4 h-4" />
-              Portal exclusivo para profissionais veterinários
+              {t('v.vet.heroBadge')}
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight mb-6">
-              Transforme o cuidado dos seus pacientes
+              {t('v.vet.heroTitle')}
             </h1>
             <p className="text-xl text-primary-100 mb-8 leading-relaxed">
-              Acesse históricos completos, visualize anamneses com análise de IA, e gerencie todos os seus pacientes em uma plataforma moderna e intuitiva.
+              {t('v.vet.heroText')}
             </p>
             <div className="flex flex-wrap gap-4">
               <Link
                 href="/vet/register"
                 className="flex items-center gap-2 bg-white dark:bg-surface-800 text-primary-700 font-bold px-8 py-4 rounded-2xl hover:bg-primary-50 transition hover:scale-105 shadow-xl"
               >
-                Cadastrar minha clínica
+                {t('v.vet.heroCta')}
                 <ChevronRight className="w-5 h-5" />
               </Link>
               <Link
                 href="/vet/login"
                 className="flex items-center gap-2 bg-white/10 text-white font-semibold px-8 py-4 rounded-2xl border border-white/20 hover:bg-white/20 transition"
               >
-                Já tenho cadastro — Entrar
+                {t('v.vet.heroLogin')}
               </Link>
             </div>
             <div className="flex items-center gap-8 mt-10">
               {[
-                { value: '500+', label: 'Clínicas parceiras' },
-                { value: '50k+', label: 'Pacientes na plataforma' },
-                { value: '100%', label: 'Gratuito para clínicas' },
+                { value: '500+', labelKey: 'v.vet.statClinics' },
+                { value: '50k+', labelKey: 'v.vet.statPatients' },
+                { value: '100%', labelKey: 'v.vet.statFree' },
               ].map(s => (
-                <div key={s.label}>
+                <div key={s.labelKey}>
                   <div className="text-2xl font-bold text-white">{s.value}</div>
-                  <div className="text-xs text-primary-200">{s.label}</div>
+                  <div className="text-xs text-primary-200">{t(s.labelKey)}</div>
                 </div>
               ))}
             </div>
@@ -121,9 +132,9 @@ export default function VetLandingPage() {
       <section className="py-24 bg-surface-50 dark:bg-surface-900/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">Tudo que sua clínica precisa</h2>
+            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">{t('v.vet.featuresTitle')}</h2>
             <p className="text-xl text-surface-600 dark:text-surface-300 max-w-2xl mx-auto">
-              Uma plataforma completa para oferecer o melhor atendimento veterinário.
+              {t('v.vet.featuresText')}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -132,8 +143,8 @@ export default function VetLandingPage() {
                 <div className="w-14 h-14 bg-surface-50 dark:bg-surface-900/60 group-hover:bg-primary-50 rounded-2xl flex items-center justify-center mb-4 transition">
                   {f.icon}
                 </div>
-                <h3 className="text-lg font-bold text-surface-900 dark:text-white mb-2">{f.title}</h3>
-                <p className="text-surface-600 dark:text-surface-300 text-sm leading-relaxed">{f.desc}</p>
+                <h3 className="text-lg font-bold text-surface-900 dark:text-white mb-2">{t(f.titleKey)}</h3>
+                <p className="text-surface-600 dark:text-surface-300 text-sm leading-relaxed">{t(f.descKey)}</p>
               </div>
             ))}
           </div>
@@ -144,22 +155,17 @@ export default function VetLandingPage() {
       <section className="py-24 bg-white dark:bg-surface-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">Como funciona para veterinários</h2>
+            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">{t('v.vet.howTitle')}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[
-              { icon: '📝', step: '01', title: 'Cadastre sua clínica', desc: 'Registro rápido com CNPJ e dados básicos.' },
-              { icon: '👥', step: '02', title: 'Seus pacientes chegam', desc: 'Tutores autorizam acesso ao histórico do pet.' },
-              { icon: '🔍', step: '03', title: 'Acesse o histórico', desc: 'Vacinas, exames e anamneses completos.' },
-              { icon: '✍️', step: '04', title: 'Adicione consultas', desc: 'Registre diagnósticos e retornos programados.' },
-            ].map(s => (
+            {steps.map(s => (
               <div key={s.step} className="text-center">
                 <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
                   {s.icon}
                 </div>
                 <div className="text-xs font-bold text-primary-600 mb-1">{s.step}</div>
-                <h3 className="font-bold text-surface-900 dark:text-white mb-2">{s.title}</h3>
-                <p className="text-sm text-surface-600 dark:text-surface-300">{s.desc}</p>
+                <h3 className="font-bold text-surface-900 dark:text-white mb-2">{t(s.titleKey)}</h3>
+                <p className="text-sm text-surface-600 dark:text-surface-300">{t(s.descKey)}</p>
               </div>
             ))}
           </div>
@@ -170,20 +176,20 @@ export default function VetLandingPage() {
       <section className="py-24 bg-surface-50 dark:bg-surface-900/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">O que os veterinários dizem</h2>
+            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">{t('v.vet.testimonialsTitle')}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t, i) => (
+            {testimonials.map((item, i) => (
               <div key={i} className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-100 dark:border-surface-700">
                 <div className="flex mb-3">
                   {Array.from({ length: 5 }).map((_, j) => (
                     <Star key={j} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                   ))}
                 </div>
-                <p className="text-surface-700 dark:text-surface-200 text-sm leading-relaxed mb-4 italic">"{t.text}"</p>
+                <p className="text-surface-700 dark:text-surface-200 text-sm leading-relaxed mb-4 italic">"{t(item.textKey)}"</p>
                 <div>
-                  <div className="font-semibold text-surface-900 dark:text-white">{t.name}</div>
-                  <div className="text-sm text-surface-500 dark:text-surface-400">{t.clinic}</div>
+                  <div className="font-semibold text-surface-900 dark:text-white">{item.name}</div>
+                  <div className="text-sm text-surface-500 dark:text-surface-400">{item.clinic}</div>
                 </div>
               </div>
             ))}
@@ -194,12 +200,12 @@ export default function VetLandingPage() {
       {/* CTA */}
       <section className="py-24 bg-gradient-to-br from-primary-500 to-primary-700">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">Pronto para revolucionar sua clínica?</h2>
-          <p className="text-primary-100 text-xl mb-10">Cadastro gratuito. Sem mensalidade. Comece hoje mesmo.</p>
+          <h2 className="text-4xl font-bold text-white mb-4">{t('v.vet.ctaTitle')}</h2>
+          <p className="text-primary-100 text-xl mb-10">{t('v.vet.ctaText')}</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/vet/register" className="bg-white dark:bg-surface-800 text-primary-700 font-bold px-10 py-4 rounded-2xl hover:bg-primary-50 transition hover:scale-105 shadow-xl flex items-center justify-center gap-2">
               <CheckCircle className="w-5 h-5" />
-              Cadastrar minha clínica gratuitamente
+              {t('v.vet.ctaButton')}
             </Link>
           </div>
         </div>
@@ -214,11 +220,11 @@ export default function VetLandingPage() {
             </div>
             <span className="text-white font-bold">PetLife</span>
           </div>
-          <p className="text-sm">© 2026 PetLife — Para veterinários que se importam.</p>
+          <p className="text-sm">{t('v.vet.footerNote')}</p>
           <div className="flex gap-6 text-sm">
-            <Link href="/vet/login" className="hover:text-white transition">Entrar</Link>
-            <Link href="/vet/register" className="hover:text-white transition">Cadastrar</Link>
-            <Link href="/" className="hover:text-white transition">Para tutores</Link>
+            <Link href="/vet/login" className="hover:text-white transition">{t('v.vet.signIn')}</Link>
+            <Link href="/vet/register" className="hover:text-white transition">{t('v.vet.footerRegister')}</Link>
+            <Link href="/" className="hover:text-white transition">{t('v.vet.footerOwners')}</Link>
           </div>
         </div>
       </footer>

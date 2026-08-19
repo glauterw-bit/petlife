@@ -3,6 +3,7 @@
 import { useEffect, ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 interface ModalProps {
   open: boolean
@@ -14,6 +15,8 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, size = 'md', className }: ModalProps) {
+  const t = useT()
+
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden'
@@ -58,7 +61,7 @@ export function Modal({ open, onClose, title, children, size = 'md', className }
             <h2 className="text-lg font-semibold text-surface-900 dark:text-white">{title}</h2>
             <button
               onClick={onClose}
-              aria-label="Fechar"
+              aria-label={t('common.close')}
               className="tap-target -mr-1.5 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 transition-colors flex items-center justify-center"
             >
               <X className="w-5 h-5" />
@@ -68,7 +71,7 @@ export function Modal({ open, onClose, title, children, size = 'md', className }
         {!title && (
           <button
             onClick={onClose}
-            aria-label="Fechar"
+            aria-label={t('common.close')}
             className="tap-target absolute top-2 right-2 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 transition-colors z-10 flex items-center justify-center"
           >
             <X className="w-5 h-5" />

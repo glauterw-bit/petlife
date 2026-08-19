@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Share2, Sparkles, Download } from 'lucide-react'
 import { innovations, type PetLifeWrapped } from '@/lib/api'
+import { useT } from '@/contexts/LocaleContext'
 
 export default function WrappedPage() {
+  const t = useT()
   const params = useParams()
   const router = useRouter()
   const petId = Number(params.petId)
@@ -17,7 +19,7 @@ export default function WrappedPage() {
   useEffect(() => {
     innovations.petlifeWrapped(petId, year)
       .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Erro ao gerar Wrapped.'))
+      .catch((e) => setError(e instanceof Error ? e.message : t('g.wr.errGenerate')))
   }, [petId, year])
 
   function shareWhatsApp() {
@@ -31,7 +33,7 @@ export default function WrappedPage() {
       <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-amber-400 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-surface-800 rounded-3xl p-8 max-w-md text-center">
           <p className="text-surface-700 dark:text-surface-200">{error}</p>
-          <button onClick={() => router.back()} className="mt-4 text-primary-600 font-semibold">Voltar</button>
+          <button onClick={() => router.back()} className="mt-4 text-primary-600 font-semibold">{t('nav.back')}</button>
         </div>
       </div>
     )
@@ -42,7 +44,7 @@ export default function WrappedPage() {
       <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-amber-400 flex items-center justify-center">
         <div className="text-white text-center">
           <Sparkles className="w-12 h-12 mx-auto animate-pulse mb-4" />
-          <p className="text-lg">Preparando o Wrapped de {petId}…</p>
+          <p className="text-lg">{t('g.wr.preparing')}</p>
         </div>
       </div>
     )
@@ -53,7 +55,7 @@ export default function WrappedPage() {
       bg: 'from-purple-600 via-pink-500 to-amber-400',
       content: (
         <>
-          <p className="text-sm uppercase tracking-widest opacity-80 font-bold mb-2">PetLife Wrapped {data.year}</p>
+          <p className="text-sm uppercase tracking-widest opacity-80 font-bold mb-2">{t('g.wr.header', { year: data.year })}</p>
           <h1 className="text-5xl sm:text-6xl font-black mb-4">{data.title}</h1>
           <p className="text-xl opacity-95">{data.subtitle}</p>
         </>
@@ -74,7 +76,7 @@ export default function WrappedPage() {
       bg: 'from-rose-500 via-orange-400 to-amber-300',
       content: (
         <>
-          <p className="text-sm uppercase tracking-widest opacity-80 font-bold mb-2">A personalidade de {data.pet_name}</p>
+          <p className="text-sm uppercase tracking-widest opacity-80 font-bold mb-2">{t('g.wr.personality', { name: data.pet_name })}</p>
           <h2 className="text-5xl font-black mb-4">{data.personality_tag}</h2>
         </>
       ),
@@ -83,7 +85,7 @@ export default function WrappedPage() {
       bg: 'from-emerald-500 via-teal-500 to-cyan-500',
       content: (
         <>
-          <p className="text-sm uppercase tracking-widest opacity-80 font-bold mb-2">{data.pet_name}, esse ano foi seu</p>
+          <p className="text-sm uppercase tracking-widest opacity-80 font-bold mb-2">{t('g.wr.yourYear', { name: data.pet_name })}</p>
           <p className="text-xl leading-relaxed mb-6 max-w-md">{data.narrative}</p>
           {data.next_year_wish && <p className="text-base italic opacity-90">{data.next_year_wish}</p>}
         </>
@@ -109,7 +111,7 @@ export default function WrappedPage() {
       <button
         onClick={() => router.back()}
         className="absolute top-3 right-4 z-20 text-white/80 hover:text-white"
-        aria-label="Fechar"
+        aria-label={t('common.close')}
       >
         <ArrowLeft className="w-5 h-5" />
       </button>
@@ -130,13 +132,13 @@ export default function WrappedPage() {
               className="w-full flex items-center justify-center gap-2 bg-white dark:bg-surface-800 text-purple-700 font-bold py-4 rounded-2xl shadow-xl"
             >
               <Share2 className="w-5 h-5" />
-              Compartilhar com amigos
+              {t('g.wr.share')}
             </button>
             <button
               onClick={() => setStep(0)}
               className="w-full text-white/80 hover:text-white text-sm"
             >
-              Ver de novo
+              {t('g.wr.again')}
             </button>
           </>
         ) : (
@@ -144,7 +146,7 @@ export default function WrappedPage() {
             onClick={() => setStep(s => s + 1)}
             className="w-full bg-white/20 hover:bg-white/30 backdrop-blur text-white font-semibold py-3 rounded-2xl border border-white/40"
           >
-            Próximo →
+            {t('g.wr.next')}
           </button>
         )}
       </div>

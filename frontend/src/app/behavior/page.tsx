@@ -7,24 +7,38 @@ import { Plus, Brain, Loader2, AlertCircle, Sparkles } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { pets as petsApi, innovations, type Pet, type BehaviorPlanSummary, type BehaviorIssueType } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { useT } from '@/contexts/LocaleContext'
 
-const ISSUE_OPTIONS: Array<{ value: BehaviorIssueType; label: string; emoji: string; species: 'dog' | 'cat' | 'both' }> = [
-  { value: 'separation_anxiety', label: 'Ansiedade de separação', emoji: '😟', species: 'both' },
-  { value: 'fear', label: 'Medo (barulhos, estranhos)', emoji: '😨', species: 'both' },
-  { value: 'reactivity', label: 'Reatividade (latir/atacar outros pets)', emoji: '⚠️', species: 'dog' },
-  { value: 'aggression', label: 'Agressividade', emoji: '😾', species: 'both' },
-  { value: 'destruction', label: 'Destruição (móveis, sapatos)', emoji: '💥', species: 'dog' },
-  { value: 'barking', label: 'Latidos excessivos', emoji: '🔊', species: 'dog' },
-  { value: 'cat_litter', label: 'Caixa de areia (urina fora)', emoji: '🚫', species: 'cat' },
+const ISSUE_OPTIONS: Array<{ value: BehaviorIssueType; labelKey: string; emoji: string; species: 'dog' | 'cat' | 'both' }> = [
+  { value: 'separation_anxiety', labelKey: 'g.beh.issue.separationAnxiety', emoji: '😟', species: 'both' },
+  { value: 'fear', labelKey: 'g.beh.issue.fear', emoji: '😨', species: 'both' },
+  { value: 'reactivity', labelKey: 'g.beh.issue.reactivity', emoji: '⚠️', species: 'dog' },
+  { value: 'aggression', labelKey: 'g.beh.issue.aggression', emoji: '😾', species: 'both' },
+  { value: 'destruction', labelKey: 'g.beh.issue.destruction', emoji: '💥', species: 'dog' },
+  { value: 'barking', labelKey: 'g.beh.issue.barking', emoji: '🔊', species: 'dog' },
+  { value: 'cat_litter', labelKey: 'g.beh.issue.catLitter', emoji: '🚫', species: 'cat' },
 ]
 
 const INTENSITY_OPTIONS = [
-  { value: 'leve', label: 'Leve', desc: 'Acontece ocasionalmente, não afeta muito o dia a dia' },
-  { value: 'moderada', label: 'Moderada', desc: 'Vários episódios por semana' },
-  { value: 'alta', label: 'Alta', desc: 'Diário ou comportamento perigoso/destrutivo' },
+  { value: 'leve', labelKey: 'g.beh.int.leve', descKey: 'g.beh.int.leveDesc' },
+  { value: 'moderada', labelKey: 'g.beh.int.moderada', descKey: 'g.beh.int.moderadaDesc' },
+  { value: 'alta', labelKey: 'g.beh.int.alta', descKey: 'g.beh.int.altaDesc' },
 ] as const
 
+/** Rótulos dos valores que voltam do backend. */
+const INTENSITY_KEY: Record<string, string> = {
+  leve: 'g.beh.int.leve',
+  moderada: 'g.beh.int.moderada',
+  alta: 'g.beh.int.alta',
+}
+const STATUS_KEY: Record<string, string> = {
+  active: 'g.beh.status.active',
+  completed: 'g.beh.status.completed',
+  abandoned: 'g.beh.status.abandoned',
+}
+
 export default function BehaviorPlansPage() {
+  const t = useT()
   const router = useRouter()
   const { success, error } = useToast()
   const [plans, setPlans] = useState<BehaviorPlanSummary[]>([])
@@ -51,10 +65,10 @@ export default function BehaviorPlansPage() {
     setCreating(true)
     try {
       const plan = await innovations.createBehaviorPlan(selectedPet, issueType, intensity, context || undefined)
-      success('Plano criado pelo IA!')
+      success(t('g.beh.created'))
       router.push(`/behavior/${plan.id}`)
     } catch (e: unknown) {
-      error(e instanceof Error ? e.message : 'Erro ao gerar plano.')
+      error(e instanceof Error ? e.message : t('g.beh.errGenerate'))
     } finally {
       setCreating(false)
     }
@@ -69,17 +83,17 @@ export default function BehaviorPlansPage() {
         <div className="min-w-0 flex-1">
           <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2 leading-tight">
             <Brain className="w-6 h-6 md:w-7 md:h-7 text-purple-600 shrink-0" />
-            Planos Comportamentais
+            {t('g.beh.title')}
           </h1>
-          <p className="text-xs md:text-sm text-surface-500 dark:text-surface-400 mt-1">Planos de 6 semanas baseados em etologia, gerados pela IA Vyron.</p>
+          <p className="text-xs md:text-sm text-surface-500 dark:text-surface-400 mt-1">{t('g.beh.subtitle')}</p>
         </div>
         <button
           onClick={() => setShowWizard(true)}
-          aria-label="Novo plano"
+          aria-label={t('g.beh.newPlan')}
           className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-semibold transition shadow-lg shadow-purple-500/30 shrink-0 tap-target"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden xs:inline">Novo plano</span>
+          <span className="hidden xs:inline">{t('g.beh.newPlan')}</span>
         </button>
       </div>
 
@@ -88,13 +102,13 @@ export default function BehaviorPlansPage() {
       ) : plans.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
           <Brain className="w-12 h-12 text-purple-300 mx-auto mb-3" />
-          <h3 className="font-bold text-surface-900 dark:text-white mb-1">Nenhum plano ativo</h3>
-          <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">Comece um plano comportamental personalizado pelo Vyron IA.</p>
+          <h3 className="font-bold text-surface-900 dark:text-white mb-1">{t('g.beh.emptyTitle')}</h3>
+          <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">{t('g.beh.emptyText')}</p>
           <button
             onClick={() => setShowWizard(true)}
             className="bg-purple-500 hover:bg-purple-600 text-white px-5 py-2.5 rounded-xl font-semibold"
           >
-            Criar primeiro plano
+            {t('g.beh.emptyCta')}
           </button>
         </div>
       ) : (
@@ -111,19 +125,19 @@ export default function BehaviorPlansPage() {
                   <span className="text-3xl">{issue?.emoji}</span>
                   <div className="flex-1">
                     <h3 className="font-bold text-surface-900 dark:text-white">{p.pet_name}</h3>
-                    <p className="text-sm text-surface-500 dark:text-surface-400">{issue?.label}</p>
+                    <p className="text-sm text-surface-500 dark:text-surface-400">{issue ? t(issue.labelKey) : null}</p>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     p.status === 'active' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300' :
                     p.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
                     'bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300'
-                  }`}>{p.status}</span>
+                  }`}>{STATUS_KEY[p.status] ? t(STATUS_KEY[p.status]) : p.status}</span>
                 </div>
                 <div className="text-xs text-surface-500 dark:text-surface-400 space-y-1">
-                  <div>Intensidade: <strong className="capitalize">{p.intensity}</strong></div>
-                  <div>Check-ins: <strong>{p.check_ins_count}/{p.duration_weeks * 7}</strong></div>
+                  <div>{t('g.beh.intensity')} <strong className="capitalize">{INTENSITY_KEY[p.intensity] ? t(INTENSITY_KEY[p.intensity]) : p.intensity}</strong></div>
+                  <div>{t('g.beh.checkins')} <strong>{p.check_ins_count}/{p.duration_weeks * 7}</strong></div>
                   {p.average_progress !== null && (
-                    <div>Progresso médio: <strong>{p.average_progress.toFixed(1)}/10</strong></div>
+                    <div>{t('g.beh.avgProgress')} <strong>{p.average_progress.toFixed(1)}/10</strong></div>
                   )}
                 </div>
               </Link>
@@ -137,12 +151,12 @@ export default function BehaviorPlansPage() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowWizard(false)}>
           <div className="bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto animate-slide-up shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-surface-100 dark:border-surface-700 sticky top-0 bg-white/95 dark:bg-surface-800/95 backdrop-blur z-10">
-              <h2 className="font-bold text-surface-900 dark:text-white">Criar plano comportamental</h2>
-              <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">3 perguntas — IA cria o curriculum</p>
+              <h2 className="font-bold text-surface-900 dark:text-white">{t('g.beh.wizTitle')}</h2>
+              <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">{t('g.beh.wizSubtitle')}</p>
             </div>
             <div className="p-5 space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">Para qual pet?</label>
+                <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizPet')}</label>
                 <div className="grid grid-cols-2 gap-2">
                   {pets.map(p => (
                     <button
@@ -155,7 +169,7 @@ export default function BehaviorPlansPage() {
                       }`}
                     >
                       <p className="font-semibold text-sm">{p.name}</p>
-                      <p className="text-xs text-surface-500 dark:text-surface-400">{p.species === 'dog' ? '🐕' : '🐈'} {p.breed?.name ?? 'SRD'}</p>
+                      <p className="text-xs text-surface-500 dark:text-surface-400">{p.species === 'dog' ? '🐕' : '🐈'} {p.breed?.name ?? t('g.misc.srd')}</p>
                     </button>
                   ))}
                 </div>
@@ -163,7 +177,7 @@ export default function BehaviorPlansPage() {
 
               {selectedPet && (
                 <div>
-                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">Qual o comportamento?</label>
+                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizIssue')}</label>
                   <div className="space-y-1.5">
                     {availableIssues.map(o => (
                       <button
@@ -176,7 +190,7 @@ export default function BehaviorPlansPage() {
                         }`}
                       >
                         <span className="text-xl">{o.emoji}</span>
-                        <span className="text-sm font-medium">{o.label}</span>
+                        <span className="text-sm font-medium">{t(o.labelKey)}</span>
                       </button>
                     ))}
                   </div>
@@ -185,7 +199,7 @@ export default function BehaviorPlansPage() {
 
               {issueType && (
                 <div>
-                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">Intensidade</label>
+                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizIntensity')}</label>
                   <div className="space-y-1.5">
                     {INTENSITY_OPTIONS.map(o => (
                       <button
@@ -197,8 +211,8 @@ export default function BehaviorPlansPage() {
                             : 'border-surface-200 dark:border-surface-700 hover:border-surface-300'
                         }`}
                       >
-                        <p className="font-semibold text-sm">{o.label}</p>
-                        <p className="text-xs text-surface-500 dark:text-surface-400">{o.desc}</p>
+                        <p className="font-semibold text-sm">{t(o.labelKey)}</p>
+                        <p className="text-xs text-surface-500 dark:text-surface-400">{t(o.descKey)}</p>
                       </button>
                     ))}
                   </div>
@@ -207,12 +221,12 @@ export default function BehaviorPlansPage() {
 
               {intensity && (
                 <div>
-                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">Contexto (opcional)</label>
+                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizContext')}</label>
                   <textarea
                     value={context}
                     onChange={e => setContext(e.target.value)}
                     rows={3}
-                    placeholder="Quando começou? Algum gatilho específico? O que já tentou?"
+                    placeholder={t('g.beh.wizContextPh')}
                     className="w-full p-3 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                   />
                 </div>
@@ -220,7 +234,7 @@ export default function BehaviorPlansPage() {
 
               <div className="flex gap-2 pt-2">
                 <button onClick={() => setShowWizard(false)} className="flex-1 py-3 rounded-xl bg-surface-100 dark:bg-surface-700 font-semibold text-surface-700 dark:text-surface-200">
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={createPlan}
@@ -228,7 +242,7 @@ export default function BehaviorPlansPage() {
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-semibold disabled:opacity-60 shadow-lg shadow-purple-500/30"
                 >
                   {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  {creating ? 'Gerando…' : 'Criar plano'}
+                  {creating ? t('g.beh.generating') : t('g.beh.createPlan')}
                 </button>
               </div>
             </div>

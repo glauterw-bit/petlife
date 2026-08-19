@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, Camera, Sparkles, AlertCircle, Heart, AlertTriangle } from 'lucide-react'
 import { innovations, type PainAssessmentResult } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 interface PainAssessmentModalProps {
   petId: number
@@ -19,7 +20,27 @@ const PAIN_COLOR: Record<PainAssessmentResult['pain_level'], string> = {
   'severa': 'red',
 }
 
+const PAIN_LABEL_KEY: Record<PainAssessmentResult['pain_level'], string> = {
+  'sem dor': 'g.pain.lvl.none',
+  'leve': 'g.pain.lvl.mild',
+  'moderada': 'g.pain.lvl.moderate',
+  'severa': 'g.pain.lvl.severe',
+}
+
+/** Unidades faciais/corporais avaliadas: chave da API → chave de tradução. */
+const PAIN_UNITS: Array<[string, string]> = [
+  ['ears', 'g.pain.unit.ears'],
+  ['orbitals', 'g.pain.unit.orbitals'],
+  ['muzzle', 'g.pain.unit.muzzle'],
+  ['whiskers', 'g.pain.unit.whiskers'],
+  ['head_position', 'g.pain.unit.headPosition'],
+  ['facial_expression', 'g.pain.unit.facialExpression'],
+  ['posture', 'g.pain.unit.posture'],
+  ['attention_to_body', 'g.pain.unit.attentionToBody'],
+]
+
 export function PainAssessmentModal({ petId, petName, open, onClose }: PainAssessmentModalProps) {
+  const t = useT()
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -35,7 +56,7 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
     if (!file) return
     setLoading(true); setError(null)
     try { setResult(await innovations.painAssessment(petId, file)) }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Erro.') }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : t('g.misc.error')) }
     finally { setLoading(false) }
   }
   function reset() { setFile(null); setPreview(null); setResult(null); setError(null) }
@@ -49,9 +70,9 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
         <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100 dark:border-surface-700 sticky top-0 bg-white/95 dark:bg-surface-800/95 backdrop-blur z-10">
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-rose-500" />
-            <h2 className="font-bold text-surface-900 dark:text-white">Avaliação de dor — {petName}</h2>
+            <h2 className="font-bold text-surface-900 dark:text-white">{t('g.pain.title', { name: petName })}</h2>
           </div>
-          <button onClick={onClose} aria-label="Fechar" className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700">
+          <button onClick={onClose} aria-label={t('common.close')} className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -60,14 +81,14 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
           {!result && (
             <>
               <p className="text-sm text-surface-600 dark:text-surface-300">
-                Tire uma foto <strong>frontal</strong> do rosto do {petName}. A IA aplica a <strong>Feline Grimace Scale</strong> (gatos) ou Glasgow CMPS (cães) e estima nível de dor.
+                {t('g.pain.descA')} <strong>{t('g.pain.descFront')}</strong> {t('g.pain.descB', { name: petName })} <strong>Feline Grimace Scale</strong> {t('g.pain.descC')}
               </p>
               {!preview ? (
                 <label className="block">
                   <input type="file" accept="image/*" capture="environment" className="hidden" onChange={pickFile} />
                   <div className="border-2 border-dashed border-rose-200 dark:border-rose-700 hover:border-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl p-8 text-center cursor-pointer transition">
                     <Camera className="w-10 h-10 mx-auto text-rose-500 mb-2" />
-                    <p className="text-sm font-semibold text-surface-800 dark:text-white">Foto frontal do rosto</p>
+                    <p className="text-sm font-semibold text-surface-800 dark:text-white">{t('g.pain.photoCta')}</p>
                   </div>
                 </label>
               ) : (
@@ -76,11 +97,11 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
                   <div className="flex gap-2">
                     <label className="flex-1 cursor-pointer text-center text-sm bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 px-3 py-2 rounded-xl">
                       <input type="file" accept="image/*" capture="environment" className="hidden" onChange={pickFile} />
-                      Trocar
+                      {t('g.misc.change')}
                     </label>
                     <button onClick={run} disabled={loading} className="flex-1 flex items-center justify-center gap-1.5 text-sm bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 rounded-xl disabled:opacity-60">
                       {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      {loading ? 'Analisando…' : 'Avaliar dor'}
+                      {loading ? t('g.misc.analyzing') : t('g.pain.run')}
                     </button>
                   </div>
                 </div>
@@ -93,7 +114,7 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
             <>
               {result.image_quality === 'ruim' ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                  <p className="font-semibold text-amber-800">Foto não ideal</p>
+                  <p className="font-semibold text-amber-800">{t('g.pain.badPhoto')}</p>
                   <p className="text-sm text-amber-700">{result.image_quality_notes}</p>
                 </div>
               ) : (
@@ -107,9 +128,9 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
                   )}>
                     <div className="flex items-center gap-2 mb-1">
                       {color === 'red' ? <AlertTriangle className="w-5 h-5 text-red-600" /> : <Heart className={cn('w-5 h-5', color === 'emerald' && 'text-emerald-600', color === 'amber' && 'text-amber-600', color === 'orange' && 'text-orange-600')} />}
-                      <p className="font-bold text-surface-900 dark:text-white capitalize">Dor {result.pain_level}</p>
+                      <p className="font-bold text-surface-900 dark:text-white">{t(PAIN_LABEL_KEY[result.pain_level] ?? 'g.pain.lvl.none')}</p>
                       {result.total_score && (
-                        <span className="ml-auto text-sm font-bold">Score: {result.total_score}/{result.max_possible}</span>
+                        <span className="ml-auto text-sm font-bold">{t('g.pain.score', { score: result.total_score, max: result.max_possible })}</span>
                       )}
                     </div>
                     <p className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-1">{result.scale}</p>
@@ -118,17 +139,12 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
 
                   {/* Per-unit scores */}
                   <div className="space-y-1.5">
-                    {[
-                      ['ears', 'Orelhas'], ['orbitals', 'Olhos (órbitas)'], ['muzzle', 'Focinho'],
-                      ['whiskers', 'Bigodes'], ['head_position', 'Posição cabeça'],
-                      ['facial_expression', 'Expressão facial'], ['posture', 'Postura'],
-                      ['attention_to_body', 'Foco em região'],
-                    ].map(([key, label]) => {
+                    {PAIN_UNITS.map(([key, labelKey]) => {
                       const item = (result as unknown as Record<string, { score: number | null; notes: string } | undefined>)[key]
                       if (!item || item.score == null) return null
                       return (
                         <div key={key} className="flex items-start gap-2 text-sm">
-                          <span className="font-semibold text-surface-700 dark:text-surface-200 w-32 shrink-0">{label}</span>
+                          <span className="font-semibold text-surface-700 dark:text-surface-200 w-32 shrink-0">{t(labelKey)}</span>
                           <span className="font-bold text-surface-900 dark:text-white w-8 shrink-0">{item.score}</span>
                           <span className="text-surface-600 dark:text-surface-300">{item.notes}</span>
                         </div>
@@ -138,7 +154,7 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
 
                   {result.recommendations?.length > 0 && (
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-surface-400 font-semibold mb-1.5">Recomendações</p>
+                      <p className="text-xs uppercase tracking-wide text-surface-400 font-semibold mb-1.5">{t('g.misc.recommendations')}</p>
                       <ul className="space-y-1">
                         {result.recommendations.map((r, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm text-surface-700 dark:text-surface-200">
@@ -153,7 +169,7 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
                 </>
               )}
               <button onClick={reset} className="w-full bg-surface-100 dark:bg-surface-700 font-semibold py-3 rounded-xl">
-                Avaliar outra foto
+                {t('g.pain.again')}
               </button>
             </>
           )}

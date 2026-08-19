@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, BookOpen, Sparkles, RefreshCw, Volume2 } from 'lucide-react'
 import { innovations } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 interface BedtimeStoryModalProps {
   petId: number
@@ -13,13 +14,14 @@ interface BedtimeStoryModalProps {
 }
 
 const MOODS = [
-  { value: 'carinhoso', label: '💗 Carinhoso', desc: 'Aconchego e afeto' },
-  { value: 'aventura', label: '🌟 Aventura', desc: 'Descobertas leves' },
-  { value: 'engraçado', label: '😄 Engraçado', desc: 'Humor leve' },
-  { value: 'calmo', label: '🌙 Bem calmo', desc: 'Pra dormir rápido' },
+  { value: 'carinhoso', labelKey: 'g.bs.mood.carinhoso', descKey: 'g.bs.mood.carinhosoDesc' },
+  { value: 'aventura', labelKey: 'g.bs.mood.aventura', descKey: 'g.bs.mood.aventuraDesc' },
+  { value: 'engraçado', labelKey: 'g.bs.mood.engracado', descKey: 'g.bs.mood.engracadoDesc' },
+  { value: 'calmo', labelKey: 'g.bs.mood.calmo', descKey: 'g.bs.mood.calmoDesc' },
 ] as const
 
 export function BedtimeStoryModal({ petId, petName, open, onClose }: BedtimeStoryModalProps) {
+  const t = useT()
   const [mood, setMood] = useState<typeof MOODS[number]['value']>('carinhoso')
   const [loading, setLoading] = useState(false)
   const [story, setStory] = useState<string | null>(null)
@@ -34,7 +36,7 @@ export function BedtimeStoryModal({ petId, petName, open, onClose }: BedtimeStor
       const res = await innovations.bedtimeStory(petId, mood)
       setStory(res.story)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erro ao gerar história.')
+      setError(e instanceof Error ? e.message : t('g.bs.errGenerate'))
     } finally {
       setLoading(false)
     }
@@ -71,11 +73,11 @@ export function BedtimeStoryModal({ petId, petName, open, onClose }: BedtimeStor
         <div className="flex items-center justify-between px-5 py-4 border-b border-surface-200/50 dark:border-surface-700 sticky top-0 bg-white/70 dark:bg-surface-800/70 backdrop-blur">
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />
-            <h2 className="font-bold text-surface-900 dark:text-white">Boa noite, {petName}</h2>
+            <h2 className="font-bold text-surface-900 dark:text-white">{t('g.bs.title', { name: petName })}</h2>
           </div>
           <button
             onClick={() => { window.speechSynthesis?.cancel(); onClose() }}
-            aria-label="Fechar"
+            aria-label={t('common.close')}
             className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700"
           >
             <X className="w-5 h-5" />
@@ -86,7 +88,7 @@ export function BedtimeStoryModal({ petId, petName, open, onClose }: BedtimeStor
           {!story && (
             <>
               <p className="text-sm text-surface-600 dark:text-surface-300">
-                Escolha o tom e a IA cria uma história única pra ler pro {petName} antes de dormir.
+                {t('g.bs.desc', { name: petName })}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {MOODS.map(m => (
@@ -100,8 +102,8 @@ export function BedtimeStoryModal({ petId, petName, open, onClose }: BedtimeStor
                         : 'border-surface-200 dark:border-surface-700 hover:border-indigo-300',
                     )}
                   >
-                    <p className="font-semibold text-sm">{m.label}</p>
-                    <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">{m.desc}</p>
+                    <p className="font-semibold text-sm">{t(m.labelKey)}</p>
+                    <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">{t(m.descKey)}</p>
                   </button>
                 ))}
               </div>
@@ -115,7 +117,7 @@ export function BedtimeStoryModal({ petId, petName, open, onClose }: BedtimeStor
                 ) : (
                   <Sparkles className="w-5 h-5" />
                 )}
-                {loading ? 'Escrevendo…' : 'Criar história'}
+                {loading ? t('g.bs.writing') : t('g.bs.create')}
               </button>
               {error && (
                 <div className="text-sm text-red-700 bg-red-50 dark:bg-red-900/30 rounded-xl p-3">{error}</div>
@@ -143,18 +145,18 @@ export function BedtimeStoryModal({ petId, petName, open, onClose }: BedtimeStor
                   )}
                 >
                   <Volume2 className="w-4 h-4" />
-                  {speaking ? 'Parar leitura' : 'Ouvir em voz alta'}
+                  {speaking ? t('g.bs.stopReading') : t('g.bs.readAloud')}
                 </button>
                 <button
                   onClick={() => { setStory(null); window.speechSynthesis?.cancel(); setSpeaking(false) }}
                   className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 hover:bg-surface-200"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  Outra
+                  {t('g.bs.another')}
                 </button>
               </div>
               <p className="text-xs text-surface-500 dark:text-surface-400 text-center">
-                Bons sonhos pra você e {petName} 🌙
+                {t('g.bs.goodnight', { name: petName })}
               </p>
             </>
           )}

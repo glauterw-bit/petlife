@@ -5,6 +5,7 @@ import { Globe, Copy, Check, Share2, ExternalLink } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { growth, type Pet } from '@/lib/api'
 import { hapticLight, hapticSuccess, celebrate } from '@/lib/feedback'
+import { useT } from '@/contexts/LocaleContext'
 
 const APP_URL = 'https://petlife-frontend-production.up.railway.app'
 
@@ -20,6 +21,7 @@ export function PublicProfileModal({
   onClose: () => void
   onChanged?: (isPublic: boolean, slug: string | null) => void
 }) {
+  const t = useT()
   const [isPublic, setIsPublic] = useState(!!pet.is_public)
   const [slug, setSlug] = useState<string | null>(pet.public_slug ?? null)
   const [busy, setBusy] = useState(false)
@@ -55,7 +57,7 @@ export function PublicProfileModal({
   async function share() {
     if (!link) return
     void hapticLight()
-    const text = `Conheça o ${pet.name} no PetLife! 🐾 ${link}`
+    const text = t('g.pp.shareText', { name: pet.name, link })
     const nav = navigator as Navigator & { share?: (d: { text: string }) => Promise<void> }
     if (nav.share) {
       try { await nav.share({ text }); return } catch {}
@@ -64,11 +66,10 @@ export function PublicProfileModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={`Link público do ${pet.name}`}>
+    <Modal open={open} onClose={onClose} title={t('g.pp.title', { name: pet.name })}>
       <div className="space-y-4">
         <p className="text-sm text-surface-600 dark:text-surface-300 leading-snug">
-          Uma página linda e segura do {pet.name} pra colocar na bio do Instagram ou mandar no grupo da família.
-          Mostra só foto, raça, idade e conquistas — <strong>nunca seus dados</strong>.
+          {t('g.pp.descA', { name: pet.name })} <strong>{t('g.pp.descBold')}</strong>.
         </p>
 
         <button
@@ -83,7 +84,7 @@ export function PublicProfileModal({
           <span className="flex items-center gap-3">
             <Globe className={`w-5 h-5 ${isPublic ? 'text-emerald-600' : 'text-surface-400'}`} />
             <span className="text-sm font-semibold text-surface-900 dark:text-white">
-              {isPublic ? 'Perfil público ativado' : 'Ativar perfil público'}
+              {isPublic ? t('g.pp.on') : t('g.pp.off')}
             </span>
           </span>
           <span
@@ -107,7 +108,7 @@ export function PublicProfileModal({
               </code>
               <button
                 onClick={copy}
-                aria-label="Copiar link"
+                aria-label={t('g.pp.copyAria')}
                 className="pressable shrink-0 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 rounded-xl p-2.5"
               >
                 {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-surface-600 dark:text-surface-300" />}
@@ -118,7 +119,7 @@ export function PublicProfileModal({
                 onClick={share}
                 className="pressable flex items-center justify-center gap-2 bg-primary-500 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-primary-600 transition"
               >
-                <Share2 className="w-4 h-4" /> Compartilhar
+                <Share2 className="w-4 h-4" /> {t('g.misc.share')}
               </button>
               <a
                 href={link}
@@ -126,11 +127,11 @@ export function PublicProfileModal({
                 rel="noreferrer"
                 className="pressable flex items-center justify-center gap-2 bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 rounded-xl py-2.5 text-sm font-semibold hover:bg-surface-200 transition"
               >
-                <ExternalLink className="w-4 h-4" /> Ver página
+                <ExternalLink className="w-4 h-4" /> {t('g.pp.viewPage')}
               </a>
             </div>
             <p className="text-[11px] text-surface-400 text-center">
-              Dica: cole o link na bio do Instagram do {pet.name} 😉
+              {t('g.pp.tip', { name: pet.name })}
             </p>
           </div>
         )}

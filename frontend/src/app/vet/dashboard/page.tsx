@@ -9,9 +9,11 @@ import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { vet, type VetPatient } from '@/lib/api'
 import { formatDate, getSpeciesEmoji } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
+import { useT } from '@/contexts/LocaleContext'
 
 export default function VetDashboardPage() {
   const { user } = useAuth()
+  const t = useT()
   const [patients, setPatients] = useState<VetPatient[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQ, setSearchQ] = useState('')
@@ -46,9 +48,9 @@ export default function VetDashboardPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-surface-900 dark:text-white">
-              Olá, {user?.name ?? 'Veterinário'}! 🐾
+              {t('v.vetdash.greeting', { name: user?.name ?? t('v.vetdash.defaultName') })}
             </h1>
-            <p className="text-surface-500 dark:text-surface-400 text-sm">Portal veterinário — Seus pacientes</p>
+            <p className="text-surface-500 dark:text-surface-400 text-sm">{t('v.vetdash.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -58,21 +60,21 @@ export default function VetDashboardPage() {
         <div className="bg-primary-50 rounded-2xl p-4 border border-primary-100">
           <Users className="w-6 h-6 text-primary-500 mb-2" />
           <div className="text-2xl font-bold text-primary-700">{patients.length}</div>
-          <div className="text-sm text-primary-600">Pacientes registrados</div>
+          <div className="text-sm text-primary-600">{t('v.vetdash.statPatients')}</div>
         </div>
         <div className="bg-red-50 rounded-2xl p-4 border border-red-100">
           <AlertTriangle className="w-6 h-6 text-red-500 mb-2" />
           <div className="text-2xl font-bold text-red-700">
             {patients.filter(p => p.alerts && p.alerts.length > 0).length}
           </div>
-          <div className="text-sm text-red-600">Com alertas ativos</div>
+          <div className="text-sm text-red-600">{t('v.vetdash.statAlerts')}</div>
         </div>
         <div className="bg-accent-50 rounded-2xl p-4 border border-accent-100">
           <Calendar className="w-6 h-6 text-accent-500 mb-2" />
           <div className="text-2xl font-bold text-accent-700">
             {patients.filter(p => p.last_visit).length}
           </div>
-          <div className="text-sm text-accent-600">Com histórico de visitas</div>
+          <div className="text-sm text-accent-600">{t('v.vetdash.statVisits')}</div>
         </div>
       </div>
 
@@ -84,7 +86,7 @@ export default function VetDashboardPage() {
         )}
         <input
           type="text"
-          placeholder="Buscar paciente por nome ou tutor..."
+          placeholder={t('v.vetdash.searchPh')}
           value={searchQ}
           onChange={e => handleSearch(e.target.value)}
           className="w-full max-w-lg pl-10 pr-10 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -97,10 +99,10 @@ export default function VetDashboardPage() {
           <div className="text-center py-20 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
             <div className="text-6xl mb-3">🐾</div>
             <h2 className="text-xl font-semibold text-surface-900 dark:text-white mb-2">
-              {searchQ ? 'Nenhum paciente encontrado' : 'Nenhum paciente registrado'}
+              {searchQ ? t('v.vetdash.emptySearchTitle') : t('v.vetdash.emptyTitle')}
             </h2>
             <p className="text-surface-500 dark:text-surface-400 text-sm">
-              {searchQ ? 'Tente outro nome.' : 'Os pacientes aparecerão aqui quando tutores associarem seus pets à sua clínica.'}
+              {searchQ ? t('v.vetdash.emptySearchText') : t('v.vetdash.emptyText')}
             </p>
           </div>
         ) : (
@@ -129,7 +131,7 @@ export default function VetDashboardPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
                     <PawPrint className="w-4 h-4 text-surface-400" />
-                    <span>Tutor: <span className="font-medium text-surface-800 dark:text-surface-100">{p.owner_name}</span></span>
+                    <span>{t('v.vetdash.ownerLabel')}: <span className="font-medium text-surface-800 dark:text-surface-100">{p.owner_name}</span></span>
                   </div>
                   {p.owner_phone && (
                     <div className="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
@@ -140,7 +142,7 @@ export default function VetDashboardPage() {
                   {p.last_visit && (
                     <div className="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-300">
                       <Calendar className="w-4 h-4 text-surface-400" />
-                      <span>Última visita: {formatDate(p.last_visit)}</span>
+                      <span>{t('v.vetdash.lastVisit')}: {formatDate(p.last_visit)}</span>
                     </div>
                   )}
                 </div>

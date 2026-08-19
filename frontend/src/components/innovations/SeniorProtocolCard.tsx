@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { Crown, AlertCircle, Loader2 } from 'lucide-react'
 import { innovations, type SeniorProtocolResult } from '@/lib/api'
+import { useT } from '@/contexts/LocaleContext'
 
 export function SeniorProtocolCard({ petId }: { petId: number }) {
+  const t = useT()
   const [data, setData] = useState<SeniorProtocolResult | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -25,14 +27,14 @@ export function SeniorProtocolCard({ petId }: { petId: number }) {
           <Crown className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h3 className="font-bold text-surface-900 dark:text-white">Protocolo Senior</h3>
-          <p className="text-xs text-amber-700 dark:text-amber-300 capitalize">{data.life_stage} • {data.age_years} anos</p>
+          <h3 className="font-bold text-surface-900 dark:text-white">{t('g.sen.title')}</h3>
+          <p className="text-xs text-amber-700 dark:text-amber-300 capitalize">{data.life_stage} • {t('g.misc.years', { n: data.age_years })}</p>
         </div>
       </div>
 
       {data.exams_protocol && (
         <div className="mb-4">
-          <p className="text-xs uppercase tracking-wide text-amber-700 dark:text-amber-300 font-semibold mb-2">Exames recomendados</p>
+          <p className="text-xs uppercase tracking-wide text-amber-700 dark:text-amber-300 font-semibold mb-2">{t('g.sen.exams')}</p>
           <div className="space-y-1.5">
             {data.exams_protocol.map((e, i) => (
               <div key={i} className="text-xs">
@@ -49,7 +51,7 @@ export function SeniorProtocolCard({ petId }: { petId: number }) {
 
       {data.lifestyle_recommendations && (
         <div className="mb-3">
-          <p className="text-xs uppercase tracking-wide text-amber-700 dark:text-amber-300 font-semibold mb-1.5">Cuidados de rotina</p>
+          <p className="text-xs uppercase tracking-wide text-amber-700 dark:text-amber-300 font-semibold mb-1.5">{t('g.sen.lifestyle')}</p>
           <ul className="text-xs text-surface-700 dark:text-surface-200 space-y-1">
             {data.lifestyle_recommendations.slice(0, 4).map((r, i) => (
               <li key={i}>• {r}</li>
@@ -62,7 +64,7 @@ export function SeniorProtocolCard({ petId }: { petId: number }) {
         <details className="text-xs text-amber-800 dark:text-amber-200">
           <summary className="cursor-pointer font-semibold flex items-center gap-1.5">
             <AlertCircle className="w-3.5 h-3.5" />
-            Sinais de alerta (clique pra ver)
+            {t('g.sen.warnings')}
           </summary>
           <ul className="mt-2 space-y-1 pl-5">
             {data.early_warning_signs.map((s, i) => (

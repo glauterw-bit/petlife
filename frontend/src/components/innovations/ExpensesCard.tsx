@@ -5,14 +5,15 @@ import { Wallet, Plus, Trash2, Loader2 } from 'lucide-react'
 import { expenses, type PetExpense, type ExpenseSummary } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { useChartTheme } from '@/lib/charts'
+import { useT } from '@/contexts/LocaleContext'
 
 const CATEGORIES = [
-  { value: 'alimentacao', label: 'Alimentação', emoji: '🍖' },
-  { value: 'saude', label: 'Saúde', emoji: '💊' },
-  { value: 'higiene', label: 'Higiene', emoji: '🧼' },
-  { value: 'acessorios', label: 'Acessórios', emoji: '🧸' },
-  { value: 'servicos', label: 'Serviços', emoji: '✂️' },
-  { value: 'outros', label: 'Outros', emoji: '📦' },
+  { value: 'alimentacao', labelKey: 'g.exp.cat.food', emoji: '🍖' },
+  { value: 'saude', labelKey: 'g.exp.cat.health', emoji: '💊' },
+  { value: 'higiene', labelKey: 'g.exp.cat.hygiene', emoji: '🧼' },
+  { value: 'acessorios', labelKey: 'g.exp.cat.accessories', emoji: '🧸' },
+  { value: 'servicos', labelKey: 'g.exp.cat.services', emoji: '✂️' },
+  { value: 'outros', labelKey: 'g.exp.cat.other', emoji: '📦' },
 ]
 
 function brl(v: number) {
@@ -20,6 +21,7 @@ function brl(v: number) {
 }
 
 export function ExpensesCard({ petId }: { petId: number }) {
+  const t = useT()
   const { success, error } = useToast()
   const { palette } = useChartTheme()
   const [summary, setSummary] = useState<ExpenseSummary | null>(null)
@@ -40,16 +42,16 @@ export function ExpensesCard({ petId }: { petId: number }) {
 
   async function save() {
     const amount = parseFloat(form.amount.replace(',', '.'))
-    if (!amount || amount <= 0) { error('Informe um valor válido.'); return }
+    if (!amount || amount <= 0) { error(t('g.exp.errAmount')); return }
     setSaving(true)
     try {
       await expenses.add(petId, { category: form.category, amount, description: form.description || undefined })
       setForm({ category: 'alimentacao', amount: '', description: '' })
       setShowForm(false)
-      success('Gasto registrado!')
+      success(t('g.exp.saved'))
       refresh()
     } catch (e: unknown) {
-      error(e instanceof Error ? e.message : 'Erro ao salvar.')
+      error(e instanceof Error ? e.message : t('g.misc.errSave'))
     } finally { setSaving(false) }
   }
 
@@ -64,17 +66,17 @@ export function ExpensesCard({ petId }: { petId: number }) {
     <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
       <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
         <h3 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
-          <Wallet className="w-4 h-4 text-primary-500" /> Gastos do pet
+          <Wallet className="w-4 h-4 text-primary-500" /> {t('g.exp.title')}
         </h3>
         <button
           onClick={() => setShowForm(v => !v)}
           className="pressable flex items-center gap-1 bg-primary-500 hover:bg-primary-600 text-white text-xs font-semibold px-3 py-1.5 rounded-xl"
         >
-          <Plus className="w-3.5 h-3.5" /> Registrar
+          <Plus className="w-3.5 h-3.5" /> {t('g.exp.add')}
         </button>
       </div>
       <p className="text-sm text-surface-500 dark:text-surface-400 mb-3">
-        Este mês: <strong className="text-surface-900 dark:text-white tabular-nums">{brl(summary?.month_total ?? 0)}</strong>
+        {t('g.exp.thisMonth')} <strong className="text-surface-900 dark:text-white tabular-nums">{brl(summary?.month_total ?? 0)}</strong>
       </p>
 
       {showForm && (
@@ -90,18 +92,18 @@ export function ExpensesCard({ petId }: { petId: number }) {
                     : 'border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-300'
                 }`}
               >
-                {c.emoji} {c.label}
+                {c.emoji} {t(c.labelKey)}
               </button>
             ))}
           </div>
           <div className="flex gap-2">
             <input
-              type="text" inputMode="decimal" placeholder="R$ 0,00" value={form.amount}
+              type="text" inputMode="decimal" placeholder={t('g.exp.amountPh')} value={form.amount}
               onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
               className="w-28 px-3 py-2 text-sm border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <input
-              type="text" placeholder="descrição (opcional)" value={form.description}
+              type="text" placeholder={t('g.exp.descPh')} value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               className="flex-1 px-3 py-2 text-sm border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -132,31 +134,37 @@ export function ExpensesCard({ petId }: { petId: number }) {
       {/* por categoria no mês */}
       {summary && summary.by_category.length > 0 && (
         <div className="flex gap-1.5 flex-wrap mb-3">
-          {summary.by_category.map(c => (
-            <span key={c.category} className="text-[11px] bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300 rounded-full px-2.5 py-1 tabular-nums">
-              {CATEGORIES.find(x => x.value === c.category)?.emoji} {c.label}: <b>{brl(c.total)}</b>
-            </span>
-          ))}
+          {summary.by_category.map(c => {
+            const cat = CATEGORIES.find(x => x.value === c.category)
+            return (
+              <span key={c.category} className="text-[11px] bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300 rounded-full px-2.5 py-1 tabular-nums">
+                {cat?.emoji} {cat ? t(cat.labelKey) : c.label}: <b>{brl(c.total)}</b>
+              </span>
+            )
+          })}
         </div>
       )}
 
       {items.length === 0 ? (
-        <p className="text-sm text-surface-400 text-center py-4">Nenhum gasto registrado ainda.</p>
+        <p className="text-sm text-surface-400 text-center py-4">{t('g.exp.empty')}</p>
       ) : (
         <div className="max-h-36 overflow-y-auto space-y-1">
-          {items.slice(0, 8).map(e => (
-            <div key={e.id} className="flex items-center gap-2 text-xs py-1.5 border-b border-surface-100 dark:border-surface-700 last:border-0">
-              <span>{CATEGORIES.find(x => x.value === e.category)?.emoji ?? '📦'}</span>
-              <span className="text-surface-600 dark:text-surface-300 flex-1 truncate">
-                {e.description || e.category_label}
-              </span>
-              <span className="text-surface-400">{new Date(e.spent_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
-              <span className="font-semibold text-surface-900 dark:text-white tabular-nums">{brl(e.amount)}</span>
-              <button onClick={() => remove(e.id)} aria-label="Excluir" className="text-surface-300 hover:text-red-400 p-0.5">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
+          {items.slice(0, 8).map(e => {
+            const cat = CATEGORIES.find(x => x.value === e.category)
+            return (
+              <div key={e.id} className="flex items-center gap-2 text-xs py-1.5 border-b border-surface-100 dark:border-surface-700 last:border-0">
+                <span>{cat?.emoji ?? '📦'}</span>
+                <span className="text-surface-600 dark:text-surface-300 flex-1 truncate">
+                  {e.description || (cat ? t(cat.labelKey) : e.category_label)}
+                </span>
+                <span className="text-surface-400">{new Date(e.spent_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                <span className="font-semibold text-surface-900 dark:text-white tabular-nums">{brl(e.amount)}</span>
+                <button onClick={() => remove(e.id)} aria-label={t('common.delete')} className="text-surface-300 hover:text-red-400 p-0.5">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

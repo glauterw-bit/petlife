@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bell, Heart, Activity, Footprints, Image as ImageIcon, UserCheck, X, MailCheck } from 'lucide-react'
 import { notifications as notificationsApi, type NotificationItem } from '@/lib/api'
+import { useT } from '@/contexts/LocaleContext'
+import { getDateLocale } from '@/lib/utils'
+
+const INTL_LOCALE = { 'pt-BR': 'pt-BR', en: 'en-US', es: 'es' } as const
 
 function iconFor(type: string) {
   switch (type) {
@@ -17,17 +21,18 @@ function iconFor(type: string) {
   }
 }
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, nowLabel: string): string {
   const diffSec = (Date.now() - new Date(iso).getTime()) / 1000
-  if (diffSec < 60) return 'agora'
+  if (diffSec < 60) return nowLabel
   if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m`
   if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h`
   if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d`
-  return new Date(iso).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })
+  return new Date(iso).toLocaleDateString(INTL_LOCALE[getDateLocale()], { day: 'numeric', month: 'short' })
 }
 
 export function NotificationBell() {
   const router = useRouter()
+  const t = useT()
   const [unread, setUnread] = useState(0)
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<NotificationItem[]>([])
@@ -82,7 +87,7 @@ export function NotificationBell() {
     <>
       <button
         onClick={openSheet}
-        aria-label={unread > 0 ? `Notificações (${unread} novas)` : 'Notificações'}
+        aria-label={unread > 0 ? t('v.notif.ariaNew', { count: unread }) : t('v.notif.title')}
         style={{
           top: 'max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))',
           right: 'max(0.75rem, env(safe-area-inset-right))',
@@ -109,14 +114,14 @@ export function NotificationBell() {
             <div className="flex items-center justify-between px-4 py-3 border-b border-surface-100 dark:border-surface-700 shrink-0">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-surface-700 dark:text-surface-200" />
-                <h2 className="text-sm font-semibold text-surface-900 dark:text-white">Notificações</h2>
-                {unread > 0 && <span className="text-xs text-surface-500 dark:text-surface-400">({unread} novas)</span>}
+                <h2 className="text-sm font-semibold text-surface-900 dark:text-white">{t('v.notif.title')}</h2>
+                {unread > 0 && <span className="text-xs text-surface-500 dark:text-surface-400">{t('v.notif.new', { count: unread })}</span>}
               </div>
               <div className="flex items-center gap-1">
                 {items.some(n => !n.is_read) && (
                   <button
                     onClick={markAllRead}
-                    title="Marcar todas como lidas"
+                    title={t('v.notif.markAll')}
                     className="tap-target rounded-lg text-surface-500 dark:text-surface-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 flex items-center justify-center"
                   >
                     <MailCheck className="w-4 h-4" />
@@ -124,7 +129,7 @@ export function NotificationBell() {
                 )}
                 <button
                   onClick={() => setOpen(false)}
-                  aria-label="Fechar"
+                  aria-label={t('common.close')}
                   className="tap-target rounded-lg text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 flex items-center justify-center"
                 >
                   <X className="w-4 h-4" />
@@ -134,11 +139,11 @@ export function NotificationBell() {
 
             <div className="overflow-y-auto flex-1">
               {loading ? (
-                <div className="p-8 text-center text-sm text-surface-500 dark:text-surface-400">Carregando…</div>
+                <div className="p-8 text-center text-sm text-surface-500 dark:text-surface-400">{t('common.loading')}</div>
               ) : items.length === 0 ? (
                 <div className="p-8 text-center text-sm text-surface-500 dark:text-surface-400">
-                  Tudo em dia 🎉<br />
-                  <span className="text-xs">Quando alguém da família mexer no perfil do pet, aparece aqui.</span>
+                  {t('v.notif.empty')}<br />
+                  <span className="text-xs">{t('v.notif.emptyHint')}</span>
                 </div>
               ) : (
                 <ul className="divide-y divide-surface-100 dark:divide-surface-700">
@@ -165,7 +170,7 @@ export function NotificationBell() {
                               {n.body}
                             </p>
                           )}
-                          <p className="text-[10px] text-surface-400 mt-1">{relativeTime(n.created_at)}</p>
+                          <p className="text-[10px] text-surface-400 mt-1">{relativeTime(n.created_at, t('v.notif.now'))}</p>
                         </div>
                       </button>
                     </li>

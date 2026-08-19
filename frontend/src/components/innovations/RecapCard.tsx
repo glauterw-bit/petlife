@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/ToastContext'
 import { trackHappyMoment } from '@/lib/review'
 import { shareCardImage } from '@/lib/shareCard'
 import { track } from '@/lib/track'
+import { useT } from '@/contexts/LocaleContext'
 
 function brl(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -17,6 +18,7 @@ function brl(v: number) {
  * Sem IA: números agregados direto do banco.
  */
 export function RecapCard({ petId }: { petId: number }) {
+  const t = useT()
   const { error } = useToast()
   const [data, setData] = useState<MonthlyRecap | null>(null)
 
@@ -31,19 +33,19 @@ export function RecapCard({ petId }: { petId: number }) {
   async function share() {
     if (!data) return
     const stats = [
-      data.walks > 0 && { label: 'passeios', value: `${data.walks} · ${data.distance_km} km` },
-      data.active_minutes > 0 && { label: 'min ativos', value: String(data.active_minutes) },
-      data.stories > 0 && { label: 'momentos', value: String(data.stories) },
-      data.vaccines > 0 && { label: 'vacinas em dia', value: String(data.vaccines) },
+      data.walks > 0 && { label: t('g.rec.walks'), value: `${data.walks} · ${data.distance_km} km` },
+      data.active_minutes > 0 && { label: t('g.rec.activeMin'), value: String(data.active_minutes) },
+      data.stories > 0 && { label: t('g.rec.moments'), value: String(data.stories) },
+      data.vaccines > 0 && { label: t('g.rec.vaccinesOk'), value: String(data.vaccines) },
     ].filter(Boolean) as Array<{ label: string; value: string }>
     try {
       const ok = await shareCardImage(
         {
-          title: `${data.month_label.split(' ')[0]} do ${data.pet_name}`,
-          subtitle: 'Recap do mês 🐾',
+          title: t('g.rec.heading', { month: data.month_label.split(' ')[0], name: data.pet_name }),
+          subtitle: t('g.rec.shareSubtitle'),
           stats,
         },
-        `${data.month_label} do ${data.pet_name} no PetLife 🐾`,
+        t('g.rec.shareText', { month: data.month_label, name: data.pet_name }),
       )
       if (ok) {
         trackHappyMoment('recap_share')
@@ -53,11 +55,11 @@ export function RecapCard({ petId }: { petId: number }) {
   }
 
   const stats = [
-    data.walks > 0 && { Icon: Footprints, label: 'passeios', value: `${data.walks} · ${data.distance_km} km` },
-    data.active_minutes > 0 && { Icon: Clock, label: 'min ativos', value: String(data.active_minutes) },
-    data.stories > 0 && { Icon: Camera, label: 'momentos', value: String(data.stories) },
-    data.vaccines > 0 && { Icon: Syringe, label: 'vacinas', value: String(data.vaccines) },
-    data.expenses_total > 0 && { Icon: Wallet, label: 'investido', value: brl(data.expenses_total) },
+    data.walks > 0 && { Icon: Footprints, label: t('g.rec.walks'), value: `${data.walks} · ${data.distance_km} km` },
+    data.active_minutes > 0 && { Icon: Clock, label: t('g.rec.activeMin'), value: String(data.active_minutes) },
+    data.stories > 0 && { Icon: Camera, label: t('g.rec.moments'), value: String(data.stories) },
+    data.vaccines > 0 && { Icon: Syringe, label: t('g.rec.vaccines'), value: String(data.vaccines) },
+    data.expenses_total > 0 && { Icon: Wallet, label: t('g.rec.spent'), value: brl(data.expenses_total) },
   ].filter(Boolean) as Array<{ Icon: typeof Footprints; label: string; value: string }>
 
   return (
@@ -66,14 +68,14 @@ export function RecapCard({ petId }: { petId: number }) {
       <div className="absolute -right-2 top-10 w-14 h-14 rounded-full bg-white/10" aria-hidden />
       <div className="flex items-center justify-between mb-3 relative">
         <div>
-          <p className="text-[11px] uppercase tracking-widest font-bold text-primary-100">Recap do mês</p>
-          <h3 className="font-extrabold text-lg leading-tight">{data.month_label} do {data.pet_name}</h3>
+          <p className="text-[11px] uppercase tracking-widest font-bold text-primary-100">{t('g.rec.title')}</p>
+          <h3 className="font-extrabold text-lg leading-tight">{t('g.rec.heading', { month: data.month_label, name: data.pet_name })}</h3>
         </div>
         <button
           onClick={share}
           className="pressable flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur text-white text-xs font-bold px-3 py-2 rounded-xl"
         >
-          <Share2 className="w-3.5 h-3.5" /> Compartilhar
+          <Share2 className="w-3.5 h-3.5" /> {t('g.misc.share')}
         </button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 relative">

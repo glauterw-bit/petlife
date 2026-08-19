@@ -940,20 +940,41 @@ REGRAS:
         }
 
 
+# Instrução de idioma da Vyron. O app é multilíngue: se o tutor está com o
+# aparelho em inglês, receber resposta em português é pior do que não ter IA.
+LANG_INSTRUCTION = {
+    "pt-BR": "- Fala em português brasileiro (pt-BR), tom carinhoso e acessível",
+    "en": (
+        "- ALWAYS reply in English (US), warm and approachable tone\n"
+        "- Use veterinary terms as used in the US (DHPP, FVRCP, 'rabies shot'), "
+        "not Brazilian names like V10 — and note rabies boosters follow state law (every 1-3 years)"
+    ),
+    "es": (
+        "- Responde SIEMPRE en español neutro (LatAm), tono cercano y cálido\n"
+        "- Usa los términos veterinarios locales (vacuna polivalente, trivalente felina, antirrábica), "
+        "no los nombres brasileños como V10"
+    ),
+}
+
+
 async def chat_with_vet_ai(
     pet_info: Optional[dict],
     question: str,
     conversation_history: Optional[List[dict]] = None,
+    locale: str = "pt-BR",
 ) -> str:
     """
     Assistente veterinário de IA para responder dúvidas dos tutores.
+    `locale` define o idioma da resposta (pt-BR | en | es).
     """
     client = get_client()
+
+    lang_line = LANG_INSTRUCTION.get(locale, LANG_INSTRUCTION["pt-BR"])
 
     system_prompt = """Você é a Vyron, assistente veterinária virtual especializada em cães e gatos, integrada ao app PetLife.
 
 CARACTERÍSTICAS:
-- Fala em português brasileiro (pt-BR), tom carinhoso e acessível
+{lang_line}
 - Empática, paciente, prática, baseada em evidências
 - SEMPRE lembra que suas orientações não substituem consulta presencial
 - Para emergências (sinais graves), recomenda atendimento imediato
@@ -975,6 +996,7 @@ SAIDA:
 - Cita o nome do pet quando souber, torna pessoal
 - Evita listas exaustivas — vá ao ponto do que o tutor perguntou
 - 2-4 parágrafos curtos no máximo (a menos que tutor peça detalhes)"""
+    system_prompt = system_prompt.replace("{lang_line}", lang_line)
 
     messages = []
 

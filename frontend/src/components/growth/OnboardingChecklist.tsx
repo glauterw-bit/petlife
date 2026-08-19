@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PawPrint, Camera, Syringe, Footprints, Check, ArrowRight, X, Sparkles } from 'lucide-react'
 import type { Pet } from '@/lib/api'
+import { useT } from '@/contexts/LocaleContext'
 
 /**
  * Guia de primeiros passos — ativação do usuário novo.
@@ -35,6 +36,7 @@ export function OnboardingChecklist({
   hasWalk: boolean
   firstName?: string
 }) {
+  const t = useT()
   const [dismissed, setDismissed] = useState<boolean | null>(null) // null = ainda não hidratou
 
   useEffect(() => {
@@ -49,32 +51,32 @@ export function OnboardingChecklist({
     {
       key: 'pet',
       done: true,
-      label: 'Cadastrar seu pet',
-      desc: 'Feito! 🎉',
+      label: t('onb.step.pet'),
+      desc: t('onb.step.petDone'),
       href: null,
       icon: <PawPrint className="w-4 h-4" />,
     },
     {
       key: 'photo',
       done: !!pet.photo_url,
-      label: `Adicionar a foto ${pet.name ? `de ${pet.name}` : 'do pet'}`,
-      desc: 'Deixe o perfil com a cara dele',
+      label: pet.name ? t('onb.step.photo', { name: pet.name }) : t('g.onb.photoNoName'),
+      desc: t('onb.step.photoDesc'),
       href: `/pets/${pet.id}`,
       icon: <Camera className="w-4 h-4" />,
     },
     {
       key: 'vaccine',
       done: hasVaccine,
-      label: 'Registrar a 1ª vacina',
-      desc: 'A carteirinha digital sai pronta pra compartilhar',
+      label: t('onb.step.vaccine'),
+      desc: t('onb.step.vaccineDesc'),
       href: '/health/vaccines',
       icon: <Syringe className="w-4 h-4" />,
     },
     {
       key: 'walk',
       done: hasWalk,
-      label: 'Fazer o 1º passeio',
-      desc: 'Com mapa do percurso e card pra postar',
+      label: t('onb.step.walk'),
+      desc: t('onb.step.walkDesc'),
       href: '/walks/active',
       icon: <Footprints className="w-4 h-4" />,
     },
@@ -105,16 +107,16 @@ export function OnboardingChecklist({
           <div className="flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-primary-500 shrink-0" />
             <h2 className="font-display text-base font-bold text-surface-900 dark:text-white truncate">
-              Bora começar{firstName ? `, ${firstName}` : ''}! 🚀
+              {t('onb.title', { name: firstName ? `, ${firstName}` : '' })}
             </h2>
           </div>
           <p className="text-xs text-surface-600 dark:text-surface-300 mt-0.5">
-            {doneCount} de {total} — complete pra tirar o máximo do PetLife
+            {t('onb.progress', { done: doneCount, total })}
           </p>
         </div>
         <button
           onClick={dismiss}
-          aria-label="Dispensar guia"
+          aria-label={t('onb.dismiss')}
           className="tap-target -mt-1 -mr-1 rounded-lg text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 hover:bg-white/60 dark:hover:bg-surface-700/60 flex items-center justify-center shrink-0"
         >
           <X className="w-4 h-4" />

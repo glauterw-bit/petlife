@@ -182,10 +182,14 @@ async def ai_chat(
             }
 
     try:
+        # Idioma da resposta: Accept-Language do aparelho (o app manda sempre).
+        import health_protocols_i18n
+        locale = health_protocols_i18n.locale_from_header(request.headers.get("accept-language"))
         response_text = await ai_service.chat_with_vet_ai(
             pet_info=pet_info,
             question=body.question,
             conversation_history=body.conversation_history,
+            locale=locale,
         )
         await subscriptions.consume_quota(db, current_user, "ai_chat")
         # Mapeia SÓ o tema da pergunta (nunca o texto) — ver ai_topics.py
