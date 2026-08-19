@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { localeTag } from '@/lib/utils'
 import { Wallet, Plus, Trash2, Loader2 } from 'lucide-react'
 import { expenses, type PetExpense, type ExpenseSummary } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
@@ -157,7 +158,7 @@ export function ExpensesCard({ petId }: { petId: number }) {
                 <span className="text-surface-600 dark:text-surface-300 flex-1 truncate">
                   {e.description || (cat ? t(cat.labelKey) : e.category_label)}
                 </span>
-                <span className="text-surface-400">{new Date(e.spent_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                <span className="text-surface-400">{new Date(e.spent_at).toLocaleDateString(localeTag(), { day: '2-digit', month: '2-digit' })}</span>
                 <span className="font-semibold text-surface-900 dark:text-white tabular-nums">{brl(e.amount)}</span>
                 <button onClick={() => remove(e.id)} aria-label={t('common.delete')} className="text-surface-300 hover:text-red-400 p-0.5">
                   <Trash2 className="w-3.5 h-3.5" />

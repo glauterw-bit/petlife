@@ -141,20 +141,24 @@ export function getVaccineStatus(nextDueDate?: string | null): 'up_to_date' | 'u
   }
 }
 
+/** Nome do nível de gamificação, no idioma ativo. */
 export function getLevelName(level: number): string {
-  const names = [
-    'Iniciante',
-    'Cuidador',
-    'Amigo dos Pets',
-    'Protetor',
-    'Guardião',
-    'Mestre',
-    'Expert',
-    'Veterinário Honorário',
-    'Lenda',
-    'Mito',
-  ]
-  return names[Math.min(level - 1, names.length - 1)] ?? 'Iniciante'
+  const NAMES: Record<DateLocaleKey, string[]> = {
+    'pt-BR': [
+      'Iniciante', 'Cuidador', 'Amigo dos Pets', 'Protetor', 'Guardião',
+      'Mestre', 'Expert', 'Veterinário Honorário', 'Lenda', 'Mito',
+    ],
+    en: [
+      'Beginner', 'Caregiver', 'Pet Friend', 'Protector', 'Guardian',
+      'Master', 'Expert', 'Honorary Vet', 'Legend', 'Myth',
+    ],
+    es: [
+      'Principiante', 'Cuidador', 'Amigo de las Mascotas', 'Protector', 'Guardián',
+      'Maestro', 'Experto', 'Veterinario Honorario', 'Leyenda', 'Mito',
+    ],
+  }
+  const names = NAMES[_dateLocale] ?? NAMES['pt-BR']
+  return names[Math.min(level - 1, names.length - 1)] ?? names[0]
 }
 
 export function getDifficultyLabel(difficulty: string): string {

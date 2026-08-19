@@ -8,7 +8,7 @@ import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { gamification, type Challenge, type UserChallenge, type LeaderboardEntry, type UserPoints } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { celebrateBadge, hapticMedium, hapticError } from '@/lib/feedback'
-import { getBadgeColor } from '@/lib/utils'
+import { getBadgeColor, localeTag } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
 
@@ -265,7 +265,7 @@ export default function ChallengesPage() {
                       </div>
                       <div className="flex items-center gap-1 font-bold text-accent-700">
                         <Star className="w-4 h-4" />
-                        {entry.points.toLocaleString('pt-BR')}
+                        {entry.points.toLocaleString(localeTag())}
                       </div>
                     </div>
                   ))}

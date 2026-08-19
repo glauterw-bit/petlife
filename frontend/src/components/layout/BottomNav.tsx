@@ -135,7 +135,7 @@ export function BottomNav() {
               )}
             >
               <LayoutGrid className={cn('w-5 h-5 transition-transform', moreOpen && 'rotate-90 scale-110')} aria-hidden />
-              <span className={cn('text-[10px] font-medium leading-tight', (moreActive || moreOpen) && 'font-semibold')}>Mais</span>
+              <span className={cn('text-[10px] font-medium leading-tight', (moreActive || moreOpen) && 'font-semibold')}>{t('nav.more')}</span>
               {moreActive && !moreOpen && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" aria-hidden />}
             </button>
           </li>

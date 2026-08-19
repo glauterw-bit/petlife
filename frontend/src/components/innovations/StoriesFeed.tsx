@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { localeTag } from '@/lib/utils'
 import { Camera, Trash2, Loader2, Sparkles } from 'lucide-react'
 import { innovations, type StoryEntry } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
@@ -124,7 +125,7 @@ export function StoriesFeed({ petId, petName }: { petId: number; petName: string
                     <span>{s.ai_caption}</span>
                   </p>
                 )}
-                <p className="text-[10px] text-surface-400 mt-1">{new Date(s.created_at).toLocaleDateString('pt-BR')}</p>
+                <p className="text-[10px] text-surface-400 mt-1">{new Date(s.created_at).toLocaleDateString(localeTag())}</p>
               </div>
             </div>
           ))}

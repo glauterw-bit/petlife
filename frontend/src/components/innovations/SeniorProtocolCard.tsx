@@ -28,7 +28,7 @@ export function SeniorProtocolCard({ petId }: { petId: number }) {
         </div>
         <div>
           <h3 className="font-bold text-surface-900 dark:text-white">{t('g.sen.title')}</h3>
-          <p className="text-xs text-amber-700 dark:text-amber-300 capitalize">{data.life_stage} • {t('g.misc.years', { n: data.age_years })}</p>
+          <p className="text-xs text-amber-700 dark:text-amber-300 capitalize">{data.life_stage} • {t('g.misc.years', { n: data.age_years ?? '' })}</p>
         </div>
       </div>
 

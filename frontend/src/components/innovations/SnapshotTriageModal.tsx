@@ -195,7 +195,7 @@ export function SnapshotTriageModal({ petId, petName, open, onClose }: SnapshotT
                 onClick={reset}
                 className="w-full bg-surface-100 dark:bg-surface-700 text-surface-700 dark:text-surface-200 hover:bg-surface-200 font-semibold py-3 rounded-xl"
               >
-                Analisar outra foto
+                {t('g.tri.again')}
               </button>
             </>
           )}

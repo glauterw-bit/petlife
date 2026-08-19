@@ -130,7 +130,7 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
                       {color === 'red' ? <AlertTriangle className="w-5 h-5 text-red-600" /> : <Heart className={cn('w-5 h-5', color === 'emerald' && 'text-emerald-600', color === 'amber' && 'text-amber-600', color === 'orange' && 'text-orange-600')} />}
                       <p className="font-bold text-surface-900 dark:text-white">{t(PAIN_LABEL_KEY[result.pain_level] ?? 'g.pain.lvl.none')}</p>
                       {result.total_score && (
-                        <span className="ml-auto text-sm font-bold">{t('g.pain.score', { score: result.total_score, max: result.max_possible })}</span>
+                        <span className="ml-auto text-sm font-bold">{t('g.pain.score', { score: result.total_score, max: result.max_possible ?? '' })}</span>
                       )}
                     </div>
                     <p className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-1">{result.scale}</p>

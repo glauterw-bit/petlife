@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { localeTag } from '@/lib/utils'
 import { useParams } from 'next/navigation'
 import { Heart, Share2, PawPrint } from 'lucide-react'
 import { useT } from '@/contexts/LocaleContext'
@@ -90,9 +91,9 @@ export default function MemorialPage() {
         </p>
         {(data.pet.birth_date || data.pet.deceased_at) && (
           <p className="text-center text-stone-400 text-sm mb-8">
-            {data.pet.birth_date && new Date(data.pet.birth_date).toLocaleDateString('pt-BR')}
+            {data.pet.birth_date && new Date(data.pet.birth_date).toLocaleDateString(localeTag())}
             {data.pet.birth_date && data.pet.deceased_at && ' — '}
-            {data.pet.deceased_at && new Date(data.pet.deceased_at).toLocaleDateString('pt-BR')}
+            {data.pet.deceased_at && new Date(data.pet.deceased_at).toLocaleDateString(localeTag())}
             {data.pet.age_years && <> · {t('g.misc.years', { n: data.pet.age_years })}</>}
           </p>
         )}

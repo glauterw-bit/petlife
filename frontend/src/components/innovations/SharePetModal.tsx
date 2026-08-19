@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { localeTag } from '@/lib/utils'
 import { X, UserPlus, Mail, Trash2, Loader2, Users, Copy, Check } from 'lucide-react'
 import { innovations, type PetShareEntry } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
@@ -141,7 +142,7 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                     <p className="text-xs text-surface-500 dark:text-surface-400">{ROLE_LABEL_KEY[s.role] ? t(ROLE_LABEL_KEY[s.role]) : s.role}</p>
                     <p className="text-xs text-surface-400 mt-0.5">
                       {s.status === 'accepted'
-                        ? t('g.sh.acceptedOn', { date: new Date(s.accepted_at!).toLocaleDateString('pt-BR') })
+                        ? t('g.sh.acceptedOn', { date: new Date(s.accepted_at!).toLocaleDateString(localeTag()) })
                         : s.status === 'pending'
                         ? t('g.sh.pending')
                         : s.status}
