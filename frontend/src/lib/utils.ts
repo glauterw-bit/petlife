@@ -120,10 +120,18 @@ export function getSpeciesEmoji(species?: string): string {
   return '🐾'
 }
 
+/** Espécie no idioma ativo. Em espanhol, cão é "Perro" — "Cachorro" ali
+ *  significa filhote, então traduzir por semelhança estaria errado. */
 export function getSpeciesLabel(species?: string): string {
-  if (species === 'dog') return 'Cachorro'
-  if (species === 'cat') return 'Gato'
-  return 'Outro'
+  const L: Record<DateLocaleKey, { dog: string; cat: string; other: string }> = {
+    'pt-BR': { dog: 'Cachorro', cat: 'Gato', other: 'Outro' },
+    en: { dog: 'Dog', cat: 'Cat', other: 'Other' },
+    es: { dog: 'Perro', cat: 'Gato', other: 'Otro' },
+  }
+  const l = L[_dateLocale] ?? L['pt-BR']
+  if (species === 'dog') return l.dog
+  if (species === 'cat') return l.cat
+  return l.other
 }
 
 export function getVaccineStatus(nextDueDate?: string | null): 'up_to_date' | 'upcoming' | 'overdue' {

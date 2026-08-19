@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { getSpeciesLabel } from '@/lib/utils'
 import Link from 'next/link'
 import { PawPrint, Syringe, Footprints, Heart, Download } from 'lucide-react'
 
@@ -105,7 +106,7 @@ export default async function PublicPetPage({ params }: { params: { slug: string
                 {pet.name} {pet.is_deceased ? '🌈' : emoji}
               </h1>
               <p className="text-sm text-surface-500">
-                {[pet.breed, idade].filter(Boolean).join(' · ') || (pet.species === 'cat' ? 'Gato' : 'Cachorro')}
+                {[pet.breed, idade].filter(Boolean).join(' · ') || getSpeciesLabel(pet.species)}
               </p>
               {pet.bio && <p className="text-sm text-surface-600 mt-2 leading-snug">{pet.bio}</p>}
             </div>
