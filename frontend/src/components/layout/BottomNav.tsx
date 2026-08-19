@@ -10,16 +10,17 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
+import { useT } from '@/contexts/LocaleContext'
 
 /**
  * Navegação mobile completa: 4 abas principais + "Mais" (sheet com o resto).
  * Nenhuma tela depende da sidebar no celular — tudo a um toque do polegar.
  */
 const TABS = [
-  { href: '/dashboard', label: 'Início', Icon: Home, match: (p: string) => p === '/dashboard' },
-  { href: '/pets', label: 'Pets', Icon: PawPrint, match: (p: string) => p.startsWith('/pets') },
-  { href: '/walks', label: 'Passeios', Icon: Footprints, match: (p: string) => p.startsWith('/walks') },
-  { href: '/health/vaccines', label: 'Saúde', Icon: ShieldCheck, match: (p: string) => p.startsWith('/health') },
+  { href: '/dashboard', labelKey: 'nav.home', Icon: Home, match: (p: string) => p === '/dashboard' },
+  { href: '/pets', labelKey: 'nav.pets', Icon: PawPrint, match: (p: string) => p.startsWith('/pets') },
+  { href: '/walks', labelKey: 'nav.walks', Icon: Footprints, match: (p: string) => p.startsWith('/walks') },
+  { href: '/health/vaccines', labelKey: 'nav.health', Icon: ShieldCheck, match: (p: string) => p.startsWith('/health') },
 ]
 
 const MORE = [
@@ -37,6 +38,7 @@ const ADMIN_ITEM = { href: '/admin', label: 'Admin', Icon: LayoutGrid, tint: 'te
 
 export function BottomNav() {
   const pathname = usePathname() ?? ''
+  const t = useT()
   const { user } = useAuth()
   const isAdmin = user?.email?.toLowerCase() === 'glauterw@gmail.com'
   const moreItems = isAdmin ? [...MORE, ADMIN_ITEM] : MORE
@@ -102,7 +104,7 @@ export function BottomNav() {
         className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 dark:bg-surface-900/95 backdrop-blur border-t border-surface-200 dark:border-surface-700 pb-[env(safe-area-inset-bottom)]"
       >
         <ul className="grid grid-cols-5">
-          {TABS.map(({ href, label, Icon, match }) => {
+          {TABS.map(({ href, labelKey, Icon, match }) => {
             const active = match(pathname)
             return (
               <li key={href} className="relative">
@@ -116,7 +118,7 @@ export function BottomNav() {
                 >
                   <Icon className={cn('w-5 h-5 transition-transform', active && 'scale-110 fill-primary-100/40')} aria-hidden />
                   <span className={cn('text-[10px] font-medium leading-tight', active && 'font-semibold')}>
-                    {label}
+                    {t(labelKey)}
                   </span>
                   {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" aria-hidden />}
                 </Link>

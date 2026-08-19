@@ -3,6 +3,7 @@ import { Inter, Nunito } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
+import { LocaleProvider } from '@/contexts/LocaleContext'
 import { ToastProvider } from '@/components/ui/ToastContext'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -58,11 +59,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <ThemeProvider>
-          <AuthProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </AuthProvider>
+          <LocaleProvider>
+            <AuthProvider>
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </AuthProvider>
+          </LocaleProvider>
         </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{

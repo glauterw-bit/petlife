@@ -1,6 +1,8 @@
 'use client'
 
 import { useTheme } from '@/contexts/ThemeContext'
+import { useLocale } from '@/contexts/LocaleContext'
+import { LOCALES, LOCALE_FLAG, LOCALE_LABEL } from '@/lib/i18n/types'
 
 import { useState, FormEvent } from 'react'
 import { User, Mail, Phone, Lock, Save, Eye, EyeOff, AlertTriangle, Trash2 } from 'lucide-react'
@@ -181,6 +183,7 @@ export default function SettingsPage() {
           </form>
         </div>
 
+        <LanguageSection />
         <ThemeSection />
 
         <DangerZone />
@@ -285,6 +288,33 @@ function DangerZone() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function LanguageSection() {
+  const { locale, setLocale, t } = useLocale()
+  return (
+    <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
+      <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-1">{t('settings.language')}</h2>
+      <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">{t('settings.languageDesc')}</p>
+      <div className="grid grid-cols-3 gap-2">
+        {LOCALES.map(l => (
+          <button
+            key={l}
+            onClick={() => setLocale(l)}
+            aria-pressed={locale === l}
+            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition ${
+              locale === l
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                : 'border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-300 hover:border-surface-300 dark:hover:border-surface-600'
+            }`}
+          >
+            <span className="text-2xl">{LOCALE_FLAG[l]}</span>
+            <span className="text-xs font-medium">{LOCALE_LABEL[l]}</span>
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
