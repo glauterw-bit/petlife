@@ -37,10 +37,12 @@ import { RecapCard } from '@/components/innovations/RecapCard'
 import { EnrichmentCard } from '@/components/innovations/EnrichmentCard'
 import { petExport } from '@/lib/api'
 import { BookOpen, Brain, PartyPopper, Smile, Image as ImageIcon, Users, GitFork } from 'lucide-react'
+import { useT } from '@/contexts/LocaleContext'
 
 type Tab = 'overview' | 'health' | 'routine' | 'history' | 'anamnesis' | 'care' | 'stories' | 'family'
 
 export default function PetProfilePage() {
+  const t = useT()
   const { id } = useParams()
   const router = useRouter()
   const { success, error: showError } = useToast()
@@ -101,8 +103,8 @@ export default function PetProfilePage() {
     try {
       const r = await routinesApi.generate(petId)
       setRoutines([r])
-      success('Rotina gerada pela IA! 🐾')
-    } catch { showError('Erro ao gerar rotina.') }
+      success(t('pw.pet.routineGenerated'))
+    } catch { showError(t('pw.pet.routineError')) }
     finally { setGeneratingRoutine(false) }
   }
 
@@ -112,65 +114,65 @@ export default function PetProfilePage() {
     try {
       const g = await breedsApi.getCareGuide(pet.breed_id)
       setCareGuide(g)
-    } catch { showError('Erro ao carregar guia de cuidados.') }
+    } catch { showError(t('pw.pet.careLoadError')) }
     finally { setGeneratingCare(false) }
   }
 
   async function handleAnamSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!anamForm.symptoms.trim()) { showError('Descreva os sintomas.'); return }
+    if (!anamForm.symptoms.trim()) { showError(t('pw.pet.symptomsRequired')); return }
     setSubmitingAnam(true)
     setAnamAnalysis(null)
     try {
       const result = await anamnesisApi.create({ pet_id: petId, ...anamForm })
       setAnamnesisHistory(prev => [result, ...prev])
       if (result.ai_analysis) setAnamAnalysis(result.ai_analysis)
-      success('Anamnese registrada com análise IA!')
+      success(t('pw.pet.anamSaved'))
       setAnamForm({ symptoms: '', duration: '', behavior_changes: '', appetite: '', water_intake: '', medications: '', notes: '' })
-    } catch { showError('Erro ao registrar anamnese.') }
+    } catch { showError(t('pw.pet.anamError')) }
     finally { setSubmitingAnam(false) }
   }
 
   async function handleDeleteVaccine(vid: number) {
-    if (!confirm('Excluir esta vacina?')) return
+    if (!confirm(t('pw.pet.deleteVaccineConfirm'))) return
     await vaccinesApi.delete(vid).catch(() => {})
     setVaccines(prev => prev.filter(v => v.id !== vid))
-    success('Vacina excluída.')
+    success(t('pw.pet.vaccineDeleted'))
   }
 
   async function handleDeleteExam(eid: number) {
-    if (!confirm('Excluir este exame?')) return
+    if (!confirm(t('pw.pet.deleteExamConfirm'))) return
     await examsApi.delete(eid).catch(() => {})
     setExams(prev => prev.filter(e => e.id !== eid))
-    success('Exame excluído.')
+    success(t('pw.pet.examDeleted'))
   }
 
   if (loading) return <DashboardLayout><PageLoader /></DashboardLayout>
   if (!pet) return null
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'overview', label: 'Visão Geral', icon: <PawPrint className="w-4 h-4" /> },
-    { id: 'health', label: 'Saúde', icon: <Heart className="w-4 h-4" /> },
-    { id: 'routine', label: 'Rotina', icon: <Route className="w-4 h-4" /> },
-    { id: 'history', label: 'Histórico', icon: <History className="w-4 h-4" /> },
-    { id: 'anamnesis', label: 'Anamnese', icon: <Stethoscope className="w-4 h-4" /> },
-    { id: 'care', label: 'Cuidados IA', icon: <Sparkles className="w-4 h-4" /> },
-    { id: 'stories', label: 'Stories', icon: <ImageIcon className="w-4 h-4" /> },
-    { id: 'family', label: 'Família', icon: <GitFork className="w-4 h-4" /> },
+    { id: 'overview', label: t('pw.pet.tabOverview'), icon: <PawPrint className="w-4 h-4" /> },
+    { id: 'health', label: t('nav.health'), icon: <Heart className="w-4 h-4" /> },
+    { id: 'routine', label: t('pw.pet.tabRoutine'), icon: <Route className="w-4 h-4" /> },
+    { id: 'history', label: t('pw.pet.tabHistory'), icon: <History className="w-4 h-4" /> },
+    { id: 'anamnesis', label: t('pw.pet.tabAnamnesis'), icon: <Stethoscope className="w-4 h-4" /> },
+    { id: 'care', label: t('pw.pet.tabCare'), icon: <Sparkles className="w-4 h-4" /> },
+    { id: 'stories', label: t('pw.pet.tabStories'), icon: <ImageIcon className="w-4 h-4" /> },
+    { id: 'family', label: t('pw.pet.tabFamily'), icon: <GitFork className="w-4 h-4" /> },
   ]
 
   const urgencyConfig = {
-    low: { icon: <Info className="w-5 h-5 text-blue-500" />, bg: 'bg-blue-50 border-blue-200', label: 'Baixa urgência', text: 'text-blue-700' },
-    medium: { icon: <AlertCircle className="w-5 h-5 text-yellow-500" />, bg: 'bg-yellow-50 border-yellow-200', label: 'Urgência moderada', text: 'text-yellow-700' },
-    high: { icon: <AlertTriangle className="w-5 h-5 text-orange-500" />, bg: 'bg-orange-50 border-orange-200', label: 'Alta urgência', text: 'text-orange-700' },
-    emergency: { icon: <AlertTriangle className="w-5 h-5 text-red-500" />, bg: 'bg-red-50 border-red-200', label: '🚨 EMERGÊNCIA', text: 'text-red-700' },
+    low: { icon: <Info className="w-5 h-5 text-blue-500" />, bg: 'bg-blue-50 border-blue-200', label: t('pw.pet.urgencyLow'), text: 'text-blue-700' },
+    medium: { icon: <AlertCircle className="w-5 h-5 text-yellow-500" />, bg: 'bg-yellow-50 border-yellow-200', label: t('pw.pet.urgencyMedium'), text: 'text-yellow-700' },
+    high: { icon: <AlertTriangle className="w-5 h-5 text-orange-500" />, bg: 'bg-orange-50 border-orange-200', label: t('pw.pet.urgencyHigh'), text: 'text-orange-700' },
+    emergency: { icon: <AlertTriangle className="w-5 h-5 text-red-500" />, bg: 'bg-red-50 border-red-200', label: t('pw.pet.urgencyEmergency'), text: 'text-red-700' },
   }
 
   return (
     <DashboardLayout>
       {/* Header */}
       <div className="flex items-center gap-3 mb-5 md:mb-6 ">
-        <button onClick={() => router.back()} aria-label="Voltar" className="p-2 rounded-xl hover:bg-surface-100 transition tap-target flex items-center justify-center">
+        <button onClick={() => router.back()} aria-label={t('nav.back')} className="p-2 rounded-xl hover:bg-surface-100 transition tap-target flex items-center justify-center">
           <ArrowLeft className="w-5 h-5 text-surface-600 dark:text-surface-300" />
         </button>
         <div className="flex-1 min-w-0">
@@ -189,18 +191,18 @@ export default function PetProfilePage() {
 
       {/* Quick actions IA — grade uniforme (bordas alinhadas, sem sobras irregulares) */}
       <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4 items-stretch">
-        <QuickAction icon={<Sparkles className="w-4 h-4" />} label="Triagem geral" onClick={() => setSnapshotOpen(true)} color="primary" />
-        <QuickAction icon={<Heart className="w-4 h-4" />} label="Avaliar dor" onClick={() => setPainOpen(true)} color="rose" />
-        <QuickAction icon={<span className="text-base">💩</span>} label="Fezes" onClick={() => setStoolOpen(true)} color="amber" />
-        <QuickAction icon={<BookOpen className="w-4 h-4" />} label="Boa noite" onClick={() => setStoryOpen(true)} color="indigo" />
-        <QuickAction icon={<Brain className="w-4 h-4" />} label="Comportamento" onClick={() => router.push('/behavior')} color="purple" />
-        <QuickAction icon={<Smile className="w-4 h-4" />} label="Check-in" onClick={() => setBehaviorLogOpen(true)} color="emerald" />
+        <QuickAction icon={<Sparkles className="w-4 h-4" />} label={t('pw.pet.qaTriage')} onClick={() => setSnapshotOpen(true)} color="primary" />
+        <QuickAction icon={<Heart className="w-4 h-4" />} label={t('pw.pet.qaPain')} onClick={() => setPainOpen(true)} color="rose" />
+        <QuickAction icon={<span className="text-base">💩</span>} label={t('pw.pet.qaStool')} onClick={() => setStoolOpen(true)} color="amber" />
+        <QuickAction icon={<BookOpen className="w-4 h-4" />} label={t('pw.pet.qaBedtime')} onClick={() => setStoryOpen(true)} color="indigo" />
+        <QuickAction icon={<Brain className="w-4 h-4" />} label={t('pw.pet.qaBehavior')} onClick={() => router.push('/behavior')} color="purple" />
+        <QuickAction icon={<Smile className="w-4 h-4" />} label={t('pw.pet.qaCheckin')} onClick={() => setBehaviorLogOpen(true)} color="emerald" />
         <QuickAction icon={<PartyPopper className="w-4 h-4" />} label="Wrapped" onClick={() => router.push(`/wrapped/${petId}`)} color="pink" />
-        <QuickAction icon={<ImageIcon className="w-4 h-4" />} label="Stories" onClick={() => setTab('stories' as Tab)} color="teal" />
-        <QuickAction icon={<Users className="w-4 h-4" />} label="Compartilhar" onClick={() => setShareOpen(true)} color="cyan" />
-        <QuickAction icon={<span className="text-base">🔗</span>} label="Link do pet" onClick={() => setPublicOpen(true)} color="primary" />
-        <QuickAction icon={<span className="text-base">📄</span>} label="PDF p/ vet" onClick={() => { petExport.sharePdf(petId, pet.name).catch(() => {}) }} color="emerald" />
-        <QuickAction icon={<GitFork className="w-4 h-4" />} label="Família" onClick={() => setTab('family' as Tab)} color="fuchsia" />
+        <QuickAction icon={<ImageIcon className="w-4 h-4" />} label={t('pw.pet.tabStories')} onClick={() => setTab('stories' as Tab)} color="teal" />
+        <QuickAction icon={<Users className="w-4 h-4" />} label={t('pw.common.share')} onClick={() => setShareOpen(true)} color="cyan" />
+        <QuickAction icon={<span className="text-base">🔗</span>} label={t('pw.pet.qaLink')} onClick={() => setPublicOpen(true)} color="primary" />
+        <QuickAction icon={<span className="text-base">📄</span>} label={t('pw.pet.qaPdf')} onClick={() => { petExport.sharePdf(petId, pet.name).catch(() => {}) }} color="emerald" />
+        <QuickAction icon={<GitFork className="w-4 h-4" />} label={t('pw.pet.tabFamily')} onClick={() => setTab('family' as Tab)} color="fuchsia" />
       </div>
 
       {/* Pet card summary */}
@@ -223,18 +225,18 @@ export default function PetProfilePage() {
                 onChange={async e => {
                   const f = e.target.files?.[0]
                   if (!f) return
-                  try { await petsApi.uploadPhoto(pet.id, f); success('Foto atualizada!') }
-                  catch { showError('Erro ao atualizar foto.') }
+                  try { await petsApi.uploadPhoto(pet.id, f); success(t('pw.pet.photoUpdated')) }
+                  catch { showError(t('pw.pet.photoError')) }
                 }}
               />
             </label>
           </div>
           <div className="flex-1 min-w-0 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {[
-              { label: 'Idade', value: formatAge(pet.birth_date), icon: <Calendar className="w-4 h-4 text-primary-500" /> },
-              { label: 'Peso', value: pet.weight ? `${pet.weight} kg` : '—', icon: <Weight className="w-4 h-4 text-primary-500" /> },
-              { label: 'Sexo', value: pet.gender === 'male' ? '♂ Macho' : pet.gender === 'female' ? '♀ Fêmea' : '—', icon: null },
-              { label: 'Castrado', value: pet.neutered ? 'Sim ✂' : pet.neutered === false ? 'Não' : '—', icon: null },
+              { label: t('pw.pet.age'), value: formatAge(pet.birth_date), icon: <Calendar className="w-4 h-4 text-primary-500" /> },
+              { label: t('pw.pet.weight'), value: pet.weight ? `${pet.weight} kg` : '—', icon: <Weight className="w-4 h-4 text-primary-500" /> },
+              { label: t('pet.gender'), value: pet.gender === 'male' ? `♂ ${t('pet.male')}` : pet.gender === 'female' ? `♀ ${t('pet.female')}` : '—', icon: null },
+              { label: t('pet.neutered'), value: pet.neutered ? `${t('common.yes')} ✂` : pet.neutered === false ? t('common.no') : '—', icon: null },
             ].map(i => (
               <div key={i.label}>
                 <div className="text-[10px] md:text-xs text-surface-400 mb-0.5 uppercase tracking-wide">{i.label}</div>
@@ -268,21 +270,21 @@ export default function PetProfilePage() {
         <div className="space-y-6 animate-fade-in">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
-              <h3 className="font-semibold text-surface-900 dark:text-white mb-4">Dados da Raça</h3>
+              <h3 className="font-semibold text-surface-900 dark:text-white mb-4">{t('pw.pet.breedData')}</h3>
               {pet.breed ? (
                 <div className="space-y-3">
-                  <div className="text-sm"><span className="font-medium text-surface-700 dark:text-surface-200">Raça:</span> <span className="text-surface-600">{pet.breed.name}</span></div>
-                  {pet.breed.size && <div className="text-sm"><span className="font-medium text-surface-700 dark:text-surface-200">Porte:</span> <span className="text-surface-600">{getSizeLabel(pet.breed.size)}</span></div>}
-                  {pet.breed.energy_level && <div className="text-sm"><span className="font-medium text-surface-700 dark:text-surface-200">Energia:</span> <span className="text-surface-600">{getEnergyLabel(pet.breed.energy_level)}</span></div>}
+                  <div className="text-sm"><span className="font-medium text-surface-700 dark:text-surface-200">{t('pet.breed')}:</span> <span className="text-surface-600">{pet.breed.name}</span></div>
+                  {pet.breed.size && <div className="text-sm"><span className="font-medium text-surface-700 dark:text-surface-200">{t('pw.breed.size')}:</span> <span className="text-surface-600">{getSizeLabel(pet.breed.size)}</span></div>}
+                  {pet.breed.energy_level && <div className="text-sm"><span className="font-medium text-surface-700 dark:text-surface-200">{t('pw.breed.energy')}:</span> <span className="text-surface-600">{getEnergyLabel(pet.breed.energy_level)}</span></div>}
                   {pet.breed.life_expectancy_min && (
-                    <div className="text-sm"><span className="font-medium text-surface-700 dark:text-surface-200">Expectativa de vida:</span> <span className="text-surface-600">{pet.breed.life_expectancy_min}–{pet.breed.life_expectancy_max} anos</span></div>
+                    <div className="text-sm"><span className="font-medium text-surface-700 dark:text-surface-200">{t('pw.breed.lifeExpectancy')}:</span> <span className="text-surface-600">{pet.breed.life_expectancy_min}–{pet.breed.life_expectancy_max} {t('pw.breed.years')}</span></div>
                   )}
                   {pet.breed.temperament && pet.breed.temperament.length > 0 && (
                     <div>
-                      <div className="text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Temperamento:</div>
+                      <div className="text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pw.breed.temperament')}:</div>
                       <div className="flex flex-wrap gap-1">
-                        {pet.breed.temperament.map((t, i) => (
-                          <span key={i} className="text-xs bg-primary-50 text-primary-700 px-2.5 py-0.5 rounded-full">{t}</span>
+                        {pet.breed.temperament.map((temp, i) => (
+                          <span key={i} className="text-xs bg-primary-50 text-primary-700 px-2.5 py-0.5 rounded-full">{temp}</span>
                         ))}
                       </div>
                     </div>
@@ -292,11 +294,11 @@ export default function PetProfilePage() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-surface-400">Raça não informada</p>
+                <p className="text-sm text-surface-400">{t('pw.pet.noBreed')}</p>
               )}
             </div>
             <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
-              <h3 className="font-semibold text-surface-900 dark:text-white mb-4">Resumo de Saúde</h3>
+              <h3 className="font-semibold text-surface-900 dark:text-white mb-4">{t('pw.pet.healthSummary')}</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-surface-600 dark:text-surface-300">Total de vacinas</span>

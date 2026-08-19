@@ -1,5 +1,5 @@
 import base64
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from typing import Optional
@@ -130,6 +130,8 @@ async def identify_breed_from_photo(
 @router.get("/pet/{pet_id}/health-suggestions")
 async def pet_health_suggestions(
     pet_id: int,
+    request: Request,
+    lang: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -137,6 +139,7 @@ async def pet_health_suggestions(
     Cruza com vacinas já aplicadas para não sugerir o que já foi feito."""
     from models import Pet, Vaccine, pet_accessible_filter
     from health_protocols import suggested_health_plan
+    import health_protocols_i18n
 
     result = await db.execute(select(Pet).where(Pet.id == pet_id, pet_accessible_filter(current_user.id)))
     pet = result.scalar_one_or_none()
@@ -147,6 +150,10 @@ async def pet_health_suggestions(
     has_vaccines = [r[0] for r in vac_result.all()]
 
     plan = suggested_health_plan(pet.species.value if hasattr(pet.species, "value") else pet.species, pet.birth_date, has_vaccines)
+    # Idioma: ?lang= tem prioridade; senão cai no Accept-Language do aparelho.
+    locale = health_protocols_i18n.normalize_locale(lang) if lang else \
+        health_protocols_i18n.locale_from_header(request.headers.get("accept-language"))
+    plan = health_protocols_i18n.localize_plan(plan, locale)
     return {"pet_id": pet_id, "pet_name": pet.name, **plan}
 
 

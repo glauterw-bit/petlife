@@ -8,6 +8,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { pets as petsApi, breeds as breedsApi, type Breed } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { celebratePets, hapticError } from '@/lib/feedback'
+import { useT } from '@/contexts/LocaleContext'
 
 interface BreedCandidate {
   breed: string
@@ -18,6 +19,7 @@ interface BreedCandidate {
 }
 
 export default function NewPetPage() {
+  const t = useT()
   const router = useRouter()
   const { success, error } = useToast()
 
@@ -116,7 +118,7 @@ export default function NewPetPage() {
       const res = await breedsApi.identifyFromPhoto(identifyFile)
       setIdentifyResult(res)
     } catch (e: unknown) {
-      setIdentifyError(e instanceof Error ? e.message : 'Erro ao identificar.')
+      setIdentifyError(e instanceof Error ? e.message : t('pw.newPet.identifyError'))
     } finally {
       setIdentifyLoading(false)
     }
@@ -155,7 +157,7 @@ export default function NewPetPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!form.name.trim()) { error('Informe o nome do pet.'); return }
+    if (!form.name.trim()) { error(t('pw.newPet.nameRequired')); return }
     setLoading(true)
     try {
       const payload = {
@@ -175,12 +177,12 @@ export default function NewPetPage() {
         await petsApi.uploadPhoto(pet.id, photoFile).catch(() => {})
       }
       celebratePets()
-      success(`${pet.name} foi cadastrado com sucesso! 🐾`)
+      success(t('pw.newPet.created', { name: pet.name }))
       // Pequeno delay pra o usuário ver o confetti antes da transição
       setTimeout(() => router.push(`/pets/${pet.id}`), 600)
     } catch (err: unknown) {
       void hapticError()
-      error(err instanceof Error ? err.message : 'Erro ao cadastrar pet.')
+      error(err instanceof Error ? err.message : t('pw.newPet.createError'))
     } finally {
       setLoading(false)
     }
@@ -193,19 +195,19 @@ export default function NewPetPage() {
     <DashboardLayout>
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-surface-900 dark:text-white">Cadastrar Novo Pet</h1>
-          <p className="text-surface-500 dark:text-surface-400 mt-1">Preencha as informações do seu companheiro</p>
+          <h1 className="text-3xl font-bold text-surface-900 dark:text-white">{t('pet.new')}</h1>
+          <p className="text-surface-500 dark:text-surface-400 mt-1">{t('pw.newPet.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Photo */}
           <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
-            <h2 className="text-base font-semibold text-surface-900 dark:text-white mb-4">Foto do Pet</h2>
+            <h2 className="text-base font-semibold text-surface-900 dark:text-white mb-4">{t('pw.newPet.photoSection')}</h2>
             <div className="flex items-center gap-6">
               <div className="relative">
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary-50 to-accent-50 flex items-center justify-center overflow-hidden border-2 border-surface-200 dark:border-surface-700">
                   {photoPreview ? (
-                    <Image src={photoPreview} alt="Preview" width={96} height={96} className="object-cover w-full h-full" />
+                    <Image src={photoPreview} alt={t('pw.newPet.previewAlt')} width={96} height={96} className="object-cover w-full h-full" />
                   ) : (
                     <span className="text-4xl">{form.species === 'dog' ? '🐕' : form.species === 'cat' ? '🐈' : '🐾'}</span>
                   )}
@@ -216,10 +218,10 @@ export default function NewPetPage() {
                 </label>
               </div>
               <div>
-                <p className="text-sm font-medium text-surface-700 dark:text-surface-200">Foto do seu pet</p>
-                <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">PNG, JPG até 5MB</p>
+                <p className="text-sm font-medium text-surface-700 dark:text-surface-200">{t('pw.newPet.photoLabel')}</p>
+                <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">{t('pw.newPet.photoHint')}</p>
                 <label className="mt-2 inline-block cursor-pointer text-xs text-primary-600 hover:underline font-medium">
-                  Escolher arquivo
+                  {t('pw.newPet.chooseFile')}
                   <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
                 </label>
               </div>
@@ -228,30 +230,30 @@ export default function NewPetPage() {
 
           {/* Basic info */}
           <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
-            <h2 className="text-base font-semibold text-surface-900 dark:text-white mb-4">Informações Básicas</h2>
+            <h2 className="text-base font-semibold text-surface-900 dark:text-white mb-4">{t('pw.newPet.basicSection')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Nome do Pet *</label>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.name')} *</label>
                 <input
                   type="text"
                   required
                   value={form.name}
                   onChange={set('name')}
-                  placeholder="Ex: Thor, Luna, Bob..."
+                  placeholder={t('pw.newPet.namePlaceholder')}
                   className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Espécie *</label>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.species')} *</label>
                 <select
                   value={form.species}
                   onChange={e => { set('species')(e); setSelectedBreed(null); setBreedSearch(''); setForm(f => ({ ...f, species: e.target.value as 'dog'|'cat'|'other', breed_id: undefined })) }}
                   className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800"
                 >
-                  <option value="dog">🐕 Cachorro</option>
-                  <option value="cat">🐈 Gato</option>
-                  <option value="other">🐾 Outro</option>
+                  <option value="dog">🐕 {t('pet.dog')}</option>
+                  <option value="cat">🐈 {t('pet.cat')}</option>
+                  <option value="other">🐾 {t('pw.newPet.speciesOther')}</option>
                 </select>
               </div>
 
@@ -259,14 +261,14 @@ export default function NewPetPage() {
               {form.species !== 'other' && (
                 <div className="relative" ref={breedRef}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-medium text-surface-700 dark:text-surface-200">Raça</label>
+                    <label className="block text-sm font-medium text-surface-700 dark:text-surface-200">{t('pet.breed')}</label>
                     <button
                       type="button"
                       onClick={() => setIdentifyOpen(true)}
                       className="flex items-center gap-1 text-xs text-primary-700 bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-full font-semibold transition"
                     >
                       <Sparkles className="w-3 h-3" />
-                      Não sei a raça? Identificar por foto
+                      {t('pw.newPet.identifyCta')}
                     </button>
                   </div>
                   <div className="relative">
@@ -275,7 +277,7 @@ export default function NewPetPage() {
                       type="text"
                       value={breedSearch}
                       onChange={e => { setBreedSearch(e.target.value); if (!e.target.value) { setSelectedBreed(null); setForm(f => ({ ...f, breed_id: undefined })) } }}
-                      placeholder="Buscar raça..."
+                      placeholder={t('pw.newPet.breedSearchPlaceholder')}
                       className="w-full pl-9 pr-8 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                     {loadingBreeds && (
@@ -303,7 +305,7 @@ export default function NewPetPage() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Data de Nascimento</label>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.birth')}</label>
                 <input
                   type="date"
                   value={form.birth_date}
@@ -314,49 +316,49 @@ export default function NewPetPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Peso (kg)</label>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.weight')}</label>
                 <input
                   type="number"
                   min="0"
                   step="0.1"
                   value={form.weight}
                   onChange={set('weight')}
-                  placeholder="Ex: 8.5"
+                  placeholder={t('pw.newPet.weightPlaceholder')}
                   className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Cor / Pelagem</label>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.color')}</label>
                 <input
                   type="text"
                   value={form.color}
                   onChange={set('color')}
-                  placeholder="Ex: Caramelo, Preto e branco..."
+                  placeholder={t('pw.newPet.colorPlaceholder')}
                   className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Sexo</label>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.gender')}</label>
                 <select
                   value={form.gender}
                   onChange={set('gender')}
                   className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800"
                 >
-                  <option value="">Não informado</option>
-                  <option value="male">♂ Macho</option>
-                  <option value="female">♀ Fêmea</option>
+                  <option value="">{t('pw.newPet.notInformed')}</option>
+                  <option value="male">♂ {t('pet.male')}</option>
+                  <option value="female">♀ {t('pet.female')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Microchip</label>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.microchip')}</label>
                 <input
                   type="text"
                   value={form.microchip}
                   onChange={set('microchip')}
-                  placeholder="Número do microchip"
+                  placeholder={t('pw.newPet.microchipPlaceholder')}
                   className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
@@ -370,17 +372,17 @@ export default function NewPetPage() {
                   className="w-5 h-5 rounded accent-primary-500"
                 />
                 <label htmlFor="neutered" className="text-sm text-surface-700 dark:text-surface-200 cursor-pointer">
-                  Pet castrado(a) ✂️
+                  {t('pw.newPet.neuteredLabel')}
                 </label>
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">Bio / Observações</label>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.bio')}</label>
                 <textarea
                   value={form.bio}
                   onChange={set('bio')}
                   rows={3}
-                  placeholder="Conte um pouco sobre o seu pet..."
+                  placeholder={t('pw.newPet.bioPlaceholder')}
                   className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                 />
               </div>
@@ -392,16 +394,16 @@ export default function NewPetPage() {
             <div className="bg-primary-50 rounded-2xl border border-primary-200 p-5">
               <h3 className="font-semibold text-primary-800 mb-2 flex items-center gap-2">
                 <PawPrint className="w-4 h-4" />
-                Informações da Raça: {selectedBreed.name}
+                {t('pw.newPet.breedInfo', { name: selectedBreed.name })}
               </h3>
               <div className="grid grid-cols-2 gap-3 text-sm text-primary-700">
-                {selectedBreed.size && <div><span className="font-medium">Porte:</span> {selectedBreed.size}</div>}
-                {selectedBreed.energy_level && <div><span className="font-medium">Energia:</span> {selectedBreed.energy_level}/5</div>}
+                {selectedBreed.size && <div><span className="font-medium">{t('pw.breed.size')}:</span> {selectedBreed.size}</div>}
+                {selectedBreed.energy_level && <div><span className="font-medium">{t('pw.breed.energy')}:</span> {selectedBreed.energy_level}/5</div>}
                 {selectedBreed.life_expectancy_min && (
-                  <div><span className="font-medium">Expectativa de vida:</span> {selectedBreed.life_expectancy_min}–{selectedBreed.life_expectancy_max} anos</div>
+                  <div><span className="font-medium">{t('pw.breed.lifeExpectancy')}:</span> {selectedBreed.life_expectancy_min}–{selectedBreed.life_expectancy_max} {t('pw.breed.years')}</div>
                 )}
                 {selectedBreed.weight_min && (
-                  <div><span className="font-medium">Peso médio:</span> {selectedBreed.weight_min}–{selectedBreed.weight_max} kg</div>
+                  <div><span className="font-medium">{t('pw.breed.avgWeight')}:</span> {selectedBreed.weight_min}–{selectedBreed.weight_max} kg</div>
                 )}
               </div>
               {selectedBreed.temperament && selectedBreed.temperament.length > 0 && (
@@ -420,7 +422,7 @@ export default function NewPetPage() {
               onClick={() => router.back()}
               className="flex-1 py-3.5 border border-surface-200 dark:border-surface-700 rounded-xl text-sm font-medium text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700/40 transition"
             >
-              Cancelar
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -432,7 +434,7 @@ export default function NewPetPage() {
               ) : (
                 <PawPrint className="w-5 h-5" />
               )}
-              {loading ? 'Cadastrando...' : 'Cadastrar Pet'}
+              {loading ? t('pet.submitting') : t('pet.submit')}
             </button>
           </div>
         </form>
@@ -451,12 +453,12 @@ export default function NewPetPage() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100 dark:border-surface-700 sticky top-0 bg-white dark:bg-surface-800">
               <h2 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary-600" />
-                Identificar raça por foto
+                {t('pw.newPet.identifyTitle')}
               </h2>
               <button
                 type="button"
                 onClick={closeIdentify}
-                aria-label="Fechar"
+                aria-label={t('common.close')}
                 className="p-1.5 rounded-lg hover:bg-surface-100"
               >
                 <X className="w-5 h-5" />
@@ -465,8 +467,7 @@ export default function NewPetPage() {
 
             <div className="p-5 space-y-4">
               <p className="text-sm text-surface-600 dark:text-surface-300">
-                A IA Vyron analisa a foto e sugere as 3 raças mais prováveis.
-                Funciona melhor com foto de corpo inteiro do pet com boa iluminação.
+                {t('pw.newPet.identifyIntro')}
               </p>
 
               {!identifyPreview ? (
@@ -480,21 +481,21 @@ export default function NewPetPage() {
                   />
                   <div className="border-2 border-dashed border-primary-200 hover:border-primary-400 hover:bg-primary-50 rounded-2xl p-8 text-center cursor-pointer transition">
                     <Camera className="w-10 h-10 mx-auto text-primary-500 mb-2" />
-                    <p className="text-sm font-semibold text-surface-800 dark:text-surface-100">Tirar foto ou escolher</p>
-                    <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">JPG, PNG ou WEBP até 5 MB</p>
+                    <p className="text-sm font-semibold text-surface-800 dark:text-surface-100">{t('pw.newPet.takeOrChoose')}</p>
+                    <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">{t('pw.newPet.identifyHint')}</p>
                   </div>
                 </label>
               ) : (
                 <div className="space-y-3">
                   <img
                     src={identifyPreview}
-                    alt="Pet"
+                    alt={t('pw.newPet.petAlt')}
                     className="w-full rounded-2xl object-cover max-h-64 border border-surface-200 dark:border-surface-700"
                   />
                   <div className="flex gap-2">
                     <label className="flex-1 cursor-pointer text-center text-sm text-surface-700 dark:text-surface-200 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 px-3 py-2 rounded-xl transition">
                       <input type="file" accept="image/*" capture="environment" className="hidden" onChange={pickIdentifyFile} />
-                      Trocar foto
+                      {t('pw.newPet.changePhoto')}
                     </label>
                     <button
                       type="button"
@@ -507,7 +508,7 @@ export default function NewPetPage() {
                       ) : (
                         <Sparkles className="w-4 h-4" />
                       )}
-                      {identifyLoading ? 'Analisando…' : identifyResult ? 'Analisado' : 'Identificar'}
+                      {identifyLoading ? t('pw.newPet.analyzing') : identifyResult ? t('pw.newPet.analyzed') : t('pw.newPet.identify')}
                     </button>
                   </div>
                 </div>
@@ -523,7 +524,7 @@ export default function NewPetPage() {
               {identifyResult && identifyResult.candidates.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">
-                    Candidatos {identifyResult.is_mixed_likely && <span className="ml-1 text-amber-600">(possível mistura)</span>}
+                    {t('pw.newPet.candidates')} {identifyResult.is_mixed_likely && <span className="ml-1 text-amber-600">{t('pw.newPet.mixedLikely')}</span>}
                   </p>
                   {identifyResult.candidates.map((c, i) => (
                     <button
@@ -539,7 +540,7 @@ export default function NewPetPage() {
                         </span>
                       </div>
                       {c.reasoning && <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">{c.reasoning}</p>}
-                      {!c.breed_id && <p className="text-[10px] text-amber-600 mt-1">⚠ Não está no catálogo — apenas preenche o nome.</p>}
+                      {!c.breed_id && <p className="text-[10px] text-amber-600 mt-1">{t('pw.newPet.notInCatalog')}</p>}
                     </button>
                   ))}
                   {identifyResult.notes && (
@@ -550,7 +551,7 @@ export default function NewPetPage() {
 
               {identifyResult && identifyResult.candidates.length === 0 && (
                 <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-sm">
-                  Não foi possível identificar uma raça nesta foto. {identifyResult.notes}
+                  {t('pw.newPet.noBreedFound')} {identifyResult.notes}
                 </div>
               )}
             </div>

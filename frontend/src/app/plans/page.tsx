@@ -64,7 +64,7 @@ export default function PlansPage() {
       setCatalog(cat)
       setMe(mine)
     } catch (err) {
-      error(err instanceof Error ? err.message : 'Erro ao carregar planos.')
+      error(err instanceof Error ? err.message : t('ac.plans.errLoad'))
     } finally {
       setLoading(false)
     }
@@ -77,10 +77,10 @@ export default function PlansPage() {
     initIap(async (proof) => {
       try {
         await billing.verifyIap(proof)
-        success('Assinatura ativada! 🎉')
+        success(t('ac.plans.activated'))
         await refresh()
       } catch (err) {
-        error(err instanceof Error ? err.message : 'Não foi possível confirmar a assinatura.')
+        error(err instanceof Error ? err.message : t('ac.plans.errConfirm'))
       }
     }).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,7 +92,7 @@ export default function PlansPage() {
     const product = catalog?.products.find(p => p.tier === tier && p.cadence === cadence)
     if (!product) return
     if (!canBuy) {
-      error('Abra o app do PetLife no iPhone para assinar.')
+      error(t('ac.plans.errIosOnly'))
       return
     }
     setBusySku(product.sku)
@@ -100,7 +100,7 @@ export default function PlansPage() {
       await purchaseProduct(product.apple_product_id)
       // confirmação chega pelo callback do initIap
     } catch (err) {
-      error(err instanceof Error ? err.message : 'Não foi possível iniciar a compra.')
+      error(err instanceof Error ? err.message : t('ac.plans.errPurchase'))
     } finally {
       setBusySku(null)
     }
@@ -108,16 +108,16 @@ export default function PlansPage() {
 
   async function handleRestore() {
     if (!canBuy) {
-      error('Restaurar compras só está disponível no app iOS.')
+      error(t('ac.plans.errRestoreIos'))
       return
     }
     setRestoring(true)
     try {
       await restorePurchases()
-      success('Compras restauradas. Atualizando…')
+      success(t('ac.plans.restored'))
       setTimeout(refresh, 2000)
     } catch (err) {
-      error(err instanceof Error ? err.message : 'Erro ao restaurar compras.')
+      error(err instanceof Error ? err.message : t('ac.plans.errRestore'))
     } finally {
       setRestoring(false)
     }
@@ -130,9 +130,9 @@ export default function PlansPage() {
     <DashboardLayout>
       <div className="max-w-5xl mx-auto px-4 py-6">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Planos PetLife</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('ac.plans.title')}</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Desbloqueie a Vyron IA e os recursos de saúde por IA sem limites.
+            {t('ac.plans.subtitle')}
           </p>
         </div>
 
@@ -140,12 +140,12 @@ export default function PlansPage() {
         {usage && (
           <div className="mb-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
             <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
-              Seu uso este mês — plano <span className="font-bold capitalize">{TIER_META[currentTier].name}</span>
+              {t('ac.plans.usagePre')}<span className="font-bold capitalize">{t(TIER_META[currentTier].nameKey)}</span>{t('ac.plans.usagePost')}
             </p>
             <div className="grid grid-cols-3 gap-3 text-center">
-              <UsageStat label="Pets" used={usage.used.pets} limit={usage.limits.pets} />
-              <UsageStat label="Vyron IA" used={usage.used.ai_chat} limit={usage.limits.ai_chat} />
-              <UsageStat label="Análises IA" used={usage.used.ai_analysis} limit={usage.limits.ai_analysis} />
+              <UsageStat label={t('nav.pets')} used={usage.used.pets} limit={usage.limits.pets} />
+              <UsageStat label={t('ac.plans.usageAi')} used={usage.used.ai_chat} limit={usage.limits.ai_chat} />
+              <UsageStat label={t('ac.plans.usageAnalysis')} used={usage.used.ai_analysis} limit={usage.limits.ai_analysis} />
             </div>
           </div>
         )}
@@ -157,13 +157,13 @@ export default function PlansPage() {
               onClick={() => setCadence('monthly')}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${cadence === 'monthly' ? 'bg-white dark:bg-gray-900 text-emerald-600 shadow' : 'text-gray-500'}`}
             >
-              Mensal
+              {t('ac.plans.monthly')}
             </button>
             <button
               onClick={() => setCadence('annual')}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${cadence === 'annual' ? 'bg-white dark:bg-gray-900 text-emerald-600 shadow' : 'text-gray-500'}`}
             >
-              Anual <span className="text-emerald-500">·2 meses grátis</span>
+              {t('ac.plans.annual')} <span className="text-emerald-500">{t('ac.plans.annualBonus')}</span>
             </button>
           </div>
         </div>
@@ -188,14 +188,14 @@ export default function PlansPage() {
                 >
                   {highlight && (
                     <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-400 text-white text-xs font-bold px-3 py-0.5 rounded-full">
-                      Mais completo
+                      {t('ac.plans.mostComplete')}
                     </span>
                   )}
                   <div className="flex items-center gap-2 mb-1">
                     <Icon className={`w-5 h-5 ${meta.accent}`} />
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{meta.name}</h3>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t(meta.nameKey)}</h3>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{meta.tagline}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t(meta.taglineKey)}</p>
 
                   <div className="mb-4">
                     {isFree ? (
@@ -203,7 +203,7 @@ export default function PlansPage() {
                     ) : product ? (
                       <p className="text-2xl font-extrabold text-gray-900 dark:text-white">
                         {brl(product.price_brl)}
-                        <span className="text-sm font-medium text-gray-400">/{cadence === 'monthly' ? 'mês' : 'ano'}</span>
+                        <span className="text-sm font-medium text-gray-400">/{cadence === 'monthly' ? t('ac.plans.perMonth') : t('ac.plans.perYear')}</span>
                       </p>
                     ) : null}
                   </div>
@@ -212,18 +212,18 @@ export default function PlansPage() {
                     {FEATURES[tier].map((f, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
                         <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                        <span>{f}</span>
+                        <span>{t(f)}</span>
                       </li>
                     ))}
                   </ul>
 
                   {isCurrent ? (
                     <button disabled className="w-full py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-500 font-semibold text-sm">
-                      Seu plano atual
+                      {t('ac.plans.currentPlan')}
                     </button>
                   ) : isFree ? (
                     <button disabled className="w-full py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-400 font-semibold text-sm">
-                      Plano básico
+                      {t('ac.plans.basicPlan')}
                     </button>
                   ) : (
                     <button
@@ -232,7 +232,7 @@ export default function PlansPage() {
                       className={`w-full py-2.5 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 ${highlight ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} disabled:opacity-60`}
                     >
                       {busySku === product?.sku && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {product?.has_trial ? 'Começar 30 dias grátis' : 'Assinar'}
+                      {product?.has_trial ? t('ac.plans.startTrial') : t('ac.plans.subscribe')}
                     </button>
                   )}
                 </div>
@@ -249,21 +249,20 @@ export default function PlansPage() {
             className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:underline disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${restoring ? 'animate-spin' : ''}`} />
-            Restaurar compras
+            {t('ac.plans.restore')}
           </button>
           {!canBuy && (
             <p className="text-xs text-gray-400 mt-3 max-w-md mx-auto">
-              As assinaturas são processadas pela App Store. Abra o PetLife no seu iPhone para assinar.
+              {t('ac.plans.iosOnly')}
             </p>
           )}
           <p className="text-[11px] text-gray-400 mt-3 max-w-lg mx-auto">
-            A assinatura renova automaticamente. Você pode cancelar a qualquer momento em
-            Ajustes &gt; Apple ID &gt; Assinaturas. O período não usado do trial é perdido ao assinar.
+            {t('ac.plans.renewNote')}
           </p>
           <p className="text-[11px] mt-2">
-            <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener" className="text-emerald-600 hover:underline">Termos de Uso (EULA)</a>
+            <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener" className="text-emerald-600 hover:underline">{t('ac.plans.eula')}</a>
             <span className="text-gray-300 mx-2">·</span>
-            <a href="/privacy" className="text-emerald-600 hover:underline">Política de Privacidade</a>
+            <a href="/privacy" className="text-emerald-600 hover:underline">{t('ac.plans.privacy')}</a>
           </p>
         </div>
 

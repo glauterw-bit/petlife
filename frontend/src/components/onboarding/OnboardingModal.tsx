@@ -3,32 +3,33 @@
 import { useState, useEffect } from 'react'
 import { PawPrint, ShieldCheck, MessageCircle, Sparkles, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 const STORAGE_KEY = 'petlife_onboarding_v1_done'
 
 const STEPS = [
   {
     Icon: PawPrint,
-    title: 'Bem-vindo ao PetLife!',
-    body: 'Cuide da saúde do seu pet com IA, lembretes inteligentes e uma carteirinha digital de verdade.',
+    titleKey: 'ac.tour.s1title',
+    bodyKey: 'ac.tour.s1body',
     bg: 'from-primary-100 to-emerald-50 dark:from-primary-900/30 dark:to-emerald-900/20',
   },
   {
     Icon: Sparkles,
-    title: 'Cadastra teu pet',
-    body: 'Não sabe a raça do vira-lata? Tira uma foto e a IA Vyron identifica em segundos. Já cadastra peso, microchip e dados de saúde.',
+    titleKey: 'ac.tour.s2title',
+    bodyKey: 'ac.tour.s2body',
     bg: 'from-amber-100 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/20',
   },
   {
     Icon: ShieldCheck,
-    title: 'Carteirinha digital + plano por idade',
-    body: 'Adiciona vacinas e exames. O app sugere vacinas/check-ups automáticos baseado em raça e idade (protocolo WSAVA). Carteirinha verificável por QR pra mandar pro vet via WhatsApp.',
+    titleKey: 'ac.tour.s3title',
+    bodyKey: 'ac.tour.s3body',
     bg: 'from-emerald-100 to-primary-50 dark:from-emerald-900/30 dark:to-primary-900/20',
   },
   {
     Icon: MessageCircle,
-    title: 'Vyron IA 24h',
-    body: 'Botão flutuante no canto direito. Tira dúvidas sobre comportamento, sintomas, alimentação. Em português, com contexto do seu pet.',
+    titleKey: 'ac.tour.s4title',
+    bodyKey: 'ac.tour.s4body',
     bg: 'from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20',
   },
 ]
@@ -38,6 +39,7 @@ interface OnboardingModalProps {
 }
 
 export function OnboardingModal({ forceOpen = false }: OnboardingModalProps) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
 
@@ -67,7 +69,7 @@ export function OnboardingModal({ forceOpen = false }: OnboardingModalProps) {
       <div className="bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto animate-slide-up shadow-2xl">
         <button
           onClick={dismiss}
-          aria-label="Pular onboarding"
+          aria-label={t('ac.tour.skipAria')}
           className="absolute right-3 top-3 p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-700 transition z-10"
         >
           <X className="w-4 h-4 text-surface-500 dark:text-surface-400" />
@@ -77,8 +79,8 @@ export function OnboardingModal({ forceOpen = false }: OnboardingModalProps) {
           <div className="w-20 h-20 mx-auto bg-white dark:bg-surface-700 rounded-3xl shadow-lg flex items-center justify-center mb-4">
             <Icon className="w-10 h-10 text-primary-600 dark:text-primary-400" />
           </div>
-          <h2 className="text-xl font-bold text-surface-900 dark:text-white mb-2">{s.title}</h2>
-          <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">{s.body}</p>
+          <h2 className="text-xl font-bold text-surface-900 dark:text-white mb-2">{t(s.titleKey)}</h2>
+          <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">{t(s.bodyKey)}</p>
         </div>
 
         <div className="p-6 space-y-4">
@@ -100,20 +102,20 @@ export function OnboardingModal({ forceOpen = false }: OnboardingModalProps) {
                 onClick={() => setStep(step - 1)}
                 className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-surface-700 dark:text-surface-200 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 dark:hover:bg-surface-600 transition"
               >
-                Voltar
+                {t('nav.back')}
               </button>
             )}
             <button
               onClick={next}
               className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition shadow-md shadow-primary-500/30"
             >
-              {step === STEPS.length - 1 ? 'Começar' : 'Próximo'}
+              {step === STEPS.length - 1 ? t('ac.tour.start') : t('ac.tour.next')}
             </button>
           </div>
 
           {step === 0 && (
             <button onClick={dismiss} className="w-full text-xs text-surface-400 hover:text-surface-600 dark:hover:text-surface-300">
-              Pular tutorial
+              {t('ac.tour.skip')}
             </button>
           )}
         </div>

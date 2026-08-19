@@ -2,8 +2,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('petlife_token') : null
+  // Idioma escolhido no app (ou o do aparelho). O backend usa para devolver
+  // protocolos de saúde com a nomenclatura do país (V10 no BR = DHPP nos EUA).
+  const locale = typeof window !== 'undefined'
+    ? (localStorage.getItem('petlife_locale') || navigator.language || 'pt-BR')
+    : 'pt-BR'
   return {
     'Content-Type': 'application/json',
+    'Accept-Language': locale,
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 }

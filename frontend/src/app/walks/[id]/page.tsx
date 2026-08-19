@@ -234,13 +234,13 @@ export default function WalkDetailPage() {
 
   async function handleDelete() {
     if (!walk) return
-    if (!confirm('Apagar este passeio? Esta ação não pode ser desfeita.')) return
+    if (!confirm(t('pw.detail.deleteConfirm'))) return
     try {
       await walks.remove(walk.id)
-      success('Passeio apagado.')
+      success(t('pw.detail.deleted'))
       router.push('/walks')
     } catch (e) {
-      error(e instanceof Error ? e.message : 'Erro ao apagar.')
+      error(e instanceof Error ? e.message : t('pw.detail.deleteError'))
     }
   }
 
@@ -248,7 +248,7 @@ export default function WalkDetailPage() {
   if (!walk) {
     return (
       <DashboardLayout>
-        <p className="text-center text-surface-500 dark:text-surface-400 mt-12">Passeio não encontrado.</p>
+        <p className="text-center text-surface-500 dark:text-surface-400 mt-12">{t('pw.detail.notFound')}</p>
       </DashboardLayout>
     )
   }
@@ -262,12 +262,12 @@ export default function WalkDetailPage() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-5 ">
-          <button onClick={() => router.back()} aria-label="Voltar" className="p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition tap-target flex items-center justify-center">
+          <button onClick={() => router.back()} aria-label={t('nav.back')} className="p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition tap-target flex items-center justify-center">
             <ArrowLeft className="w-5 h-5 text-surface-600 dark:text-surface-300" />
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white leading-tight truncate">
-              Passeio com {walk.pet_name ?? 'pet'}
+              {t('pw.detail.title', { name: walk.pet_name ?? t('pw.detail.myPet') })}
             </h1>
             <p className="text-xs md:text-sm text-surface-500 dark:text-surface-400">
               {dateStr} · {timeStr}
@@ -294,8 +294,8 @@ export default function WalkDetailPage() {
       >
         <Camera className="w-4 h-4" />
         {uploadingPhoto
-          ? 'Enviando foto...'
-          : (walk.photos?.length ?? 0) > 0 ? 'Trocar foto do passeio 📸' : 'Tirar foto com o pet agora 📸'}
+          ? t('pw.detail.uploadingPhoto')
+          : (walk.photos?.length ?? 0) > 0 ? t('pw.detail.changePhoto') : t('pw.detail.takePhoto')}
         <input type="file" accept="image/*" capture="environment" onChange={handleCapturePhoto} className="hidden" />
       </label>
 
@@ -304,30 +304,30 @@ export default function WalkDetailPage() {
         disabled={sharing}
         className="pressable w-full mt-3 py-3 rounded-xl bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-semibold text-sm"
       >
-        {sharing ? 'Preparando card...' : '📸 Compartilhar card do passeio'}
+        {sharing ? t('pw.detail.preparingCard') : `📸 ${t('walk.share')}`}
       </button>
 
         {/* Big stats */}
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <StatCard label="Distância" value={formatDistance(walk.distance_meters)} />
-          <StatCard label="Tempo" value={formatDuration(walk.duration_seconds)} />
-          <StatCard label="Ritmo" value={formatPace(walk.avg_pace_seconds_per_km)} />
-          <StatCard label="Calorias" value={walk.calories_estimated ? `${Math.round(walk.calories_estimated)} kcal` : '—'} />
+          <StatCard label={t('walk.distance')} value={formatDistance(walk.distance_meters)} />
+          <StatCard label={t('walk.time')} value={formatDuration(walk.duration_seconds)} />
+          <StatCard label={t('walk.pace')} value={formatPace(walk.avg_pace_seconds_per_km)} />
+          <StatCard label={t('walk.calories')} value={walk.calories_estimated ? `${Math.round(walk.calories_estimated)} kcal` : '—'} />
         </div>
 
         {/* Mood + note */}
         <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl p-5 border border-surface-100 dark:border-surface-700">
-          <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3">Como o pet ficou?</h3>
+          <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3">{t('pw.detail.moodTitle')}</h3>
           <div className="flex gap-2 mb-4">
-            <MoodButton value="happy" active={mood === 'happy'} onClick={() => setMood(mood === 'happy' ? null : 'happy')} icon={<Smile className="w-5 h-5" />} label="Feliz" color="green" />
-            <MoodButton value="normal" active={mood === 'normal'} onClick={() => setMood(mood === 'normal' ? null : 'normal')} icon={<Meh className="w-5 h-5" />} label="Normal" color="blue" />
-            <MoodButton value="tired" active={mood === 'tired'} onClick={() => setMood(mood === 'tired' ? null : 'tired')} icon={<Frown className="w-5 h-5" />} label="Cansado" color="amber" />
+            <MoodButton value="happy" active={mood === 'happy'} onClick={() => setMood(mood === 'happy' ? null : 'happy')} icon={<Smile className="w-5 h-5" />} label={t('pw.mood.happy')} color="green" />
+            <MoodButton value="normal" active={mood === 'normal'} onClick={() => setMood(mood === 'normal' ? null : 'normal')} icon={<Meh className="w-5 h-5" />} label={t('pw.mood.normal')} color="blue" />
+            <MoodButton value="tired" active={mood === 'tired'} onClick={() => setMood(mood === 'tired' ? null : 'tired')} icon={<Frown className="w-5 h-5" />} label={t('pw.mood.tired')} color="amber" />
           </div>
 
           <textarea
             value={note}
             onChange={e => setNote(e.target.value)}
-            placeholder="Anote como foi o passeio…"
+            placeholder={t('pw.detail.notePlaceholder')}
             rows={3}
             className="w-full p-3 rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 text-surface-800 dark:text-surface-100 placeholder-surface-400 focus:outline-none focus:border-primary-400 resize-none"
           />
@@ -338,7 +338,7 @@ export default function WalkDetailPage() {
               disabled={savingNote}
               className="mt-3 w-full bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 text-white py-2.5 rounded-xl font-medium transition"
             >
-              {savingNote ? 'Salvando...' : 'Salvar'}
+              {savingNote ? t('pw.common.saving') : t('common.save')}
             </button>
           )}
         </div>
@@ -346,11 +346,11 @@ export default function WalkDetailPage() {
         {/* Photos */}
         {walk.photos && walk.photos.length > 0 && (
           <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl p-5 border border-surface-100 dark:border-surface-700">
-            <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3">Fotos do passeio</h3>
+            <h3 className="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-3">{t('pw.detail.photosTitle')}</h3>
             <div className="grid grid-cols-3 gap-2">
               {walk.photos.map((photoUrl, i) => (
                 <div key={i} className="aspect-square rounded-xl overflow-hidden bg-surface-100 dark:bg-surface-900">
-                  <Image src={photoUrl} alt={`Foto ${i + 1}`} width={300} height={300} className="object-cover w-full h-full" />
+                  <Image src={photoUrl} alt={t('pw.detail.photoAlt', { n: i + 1 })} width={300} height={300} className="object-cover w-full h-full" />
                 </div>
               ))}
             </div>
@@ -361,7 +361,7 @@ export default function WalkDetailPage() {
         <div className="mt-4 flex items-center gap-3 bg-white dark:bg-surface-800 rounded-2xl p-4 border border-surface-100 dark:border-surface-700">
           <button
             onClick={toggleKudos}
-            aria-label={kudos.mine ? 'Remover kudo' : 'Dar kudo'}
+            aria-label={kudos.mine ? t('pw.detail.removeKudo') : t('pw.detail.giveKudo')}
             className={`tap-target w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-90 ${
               kudos.mine
                 ? 'bg-pink-500 text-white shadow-lg shadow-pink-200 dark:shadow-pink-900/40'
@@ -372,10 +372,14 @@ export default function WalkDetailPage() {
           </button>
           <div className="flex-1">
             <div className="text-sm font-semibold text-surface-900 dark:text-white">
-              {kudos.count === 0 ? 'Seja o primeiro a curtir' : `${kudos.count} kudo${kudos.count > 1 ? 's' : ''}`}
+              {kudos.count === 0
+                ? t('pw.detail.beFirstKudo')
+                : kudos.count > 1
+                  ? t('pw.detail.kudosMany', { count: kudos.count })
+                  : t('pw.detail.kudosOne', { count: kudos.count })}
             </div>
             <div className="text-xs text-surface-500 dark:text-surface-400">
-              {kudos.mine ? 'Você curtiu este passeio' : 'Toque no coração pra reagir'}
+              {kudos.mine ? t('pw.detail.youLiked') : t('pw.detail.tapHeart')}
             </div>
           </div>
         </div>
@@ -388,20 +392,20 @@ export default function WalkDetailPage() {
             className="tap-target flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 text-white py-3.5 rounded-2xl font-semibold transition shadow-lg shadow-primary-200"
           >
             <Share2 className="w-5 h-5" />
-            {sharing ? 'Preparando...' : 'Compartilhar'}
+            {sharing ? t('pw.detail.preparing') : t('pw.common.share')}
           </button>
           <button
             onClick={handleDelete}
             className="tap-target flex items-center justify-center gap-2 bg-white dark:bg-surface-800 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 py-3.5 rounded-2xl font-semibold transition"
           >
             <Trash2 className="w-5 h-5" />
-            Apagar
+            {t('pw.common.delete')}
           </button>
         </div>
 
         {walk.is_shared && (
           <div className="mt-3 text-xs text-center text-primary-600 dark:text-primary-400 flex items-center justify-center gap-1">
-            <Trophy className="w-3.5 h-3.5" /> Compartilhado nas redes
+            <Trophy className="w-3.5 h-3.5" /> {t('pw.detail.sharedOnSocial')}
           </div>
         )}
 
@@ -416,10 +420,10 @@ export default function WalkDetailPage() {
               className="w-full sm:max-w-sm bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] animate-slide-up shadow-2xl"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-surface-900 dark:text-white">Compartilhar passeio</h3>
+                <h3 className="text-lg font-bold text-surface-900 dark:text-white">{t('pw.detail.shareSheetTitle')}</h3>
                 <button
                   onClick={() => setShareSheetOpen(false)}
-                  aria-label="Fechar"
+                  aria-label={t('common.close')}
                   className="tap-target rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 flex items-center justify-center"
                 >
                   <X className="w-5 h-5" />
@@ -428,29 +432,29 @@ export default function WalkDetailPage() {
               <div className="space-y-2">
                 <ShareOption
                   icon={<Instagram className="w-5 h-5" />}
-                  label="Stories no Instagram"
-                  description="Card 1080×1920 pronto"
+                  label={t('pw.detail.igLabel')}
+                  description={t('pw.detail.igDesc')}
                   onClick={handleShareInstagram}
                   color="instagram"
                 />
                 <ShareOption
                   icon={<MessageCircle className="w-5 h-5" />}
                   label="WhatsApp"
-                  description="Manda pra família e amigos"
+                  description={t('pw.detail.waDesc')}
                   onClick={handleShareWhatsApp}
                   color="whatsapp"
                 />
                 <ShareOption
                   icon={<Share2 className="w-5 h-5" />}
-                  label="Mais opções"
-                  description="Sistema nativo (todos os apps)"
+                  label={t('pw.detail.moreLabel')}
+                  description={t('pw.detail.moreDesc')}
                   onClick={handleNativeShare}
                   color="default"
                 />
                 <ShareOption
                   icon={<Download className="w-5 h-5" />}
-                  label="Salvar imagem"
-                  description="Baixa no rolo de câmera"
+                  label={t('pw.detail.saveImgLabel')}
+                  description={t('pw.detail.saveImgDesc')}
                   onClick={handleSaveImage}
                   color="default"
                 />

@@ -9,20 +9,22 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Crown, X } from 'lucide-react'
 import { track } from '@/lib/track'
+import { useT } from '@/contexts/LocaleContext'
 
 export function QuotaUpsellModal() {
   const router = useRouter()
+  const t = useT()
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
     const onQuota = (e: Event) => {
       const detail = (e as CustomEvent<{ message?: string }>).detail
-      setMessage(detail?.message || 'Você atingiu o limite do seu plano.')
+      setMessage(detail?.message || t('ac.quota.defaultMsg'))
       track('paywall_shown')
     }
     window.addEventListener('petlife:quota', onQuota)
     return () => window.removeEventListener('petlife:quota', onQuota)
-  }, [])
+  }, [t])
 
   if (!message) return null
 
@@ -42,14 +44,14 @@ export function QuotaUpsellModal() {
           <button
             onClick={() => setMessage(null)}
             className="p-1.5 rounded-lg text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700"
-            aria-label="Fechar"
+            aria-label={t('common.close')}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <h3 className="text-lg font-bold text-surface-900 dark:text-white mb-1">
-          Você chegou ao limite do plano
+          {t('ac.quota.title')}
         </h3>
         <p className="text-sm text-surface-500 dark:text-surface-400 mb-5">{message}</p>
 
@@ -57,13 +59,13 @@ export function QuotaUpsellModal() {
           onClick={() => { setMessage(null); router.push('/plans') }}
           className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm mb-2"
         >
-          Ver planos — 30 dias grátis
+          {t('ac.quota.cta')}
         </button>
         <button
           onClick={() => setMessage(null)}
           className="w-full py-2.5 rounded-xl text-sm font-medium text-surface-500 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-700/40"
         >
-          Agora não
+          {t('ac.quota.later')}
         </button>
       </div>
     </div>
