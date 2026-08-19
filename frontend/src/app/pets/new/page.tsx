@@ -408,8 +408,8 @@ export default function NewPetPage() {
               </div>
               {selectedBreed.temperament && selectedBreed.temperament.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {selectedBreed.temperament.map((t, i) => (
-                    <span key={i} className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">{t}</span>
+                  {selectedBreed.temperament.map((temp, i) => (
+                    <span key={i} className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">{temp}</span>
                   ))}
                 </div>
               )}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { localeTag } from '@/lib/utils'
 import { useRouter, useParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
@@ -254,8 +255,8 @@ export default function WalkDetailPage() {
   }
 
   const date = new Date(walk.started_at)
-  const dateStr = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
-  const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = date.toLocaleDateString(localeTag(), { weekday: 'long', day: 'numeric', month: 'long' })
+  const timeStr = date.toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' })
 
   return (
     <DashboardLayout>

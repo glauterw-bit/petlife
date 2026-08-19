@@ -19,6 +19,15 @@ const DATE_FMT: Record<DateLocaleKey, string> = {
 export function setDateLocale(l: DateLocaleKey) { _dateLocale = l }
 export function getDateLocale(): DateLocaleKey { return _dateLocale }
 
+/**
+ * Tag de locale para `toLocaleDateString`/`toLocaleTimeString`.
+ * Use no lugar de 'pt-BR' fixo, senão datas saem em português para
+ * usuários de en/es.
+ */
+export function localeTag(): string {
+  return _dateLocale === 'pt-BR' ? 'pt-BR' : _dateLocale === 'es' ? 'es-ES' : 'en-US'
+}
+
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ')
 }

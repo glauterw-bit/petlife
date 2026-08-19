@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { localeTag } from '@/lib/utils'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Play, Activity, Flame, Calendar, ChevronRight, MapPin, Trophy, Heart } from 'lucide-react'
@@ -179,8 +180,8 @@ function SummaryCard({ icon, label, value, sub }: { icon: React.ReactNode; label
 function WalkCard({ walk }: { walk: WalkListItem }) {
   const t = useT()
   const date = new Date(walk.started_at)
-  const dateStr = date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })
-  const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = date.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short', year: 'numeric' })
+  const timeStr = date.toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' })
 
   const moodEmoji = walk.mood === 'happy' ? '😊' : walk.mood === 'tired' ? '😴' : walk.mood === 'normal' ? '🙂' : null
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { localeTag } from '@/lib/utils'
 import { useParams } from 'next/navigation'
 import { AlertCircle, MapPin, Phone, PawPrint, ShieldCheck, Heart } from 'lucide-react'
 
@@ -126,7 +127,7 @@ export default function LostPetPage() {
             {data.lost_at && (
               <div className="text-sm text-surface-700 dark:text-surface-300">
                 <strong>Desaparecido desde:</strong>{' '}
-                {new Date(data.lost_at).toLocaleString('pt-BR')}
+                {new Date(data.lost_at).toLocaleString(localeTag())}
               </div>
             )}
 

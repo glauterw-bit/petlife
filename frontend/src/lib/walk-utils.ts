@@ -3,6 +3,7 @@
  * pace formatting, geração de share-card via Canvas.
  */
 import type { RoutePoint } from './api'
+import { localeTag } from '@/lib/utils'
 
 /** Distância em metros entre dois pontos lat/lng (Haversine). */
 export function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -241,7 +242,7 @@ export async function generateShareCard(opts: {
   ctx.textAlign = 'center'
   ctx.font = '28px -apple-system, sans-serif'
   ctx.fillStyle = 'rgba(255,255,255,0.7)'
-  const date = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+  const date = new Date().toLocaleDateString(localeTag(), { day: 'numeric', month: 'long', year: 'numeric' })
   ctx.fillText(date, W / 2, 1730)
   ctx.font = 'bold 34px -apple-system, sans-serif'
   ctx.fillStyle = '#ffffff'
