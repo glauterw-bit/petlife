@@ -76,7 +76,10 @@
   .safe-left { padding-left: max(0.5rem, env(safe-area-inset-left)); }
   .safe-right { padding-right: max(0.5rem, env(safe-area-inset-right)); }
   .top-safe { top: max(0.75rem, env(safe-area-inset-top)); }
-  .pb-nav { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+  /* Folga do rodapé: barra de navegação (4.5rem) + o botão flutuante do
+     Vyron, que fica logo acima dela. Sem contar o Vyron, ele cobria o último
+     card e botões como "Cadastrar" no fim da página. */
+  .pb-nav { padding-bottom: calc(8.5rem + env(safe-area-inset-bottom)); }
   .bottom-nav { bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
   /* Avoid being hidden behind iOS keyboard */
   .pb-keyboard { padding-bottom: env(keyboard-inset-height, 0px); }

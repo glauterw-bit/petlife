@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///./petlife.db"
     SECRET_KEY: str = "petlife-super-secret-key-2024-change-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080          # 7 dias (sessão curta)
+    REMEMBER_TOKEN_EXPIRE_MINUTES: int = 525600       # 365 dias ("manter conectado")
     ANTHROPIC_API_KEY: str = ""
     UPLOAD_DIR: str = "./uploads"
     MAX_FILE_SIZE: int = 10485760

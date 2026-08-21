@@ -51,11 +51,11 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 // ── Auth ──────────────────────────────────────────────
 export const auth = {
-  login: async (email: string, password: string) => {
+  login: async (email: string, password: string, remember = true) => {
     const res = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, remember }),
     })
     return handleResponse<{ access_token: string; token_type: string; user: User }>(res)
   },

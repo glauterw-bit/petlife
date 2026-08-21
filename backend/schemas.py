@@ -57,6 +57,8 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    # "Manter conectado": sessão longa para não pedir login toda hora.
+    remember: bool = True
 
 
 class ForgotPasswordRequest(BaseModel):

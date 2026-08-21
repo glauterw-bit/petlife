@@ -24,6 +24,7 @@ function LoginInner() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
+  const [remember, setRemember] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [sessionExpired, setSessionExpired] = useState(false)
@@ -39,7 +40,7 @@ function LoginInner() {
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
+      await login(email, password, remember)
       router.push('/dashboard')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('ac.login.error'))
@@ -119,6 +120,18 @@ function LoginInner() {
                 </button>
               </div>
             </div>
+
+            <label className="flex items-center gap-2.5 cursor-pointer select-none -mt-1">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={e => setRemember(e.target.checked)}
+                className="w-4 h-4 rounded accent-primary-500 shrink-0"
+              />
+              <span className="text-sm text-surface-600 dark:text-surface-300">
+                {t('ac.login.remember')}
+              </span>
+            </label>
 
             <button
               type="submit"

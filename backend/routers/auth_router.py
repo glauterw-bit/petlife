@@ -59,9 +59,10 @@ async def register(request: Request, user_data: UserRegister, db: AsyncSession =
     await db.commit()
     await db.refresh(user)
 
+    # Quem acabou de se cadastrar já entra com sessão longa.
     token = create_access_token(
         data={"sub": str(user.id)},
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        expires_delta=timedelta(minutes=settings.REMEMBER_TOKEN_EXPIRE_MINUTES),
     )
     return Token(access_token=token, user=UserResponse.model_validate(user))
 
@@ -79,10 +80,14 @@ async def login(request: Request, credentials: UserLogin, db: AsyncSession = Dep
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = create_access_token(
-        data={"sub": str(user.id)},
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    # "Manter conectado": sessão de 1 ano. Sem isso o tutor precisava logar
+    # de novo a cada 7 dias.
+    minutes = (
+        settings.REMEMBER_TOKEN_EXPIRE_MINUTES
+        if credentials.remember
+        else settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
+    token = create_access_token(data={"sub": str(user.id)}, expires_delta=timedelta(minutes=minutes))
     return Token(access_token=token, user=UserResponse.model_validate(user))
 
 

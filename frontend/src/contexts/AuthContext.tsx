@@ -9,7 +9,7 @@ interface AuthContextValue {
   token: string | null
   isLoading: boolean
   isVetUser: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, remember?: boolean) => Promise<void>
   loginWithSession: (token: string, user: User) => void
   vetLogin: (email: string, password: string) => Promise<void>
   logout: () => void
@@ -36,8 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false)
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await auth.login(email, password)
+  const login = useCallback(async (email: string, password: string, remember = true) => {
+    const res = await auth.login(email, password, remember)
     setToken(res.access_token)
     setUser(res.user)
     setIsVet(false)
