@@ -33,6 +33,9 @@ export const health: LocaleBundle = {
 
     // ── Página de vacinas ───────────────────────────────────────────
     'h.vaccines.title': 'Vacinas',
+    'h.vaccines.quickPick': 'Vacinas mais comuns (toque para preencher)',
+    'h.vaccines.moreDetails': 'Mais detalhes (opcional)',
+    'h.vaccines.hideDetails': 'Ocultar detalhes',
     'h.vaccines.subtitle': 'Controle de vacinação dos seus pets',
     'h.vaccines.digitalCard': 'Carteirinha Digital',
     'h.vaccines.statTotal': 'Total',
@@ -193,6 +196,9 @@ export const health: LocaleBundle = {
 
     // ── Página de vacinas ───────────────────────────────────────────
     'h.vaccines.title': 'Vaccines',
+    'h.vaccines.quickPick': 'Common vaccines (tap to fill in)',
+    'h.vaccines.moreDetails': 'More details (optional)',
+    'h.vaccines.hideDetails': 'Hide details',
     'h.vaccines.subtitle': "Track your pets' vaccinations",
     'h.vaccines.digitalCard': 'Digital Record',
     'h.vaccines.statTotal': 'Total',
@@ -353,6 +359,9 @@ export const health: LocaleBundle = {
 
     // ── Página de vacinas ───────────────────────────────────────────
     'h.vaccines.title': 'Vacunas',
+    'h.vaccines.quickPick': 'Vacunas más comunes (toca para completar)',
+    'h.vaccines.moreDetails': 'Más detalles (opcional)',
+    'h.vaccines.hideDetails': 'Ocultar detalles',
     'h.vaccines.subtitle': 'Control de vacunación de tus mascotas',
     'h.vaccines.digitalCard': 'Cartilla Digital',
     'h.vaccines.statTotal': 'Total',

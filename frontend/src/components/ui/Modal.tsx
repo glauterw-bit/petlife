@@ -42,7 +42,10 @@ export function Modal({ open, onClose, title, children, size = 'md', className }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+    // z-[60]: acima da BottomNav (z-50). Elas empatavam e, como a nav é
+    // renderizada depois no DOM, ela ficava POR CIMA — os botões de ação no
+    // rodapé do modal (Salvar/Cancelar) não recebiam o toque no celular.
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
         onClick={onClose}

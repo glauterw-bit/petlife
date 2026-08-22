@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, FormEvent } from 'react'
-import { Plus, Filter, CreditCard } from 'lucide-react'
+import { useEffect, useState, FormEvent, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Plus, Filter, CreditCard, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { VaccineTimeline } from '@/components/health/VaccineTimeline'
@@ -12,7 +13,38 @@ import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
 import { getVaccineStatus } from '@/lib/utils'
 
-export default function VaccinesPage() {
+/**
+ * Vacinas mais comuns no Brasil, por espécie. Existem para eliminar a digitação
+ * — o formulário longo era o ponto onde a maioria desistia (1 de 110 usuários
+ * chegava a registrar uma vacina).
+ * `annual` alimenta a sugestão automática da próxima dose.
+ */
+const COMMON_VACCINES: Record<string, Array<{ name: string; annual: boolean }>> = {
+  dog: [
+    { name: 'V10 (Polivalente)', annual: true },
+    { name: 'Antirrábica', annual: true },
+    { name: 'Gripe Canina', annual: true },
+    { name: 'Giárdia', annual: true },
+    { name: 'Vermífugo', annual: false },
+    { name: 'Antipulgas', annual: false },
+  ],
+  cat: [
+    { name: 'V4 (Quádrupla felina)', annual: true },
+    { name: 'Antirrábica', annual: true },
+    { name: 'Leucemia Felina (FeLV)', annual: true },
+    { name: 'Vermífugo', annual: false },
+    { name: 'Antipulgas', annual: false },
+  ],
+}
+
+function plusOneYear(dateStr: string): string {
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
+  d.setFullYear(d.getFullYear() + 1)
+  return d.toISOString().split('T')[0]
+}
+
+function VaccinesPageInner() {
   const t = useT()
   const { success, error } = useToast()
   const [vaccineList, setVaccineList] = useState<Vaccine[]>([])
@@ -31,6 +63,9 @@ export default function VaccinesPage() {
     notes: '',
   })
   const [docFile, setDocFile] = useState<File | null>(null)
+  const [showDetails, setShowDetails] = useState(false)
+
+  const params = useSearchParams()
 
   useEffect(() => {
     async function load() {
@@ -38,11 +73,22 @@ export default function VaccinesPage() {
         const [v, p] = await Promise.all([vaccinesApi.list(), petsApi.list()])
         setVaccineList(v)
         setPetList(p)
-        if (p.length > 0) setForm(f => ({ ...f, pet_id: String(p[0].id) }))
+        // Vindo de "cadastrar pet": já abre o formulário com o pet escolhido,
+        // pra pessoa registrar a 1ª vacina sem procurar o botão.
+        const fromNewPet = params?.get('novo') === '1'
+        const petParam = params?.get('pet')
+        const preselected = petParam && p.some(x => String(x.id) === petParam)
+          ? petParam
+          : (p.length > 0 ? String(p[0].id) : '')
+        if (preselected) setForm(f => ({ ...f, pet_id: preselected }))
+        if (fromNewPet && preselected) setShowModal(true)
       } finally { setLoading(false) }
     }
     load()
-  }, [])
+  }, [params])
+
+  // Espécie do pet selecionado — define quais vacinas aparecem como atalho.
+  const selectedSpecies = petList.find(p => String(p.id) === String(form.pet_id))?.species ?? ''
 
   const filtered = filterPet
     ? vaccineList.filter(v => v.pet_id === Number(filterPet))
@@ -169,6 +215,36 @@ export default function VaccinesPage() {
               {petList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
+          {/* Atalhos: um toque preenche nome e já sugere a próxima dose */}
+          {selectedSpecies && (
+            <div>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-2">{t('h.vaccines.quickPick')}</label>
+              <div className="flex flex-wrap gap-2">
+                {(COMMON_VACCINES[selectedSpecies] ?? []).map(v => {
+                  const active = form.name === v.name
+                  return (
+                    <button
+                      key={v.name}
+                      type="button"
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        name: v.name,
+                        next_due_date: v.annual ? plusOneYear(f.date_applied) : f.next_due_date,
+                      }))}
+                      className={`pressable text-sm font-medium px-3.5 py-2 rounded-xl border transition ${
+                        active
+                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                          : 'border-surface-200 dark:border-surface-600 text-surface-700 dark:text-surface-200 hover:border-primary-300'
+                      }`}
+                    >
+                      {v.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.vaccines.fName')}</label>
             <input required type="text" value={form.name} onChange={set('name')} placeholder={t('h.vaccines.fNamePh')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
@@ -182,23 +258,41 @@ export default function VaccinesPage() {
               <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.vaccines.fNextDose')}</label>
               <input type="date" value={form.next_due_date} onChange={set('next_due_date')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.form.vet')}</label>
-              <input type="text" value={form.vet_name} onChange={set('vet_name')} placeholder={t('h.form.vetPh')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+          </div>
+
+          {/* O resto é opcional e fica escondido: era o que fazia a maioria
+              desistir no meio do cadastro. */}
+          <button
+            type="button"
+            onClick={() => setShowDetails(v => !v)}
+            className="w-full flex items-center justify-center gap-1 text-xs font-medium text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 py-1 transition"
+          >
+            {showDetails ? t('h.vaccines.hideDetails') : t('h.vaccines.moreDetails')}
+            <ChevronDown className={`w-4 h-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showDetails && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.form.vet')}</label>
+                  <input type="text" value={form.vet_name} onChange={set('vet_name')} placeholder={t('h.form.vetPh')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.vaccines.fLot')}</label>
+                  <input type="text" value={form.lot_number} onChange={set('lot_number')} placeholder={t('h.vaccines.fLotPh')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.form.notes')}</label>
+                <textarea value={form.notes} onChange={set('notes')} rows={2} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.vaccines.fDoc')}</label>
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setDocFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-surface-600 dark:text-surface-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary-50 file:text-primary-700 file:font-medium hover:file:bg-primary-100" />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.vaccines.fLot')}</label>
-              <input type="text" value={form.lot_number} onChange={set('lot_number')} placeholder={t('h.vaccines.fLotPh')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.form.notes')}</label>
-            <textarea value={form.notes} onChange={set('notes')} rows={2} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.vaccines.fDoc')}</label>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setDocFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-surface-600 dark:text-surface-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary-50 file:text-primary-700 file:font-medium hover:file:bg-primary-100" />
-          </div>
+          )}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm font-medium text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700/40 transition">{t('common.cancel')}</button>
             <button type="submit" disabled={submitting} className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-60 transition flex items-center justify-center gap-2">
@@ -209,5 +303,14 @@ export default function VaccinesPage() {
         </form>
       </Modal>
     </DashboardLayout>
+  )
+}
+
+/** useSearchParams exige Suspense no App Router (prerender bailout). */
+export default function VaccinesPage() {
+  return (
+    <Suspense fallback={<DashboardLayout><PageLoader /></DashboardLayout>}>
+      <VaccinesPageInner />
+    </Suspense>
   )
 }

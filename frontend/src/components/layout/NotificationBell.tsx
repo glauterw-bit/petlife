@@ -104,7 +104,7 @@ export function NotificationBell() {
 
       {open && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-start justify-center sm:justify-end p-0 sm:p-4 sm:pt-[max(4rem,env(safe-area-inset-top))]"
+          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end sm:items-start justify-center sm:justify-end p-0 sm:p-4 sm:pt-[max(4rem,env(safe-area-inset-top))]"
           onClick={() => setOpen(false)}
         >
           <div

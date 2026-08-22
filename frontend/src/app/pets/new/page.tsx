@@ -179,7 +179,10 @@ export default function NewPetPage() {
       celebratePets()
       success(t('pw.newPet.created', { name: pet.name }))
       // Pequeno delay pra o usuário ver o confetti antes da transição
-      setTimeout(() => router.push(`/pets/${pet.id}`), 600)
+      // Vai direto pra carteirinha em vez do perfil: registrar a 1ª vacina é
+      // o passo que revela o valor do app. Antes o tutor caía no perfil e
+      // parava ali — só 1 de 110 chegava a cadastrar uma vacina.
+      setTimeout(() => router.push(`/health/vaccines?novo=1&pet=${pet.id}`), 600)
     } catch (err: unknown) {
       void hapticError()
       error(err instanceof Error ? err.message : t('pw.newPet.createError'))
@@ -443,7 +446,7 @@ export default function NewPetPage() {
       {/* Modal: identificar raça por foto */}
       {identifyOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
           onClick={closeIdentify}
         >
           <div
