@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Printer, CheckCircle, AlertCircle, Clock, ShieldCheck } from 'lucide-react'
 import { formatDate, formatAge, getSpeciesLabel, getSpeciesEmoji } from '@/lib/utils'
+import { DownloadCta } from '@/components/public/DownloadCta'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
@@ -269,6 +270,12 @@ export default function PublicCarteirinhaPage() {
             </div>
           </div>
         </div>
+
+        <DownloadCta
+          className="mt-6"
+          headline={`Recebeu a carteirinha do ${pet.name}? Faça a do seu pet.`}
+          sub="Carteira de vacinação digital, lembretes de reforço e envio em PDF pro hotel, creche ou veterinário."
+        />
 
         <p className="text-center text-xs text-surface-400 mt-6 print:hidden">
           ID: {pet.id} • Verificado via QR code

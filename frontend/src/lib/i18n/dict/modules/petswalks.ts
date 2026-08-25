@@ -757,7 +757,7 @@ export const petswalks: LocaleBundle = {
     'pw.pet.qaBehavior': 'Comportamiento',
     'pw.pet.qaCheckin': 'Check-in',
     'pw.pet.qaLink': 'Enlace de la mascota',
-    'pw.pet.qaPdf': 'PDF p/ vet',
+    'pw.pet.qaPdf': 'PDF veterinario',
     'pw.pet.age': 'Edad',
     'pw.pet.weight': 'Peso',
     'pw.pet.photoUpdated': '¡Foto actualizada!',

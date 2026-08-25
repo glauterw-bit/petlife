@@ -42,7 +42,7 @@ async def create_pet(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Quota de pets por plano (free: 1, plus: 5, pro: ilimitado)
+    # Quota de pets por plano (free: 3, plus: 5, pro: ilimitado) — ver pricing.QUOTAS
     await subscriptions.check_quota(db, current_user, "pets")
 
     if pet_data.breed_id:

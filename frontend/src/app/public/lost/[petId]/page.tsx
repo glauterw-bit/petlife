@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { localeTag } from '@/lib/utils'
 import { useParams } from 'next/navigation'
 import { AlertCircle, MapPin, Phone, PawPrint, ShieldCheck, Heart } from 'lucide-react'
+import { DownloadCta } from '@/components/public/DownloadCta'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
@@ -66,7 +67,7 @@ export default function LostPetPage() {
   // Pet está em casa (não foi marcado como perdido)
   if (!data.is_lost) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-primary-50 dark:from-emerald-950/20 dark:via-surface-900 dark:to-primary-950/20 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-primary-50 dark:from-emerald-950/20 dark:via-surface-900 dark:to-primary-950/20 flex flex-col items-center justify-center gap-4 p-4">
         <div className="max-w-md w-full text-center bg-white dark:bg-surface-800 rounded-3xl shadow-xl p-10 animate-slide-up">
           <div className="w-20 h-20 mx-auto bg-emerald-100 dark:bg-emerald-900/40 rounded-3xl flex items-center justify-center mb-4">
             <ShieldCheck className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
@@ -84,6 +85,13 @@ export default function LostPetPage() {
               {data.pet.species === 'dog' ? 'Cão' : 'Gato'} · {data.pet.breed ?? 'SRD'}
             </p>
           </div>
+        </div>
+
+        <div className="max-w-md w-full">
+          <DownloadCta
+            headline="Seu pet também pode ter uma identidade dessas."
+            sub="QR na coleira, carteira de vacinação digital e página de busca instantânea se ele sumir."
+          />
         </div>
       </div>
     )
@@ -196,6 +204,13 @@ export default function LostPetPage() {
           </div>
           <p>Identificação verificada · Compartilhe esta página pra ajudar a achar {data.pet.name}</p>
         </div>
+
+        {/* Abaixo do contato de propósito: achar o pet vem primeiro. */}
+        <DownloadCta
+          className="mt-5"
+          headline="Se o seu sumir, essa página existe em segundos."
+          sub="Cadastre seu pet e tenha QR na coleira, carteira de vacinação e alerta de desaparecimento prontos."
+        />
       </div>
     </div>
   )

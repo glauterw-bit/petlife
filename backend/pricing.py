@@ -20,7 +20,12 @@ UNLIMITED = -1  # sentinela para quota ilimitada
 
 # ─── Quotas por tier ──────────────────────────────────────────────────────────
 QUOTAS: dict[str, dict[str, int]] = {
-    "free": {"pets": 1, "ai_chat": 10, "ai_analysis": 3},
+    # 3 pets no free: a média brasileira é 2,6 pets por domicílio (Abinpet 2025).
+    # Com limite de 1, 92 dos 93 usuários com pet tinham exatamente um — batiam
+    # no teto logo depois de cadastrar o primeiro, no pico do entusiasmo, e
+    # paravam. Pet é o momento "aha" do app (83% cadastram); bloquear o segundo
+    # mata o loop. A IA continua limitada, que é o custo real.
+    "free": {"pets": 3, "ai_chat": 10, "ai_analysis": 3},
     "plus": {"pets": 5, "ai_chat": 100, "ai_analysis": 30},
     "pro":  {"pets": UNLIMITED, "ai_chat": UNLIMITED, "ai_analysis": UNLIMITED},
 }

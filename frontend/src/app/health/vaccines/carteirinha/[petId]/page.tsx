@@ -9,6 +9,7 @@ import { pets as petsApi } from '@/lib/api'
 import { formatDate, formatAge, getSpeciesEmoji } from '@/lib/utils'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
+import { trackHappyMoment } from '@/lib/review'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
@@ -87,6 +88,9 @@ export default function CarteirinhaPage() {
 
   function handlePrint() {
     window.print()
+    // Imprimir a carteirinha é quase sempre pra entregar em hotel, creche ou
+    // veterinário — é o momento em que o app acabou de resolver um problema real.
+    trackHappyMoment('carteirinha_print')
   }
 
   function handleShare() {
@@ -96,10 +100,11 @@ export default function CarteirinhaPage() {
     const text = t('h.card.shareText', { name: data?.pet.name ?? '', url: shareUrl })
     if (navigator.share) {
       navigator.share({ title: t('h.card.shareTitle', { name: data?.pet.name ?? '' }), text, url: shareUrl })
+        .then(() => trackHappyMoment('carteirinha_share'))
         .catch(() => {})
     } else {
       navigator.clipboard.writeText(shareUrl)
-        .then(() => alert(t('h.card.linkCopied')))
+        .then(() => { alert(t('h.card.linkCopied')); trackHappyMoment('carteirinha_share') })
     }
   }
 
@@ -108,6 +113,7 @@ export default function CarteirinhaPage() {
     const shareUrl = `${origin}/public/carteirinha/${petId}`
     const text = encodeURIComponent(t('h.card.shareWhatsAppText', { name: data?.pet.name ?? '', url: shareUrl }))
     window.open(`https://wa.me/?text=${text}`, '_blank')
+    trackHappyMoment('carteirinha_whatsapp')
   }
 
   const totalVaccines = data?.vaccines.length ?? 0
