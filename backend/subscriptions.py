@@ -103,7 +103,10 @@ def _quota_error(resource: str, limit: int, tier: str) -> HTTPException:
     label = pricing.RESOURCE_LABEL.get(resource, resource)
     suggestion = "Assine o PetLife Pro pra liberar acesso ilimitado." if tier != "free" \
         else "Assine o PetLife+ ou Pro pra liberar mais."
+    # 'pets' é limite ao vivo (quantos existem agora), não cota que zera todo mês —
+    # chamar de "limite mensal" fazia o tutor achar que ia destravar sozinho.
+    escopo = "" if resource == "pets" else " mensal"
     return HTTPException(
         status_code=402,
-        detail=f"Você atingiu o limite mensal de {label} do seu plano ({limit}). {suggestion}",
+        detail=f"Você atingiu o limite{escopo} de {label} do seu plano ({limit}). {suggestion}",
     )

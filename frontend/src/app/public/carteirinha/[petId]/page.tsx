@@ -6,6 +6,17 @@ import { Printer, CheckCircle, AlertCircle, Clock, ShieldCheck } from 'lucide-re
 import { formatDate, formatAge, getSpeciesLabel, getSpeciesEmoji } from '@/lib/utils'
 import { DownloadCta } from '@/components/public/DownloadCta'
 
+/**
+ * Datas fixas em dd/MM/yyyy.
+ *
+ * Toda a cópia desta página é em português — mas `formatDate` segue o idioma do
+ * APARELHO DE QUEM ABRE, não de quem emitiu. Um aparelho em inglês mostrava
+ * "08/25/2026" no meio de um texto em português. Como este é o documento que o
+ * tutor manda pro hotel/creche, data ambígua é problema real: 08/25 e 25/08 se
+ * confundem em qualquer dia até o 12.
+ */
+const BR = 'dd/MM/yyyy'
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
 interface CardData {
@@ -177,7 +188,7 @@ export default function PublicCarteirinhaPage() {
               {[
                 { label: 'Espécie', value: getSpeciesLabel(pet.species) },
                 { label: 'Idade', value: formatAge(pet.birth_date) },
-                { label: 'Nascimento', value: formatDate(pet.birth_date) },
+                { label: 'Nascimento', value: formatDate(pet.birth_date, BR) },
                 { label: 'Peso', value: pet.weight ? `${pet.weight} kg` : '—' },
                 { label: 'Sexo', value: pet.gender === 'male' ? 'Macho' : pet.gender === 'female' ? 'Fêmea' : '—' },
                 { label: 'Castrado', value: pet.neutered ? 'Sim' : 'Não' },
@@ -215,11 +226,11 @@ export default function PublicCarteirinhaPage() {
                         </div>
                         <div className="flex flex-wrap gap-x-5 gap-y-0.5 mt-1.5">
                           <span className="text-xs text-surface-500 dark:text-surface-400">
-                            <span className="font-medium text-surface-700 dark:text-surface-200">Aplicada:</span> {formatDate(v.date_given)}
+                            <span className="font-medium text-surface-700 dark:text-surface-200">Aplicada:</span> {formatDate(v.date_given, BR)}
                           </span>
                           {v.next_due && (
                             <span className="text-xs text-surface-500 dark:text-surface-400">
-                              <span className="font-medium text-surface-700 dark:text-surface-200">Próxima:</span> {formatDate(v.next_due)}
+                              <span className="font-medium text-surface-700 dark:text-surface-200">Próxima:</span> {formatDate(v.next_due, BR)}
                             </span>
                           )}
                           {v.veterinarian && (
@@ -258,7 +269,7 @@ export default function PublicCarteirinhaPage() {
             <div className="text-right">
               <div className="text-xs text-surface-400 mb-1">Emitida em</div>
               <div className="text-sm font-semibold text-surface-700 dark:text-surface-200">
-                {formatDate(data.generated_at.split('T')[0])}
+                {formatDate(data.generated_at.split('T')[0], BR)}
               </div>
               <div className="mt-4 flex items-center gap-1.5 justify-end">
                 <div className="w-6 h-6 bg-primary-500 rounded-lg flex items-center justify-center">
