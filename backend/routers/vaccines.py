@@ -69,6 +69,42 @@ async def create_vaccine(
     return vaccine
 
 
+@router.post("/scan-card")
+async def scan_vaccine_card(
+    pet_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Lê a carteirinha por foto e devolve as vacinas encontradas.
+
+    NÃO grava nada: o app mostra o resultado para o tutor conferir e só então
+    salva. É o caminho para quem tem a caderneta em mãos — digitar vacina a
+    vacina era onde as pessoas desistiam.
+    """
+    import base64
+    import ai_service
+
+    pet = await _get_pet_and_verify(pet_id, current_user.id, db)
+
+    contents = await file.read()
+    if len(contents) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Imagem muito grande (máx. 8 MB).")
+    media_type = file.content_type or "image/jpeg"
+    if media_type not in ("image/jpeg", "image/png", "image/webp", "image/heic"):
+        media_type = "image/jpeg"
+
+    b64 = base64.b64encode(contents).decode("ascii")
+    pet_info = {"species": pet.species.value if hasattr(pet.species, "value") else pet.species}
+    try:
+        return await ai_service.read_vaccine_card(b64, media_type, pet_info)
+    except Exception as e:
+        msg = str(e).lower()
+        if "credit balance" in msg or "insufficient" in msg or "billing" in msg:
+            raise HTTPException(status_code=503, detail="Leitura indisponível: crédito da IA esgotado.")
+        raise HTTPException(status_code=503, detail="Não consegui ler a carteirinha. Tente outra foto.")
+
+
 @router.get("", response_model=list[VaccineResponse])
 async def list_vaccines(
     pet_id: Optional[int] = None,

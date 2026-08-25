@@ -26,7 +26,8 @@ function keysByLocale(src) {
       i++
     }
     const block = src.slice(m.index + m[0].length, i - 1)
-    out[loc] = new Set([...block.matchAll(/^\s*'([\w.]+)':/gm)].map(x => x[1]))
+    // aceita chave com aspas simples ou duplas
+    out[loc] = new Set([...block.matchAll(/^\s*['"]([\w.]+)['"]\s*:/gm)].map(x => x[1]))
   }
   return out
 }

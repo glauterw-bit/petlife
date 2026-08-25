@@ -2,13 +2,13 @@
 
 import { useEffect, useState, FormEvent, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Plus, Filter, CreditCard, ChevronDown } from 'lucide-react'
+import { Plus, Filter, CreditCard, ChevronDown, Camera, HelpCircle } from 'lucide-react'
 import Link from 'next/link'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { VaccineTimeline } from '@/components/health/VaccineTimeline'
 import { Modal } from '@/components/ui/Modal'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
-import { vaccines as vaccinesApi, pets as petsApi, type Vaccine, type Pet } from '@/lib/api'
+import { vaccines as vaccinesApi, pets as petsApi, type Vaccine, type Pet, type ScannedVaccine } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
 import { getVaccineStatus } from '@/lib/utils'
@@ -64,6 +64,12 @@ function VaccinesPageInner() {
   })
   const [docFile, setDocFile] = useState<File | null>(null)
   const [showDetails, setShowDetails] = useState(false)
+  // Fluxo híbrido: quem tem a carteirinha fotografa; quem não tem registra
+  // de memória (aproximado). Forçar data exata era o que travava o cadastro.
+  const [mode, setMode] = useState<'choose' | 'scan' | 'manual' | 'memory'>('choose')
+  const [scanning, setScanning] = useState(false)
+  const [scanned, setScanned] = useState<ScannedVaccine[] | null>(null)
+  const [scanNote, setScanNote] = useState('')
 
   const params = useSearchParams()
 
@@ -131,6 +137,52 @@ function VaccinesPageInner() {
     await vaccinesApi.delete(id).catch(() => {})
     setVaccineList(prev => prev.filter(v => v.id !== id))
     success(t('h.vaccines.deleted'))
+  }
+
+  async function handleScan(file: File) {
+    if (!form.pet_id) { error(t('h.form.selectPetError')); return }
+    setScanning(true); setScanned(null); setScanNote('')
+    try {
+      const r = await vaccinesApi.scanCard(Number(form.pet_id), file)
+      if (r.image_quality === 'ruim' || !r.vaccines.length) {
+        setScanNote(r.image_quality_notes || t('h.scan.nothingFound'))
+      } else {
+        setScanned(r.vaccines)
+        setScanNote(r.notes || '')
+      }
+    } catch (e: unknown) {
+      setScanNote(e instanceof Error ? e.message : t('h.scan.error'))
+    } finally { setScanning(false) }
+  }
+
+  async function saveScanned() {
+    if (!scanned?.length) return
+    setSubmitting(true)
+    const hoje = new Date().toISOString().split('T')[0]
+    try {
+      const criadas: Vaccine[] = []
+      for (const v of scanned) {
+        const created = await vaccinesApi.create({
+          pet_id: Number(form.pet_id),
+          name: v.name,
+          date_applied: v.date_given || hoje,
+          next_due_date: v.next_due || undefined,
+          lot_number: v.lot || undefined,
+          vet_name: v.vet || undefined,
+        })
+        criadas.push(created)
+      }
+      setVaccineList(prev => [...criadas, ...prev])
+      success(t('h.scan.saved', { n: criadas.length }))
+      closeModal()
+    } catch (err: unknown) {
+      error(err instanceof Error ? err.message : t('h.vaccines.createError'))
+    } finally { setSubmitting(false) }
+  }
+
+  function closeModal() {
+    setShowModal(false)
+    setMode('choose'); setScanned(null); setScanNote(''); setShowDetails(false)
   }
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -206,8 +258,137 @@ function VaccinesPageInner() {
       {loading ? <PageLoader /> : <VaccineTimeline vaccines={filtered} onDelete={handleDelete} />}
 
       {/* Modal */}
-      <Modal open={showModal} onClose={() => setShowModal(false)} title={t('dash.newVaccine')} size="lg">
+      <Modal open={showModal} onClose={closeModal} title={t('dash.newVaccine')} size="lg">
+        {/* Passo 1: o tutor tem a carteirinha em mãos? Perguntar isso primeiro
+            evita travar quem não tem — que era a maioria. */}
+        {mode === 'choose' && (
+          <div className="space-y-3">
+            <p className="text-sm text-surface-600 dark:text-surface-300">{t('h.scan.chooseTitle')}</p>
+
+            <button
+              type="button"
+              onClick={() => setMode('scan')}
+              className="pressable w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-primary-300 bg-primary-50/60 dark:bg-primary-900/20 text-left hover:border-primary-400 transition"
+            >
+              <span className="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0">
+                <Camera className="w-5 h-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-semibold text-surface-900 dark:text-white">{t('h.scan.optPhoto')}</span>
+                <span className="block text-xs text-surface-600 dark:text-surface-300">{t('h.scan.optPhotoDesc')}</span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMode('manual')}
+              className="pressable w-full flex items-center gap-3 p-4 rounded-2xl border border-surface-200 dark:border-surface-600 text-left hover:border-primary-300 transition"
+            >
+              <span className="w-11 h-11 rounded-xl bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300 flex items-center justify-center shrink-0">
+                <Plus className="w-5 h-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-semibold text-surface-900 dark:text-white">{t('h.scan.optManual')}</span>
+                <span className="block text-xs text-surface-600 dark:text-surface-300">{t('h.scan.optManualDesc')}</span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMode('memory')}
+              className="pressable w-full flex items-center gap-3 p-4 rounded-2xl border border-surface-200 dark:border-surface-600 text-left hover:border-primary-300 transition"
+            >
+              <span className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
+                <HelpCircle className="w-5 h-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-semibold text-surface-900 dark:text-white">{t('h.scan.optMemory')}</span>
+                <span className="block text-xs text-surface-600 dark:text-surface-300">{t('h.scan.optMemoryDesc')}</span>
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Caminho A: foto da carteirinha */}
+        {mode === 'scan' && (
+          <div className="space-y-4">
+            <button type="button" onClick={() => { setMode('choose'); setScanned(null); setScanNote('') }}
+              className="text-xs text-surface-500 hover:text-surface-700 dark:hover:text-surface-200">← {t('nav.back')}</button>
+
+            {!scanned && (
+              <label className="block cursor-pointer">
+                <div className="border-2 border-dashed border-primary-300 rounded-2xl p-8 text-center hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition">
+                  {scanning ? (
+                    <>
+                      <span className="inline-block w-8 h-8 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin mb-3" />
+                      <p className="text-sm font-medium text-surface-700 dark:text-surface-200">{t('h.scan.reading')}</p>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-9 h-9 mx-auto text-primary-500 mb-2" />
+                      <p className="text-sm font-semibold text-surface-800 dark:text-surface-100">{t('h.scan.tapToPhoto')}</p>
+                      <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">{t('h.scan.tapHint')}</p>
+                    </>
+                  )}
+                </div>
+                <input type="file" accept="image/*" capture="environment" className="hidden" disabled={scanning}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) void handleScan(f) }} />
+              </label>
+            )}
+
+            {scanNote && <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">{scanNote}</p>}
+
+            {scanned && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-surface-800 dark:text-surface-100">
+                  {t('h.scan.found', { n: scanned.length })}
+                </p>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {scanned.map((v, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-xl border border-surface-200 dark:border-surface-600">
+                      <input type="checkbox" defaultChecked className="mt-1 w-4 h-4 accent-primary-500"
+                        onChange={e => setScanned(prev => e.target.checked ? prev : (prev ?? []).filter((_, j) => j !== i))} />
+                      <div className="min-w-0 flex-1">
+                        <input value={v.name}
+                          onChange={e => setScanned(prev => (prev ?? []).map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                          className="w-full font-medium text-sm bg-transparent border-b border-transparent focus:border-primary-400 focus:outline-none text-surface-900 dark:text-white" />
+                        <div className="flex gap-2 mt-1.5">
+                          <input type="date" value={v.date_given ?? ''}
+                            onChange={e => setScanned(prev => (prev ?? []).map((x, j) => j === i ? { ...x, date_given: e.target.value } : x))}
+                            className="text-xs px-2 py-1 rounded-lg border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-800" />
+                          <input type="date" value={v.next_due ?? ''}
+                            onChange={e => setScanned(prev => (prev ?? []).map((x, j) => j === i ? { ...x, next_due: e.target.value } : x))}
+                            className="text-xs px-2 py-1 rounded-lg border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-800" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => { setScanned(null); setScanNote('') }}
+                    className="flex-1 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm font-medium text-surface-700 dark:text-surface-200">
+                    {t('h.scan.retake')}
+                  </button>
+                  <button type="button" onClick={saveScanned} disabled={submitting}
+                    className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-60 flex items-center justify-center gap-2">
+                    {submitting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                    {t('h.scan.saveAll', { n: scanned.length })}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {(mode === 'manual' || mode === 'memory') && (
         <form onSubmit={handleSubmit} className="space-y-4">
+          <button type="button" onClick={() => setMode('choose')}
+            className="text-xs text-surface-500 hover:text-surface-700 dark:hover:text-surface-200">← {t('nav.back')}</button>
+          {mode === 'memory' && (
+            <p className="text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
+              {t('h.scan.memoryHint')}
+            </p>
+          )}
           <div>
             <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.form.pet')}</label>
             <select required value={form.pet_id} onChange={set('pet_id')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800">
@@ -251,7 +432,9 @@ function VaccinesPageInner() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.vaccines.fApplied')}</label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
+                {mode === 'memory' ? t('h.scan.approxDate') : t('h.vaccines.fApplied')}
+              </label>
               <input required type="date" value={form.date_applied} onChange={set('date_applied')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800" />
             </div>
             <div>
@@ -301,6 +484,7 @@ function VaccinesPageInner() {
             </button>
           </div>
         </form>
+        )}
       </Modal>
     </DashboardLayout>
   )

@@ -1,5 +1,6 @@
 import anthropic
 import json
+from datetime import date
 from typing import Optional, List
 from database import settings
 
@@ -1139,3 +1140,70 @@ Responda APENAS em JSON válido:
         if m:
             return json.loads(m.group())
         raise ValueError("Resposta da IA em formato inesperado")
+
+
+async def read_vaccine_card(image_b64: str, image_media_type: str, pet_info: dict, locale: str = "pt-BR") -> dict:
+    """Lê uma foto da carteirinha de vacinação e extrai as vacinas registradas.
+
+    Existe porque digitar vacina a vacina era a barreira onde os tutores
+    paravam: 83% cadastravam o pet e 0% registravam vacina. Fotografar a
+    caderneta é o caminho de menor esforço para quem tem o documento em mãos.
+
+    Devolve sempre uma lista (possivelmente vazia) — o app mostra para o tutor
+    conferir e corrigir antes de salvar. Nada é gravado sem confirmação.
+    """
+    client = get_client()
+    species = pet_info.get("species", "dog")
+    hoje = date.today().isoformat()
+
+    prompt = f"""Você está lendo a foto de uma CARTEIRINHA/CADERNETA DE VACINAÇÃO de um {'gato' if species == 'cat' else 'cão'}.
+
+Extraia TODAS as vacinas que conseguir identificar. Hoje é {hoje}.
+
+Responda APENAS com JSON válido:
+{{
+  "image_quality": "ok"|"ruim",
+  "image_quality_notes": "Se ruim (borrada, cortada, não é carteirinha), explique em 1 frase e devolva vaccines vazio",
+  "vaccines": [
+    {{
+      "name": "Nome da vacina como o tutor reconheceria (ex.: 'V10 (Polivalente)', 'Antirrábica', 'Giárdia', 'V4 (Quádrupla felina)')",
+      "date_given": "YYYY-MM-DD ou null se ilegível",
+      "next_due": "YYYY-MM-DD se estiver escrito OU se for anual (data + 1 ano); null se não der pra inferir",
+      "lot": "lote se legível, senão null",
+      "vet": "nome do veterinário/clínica se legível, senão null",
+      "confidence": 0.0 a 1.0
+    }}
+  ],
+  "notes": "Observação curta pro tutor (ex.: 'Duas linhas estavam ilegíveis')"
+}}
+
+REGRAS:
+- NÃO invente datas. Se não conseguir ler, use null — o tutor corrige depois.
+- Datas em formato brasileiro (DD/MM/AAAA) devem virar YYYY-MM-DD.
+- Ano com 2 dígitos: assuma 20XX.
+- Se a data for futura, provavelmente é a PRÓXIMA dose: coloque em next_due.
+- Ignore linhas em branco e campos não preenchidos.
+- Padronize nomes comuns: "V8"/"V10"/"múltipla"/"polivalente" → "V10 (Polivalente)";
+  "raiva"/"antirrábica" → "Antirrábica"; "quádrupla"/"V4" → "V4 (Quádrupla felina)".
+"""
+
+    msg = await client.messages.create(
+        model=MODEL,
+        max_tokens=2000,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": image_media_type, "data": image_b64}},
+                {"type": "text", "text": prompt},
+            ],
+        }],
+    )
+    raw = msg.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1].removeprefix("json").strip()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {"image_quality": "ruim", "image_quality_notes": "Não consegui interpretar a foto.", "vaccines": [], "notes": ""}
+    data.setdefault("vaccines", [])
+    return data

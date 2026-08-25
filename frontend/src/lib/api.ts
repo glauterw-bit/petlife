@@ -259,7 +259,35 @@ export const breeds = {
 }
 
 // ── Vaccines ──────────────────────────────────────────
+export interface ScannedVaccine {
+  name: string
+  date_given: string | null
+  next_due: string | null
+  lot: string | null
+  vet: string | null
+  confidence: number
+}
+export interface CardScanResult {
+  image_quality: 'ok' | 'ruim'
+  image_quality_notes?: string
+  vaccines: ScannedVaccine[]
+  notes?: string
+}
+
 export const vaccines = {
+  /** Lê a carteirinha por foto. Não grava — devolve pro tutor conferir. */
+  scanCard: async (petId: number, file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('petlife_token') : null
+    const res = await fetch(`${API_URL}/vaccines/scan-card?pet_id=${petId}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    })
+    return handleResponse<CardScanResult>(res)
+  },
+
   list: async (petId?: number) => {
     const qs = petId ? `?pet_id=${petId}` : ''
     const res = await fetch(`${API_URL}/vaccines${qs}`, { headers: getAuthHeaders() })
