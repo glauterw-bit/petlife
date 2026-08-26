@@ -92,7 +92,12 @@ export default function ChallengesPage() {
     { id: 'leaderboard', label: t('g.gam.tabLeaderboard') },
   ]
 
-  const progressPct = points ? Math.min(100, ((points.total_points % 1000) / 10)) : 0
+  // O backend sobe de nível a cada 100 pontos (POINTS_PER_LEVEL), não 1000.
+  // Com o denominador errado a barra mostrava ~1/10 do progresso real: quem
+  // tinha 250 pts (nível 3, metade do caminho) via 25% em vez de 50%.
+  const perLevel = points?.points_per_level ?? 100
+  const inLevel = points?.points_in_level ?? ((points?.total_points ?? 0) % perLevel)
+  const progressPct = points ? Math.min(100, Math.round((inLevel / perLevel) * 100)) : 0
   const levelName = t(levelKey(points ? points.level : 1))
 
   return (
@@ -113,20 +118,20 @@ export default function ChallengesPage() {
             <div className="flex-1 min-w-[200px]">
               <div className="flex justify-between text-sm mb-1.5">
                 <span className="font-semibold">{t('g.gam.levelLine', { level: points.level, name: levelName })}</span>
-                <span className="text-accent-100">{t('g.gam.ptsProgress', { cur: points.total_points % 1000 })}</span>
+                <span className="text-accent-100">{t('g.gam.ptsProgress', { cur: inLevel, total: perLevel })}</span>
               </div>
               <div className="w-full bg-white/20 rounded-full h-3">
                 <div className="bg-white dark:bg-surface-800 h-3 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
               </div>
               <div className="text-xs text-accent-100 mt-1">
-                {t('g.gam.toNextLevel', { n: points.points_to_next_level })}
+                {t('g.gam.toNextLevel', { n: points.points_to_next_level ?? (perLevel - inLevel) })}
               </div>
             </div>
-            {points.badges_earned.length > 0 && (
+            {(points.badges_earned ?? []).length > 0 && (
               <div>
                 <p className="text-xs text-accent-100 mb-1.5">{t('g.gam.badges')}</p>
                 <div className="flex flex-wrap gap-1">
-                  {points.badges_earned.map((b, i) => (
+                  {(points.badges_earned ?? []).map((b, i) => (
                     <span key={i} className="text-xs bg-white/20 rounded-full px-2.5 py-1 font-medium">{b}</span>
                   ))}
                 </div>

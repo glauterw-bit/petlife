@@ -1945,11 +1945,16 @@ export interface AIAnalysis {
 export interface Routine {
   id: number
   pet_id: number
-  walks_per_day: number
-  walk_duration_minutes: number
-  walk_times: string[]
+  walks_per_day?: number
+  walk_duration_minutes?: number
+  /** Pode faltar em rotinas antigas — sempre acesse com `?? []`. */
+  walk_times?: string[]
   exercise_type?: string
   tips?: string[]
+  precautions?: string[]
+  equipment?: string[]
+  weekly_plan?: Record<string, string>
+  notes?: string | null
   generated_at?: string
   created_at?: string
 }
@@ -1988,10 +1993,11 @@ export interface LeaderboardEntry {
 export interface UserPoints {
   total_points: number
   level: number
-  level_name: string
-  badge: string
-  points_to_next_level: number
-  badges_earned: string[]
+  /** Pode faltar em respostas antigas — acesse com `?? []`. */
+  badges_earned?: string[]
+  points_in_level?: number
+  points_per_level?: number
+  points_to_next_level?: number
 }
 
 export interface Reminder {

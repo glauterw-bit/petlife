@@ -443,22 +443,22 @@ export default function PetProfilePage() {
               <div key={r.id} className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
                 <div className="grid grid-cols-3 gap-4 mb-6 text-center">
                   <div className="bg-primary-50 rounded-xl p-3">
-                    <div className="text-2xl font-bold text-primary-700">{r.walks_per_day}x</div>
+                    <div className="text-2xl font-bold text-primary-700">{r.walks_per_day ?? 0}x</div>
                     <div className="text-xs text-primary-600">{t('pw.pet.perDay')}</div>
                   </div>
                   <div className="bg-accent-50 rounded-xl p-3">
-                    <div className="text-2xl font-bold text-accent-700">{r.walk_duration_minutes}min</div>
+                    <div className="text-2xl font-bold text-accent-700">{r.walk_duration_minutes ?? 0}min</div>
                     <div className="text-xs text-accent-600">{t('pw.pet.perWalk')}</div>
                   </div>
                   <div className="bg-green-50 rounded-xl p-3">
-                    <div className="text-2xl font-bold text-green-700">{r.walks_per_day * r.walk_duration_minutes}min</div>
+                    <div className="text-2xl font-bold text-green-700">{(r.walks_per_day ?? 0) * (r.walk_duration_minutes ?? 0)}min</div>
                     <div className="text-xs text-green-600">{t('pw.pet.totalPerDay')}</div>
                   </div>
                 </div>
                 <div className="mb-4">
                   <p className="text-sm font-medium text-surface-700 dark:text-surface-200 mb-2">{t('pw.pet.suggestedTimes')}</p>
                   <div className="flex flex-wrap gap-2">
-                    {r.walk_times.map((time, i) => (
+                    {(r.walk_times ?? []).map((time, i) => (
                       <span key={i} className="bg-primary-100 text-primary-700 text-sm font-semibold px-3 py-1.5 rounded-xl">{time}</span>
                     ))}
                   </div>

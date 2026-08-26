@@ -286,6 +286,10 @@ class WalkRoutine(Base):
     duration_minutes = Column(Integer, nullable=True)
     time_slots = Column(JSON, nullable=True)
     notes = Column(Text, nullable=True)
+    # Payload completo da IA (intensidade, dicas, plano semanal, precauções,
+    # equipamento). Antes isso era jogado fora — o dict virava str() dentro de
+    # `notes` e o app nunca conseguia exibir nada além de horário e duração.
+    details = Column(JSON, nullable=True)
     ai_generated = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 

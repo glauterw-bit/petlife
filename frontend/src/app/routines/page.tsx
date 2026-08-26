@@ -53,6 +53,10 @@ export default function RoutinesPage() {
   const activePet = petList.find(p => p.id === activePetId)
   const activeRoutines = activePetId ? (routinesMap[activePetId] ?? []) : []
   const activeRoutine = activeRoutines[0]
+  // Rotinas antigas podem vir sem horários; ler direto estourava a tela toda.
+  const walkTimes = activeRoutine?.walk_times ?? []
+  const perDay = activeRoutine?.walks_per_day ?? 0
+  const perWalk = activeRoutine?.walk_duration_minutes ?? 0
 
   return (
     <DashboardLayout>
@@ -127,16 +131,16 @@ export default function RoutinesPage() {
                     {/* Stats */}
                     <div className="grid grid-cols-3 gap-4 mb-6">
                       <div className="bg-primary-50 rounded-xl p-4 text-center">
-                        <div className="text-3xl font-bold text-primary-700">{activeRoutine.walks_per_day}x</div>
+                        <div className="text-3xl font-bold text-primary-700">{perDay}x</div>
                         <div className="text-xs text-primary-600 mt-1">{t('g.rt.walksPerDay')}</div>
                       </div>
                       <div className="bg-accent-50 rounded-xl p-4 text-center">
-                        <div className="text-3xl font-bold text-accent-700">{activeRoutine.walk_duration_minutes}min</div>
+                        <div className="text-3xl font-bold text-accent-700">{perWalk}min</div>
                         <div className="text-xs text-accent-600 mt-1">{t('g.rt.perWalk')}</div>
                       </div>
                       <div className="bg-green-50 rounded-xl p-4 text-center">
                         <div className="text-3xl font-bold text-green-700">
-                          {activeRoutine.walks_per_day * activeRoutine.walk_duration_minutes}min
+                          {perDay * perWalk}min
                         </div>
                         <div className="text-xs text-green-600 mt-1">{t('g.rt.totalPerDay')}</div>
                       </div>
@@ -149,10 +153,12 @@ export default function RoutinesPage() {
                         {t('g.rt.recommendedTimes')}
                       </h3>
                       <div className="flex flex-wrap gap-3">
-                        {activeRoutine.walk_times.map((t, i) => (
+                        {/* `time`, não `t`: sombrear a função de tradução aqui dentro
+                            já foi motivo de bug e some com o t() do escopo. */}
+                        {walkTimes.map((time, i) => (
                           <div key={i} className="flex items-center gap-2 bg-primary-100 rounded-xl px-4 py-2.5">
                             <Zap className="w-4 h-4 text-primary-600" />
-                            <span className="text-base font-bold text-primary-700">{t}</span>
+                            <span className="text-base font-bold text-primary-700">{time}</span>
                           </div>
                         ))}
                       </div>
@@ -166,12 +172,12 @@ export default function RoutinesPage() {
                           <div key={dayKey} className="text-center">
                             <div className="text-xs font-medium text-surface-500 dark:text-surface-400 mb-1">{t(dayKey)}</div>
                             <div className="space-y-1">
-                              {activeRoutine.walk_times.map((t, j) => (
+                              {walkTimes.map((time, j) => (
                                 <div
                                   key={j}
                                   className={`text-xs py-1 rounded-lg font-medium ${i === 0 || i === 6 ? 'bg-accent-100 text-accent-700' : 'bg-primary-100 text-primary-700'}`}
                                 >
-                                  {t}
+                                  {time}
                                 </div>
                               ))}
                             </div>

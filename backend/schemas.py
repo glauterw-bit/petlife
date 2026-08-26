@@ -392,16 +392,105 @@ class WalkRoutineGenerateRequest(BaseModel):
 
 
 class WalkRoutineResponse(BaseModel):
+    """Resposta da rotina de passeio.
+
+    Os nomes aqui são os que o app consome (walks_per_day/walk_times/…), que
+    NÃO são os nomes das colunas (frequency_per_day/time_slots/…). Antes o
+    schema devolvia os nomes do banco e o app lia os outros: `walk_times` vinha
+    `undefined`, o `.map()` estourava e a tela inteira virava "Application
+    error: a client-side exception has occurred".
+
+    Os nomes das colunas seguem no fim, para não quebrar nenhum outro cliente.
+    """
     id: int
     pet_id: int
-    frequency_per_day: Optional[int] = None
-    duration_minutes: Optional[int] = None
-    time_slots: Optional[List[str]] = None
+    walks_per_day: Optional[int] = None
+    walk_duration_minutes: Optional[int] = None
+    walk_times: List[str] = []
+    exercise_type: Optional[str] = None
+    tips: List[str] = []
+    precautions: List[str] = []
+    equipment: List[str] = []
+    weekly_plan: Optional[dict] = None
     notes: Optional[str] = None
     ai_generated: bool
     created_at: datetime
 
+    # aliases legados (nomes das colunas)
+    frequency_per_day: Optional[int] = None
+    duration_minutes: Optional[int] = None
+    time_slots: List[str] = []
+
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def _expand(cls, v: Any) -> Any:
+        if isinstance(v, dict):
+            return v
+
+        details = _routine_details(v)
+        times = list(getattr(v, "time_slots", None) or details.get("time_slots") or [])
+        freq = getattr(v, "frequency_per_day", None) or details.get("frequency_per_day")
+        dur = getattr(v, "duration_minutes", None) or details.get("duration_minutes")
+
+        return {
+            "id": v.id,
+            "pet_id": v.pet_id,
+            "walks_per_day": freq,
+            "walk_duration_minutes": dur,
+            "walk_times": times,
+            "exercise_type": details.get("intensity"),
+            "tips": list(details.get("tips") or []),
+            "precautions": list(details.get("precautions") or []),
+            "equipment": list(details.get("equipment_needed") or []),
+            "weekly_plan": details.get("weekly_plan"),
+            # a nota legível é a da IA; o dump completo mora em `details`
+            "notes": details.get("notes") or _plain_notes(getattr(v, "notes", None)),
+            "ai_generated": v.ai_generated,
+            "created_at": v.created_at,
+            "frequency_per_day": freq,
+            "duration_minutes": dur,
+            "time_slots": times,
+        }
+
+
+def _routine_details(routine: Any) -> dict:
+    """Payload completo da IA. Novo: coluna `details` (JSON).
+
+    Linhas antigas guardavam `str(dict)` dentro de `notes` — um repr de Python,
+    não JSON. Recuperamos com literal_eval pra não perder as dicas que já foram
+    geradas (e pagas) antes desta correção.
+    """
+    d = getattr(routine, "details", None)
+    if isinstance(d, dict):
+        return d
+    if isinstance(d, str) and d.strip():
+        try:
+            import json
+            parsed = json.loads(d)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+
+    raw = getattr(routine, "notes", None)
+    if isinstance(raw, str) and raw.strip().startswith("{"):
+        import ast
+        try:
+            parsed = ast.literal_eval(raw)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+    return {}
+
+
+def _plain_notes(raw: Any) -> Optional[str]:
+    """Não devolve o repr do dict como se fosse texto pro tutor ler."""
+    if isinstance(raw, str) and raw.strip().startswith("{"):
+        return None
+    return raw
 
 
 # ─── Challenge Schemas ────────────────────────────────────────────────────────
@@ -434,13 +523,49 @@ class UserChallengeResponse(BaseModel):
 
 
 class UserPointsResponse(BaseModel):
+    """Pontos e nível do tutor.
+
+    `badges_earned` existe porque é o nome que o app lê. Antes só existia
+    `badges`, então `points.badges_earned.length` estourava e derrubava a tela
+    de desafios inteira. É sempre lista — nunca None.
+
+    O progresso também vem daqui: o app calculava a barra com 1000 pontos por
+    nível enquanto o backend sobe de nível a cada 100, então a barra ficava em
+    ~10% do valor real.
+    """
     id: int
     user_id: int
     total_points: int
     level: int
-    badges: Optional[List[str]] = None
+    badges: List[str] = []
+    badges_earned: List[str] = []
+    points_in_level: int = 0
+    points_per_level: int = 100
+    points_to_next_level: int = 0
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def _expand(cls, v: Any) -> Any:
+        if isinstance(v, dict):
+            return v
+        from routers.gamification import POINTS_PER_LEVEL
+
+        total = v.total_points or 0
+        badges = list(v.badges or [])
+        in_level = total % POINTS_PER_LEVEL
+        return {
+            "id": v.id,
+            "user_id": v.user_id,
+            "total_points": total,
+            "level": v.level,
+            "badges": badges,
+            "badges_earned": badges,
+            "points_in_level": in_level,
+            "points_per_level": POINTS_PER_LEVEL,
+            "points_to_next_level": POINTS_PER_LEVEL - in_level,
+        }
 
 
 # ─── Vet Clinic Schemas ───────────────────────────────────────────────────────

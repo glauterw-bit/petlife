@@ -68,12 +68,18 @@ async def generate_walk_routine(
 
     try:
         routine_data = await ai_service.generate_walk_routine(pet_info, breed_info)
+        times = routine_data.get("time_slots") or ["08:00", "17:00"]
+        # A IA às vezes devolve string em vez de lista; normalizamos aqui pra
+        # não estourar no cliente.
+        if isinstance(times, str):
+            times = [times]
         routine = WalkRoutine(
             pet_id=request.pet_id,
-            frequency_per_day=routine_data.get("frequency_per_day", 2),
-            duration_minutes=routine_data.get("duration_minutes", 30),
-            time_slots=routine_data.get("time_slots", ["08:00", "17:00"]),
-            notes=str(routine_data),
+            frequency_per_day=routine_data.get("frequency_per_day") or len(times) or 2,
+            duration_minutes=routine_data.get("duration_minutes") or 30,
+            time_slots=[str(x) for x in times],
+            notes=routine_data.get("notes"),
+            details=routine_data,
             ai_generated=True,
         )
     except Exception:
@@ -83,6 +89,7 @@ async def generate_walk_routine(
             duration_minutes=30,
             time_slots=["08:00", "17:00"],
             notes="Rotina padrão. Ajuste conforme necessidade do seu pet.",
+            details=None,
             ai_generated=True,
         )
 
