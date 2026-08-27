@@ -1,0 +1,67 @@
+name: Contrato API ↔ app
+
+# Por que este workflow existe:
+#
+# Doze bugs chegaram em produção com a mesma causa — o backend devolvia um nome
+# e o frontend lia outro. Nenhum foi pego por TypeScript, build ou revisão: o
+# compilador confia na interface que escrevemos, não no que a API responde.
+#
+# O pior deles fez `POST /vaccines` devolver 422 por meses. Cadastrar vacina era
+# impossível, e a métrica central do produto ("0% registram vacina") foi lida
+# como problema de comportamento do usuário.
+#
+# Este job sobe a API de verdade, lê o OpenAPI e compara com o client.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  contrato:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências da API
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Subir a API em memória
+        working-directory: backend
+        env:
+          # SQLite em arquivo: o objetivo é gerar o OpenAPI, não rodar consultas.
+          DATABASE_URL: sqlite+aiosqlite:///./ci.db
+          SECRET_KEY: ci-only-not-a-real-secret
+        run: |
+          uvicorn main:app --port 8030 &
+          for i in $(seq 1 40); do
+            curl -sf http://127.0.0.1:8030/openapi.json > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8030/openapi.json > /dev/null
+
+      - name: Conferir contrato
+        working-directory: frontend
+        run: node ../scripts/check-api-contract.mjs --api http://127.0.0.1:8030 --client src/lib/api.ts
+
+      - name: Conferir traduções
+        working-directory: frontend
+        run: node scripts/check-i18n.mjs
+
+      - name: Typecheck
+        working-directory: frontend
+        run: |
+          npm ci
+          npx tsc --noEmit -p tsconfig.json

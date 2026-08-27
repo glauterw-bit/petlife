@@ -6,7 +6,10 @@
     "dev": "next dev -p 3030",
     "build": "next build",
     "start": "next start -p ${PORT:-3030}",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check": "npm run check:i18n && npm run check:api",
+    "check:api": "node ../scripts/check-api-contract.mjs --client src/lib/api.ts",
+    "check:i18n": "node scripts/check-i18n.mjs"
   },
   "dependencies": {
     "@capacitor-community/in-app-review": "^8.0.0",
