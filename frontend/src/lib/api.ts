@@ -321,8 +321,12 @@ export const vaccines = {
   },
 
   getUpcoming: async (days?: number) => {
-    const qs = days ? `?days=${days}` : ''
-    const res = await fetch(`${API_URL}/vaccines/upcoming${qs}`, { headers: getAuthHeaders() })
+    // A rota é /upcoming-reminders com `days_ahead` (não /upcoming com `days`).
+    // Com o nome errado a chamada caía na rota /{vaccine_id}, que tentava
+    // converter "upcoming" em número e devolvia 422 — o card de vacinas
+    // próximas do dashboard nunca carregou.
+    const qs = days ? `?days_ahead=${days}` : ''
+    const res = await fetch(`${API_URL}/vaccines/upcoming-reminders${qs}`, { headers: getAuthHeaders() })
     return handleResponse<Vaccine[]>(res)
   },
 
