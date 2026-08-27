@@ -1399,7 +1399,7 @@ export const vet = {
     // rota real: /vet/patient/{id}/full-history (singular, e "full-history").
     // Com o nome errado dava 404 e o histórico do paciente nunca abria.
     const res = await fetch(`${API_URL}/vet/patient/${petId}/full-history`, { headers: getAuthHeaders() })
-    return handleResponse<PatientHistory>(res)
+    return normalizePatientHistory(await handleResponse<PatientHistory>(res))
   },
 
   addConsultation: async (petId: number, data: ConsultationData) => {
@@ -2084,6 +2084,19 @@ export interface PatientHistory {
   exams: Exam[]
   anamnesis: Anamnesis[]
   consultations: Consultation[]
+}
+
+/** A tela desestrutura tudo de uma vez; listas ausentes viravam undefined e
+ *  `anamnesis.length` derrubava a página. Normaliza antes de usar. */
+export function normalizePatientHistory(h: unknown): PatientHistory {
+  const raw = (h ?? {}) as Record<string, unknown>
+  return {
+    ...raw,
+    vaccines: (raw.vaccines as Vaccine[]) ?? [],
+    exams: (raw.exams as Exam[]) ?? [],
+    anamnesis: (raw.anamnesis as Anamnesis[]) ?? (raw.anamneses as Anamnesis[]) ?? [],
+    consultations: (raw.consultations as Consultation[]) ?? [],
+  } as PatientHistory
 }
 
 export interface Consultation {

@@ -281,20 +281,59 @@ async def get_patient_full_history(
             }
             for e in pet.exams
         ],
-        "anamneses": [
-            {
-                "id": a.id,
-                "created_at": a.created_at,
-                "symptoms": a.symptoms,
-                "duration": a.duration,
-                "appetite": a.appetite,
-                "energy_level": a.energy_level,
-                "behavior_changes": a.behavior_changes,
-                "current_medications": a.current_medications,
-                "ai_analysis": a.ai_analysis,
-            }
-            for a in pet.anamneses
-        ],
+        # `anamnesis` (singular) é o nome que o portal lê. Antes só existia
+        # "anamneses": a tela desestruturava `anamnesis` e `consultations`,
+        # ambos vinham undefined e `anamnesis.length` derrubava a página do
+        # paciente inteira.
+        "anamnesis": [_anamnesis_row(a) for a in pet.anamneses if not _is_consultation(a)],
+        "anamneses": [_anamnesis_row(a) for a in pet.anamneses if not _is_consultation(a)],
+        # Consulta lançada pela clínica: é uma Anamnesis cujo ai_analysis tem
+        # diagnóstico/tratamento. Separamos pra tela poder listar as duas coisas.
+        "consultations": [_consultation_row(a) for a in pet.anamneses if _is_consultation(a)],
+    }
+
+
+def _parsed_analysis(a) -> dict:
+    if not a.ai_analysis:
+        return {}
+    try:
+        parsed = json.loads(a.ai_analysis)
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def _is_consultation(a) -> bool:
+    return "diagnosis" in _parsed_analysis(a)
+
+
+def _anamnesis_row(a) -> dict:
+    from schemas import _normalize_analysis
+    return {
+        "id": a.id,
+        "created_at": a.created_at,
+        "symptoms": a.symptoms,
+        "duration": a.duration,
+        "appetite": a.appetite,
+        "energy_level": a.energy_level,
+        "behavior_changes": a.behavior_changes,
+        "current_medications": a.current_medications,
+        "ai_analysis": _normalize_analysis(a.ai_analysis),
+    }
+
+
+def _consultation_row(a) -> dict:
+    d = _parsed_analysis(a)
+    return {
+        "id": a.id,
+        "pet_id": a.pet_id,
+        "date": a.created_at,
+        "created_at": a.created_at,
+        "notes": a.symptoms,
+        "diagnosis": d.get("diagnosis") or None,
+        "treatment": d.get("treatment") or None,
+        "vet_name": d.get("vet") or None,
+        "follow_up_date": d.get("follow_up_date"),
     }
 
 
@@ -324,10 +363,12 @@ async def add_consultation(
     anamnesis = Anamnesis(
         pet_id=pet_id,
         symptoms=notes,
+        created_at=body.date or datetime.utcnow(),
         ai_analysis=json.dumps({
             "diagnosis": diagnosis or "",
             "treatment": treatment or "",
             "vet": current_user.name,
+            "follow_up_date": follow_up_date.isoformat() if follow_up_date else None,
         }, ensure_ascii=False),
     )
     db.add(anamnesis)
@@ -345,12 +386,10 @@ async def add_consultation(
         db.add(reminder)
 
     await db.commit()
-    return {
-        "message": "Consulta registrada com sucesso",
-        "pet_id": pet_id,
-        "vet": current_user.name,
-        "follow_up": follow_up_date,
-    }
+    await db.refresh(anamnesis)
+    # Devolve a consulta criada (não uma mensagem): a tela insere o retorno
+    # direto na lista, e antes `c.id` e `c.date` vinham undefined.
+    return _consultation_row(anamnesis)
 
 
 @router.get("/appointments")

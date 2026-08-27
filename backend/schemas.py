@@ -627,6 +627,9 @@ class ConsultationCreate(BaseModel):
     """
     pet_id: int
     notes: str
+    # A tela manda `date`; antes o campo era ignorado e a consulta ficava com a
+    # data do servidor, não a que o veterinário escolheu.
+    date: Optional[datetime] = None
     diagnosis: Optional[str] = None
     treatment: Optional[str] = None
     follow_up_date: Optional[datetime] = None
