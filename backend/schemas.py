@@ -570,6 +570,27 @@ class UserPointsResponse(BaseModel):
 
 # ─── Vet Clinic Schemas ───────────────────────────────────────────────────────
 
+class VetClinicSelfRegister(BaseModel):
+    """Payload da tela /vet/register — cria conta e clínica juntas.
+
+    Os nomes seguem o que a tela já envia (`clinic_name`, não `name`).
+    """
+    clinic_name: str
+    email: EmailStr
+    password: str
+    cnpj: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    specialty: Optional[str] = None
+
+    @field_validator("password")
+    @classmethod
+    def _min_len(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError("A senha precisa ter ao menos 6 caracteres")
+        return v
+
+
 class VetClinicCreate(BaseModel):
     name: str
     cnpj: Optional[str] = None

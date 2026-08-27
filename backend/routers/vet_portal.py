@@ -29,7 +29,10 @@ async def _vet_accessible_pet_ids(db: AsyncSession, vet_user: User) -> list[int]
         )
     )
     return [r[0] for r in access_q.all()]
-from schemas import VetClinicCreate, VetClinicResponse, UserLogin, Token, UserResponse
+from schemas import (
+    VetClinicCreate, VetClinicSelfRegister, VetClinicResponse,
+    UserLogin, Token, UserResponse,
+)
 from auth import (
     get_password_hash, verify_password, create_access_token,
     get_current_user, get_current_vet
@@ -75,6 +78,78 @@ async def register_clinic(
     await db.commit()
     await db.refresh(clinic)
     return clinic
+
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+async def register_clinic_selfservice(
+    data: VetClinicSelfRegister,
+    db: AsyncSession = Depends(get_db),
+):
+    """Cadastro autônomo de clínica: cria a conta e a clínica de uma vez.
+
+    A tela /vet/register sempre chamou POST /vet/register, que não existia —
+    só havia /vet/clinic/register, e essa exige um usuário JÁ logado. Ou seja:
+    nenhuma clínica conseguiu se cadastrar pelo portal, nunca. Toda tentativa
+    voltava 404.
+
+    Devolve {access_token, clinic}, o mesmo formato que /vet/login, porque é
+    isso que a tela consome pra já entrar logada depois do cadastro.
+    """
+    email = data.email.strip().lower()
+
+    existing = await db.execute(select(User).where(User.email == email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Já existe uma conta com este e-mail. Entre pelo login.",
+        )
+
+    if data.cnpj:
+        dup = await db.execute(select(VetClinic).where(VetClinic.cnpj == data.cnpj))
+        if dup.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="CNPJ já cadastrado")
+
+    user = User(
+        name=data.clinic_name,
+        email=email,
+        password_hash=get_password_hash(data.password),
+        is_vet=True,
+    )
+    db.add(user)
+    await db.flush()
+
+    clinic = VetClinic(
+        name=data.clinic_name,
+        cnpj=data.cnpj,
+        phone=data.phone,
+        email=email,
+        address=data.address,
+        specialty=data.specialty,
+    )
+    db.add(clinic)
+    await db.flush()
+
+    db.add(ClinicVet(clinic_id=clinic.id, user_id=user.id))
+    await db.commit()
+    await db.refresh(clinic)
+
+    token = create_access_token(
+        data={"sub": str(user.id)},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "clinic": {
+            "id": clinic.id,
+            "clinic_name": clinic.name,
+            "cnpj": clinic.cnpj,
+            "phone": clinic.phone,
+            "email": clinic.email,
+            "address": clinic.address,
+            "specialty": clinic.specialty,
+        },
+    }
 
 
 @router.post("/login", response_model=Token)

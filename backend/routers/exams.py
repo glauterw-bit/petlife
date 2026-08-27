@@ -1,12 +1,14 @@
 import os
 import uuid
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from database import get_db, settings
-from models import Pet, Exam, user_has_pet_access
+from models import Pet, Exam, user_has_pet_access, pet_accessible_filter
 from schemas import ExamCreate, ExamUpdate, ExamResponse
 from auth import get_current_user
 from models import User
@@ -55,6 +57,37 @@ async def create_exam(
     await db.commit()
     await db.refresh(exam)
     return exam
+
+
+@router.get("", response_model=list[ExamResponse])
+async def list_exams(
+    pet_id: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Todos os exames dos pets acessíveis ao usuário (opcionalmente de um pet).
+
+    O app chama GET /exams na tela de Exames. Este endpoint não existia — só
+    havia POST na mesma rota — então a chamada voltava 405 Method Not Allowed e
+    a lista ficava vazia para todo mundo, mesmo com exames cadastrados. Mesmo
+    problema que GET /vaccines tinha.
+    """
+    pet_q = await db.execute(select(Pet.id).where(pet_accessible_filter(current_user.id)))
+    pet_ids = [r[0] for r in pet_q.fetchall()]
+    if pet_id is not None:
+        if pet_id not in pet_ids:
+            raise HTTPException(status_code=404, detail="Pet não encontrado")
+        pet_ids = [pet_id]
+    if not pet_ids:
+        return []
+
+    result = await db.execute(
+        select(Exam)
+        .options(selectinload(Exam.pet))
+        .where(Exam.pet_id.in_(pet_ids))
+        .order_by(Exam.date.desc())
+    )
+    return result.scalars().all()
 
 
 @router.get("/pet/{pet_id}", response_model=list[ExamResponse])
