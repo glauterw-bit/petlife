@@ -12,6 +12,8 @@ interface AuthContextValue {
   login: (email: string, password: string, remember?: boolean) => Promise<void>
   loginWithSession: (token: string, user: User) => void
   vetLogin: (email: string, password: string) => Promise<void>
+  /** Recebe o retorno de vet.registerClinic e já deixa a sessão ativa. */
+  adoptVetSession: (accessToken: string, clinic: { id?: number; clinic_name?: string; email?: string }, fallbackEmail: string) => void
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -81,6 +83,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsVetUser(true)
   }, [])
 
+  /**
+   * Ativa a sessão de clínica depois do cadastro.
+   *
+   * A tela /vet/register escrevia só no localStorage e navegava — o estado do
+   * React continuava "deslogado", então o guard do /vet/dashboard mandava a
+   * clínica recém-criada pra /auth/login. Aqui gravamos nos dois lugares,
+   * igual ao vetLogin.
+   */
+  const adoptVetSession = useCallback((
+    accessToken: string,
+    clinic: { id?: number; clinic_name?: string; email?: string },
+    fallbackEmail: string,
+  ) => {
+    setToken(accessToken)
+    setIsVet(true)
+    const vetUser: User = {
+      id: clinic?.id ?? 0,
+      name: clinic?.clinic_name ?? 'Clínica',
+      email: clinic?.email ?? fallbackEmail,
+      is_vet: true,
+    }
+    setUser(vetUser)
+    setTokenState(accessToken)
+    setUserState(vetUser)
+    setIsVetUser(true)
+  }, [])
+
   const logout = useCallback(() => {
     removeToken()
     setTokenState(null)
@@ -97,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, isVetUser, login, loginWithSession, vetLogin, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, isVetUser, login, loginWithSession, vetLogin, adoptVetSession, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

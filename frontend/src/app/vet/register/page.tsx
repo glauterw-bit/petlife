@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PawPrint, Building2, Phone, Mail, Lock, MapPin, Stethoscope, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { vet } from '@/lib/api'
-import { setToken, setUser, setIsVet } from '@/lib/auth'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
 
@@ -28,7 +27,7 @@ const SPECIALTIES = [
 export default function VetRegisterPage() {
   const router = useRouter()
   const t = useT()
-  const { refreshUser } = useAuth()
+  const { adoptVetSession } = useAuth()
 
   const [form, setFormState] = useState({
     clinic_name: '',
@@ -63,15 +62,10 @@ export default function VetRegisterPage() {
         address: form.address,
         specialty: form.specialty || undefined,
       })
-      setToken(res.access_token)
-      setIsVet(true)
-      const vetUser = {
-        id: res.clinic?.id ?? 0,
-        name: res.clinic?.clinic_name ?? form.clinic_name,
-        email: form.email,
-        is_vet: true,
-      }
-      setUser(vetUser)
+      // Grava localStorage E estado do contexto — só o localStorage não basta:
+      // o guard do /vet/dashboard lê o contexto e devolvia a clínica recém
+      // cadastrada pra tela de login do tutor.
+      adoptVetSession(res.access_token, res.clinic ?? { clinic_name: form.clinic_name }, form.email)
       router.push('/vet/dashboard')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('v.vetreg.errGeneric'))
