@@ -635,6 +635,24 @@ class ConsultationCreate(BaseModel):
     follow_up_date: Optional[datetime] = None
 
 
+class ConsultationResponse(BaseModel):
+    """Consulta devolvida pelo portal.
+
+    Existe também pra deixar o endpoint visível no OpenAPI: sem response_model
+    ele não aparece no schema, e nenhuma ferramenta de contrato consegue
+    conferir se o app lê os campos certos.
+    """
+    id: int
+    pet_id: int
+    date: datetime
+    created_at: datetime
+    notes: Optional[str] = None
+    diagnosis: Optional[str] = None
+    treatment: Optional[str] = None
+    vet_name: Optional[str] = None
+    follow_up_date: Optional[datetime] = None
+
+
 class VetClinicSelfRegister(BaseModel):
     """Payload da tela /vet/register — cria conta e clínica juntas.
 

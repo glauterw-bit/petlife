@@ -31,7 +31,7 @@ async def _vet_accessible_pet_ids(db: AsyncSession, vet_user: User) -> list[int]
     return [r[0] for r in access_q.all()]
 from schemas import (
     VetClinicCreate, VetClinicSelfRegister, VetClinicResponse,
-    ConsultationCreate, UserLogin, Token, UserResponse,
+    ConsultationCreate, ConsultationResponse, UserLogin, Token, UserResponse,
 )
 from auth import (
     get_password_hash, verify_password, create_access_token,
@@ -337,7 +337,7 @@ def _consultation_row(a) -> dict:
     }
 
 
-@router.post("/consultation")
+@router.post("/consultation", response_model=ConsultationResponse)
 async def add_consultation(
     body: ConsultationCreate,
     current_user: User = Depends(get_current_vet),
