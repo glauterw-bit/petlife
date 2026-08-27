@@ -257,7 +257,7 @@ export default function VetPatientPage() {
                     {a.ai_analysis && (
                       <div className={cn('rounded-xl p-3 border text-sm', colorClass)}>
                         <p className="font-semibold mb-1">{t('v.vetpat.aiAnalysis')}</p>
-                        <p>{a.ai_analysis.summary}</p>
+                        <p>{a.ai_analysis.analysis}</p>
                         {a.ai_analysis.seek_vet_immediately && (
                           <p className="mt-2 font-bold text-red-700">{t('v.vetpat.urgentWarning')}</p>
                         )}

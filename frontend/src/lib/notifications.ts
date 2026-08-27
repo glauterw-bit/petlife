@@ -63,10 +63,10 @@ export async function syncHealthNotifications(
     const notifs: Array<{ id: number; title: string; body: string; schedule: { at: Date } }> = []
 
     for (const v of vaccines) {
-      if (!v.next_due_date) continue
+      if (!v.next_due) continue
       const petName = v.pet?.name ? ` de ${v.pet.name}` : ''
-      const before = at9am(v.next_due_date, 1)
-      const dayOf = at9am(v.next_due_date)
+      const before = at9am(v.next_due, 1)
+      const dayOf = at9am(v.next_due)
       if (before.getTime() > now) {
         notifs.push({
           id: VACCINE_BASE + v.id * 2 + 1,
@@ -86,7 +86,7 @@ export async function syncHealthNotifications(
     }
 
     for (const r of reminders) {
-      if (!r.due_date || r.completed) continue
+      if (!r.due_date || r.is_completed) continue
       const dayOf = at9am(r.due_date)
       if (dayOf.getTime() > now) {
         notifs.push({

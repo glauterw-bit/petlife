@@ -4,6 +4,7 @@ import { Trophy, Play, CheckCircle, Clock, Star } from 'lucide-react'
 import { type Challenge, type UserChallenge } from '@/lib/api'
 import { getDifficultyLabel, getDifficultyColor, formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { useT } from '@/contexts/LocaleContext'
 
 interface ChallengeCardProps {
   challenge: Challenge
@@ -24,11 +25,12 @@ const categoryIcons: Record<string, string> = {
 }
 
 export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, loading }: ChallengeCardProps) {
+  const t = useT()
   const catIcon = categoryIcons[challenge.category] ?? categoryIcons.default
   const diffColor = getDifficultyColor(challenge.difficulty)
   const diffLabel = getDifficultyLabel(challenge.difficulty)
 
-  const isActive = userChallenge?.status === 'active'
+  const isActive = userChallenge?.status === 'in_progress'
   const isCompleted = userChallenge?.status === 'completed'
   const progress = userChallenge?.progress ?? 0
 
@@ -83,7 +85,7 @@ export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, l
       {isActive && (
         <div className="mb-3">
           <div className="flex justify-between text-xs text-surface-500 dark:text-surface-400 mb-1">
-            <span>Progresso</span>
+            <span>{t('g.gam.cardProgress')}</span>
             <span>{progress}%</span>
           </div>
           <div className="w-full bg-surface-200 rounded-full h-2">
@@ -127,12 +129,12 @@ export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, l
           ) : isActive ? (
             <>
               <CheckCircle className="w-4 h-4" />
-              Concluir desafio
+              {t('g.gam.cardComplete')}
             </>
           ) : (
             <>
               <Play className="w-4 h-4" />
-              {userChallenge?.status === 'failed' ? 'Tentar novamente' : 'Iniciar desafio'}
+              {userChallenge?.status === 'not_started' ? t('g.gam.cardRetry') : t('g.gam.cardStart')}
             </>
           )}
         </button>

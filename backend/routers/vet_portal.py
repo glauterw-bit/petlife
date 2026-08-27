@@ -31,7 +31,7 @@ async def _vet_accessible_pet_ids(db: AsyncSession, vet_user: User) -> list[int]
     return [r[0] for r in access_q.all()]
 from schemas import (
     VetClinicCreate, VetClinicSelfRegister, VetClinicResponse,
-    UserLogin, Token, UserResponse,
+    ConsultationCreate, UserLogin, Token, UserResponse,
 )
 from auth import (
     get_password_hash, verify_password, create_access_token,
@@ -300,14 +300,16 @@ async def get_patient_full_history(
 
 @router.post("/consultation")
 async def add_consultation(
-    pet_id: int,
-    notes: str,
-    diagnosis: str = None,
-    treatment: str = None,
-    follow_up_date: datetime = None,
+    body: ConsultationCreate,
     current_user: User = Depends(get_current_vet),
     db: AsyncSession = Depends(get_db),
 ):
+    pet_id = body.pet_id
+    notes = body.notes
+    diagnosis = body.diagnosis
+    treatment = body.treatment
+    follow_up_date = body.follow_up_date
+
     # Auth: vet precisa ter acesso ao pet via PetClinicAccess
     accessible_ids = await _vet_accessible_pet_ids(db, current_user)
     if pet_id not in accessible_ids:

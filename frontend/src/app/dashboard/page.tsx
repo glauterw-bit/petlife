@@ -68,7 +68,7 @@ export default function DashboardPage() {
 
   if (loading) return <DashboardLayout><PageLoader /></DashboardLayout>
 
-  const overdueVaccines = upcomingVaccines.filter(v => getVaccineStatus(v.next_due_date) === 'overdue')
+  const overdueVaccines = upcomingVaccines.filter(v => getVaccineStatus(v.next_due) === 'overdue')
   const levelName = points ? getLevelName(points.level) : 'Iniciante'
   const progressPct = points
     ? Math.min(100, ((points.total_points % 1000) / 10))
@@ -130,7 +130,7 @@ export default function DashboardPage() {
           {
             icon: <Syringe className="w-5 h-5" />,
             label: t('dash.upcomingVaccines'),
-            value: upcomingVaccines.filter(v => getVaccineStatus(v.next_due_date) === 'upcoming').length,
+            value: upcomingVaccines.filter(v => getVaccineStatus(v.next_due) === 'upcoming').length,
             tint: 'text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15',
             alert: overdueVaccines.length > 0,
           },
@@ -224,14 +224,14 @@ export default function DashboardPage() {
               </div>
               <div className="space-y-2">
                 {upcomingVaccines.slice(0, 4).map(v => {
-                  const status = getVaccineStatus(v.next_due_date)
+                  const status = getVaccineStatus(v.next_due)
                   const isOverdue = status === 'overdue'
                   return (
                     <div key={v.id} className={`flex items-center gap-3 p-3 rounded-xl ${isOverdue ? 'bg-red-50 border border-red-100' : 'bg-yellow-50 border border-yellow-100'}`}>
                       <Shield className={`w-5 h-5 ${isOverdue ? 'text-red-500' : 'text-yellow-500'}`} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-surface-900 dark:text-white">{v.name}</div>
-                        <div className="text-xs text-surface-500 dark:text-surface-400">{v.pet?.name ?? ''} • {t('vaccine.due')}: {formatDate(v.next_due_date)}</div>
+                        <div className="text-xs text-surface-500 dark:text-surface-400">{v.pet?.name ?? ''} • {t('vaccine.due')}: {formatDate(v.next_due)}</div>
                       </div>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
                         {isOverdue ? t('vaccine.badgeOverdue') : t('vaccine.badgeUpcoming')}
@@ -327,9 +327,9 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 {upcomingReminders.slice(0, 5).map(r => (
                   <div key={r.id} className="flex items-center gap-2 text-sm">
-                    <CheckCircle className={`w-4 h-4 shrink-0 ${r.completed ? 'text-green-400' : 'text-surface-300'}`} />
+                    <CheckCircle className={`w-4 h-4 shrink-0 ${r.is_completed ? 'text-green-400' : 'text-surface-300'}`} />
                     <div className="flex-1 min-w-0">
-                      <div className={`font-medium truncate ${r.completed ? 'line-through text-surface-400' : 'text-surface-800 dark:text-surface-100'}`}>
+                      <div className={`font-medium truncate ${r.is_completed ? 'line-through text-surface-400' : 'text-surface-800 dark:text-surface-100'}`}>
                         {r.title}
                       </div>
                       <div className="text-xs text-surface-500 dark:text-surface-400">{formatDate(r.due_date)}</div>

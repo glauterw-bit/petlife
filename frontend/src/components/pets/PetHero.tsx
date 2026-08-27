@@ -32,8 +32,8 @@ export function PetHero({
   }, [pet.id, refreshKey])
 
   const petVaccines = vaccines.filter(v => !v.pet || v.pet.id === pet.id || (v as { pet_id?: number }).pet_id === pet.id)
-  const hasOverdue = petVaccines.some(v => getVaccineStatus(v.next_due_date) === 'overdue')
-  const hasUpcoming = petVaccines.some(v => getVaccineStatus(v.next_due_date) === 'upcoming')
+  const hasOverdue = petVaccines.some(v => getVaccineStatus(v.next_due) === 'overdue')
+  const hasUpcoming = petVaccines.some(v => getVaccineStatus(v.next_due) === 'upcoming')
 
   const ring = hasOverdue
     ? 'from-red-400 via-rose-500 to-red-400'

@@ -233,6 +233,9 @@ class Exam(Base):
     date = Column(DateTime, nullable=False)
     result = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
+    # O formulário sempre coletou o veterinário, mas não havia coluna: o valor
+    # era enviado e descartado silenciosamente pelo Pydantic.
+    veterinarian = Column(String(200), nullable=True)
     file_path = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

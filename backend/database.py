@@ -148,6 +148,7 @@ async def _run_migrations():
         # Rotina de passeio: guarda o payload completo da IA (dicas, plano
         # semanal, precauções). Antes virava str(dict) dentro de `notes`.
         f"ALTER TABLE walk_routines ADD COLUMN details {'JSON' if _is_sqlite else 'JSONB'}",
+        "ALTER TABLE exams ADD COLUMN veterinarian VARCHAR(200)",
         "CREATE INDEX IF NOT EXISTS ix_pet_expenses_pet_spent ON pet_expenses(pet_id, spent_at)",
         f"ALTER TABLE users ADD COLUMN last_seen_at {timestamp_type}",
         "CREATE INDEX IF NOT EXISTS ix_users_last_seen ON users(last_seen_at)",

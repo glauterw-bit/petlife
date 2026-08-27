@@ -65,10 +65,10 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
               <Calendar className="w-3.5 h-3.5" />
               {formatDate(exam.date)}
             </div>
-            {exam.vet_name && (
+            {exam.veterinarian && (
               <div className="flex items-center gap-1.5 text-xs text-surface-500 dark:text-surface-400">
                 <User className="w-3.5 h-3.5" />
-                {t('h.vac.doctor', { name: exam.vet_name })}
+                {t('h.vac.doctor', { name: exam.veterinarian })}
               </div>
             )}
           </div>
@@ -85,9 +85,9 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
           )}
 
           <div className="mt-3 flex items-center gap-3">
-            {exam.file_url && (
+            {exam.file_path && (
               <a
-                href={exam.file_url}
+                href={exam.file_path}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium transition"

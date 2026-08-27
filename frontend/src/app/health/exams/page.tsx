@@ -39,7 +39,7 @@ export default function ExamsPage() {
     type: 'Hemograma',
     date: new Date().toISOString().split('T')[0],
     result: '',
-    vet_name: '',
+    veterinarian: '',
     notes: '',
   })
   const [examFile, setExamFile] = useState<File | null>(null)
@@ -73,14 +73,14 @@ export default function ExamsPage() {
         type: form.type,
         date: form.date,
         result: form.result || undefined,
-        vet_name: form.vet_name || undefined,
+        veterinarian: form.veterinarian || undefined,
         notes: form.notes || undefined,
       })
       if (examFile) await examsApi.uploadFile(exam.id, examFile).catch(() => {})
       setExamList(prev => [exam, ...prev])
       success(t('h.exams.created'))
       setShowModal(false)
-      setForm(f => ({ ...f, name: '', type: 'Hemograma', result: '', vet_name: '', notes: '' }))
+      setForm(f => ({ ...f, name: '', type: 'Hemograma', result: '', veterinarian: '', notes: '' }))
       setExamFile(null)
     } catch (err: unknown) {
       error(err instanceof Error ? err.message : t('h.exams.createError'))
@@ -188,7 +188,7 @@ export default function ExamsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.form.vet')}</label>
-              <input type="text" value={form.vet_name} onChange={set('vet_name')} placeholder={t('h.form.vetPh')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              <input type="text" value={form.veterinarian} onChange={set('veterinarian')} placeholder={t('h.form.vetPh')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
             </div>
           </div>
           <div>

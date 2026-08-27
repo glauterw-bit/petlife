@@ -24,7 +24,7 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
   }
 
   const sorted = [...vaccines].sort(
-    (a, b) => new Date(b.date_applied).getTime() - new Date(a.date_applied).getTime()
+    (a, b) => new Date(b.date_given).getTime() - new Date(a.date_given).getTime()
   )
 
   return (
@@ -34,7 +34,7 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
 
       <div className="space-y-4">
         {sorted.map((v, i) => {
-          const status = getVaccineStatus(v.next_due_date)
+          const status = getVaccineStatus(v.next_due)
           const statusConfig = {
             up_to_date: {
               icon: <CheckCircle className="w-5 h-5 text-green-500" />,
@@ -68,8 +68,8 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
                     {s.icon}
                     <div>
                       <h4 className="font-semibold text-surface-900 dark:text-white">{v.name}</h4>
-                      {v.vet_name && (
-                        <p className="text-xs text-surface-500 dark:text-surface-400">{t('h.vac.doctor', { name: v.vet_name })}</p>
+                      {v.veterinarian && (
+                        <p className="text-xs text-surface-500 dark:text-surface-400">{t('h.vac.doctor', { name: v.veterinarian })}</p>
                       )}
                     </div>
                   </div>
@@ -81,12 +81,12 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
                 <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1">
                   <div className="text-xs text-surface-500 dark:text-surface-400">
                     <span className="font-medium text-surface-700 dark:text-surface-200">{t('h.vac.applied')}</span>{' '}
-                    {formatDate(v.date_applied)}
+                    {formatDate(v.date_given)}
                   </div>
-                  {v.next_due_date && (
+                  {v.next_due && (
                     <div className="text-xs text-surface-500 dark:text-surface-400">
                       <span className="font-medium text-surface-700 dark:text-surface-200">{t('h.vac.next')}</span>{' '}
-                      {formatDate(v.next_due_date)}
+                      {formatDate(v.next_due)}
                     </div>
                   )}
                   {v.lot_number && (
@@ -102,9 +102,9 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
                 )}
 
                 <div className="mt-3 flex items-center gap-3">
-                  {v.document_url && (
+                  {v.document_path && (
                     <a
-                      href={v.document_url}
+                      href={v.document_path}
                       target="_blank"
                       rel="noreferrer"
                       className="flex items-center gap-1 text-xs text-primary-600 hover:underline"

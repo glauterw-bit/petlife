@@ -339,7 +339,7 @@ export const vaccines = {
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: formData,
     })
-    return handleResponse<{ document_url: string }>(res)
+    return handleResponse<{ document_path: string }>(res)
   },
 }
 
@@ -386,7 +386,7 @@ export const exams = {
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: formData,
     })
-    return handleResponse<{ file_url: string }>(res)
+    return handleResponse<{ file_path: string }>(res)
   },
 }
 
@@ -1396,15 +1396,18 @@ export const vet = {
   },
 
   getPatientHistory: async (petId: number) => {
-    const res = await fetch(`${API_URL}/vet/patients/${petId}/history`, { headers: getAuthHeaders() })
+    // rota real: /vet/patient/{id}/full-history (singular, e "full-history").
+    // Com o nome errado dava 404 e o histórico do paciente nunca abria.
+    const res = await fetch(`${API_URL}/vet/patient/${petId}/full-history`, { headers: getAuthHeaders() })
     return handleResponse<PatientHistory>(res)
   },
 
   addConsultation: async (petId: number, data: ConsultationData) => {
-    const res = await fetch(`${API_URL}/vet/patients/${petId}/consultations`, {
+    // rota real: POST /vet/consultation, com pet_id dentro do corpo.
+    const res = await fetch(`${API_URL}/vet/consultation`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, pet_id: petId }),
     })
     return handleResponse<Consultation>(res)
   },
@@ -1423,9 +1426,11 @@ export const ai = {
   },
 
   analyzeAnamnesis: async (anamnesisId: number) => {
-    const res = await fetch(`${API_URL}/ai/anamnesis/${anamnesisId}/analyze`, {
+    // rota real: POST /ai/analyze-anamnesis, com o id no corpo.
+    const res = await fetch(`${API_URL}/ai/analyze-anamnesis`, {
       method: 'POST',
       headers: getAuthHeaders(),
+      body: JSON.stringify({ anamnesis_id: anamnesisId }),
     })
     return handleResponse<AIAnalysis>(res)
   },
@@ -1830,12 +1835,15 @@ export interface CreatePetData {
   bio?: string
 }
 
-export interface PetFullProfile {
-  pet: Pet
+/**
+ * A API devolve os campos do pet na RAIZ (não dentro de `pet`), e usa
+ * `walk_routines`/`anamneses`. Os nomes antigos aqui não existiam na resposta.
+ */
+export interface PetFullProfile extends Pet {
   vaccines: Vaccine[]
   exams: Exam[]
-  routines: Routine[]
-  anamnesis: Anamnesis[]
+  walk_routines: Routine[]
+  anamneses: Anamnesis[]
   reminders: Reminder[]
 }
 
@@ -1870,11 +1878,11 @@ export interface Vaccine {
   pet_id: number
   pet?: Pet
   name: string
-  date_applied: string
-  next_due_date?: string
-  vet_name?: string
+  date_given: string
+  next_due?: string
+  veterinarian?: string
   lot_number?: string
-  document_url?: string
+  document_path?: string
   notes?: string
   status?: 'up_to_date' | 'upcoming' | 'overdue'
 }
@@ -1882,9 +1890,9 @@ export interface Vaccine {
 export interface CreateVaccineData {
   pet_id: number
   name: string
-  date_applied: string
-  next_due_date?: string
-  vet_name?: string
+  date_given: string
+  next_due?: string
+  veterinarian?: string
   lot_number?: string
   notes?: string
 }
@@ -1897,8 +1905,8 @@ export interface Exam {
   type: string
   date: string
   result?: string
-  vet_name?: string
-  file_url?: string
+  veterinarian?: string
+  file_path?: string
   notes?: string
   created_at?: string
 }
@@ -1909,7 +1917,7 @@ export interface CreateExamData {
   type: string
   date: string
   result?: string
-  vet_name?: string
+  veterinarian?: string
   notes?: string
 }
 
@@ -1940,7 +1948,7 @@ export interface CreateAnamnesisData {
 
 export interface AIAnalysis {
   urgency_level: 'low' | 'medium' | 'high' | 'emergency'
-  summary: string
+  analysis: string
   recommendations: string[]
   possible_conditions?: string[]
   seek_vet_immediately?: boolean
@@ -1979,8 +1987,9 @@ export interface UserChallenge {
   id: number
   challenge_id: number
   challenge?: Challenge
-  status: 'active' | 'completed' | 'failed'
-  started_at: string
+  /** Valores do backend (ChallengeStatusEnum). Filtrar por 'active' nunca
+   *  casava: desafio iniciado sumia da aba Ativos e continuava em Disponíveis. */
+  status: 'not_started' | 'in_progress' | 'completed'
   completed_at?: string
   progress?: number
 }
@@ -1989,9 +1998,9 @@ export interface LeaderboardEntry {
   rank: number
   user_id: number
   user_name: string
-  points: number
+  total_points: number
   level: number
-  badge?: string
+  badges_count?: number
 }
 
 export interface UserPoints {
@@ -2012,7 +2021,7 @@ export interface Reminder {
   description?: string
   due_date: string
   type: string
-  completed: boolean
+  is_completed: boolean
   completed_at?: string
 }
 

@@ -56,9 +56,9 @@ function VaccinesPageInner() {
   const [form, setForm] = useState({
     pet_id: '',
     name: '',
-    date_applied: new Date().toISOString().split('T')[0],
-    next_due_date: '',
-    vet_name: '',
+    date_given: new Date().toISOString().split('T')[0],
+    next_due: '',
+    veterinarian: '',
     lot_number: '',
     notes: '',
   })
@@ -102,9 +102,9 @@ function VaccinesPageInner() {
 
   const stats = {
     total: vaccineList.length,
-    upToDate: vaccineList.filter(v => getVaccineStatus(v.next_due_date) === 'up_to_date').length,
-    upcoming: vaccineList.filter(v => getVaccineStatus(v.next_due_date) === 'upcoming').length,
-    overdue: vaccineList.filter(v => getVaccineStatus(v.next_due_date) === 'overdue').length,
+    upToDate: vaccineList.filter(v => getVaccineStatus(v.next_due) === 'up_to_date').length,
+    upcoming: vaccineList.filter(v => getVaccineStatus(v.next_due) === 'upcoming').length,
+    overdue: vaccineList.filter(v => getVaccineStatus(v.next_due) === 'overdue').length,
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -115,9 +115,9 @@ function VaccinesPageInner() {
       const v = await vaccinesApi.create({
         pet_id: Number(form.pet_id),
         name: form.name,
-        date_applied: form.date_applied,
-        next_due_date: form.next_due_date || undefined,
-        vet_name: form.vet_name || undefined,
+        date_given: form.date_given,
+        next_due: form.next_due || undefined,
+        veterinarian: form.veterinarian || undefined,
         lot_number: form.lot_number || undefined,
         notes: form.notes || undefined,
       })
@@ -125,7 +125,7 @@ function VaccinesPageInner() {
       setVaccineList(prev => [v, ...prev])
       success(t('h.vaccines.created'))
       setShowModal(false)
-      setForm(f => ({ ...f, name: '', date_applied: new Date().toISOString().split('T')[0], next_due_date: '', vet_name: '', lot_number: '', notes: '' }))
+      setForm(f => ({ ...f, name: '', date_given: new Date().toISOString().split('T')[0], next_due: '', veterinarian: '', lot_number: '', notes: '' }))
       setDocFile(null)
     } catch (err: unknown) {
       error(err instanceof Error ? err.message : t('h.vaccines.createError'))
@@ -165,10 +165,10 @@ function VaccinesPageInner() {
         const created = await vaccinesApi.create({
           pet_id: Number(form.pet_id),
           name: v.name,
-          date_applied: v.date_given || hoje,
-          next_due_date: v.next_due || undefined,
+          date_given: v.date_given || hoje,
+          next_due: v.next_due || undefined,
           lot_number: v.lot || undefined,
-          vet_name: v.vet || undefined,
+          veterinarian: v.vet || undefined,
         })
         criadas.push(created)
       }
@@ -410,7 +410,7 @@ function VaccinesPageInner() {
                       onClick={() => setForm(f => ({
                         ...f,
                         name: v.name,
-                        next_due_date: v.annual ? plusOneYear(f.date_applied) : f.next_due_date,
+                        next_due: v.annual ? plusOneYear(f.date_given) : f.next_due,
                       }))}
                       className={`pressable text-sm font-medium px-3.5 py-2 rounded-xl border transition ${
                         active
@@ -435,11 +435,11 @@ function VaccinesPageInner() {
               <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
                 {mode === 'memory' ? t('h.scan.approxDate') : t('h.vaccines.fApplied')}
               </label>
-              <input required type="date" value={form.date_applied} onChange={set('date_applied')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800" />
+              <input required type="date" value={form.date_given} onChange={set('date_given')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800" />
             </div>
             <div>
               <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.vaccines.fNextDose')}</label>
-              <input type="date" value={form.next_due_date} onChange={set('next_due_date')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800" />
+              <input type="date" value={form.next_due} onChange={set('next_due')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800" />
             </div>
           </div>
 
@@ -459,7 +459,7 @@ function VaccinesPageInner() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.form.vet')}</label>
-                  <input type="text" value={form.vet_name} onChange={set('vet_name')} placeholder={t('h.form.vetPh')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                  <input type="text" value={form.veterinarian} onChange={set('veterinarian')} placeholder={t('h.form.vetPh')} className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('h.vaccines.fLot')}</label>

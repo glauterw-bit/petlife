@@ -278,6 +278,7 @@ class ExamCreate(BaseModel):
     type: Optional[str] = None
     date: datetime
     result: Optional[str] = None
+    veterinarian: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -286,6 +287,7 @@ class ExamUpdate(BaseModel):
     type: Optional[str] = None
     date: Optional[datetime] = None
     result: Optional[str] = None
+    veterinarian: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -296,6 +298,7 @@ class ExamResponse(BaseModel):
     type: Optional[str] = None
     date: datetime
     result: Optional[str] = None
+    veterinarian: Optional[str] = None
     notes: Optional[str] = None
     file_path: Optional[str] = None
     created_at: datetime
@@ -332,10 +335,55 @@ class AnamnesisResponse(BaseModel):
     current_medications: Optional[str] = None
     allergies: Optional[str] = None
     last_vet_visit: Optional[datetime] = None
-    ai_analysis: Optional[str] = None
+    # Objeto, não string. A coluna guarda json.dumps(...), e o app tratava o
+    # retorno como objeto: `ai_analysis.recommendations.length` numa string dá
+    # undefined.length e derrubava a aba de anamnese do pet. Normalizamos aqui,
+    # com os mesmos nomes de AIAnalysisResponse.
+    ai_analysis: Optional[dict] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def _parse_analysis(cls, v: Any) -> Any:
+        if isinstance(v, dict):
+            return v
+        raw = getattr(v, "ai_analysis", None)
+        data = {f: getattr(v, f, None) for f in cls.model_fields if f != "ai_analysis"}
+        data["ai_analysis"] = _normalize_analysis(raw)
+        return data
+
+
+def _normalize_analysis(raw: Any) -> Optional[dict]:
+    """Converte o dump da IA no formato que o app consome.
+
+    A IA devolve `full_analysis`; o app lê `analysis`. Listas sempre voltam
+    lista — nunca None — pra que `.map()` no cliente não estoure.
+    """
+    if not raw:
+        return None
+    if isinstance(raw, str):
+        import json
+        try:
+            raw = json.loads(raw)
+        except Exception:
+            # texto solto de versões antigas: entrega como análise mesmo
+            return {"analysis": raw, "urgency_level": "media",
+                    "recommendations": [], "possible_conditions": []}
+    if not isinstance(raw, dict):
+        return None
+    return {
+        "analysis": raw.get("full_analysis") or raw.get("analysis") or "",
+        "urgency_level": raw.get("urgency_level") or "media",
+        "urgency_explanation": raw.get("urgency_explanation"),
+        "recommendations": list(raw.get("recommendations") or []),
+        "possible_conditions": list(raw.get("possible_conditions") or []),
+        "warning_signs": list(raw.get("warning_signs") or []),
+        "home_care": list(raw.get("home_care") or []),
+        "vet_visit_recommended": raw.get("vet_visit_recommended"),
+        "vet_visit_timeframe": raw.get("vet_visit_timeframe"),
+    }
 
 
 # ─── Reminder Schemas ─────────────────────────────────────────────────────────
@@ -569,6 +617,20 @@ class UserPointsResponse(BaseModel):
 
 
 # ─── Vet Clinic Schemas ───────────────────────────────────────────────────────
+
+class ConsultationCreate(BaseModel):
+    """Consulta lançada pela clínica.
+
+    Antes os campos eram argumentos soltos da função, ou seja, query params —
+    e o app mandava JSON no corpo. Resultado: a clínica nunca conseguiu
+    registrar consulta.
+    """
+    pet_id: int
+    notes: str
+    diagnosis: Optional[str] = None
+    treatment: Optional[str] = None
+    follow_up_date: Optional[datetime] = None
+
 
 class VetClinicSelfRegister(BaseModel):
     """Payload da tela /vet/register — cria conta e clínica juntas.

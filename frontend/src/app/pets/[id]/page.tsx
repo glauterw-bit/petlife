@@ -517,7 +517,7 @@ export default function PetProfilePage() {
                     {a.ai_analysis && (
                       <div className={cn('rounded-xl p-3 border', cfg?.bg)}>
                         <p className="text-sm font-medium mb-2">{t('pw.pet.aiAnalysisLabel')}</p>
-                        <p className="text-sm text-surface-700 dark:text-surface-200 mb-2">{a.ai_analysis.summary}</p>
+                        <p className="text-sm text-surface-700 dark:text-surface-200 mb-2">{a.ai_analysis.analysis}</p>
                         {a.ai_analysis.recommendations.length > 0 && (
                           <ul className="space-y-1">
                             {a.ai_analysis.recommendations.map((rec, i) => (
@@ -548,7 +548,7 @@ export default function PetProfilePage() {
                 {urgencyConfig[anamAnalysis.urgency_level].icon}
                 {t('pw.pet.aiAnalysis')} — {urgencyConfig[anamAnalysis.urgency_level].label}
               </div>
-              <p className="text-sm text-surface-800 dark:text-surface-100 mb-3">{anamAnalysis.summary}</p>
+              <p className="text-sm text-surface-800 dark:text-surface-100 mb-3">{anamAnalysis.analysis}</p>
               {anamAnalysis.seek_vet_immediately && (
                 <div className="bg-red-100 text-red-800 text-sm font-semibold p-3 rounded-xl mb-3 flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5" />

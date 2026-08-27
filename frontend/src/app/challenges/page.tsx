@@ -78,7 +78,7 @@ export default function ChallengesPage() {
     } finally { setActionLoading(null) }
   }
 
-  const activeUC = userChallenges.filter(uc => uc.status === 'active')
+  const activeUC = userChallenges.filter(uc => uc.status === 'in_progress')
   const completedUC = userChallenges.filter(uc => uc.status === 'completed')
   const activeChallengeIds = new Set(activeUC.map(uc => uc.challenge_id))
   const completedChallengeIds = new Set(completedUC.map(uc => uc.challenge_id))
@@ -270,7 +270,7 @@ export default function ChallengesPage() {
                       </div>
                       <div className="flex items-center gap-1 font-bold text-accent-700">
                         <Star className="w-4 h-4" />
-                        {entry.points.toLocaleString(localeTag())}
+                        {entry.total_points.toLocaleString(localeTag())}
                       </div>
                     </div>
                   ))}
