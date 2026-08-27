@@ -51,6 +51,7 @@ async def create_exam(
         type=data.type,
         date=data.date,
         result=data.result,
+        veterinarian=data.veterinarian,
         notes=data.notes,
     )
     db.add(exam)
