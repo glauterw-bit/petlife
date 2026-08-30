@@ -6,6 +6,14 @@
  * funciona em iOS nativo. Em browser/web, isNativeIos() = false e a UI deve
  * esconder os botões de compra (Apple G3.1.1).
  *
+ * ATENÇÃO — a injeção do Cordova é ASSÍNCRONA. `window.CdvPurchase` só existe
+ * depois do `deviceready`, e a página vem pela rede: o React costuma montar
+ * ANTES do plugin terminar de subir. A versão anterior fazia
+ * `if (!iapAvailable()) return false` na primeira linha e desistia calada,
+ * sem nunca tentar de novo — os 4 produtos jamais eram registrados e a compra
+ * morria em "Produto indisponível". Por isso agora esperamos o plugin
+ * (waitForPlugin) antes de decidir que não dá.
+ *
  * Fluxo:
  *   1. initIap() registra os 4 produtos no boot da tela de planos.
  *   2. purchaseProduct(appleProductId) dispara o prompt nativo da Apple.
@@ -36,6 +44,36 @@ export function iapAvailable(): boolean {
   return isNativeIos() && !!(window as AnyWindow).CdvPurchase
 }
 
+/**
+ * Espera o Cordova injetar `window.CdvPurchase`.
+ *
+ * Resolve na hora se já estiver lá. Senão escuta `deviceready` E faz polling
+ * curto — o evento pode ter disparado antes de registrarmos o listener, caso
+ * em que ele nunca mais vem e só o polling salva.
+ *
+ * Fora do iOS nativo devolve false imediatamente: não há o que esperar.
+ */
+export function waitForPlugin(timeoutMs = 8000): Promise<boolean> {
+  if (typeof window === 'undefined' || !isNativeIos()) return Promise.resolve(false)
+  if ((window as AnyWindow).CdvPurchase) return Promise.resolve(true)
+
+  return new Promise((resolve) => {
+    let done = false
+    const finish = (ok: boolean) => {
+      if (done) return
+      done = true
+      clearInterval(timer)
+      clearTimeout(deadline)
+      document.removeEventListener('deviceready', onReady)
+      resolve(ok)
+    }
+    const onReady = () => { if ((window as AnyWindow).CdvPurchase) finish(true) }
+    const timer = setInterval(onReady, 150)
+    const deadline = setTimeout(() => finish(!!(window as AnyWindow).CdvPurchase), timeoutMs)
+    document.addEventListener('deviceready', onReady)
+  })
+}
+
 export interface PurchaseProof {
   transactionId?: string
   receipt?: string
@@ -54,7 +92,8 @@ export async function initIap(
 ): Promise<boolean> {
   onProofCb = onProof
   if (initialized) return true
-  if (!iapAvailable()) return false
+  // Espera o plugin em vez de desistir na primeira checagem (ver cabeçalho).
+  if (!(await waitForPlugin())) return false
 
   const w = window as AnyWindow
   const { store, ProductType, Platform } = w.CdvPurchase

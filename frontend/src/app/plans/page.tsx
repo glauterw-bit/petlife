@@ -5,7 +5,7 @@ import { Check, Crown, Sparkles, Star, RefreshCw, Loader2 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useToast } from '@/components/ui/ToastContext'
 import { billing, type BillingCatalog, type BillingMe, type PlanTier } from '@/lib/api'
-import { initIap, purchaseProduct, restorePurchases, iapAvailable } from '@/lib/iap'
+import { initIap, purchaseProduct, restorePurchases } from '@/lib/iap'
 import { track } from '@/lib/track'
 import { ReferralCard } from '@/components/growth/ReferralCard'
 import { useT } from '@/contexts/LocaleContext'
@@ -56,7 +56,11 @@ export default function PlansPage() {
   const [loading, setLoading] = useState(true)
   const [busySku, setBusySku] = useState<string | null>(null)
   const [restoring, setRestoring] = useState(false)
-  const canBuy = iapAvailable()
+  // Estado, não cálculo de render: `window.CdvPurchase` aparece de forma
+  // assíncrona (deviceready). Como valor de render, `canBuy` era avaliado
+  // antes do plugin subir e só voltava a ser verdadeiro por acaso, se algum
+  // outro setState provocasse re-render na hora certa.
+  const [canBuy, setCanBuy] = useState(false)
 
   async function refresh() {
     try {
@@ -82,7 +86,9 @@ export default function PlansPage() {
       } catch (err) {
         error(err instanceof Error ? err.message : t('ac.plans.errConfirm'))
       }
-    }).catch(() => {})
+    })
+      .then((ok) => setCanBuy(ok))
+      .catch(() => setCanBuy(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
