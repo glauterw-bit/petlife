@@ -149,6 +149,11 @@ async def _run_migrations():
         # semanal, precauções). Antes virava str(dict) dentro de `notes`.
         f"ALTER TABLE walk_routines ADD COLUMN details {'JSON' if _is_sqlite else 'JSONB'}",
         "ALTER TABLE exams ADD COLUMN veterinarian VARCHAR(200)",
+        # Push do servidor — device_tokens e push_logs são criados por
+        # create_all; os índices ficam aqui por serem idempotentes.
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_device_tokens_token ON device_tokens(token)",
+        "CREATE INDEX IF NOT EXISTS ix_device_tokens_user_active ON device_tokens(user_id) WHERE disabled_at IS NULL",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_push_logs_dedupe ON push_logs(dedupe_key)",
         "CREATE INDEX IF NOT EXISTS ix_pet_expenses_pet_spent ON pet_expenses(pet_id, spent_at)",
         f"ALTER TABLE users ADD COLUMN last_seen_at {timestamp_type}",
         "CREATE INDEX IF NOT EXISTS ix_users_last_seen ON users(last_seen_at)",

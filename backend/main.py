@@ -36,6 +36,7 @@ limiter = Limiter(
 from routers import (
     auth_router,
     feedback,
+    push,
     pets,
     breeds,
     vaccines,
@@ -142,6 +143,7 @@ app.include_router(billing.router)
 app.include_router(billing.webhook_router)
 app.include_router(exports.router)
 app.include_router(expenses.router)
+app.include_router(push.router)
 app.include_router(admin_stats.router)
 app.include_router(events.router)
 app.include_router(growth.router)

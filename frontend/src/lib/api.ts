@@ -438,6 +438,19 @@ export const routines = {
   },
 }
 
+// ── Push (servidor) ───────────────────────────────────
+export const push = {
+  /** Registra o token do aparelho para receber lembretes do servidor. */
+  register: async (token: string, platform = 'ios') => {
+    const res = await fetch(`${API_URL}/push/register`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ token, platform, environment: 'production' }),
+    })
+    if (!res.ok) throw new Error('Falha ao registrar push')
+  },
+}
+
 // ── Gamification ──────────────────────────────────────
 export const gamification = {
   getChallenges: async () => {

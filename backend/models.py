@@ -692,3 +692,47 @@ class AiTopicLog(Base):
     topic = Column(String(40), nullable=False, index=True)
     species = Column(String(10), nullable=True)   # dog/cat — dá pra cruzar tema x espécie
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class DeviceToken(Base):
+    """Token de push do aparelho (APNs/FCM).
+
+    Sem isto o app só tinha notificação LOCAL, agendada quando o app abre —
+    ou seja, incapaz de alcançar justamente quem parou de abrir. Dos 125
+    cadastrados em 30 dias, 16 voltaram: o lembrete só chegava a quem já tinha
+    voltado sozinho.
+
+    Um usuário pode ter vários aparelhos. O token é único no sistema: se o
+    mesmo aparelho for usado por outra conta, ele muda de dono em vez de
+    duplicar (senão a pessoa errada recebe a notificação).
+    """
+    __tablename__ = "device_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token = Column(String(200), nullable=False, unique=True, index=True)
+    platform = Column(String(10), nullable=False, default="ios")  # ios | android
+    # Sandbox e produção do APNs são hosts diferentes; guardamos qual usar.
+    environment = Column(String(12), nullable=False, default="production")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # Desativado quando o APNs responde 410 Gone (app desinstalado).
+    disabled_at = Column(DateTime, nullable=True)
+
+
+class PushLog(Base):
+    """Registro do que já foi enviado — evita mandar o mesmo aviso duas vezes.
+
+    `dedupe_key` carrega a regra: ex. "vac:{vaccine_id}:7d" só sai uma vez.
+    """
+    __tablename__ = "push_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    dedupe_key = Column(String(120), nullable=False, unique=True, index=True)
+    kind = Column(String(40), nullable=False, index=True)
+    title = Column(String(200), nullable=True)
+    body = Column(String(400), nullable=True)
+    sent_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    ok = Column(Boolean, default=True, nullable=False)
+    detail = Column(String(300), nullable=True)

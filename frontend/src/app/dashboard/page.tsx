@@ -16,6 +16,7 @@ import { HealthScoreCard } from '@/components/health/HealthScoreCard'
 import { DailyCheckin } from '@/components/health/DailyCheckin'
 import { StreakFlame } from '@/components/health/StreakFlame'
 import { syncHealthNotifications } from '@/lib/notifications'
+import { initPush } from '@/lib/push'
 import { trackHappyMoment } from '@/lib/review'
 import { PetHero } from '@/components/pets/PetHero'
 import { ReferralCard } from '@/components/growth/ReferralCard'
@@ -52,7 +53,9 @@ export default function DashboardPage() {
         if (pts.status === 'fulfilled') setPoints(pts.value)
         if (allVax.status === 'fulfilled') setHasVaccine((allVax.value?.length ?? 0) > 0)
         if (recentWalks.status === 'fulfilled') setHasWalk((recentWalks.value?.length ?? 0) > 0)
-        // Agenda notificações locais de vacinas/lembretes (no-op fora do app nativo)
+        // Push do servidor: alcança quem parou de abrir — a local, não.
+        void initPush()
+        // Agenda notificações locais (no-op fora do app nativo)
         void syncHealthNotifications(
           v.status === 'fulfilled' ? v.value : [],
           r.status === 'fulfilled' ? r.value : [],
