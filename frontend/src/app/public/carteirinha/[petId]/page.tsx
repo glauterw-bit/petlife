@@ -283,6 +283,7 @@ export default function PublicCarteirinhaPage() {
         </div>
 
         <DownloadCta
+          campanha="carteirinha"
           className="mt-6"
           headline={`Recebeu a carteirinha do ${pet.name}? Faça a do seu pet.`}
           sub="Carteira de vacinação digital, lembretes de reforço e envio em PDF pro hotel, creche ou veterinário."

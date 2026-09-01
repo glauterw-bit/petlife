@@ -11,6 +11,7 @@ import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { vaccines as vaccinesApi, pets as petsApi, type Vaccine, type Pet, type ScannedVaccine } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
+import { trackHappyMoment } from '@/lib/review'
 import { getVaccineStatus } from '@/lib/utils'
 
 /**
@@ -124,6 +125,8 @@ function VaccinesPageInner() {
       if (docFile) await vaccinesApi.uploadDocument(v.id, docFile).catch(() => {})
       setVaccineList(prev => [v, ...prev])
       success(t('h.vaccines.created'))
+      // Ação central do app — é aqui que o tutor resolve o problema dele.
+      trackHappyMoment('vacina_cadastrada')
       setShowModal(false)
       setForm(f => ({ ...f, name: '', date_given: new Date().toISOString().split('T')[0], next_due: '', veterinarian: '', lot_number: '', notes: '' }))
       setDocFile(null)
@@ -174,6 +177,7 @@ function VaccinesPageInner() {
       }
       setVaccineList(prev => [...criadas, ...prev])
       success(t('h.scan.saved', { n: criadas.length }))
+      trackHappyMoment('vacina_scan')
       closeModal()
     } catch (err: unknown) {
       error(err instanceof Error ? err.message : t('h.vaccines.createError'))

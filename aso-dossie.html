@@ -1,0 +1,882 @@
+<title>Dossiê ASO PetLife</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+:root{
+  --paper:#FAFBFA; --surface:#F0F4F2; --surface-2:#E7EDEA; --line:#DBE4E0;
+  --ink:#0D1714; --ink-2:#26332E; --muted:#5C6B65;
+  --accent:#0B7A55; --accent-soft:#E2F2EB;
+  --g-oficial:#0B7A55; --g-oficial-bg:#E2F2EB;
+  --g-medido:#96600A; --g-medido-bg:#F8EEDC;
+  --g-folclore:#A93B34; --g-folclore-bg:#FAE7E5;
+  --g-nada:#5C6B65; --g-nada-bg:#EBEFED;
+  --shadow:0 1px 2px rgba(13,23,20,.05),0 8px 24px -12px rgba(13,23,20,.12);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0A120F; --surface:#111C18; --surface-2:#182722; --line:#26352F;
+    --ink:#E9F0EC; --ink-2:#C6D3CD; --muted:#8FA29B;
+    --accent:#43D3A0; --accent-soft:#12312A;
+    --g-oficial:#43D3A0; --g-oficial-bg:#10302A;
+    --g-medido:#E0A945; --g-medido-bg:#33280F;
+    --g-folclore:#EE8078; --g-folclore-bg:#3A1E1B;
+    --g-nada:#8FA29B; --g-nada-bg:#1C2A25;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0A120F; --surface:#111C18; --surface-2:#182722; --line:#26352F;
+  --ink:#E9F0EC; --ink-2:#C6D3CD; --muted:#8FA29B;
+  --accent:#43D3A0; --accent-soft:#12312A;
+  --g-oficial:#43D3A0; --g-oficial-bg:#10302A;
+  --g-medido:#E0A945; --g-medido-bg:#33280F;
+  --g-folclore:#EE8078; --g-folclore-bg:#3A1E1B;
+  --g-nada:#8FA29B; --g-nada-bg:#1C2A25;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16.5px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+.col{max-width:70ch}
+
+/* ---------- masthead ---------- */
+header.mast{border-bottom:1px solid var(--line);background:var(--surface)}
+.mast-in{padding:64px 0 44px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 20px}
+h1{
+  font-family:Newsreader,Georgia,serif; font-weight:500;
+  font-size:clamp(2.5rem,6vw,4.1rem); line-height:1.03; letter-spacing:-.02em;
+  margin:0 0 22px; text-wrap:balance;
+}
+.dek{font-size:1.16rem;color:var(--ink-2);max-width:62ch;margin:0 0 30px}
+.mast-meta{display:flex;flex-wrap:wrap;gap:10px 26px;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:20px}
+.mast-meta b{color:var(--ink-2);font-weight:500}
+
+/* ---------- evidence key ---------- */
+.key{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:40px 0 0}
+.key-card{background:var(--paper);border:1px solid var(--line);border-radius:3px;padding:14px 16px}
+.key-card p{margin:8px 0 0;font-size:13.5px;color:var(--muted);line-height:1.5}
+
+/* ---------- grade chips ---------- */
+.g{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:2px;white-space:nowrap;font-weight:500;vertical-align:middle}
+.g.of{color:var(--g-oficial);background:var(--g-oficial-bg)}
+.g.me{color:var(--g-medido);background:var(--g-medido-bg)}
+.g.fo{color:var(--g-folclore);background:var(--g-folclore-bg)}
+.g.na{color:var(--g-nada);background:var(--g-nada-bg)}
+
+/* ---------- sections ---------- */
+main{padding:0 0 40px}
+section.q{padding:64px 0 8px;border-top:1px solid var(--line)}
+section.q:first-child{border-top:none}
+.qnum{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);letter-spacing:.14em;margin:0 0 10px}
+h2{font-family:Newsreader,Georgia,serif;font-weight:500;font-size:clamp(1.75rem,3.4vw,2.5rem);line-height:1.12;letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance}
+h3{font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:1.02rem;letter-spacing:-.005em;margin:38px 0 12px}
+h4{font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:30px 0 10px}
+p{margin:0 0 16px;max-width:70ch}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 32%,transparent)}
+a:hover{border-bottom-color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+ul,ol{margin:0 0 18px;padding-left:1.25em;max-width:70ch}
+li{margin:0 0 9px}
+strong{font-weight:600;color:var(--ink)}
+code{font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-2);padding:1.5px 5px;border-radius:2px}
+
+/* quote from Apple */
+blockquote{
+  margin:18px 0 22px;padding:16px 20px;background:var(--surface);
+  border-left:2px solid var(--accent);border-radius:0 3px 3px 0;max-width:70ch;
+}
+blockquote p{margin:0;font-family:Newsreader,Georgia,serif;font-size:1.06rem;line-height:1.55;color:var(--ink-2)}
+blockquote cite{display:block;margin-top:10px;font-family:"IBM Plex Mono",monospace;font-size:11px;font-style:normal;letter-spacing:.06em;color:var(--muted)}
+
+/* verdict */
+.verdict{border:1px solid var(--line);border-radius:3px;background:var(--paper);padding:20px 22px;margin:30px 0;box-shadow:var(--shadow);max-width:70ch}
+.verdict .lab{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+.verdict p:last-child{margin-bottom:0}
+
+/* tables */
+.tw{overflow-x:auto;margin:22px 0 26px;border:1px solid var(--line);border-radius:3px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{background:var(--surface);font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:"IBM Plex Mono",monospace}
+tbody tr.hi{background:var(--accent-soft)}
+
+/* stat row */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;margin:26px 0;overflow:hidden}
+.stat{background:var(--paper);padding:16px 18px}
+.stat .v{font-family:Newsreader,Georgia,serif;font-size:2rem;line-height:1;letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums}
+.stat .v.acc{color:var(--accent)}
+.stat .l{font-size:12.5px;color:var(--muted);margin-top:7px;line-height:1.4}
+
+/* callout danger / action */
+.flag{border-left:2px solid var(--g-folclore);background:var(--g-folclore-bg);padding:16px 20px;border-radius:0 3px 3px 0;margin:24px 0;max-width:70ch}
+.flag .lab{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--g-folclore);margin:0 0 8px;font-weight:500}
+.flag p:last-child{margin-bottom:0}
+
+.do{border-left:2px solid var(--accent);background:var(--accent-soft);padding:16px 20px;border-radius:0 3px 3px 0;margin:24px 0;max-width:70ch}
+.do .lab{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin:0 0 8px;font-weight:500}
+.do p:last-child{margin-bottom:0}
+
+/* keyword strings */
+.kw{font-family:"IBM Plex Mono",monospace;font-size:13px;background:var(--surface-2);padding:12px 14px;border-radius:3px;margin:14px 0;overflow-x:auto;white-space:pre-wrap;word-break:break-word;line-height:1.6;max-width:70ch}
+.kw .dup{color:var(--g-folclore);text-decoration:line-through;text-decoration-thickness:1px}
+.kw .new{color:var(--accent);font-weight:500}
+
+/* source list */
+.srcs{font-size:13px;color:var(--muted);margin:20px 0 0;padding-left:0;list-style:none;max-width:70ch}
+.srcs li{margin:0 0 6px;padding-left:1.1em;text-indent:-1.1em}
+.srcs a{border-bottom-color:transparent}
+.srcs a:hover{border-bottom-color:var(--accent)}
+
+footer{border-top:1px solid var(--line);background:var(--surface);padding:40px 0;margin-top:40px}
+footer p{font-size:13.5px;color:var(--muted);max-width:70ch}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .mast-in{padding:44px 0 32px}
+  section.q{padding:48px 0 8px}
+  .wrap{padding:0 20px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="mast">
+  <div class="wrap mast-in">
+    <p class="eyebrow">Pesquisa · App Store · setembro de 2026</p>
+    <h1>Por que o PetLife não cresce na App Store</h1>
+    <p class="dek">Um levantamento do estado da arte de ASO e conversão de página de produto em 2026, calibrado para um app com 5 downloads/dia e 2 avaliações — com cada afirmação classificada por qualidade de evidência, e com o que eu medi diretamente na sua listagem.</p>
+    <div class="mast-meta">
+      <span><b>App</b> PetLife: Vacina e Saúde do Pet · id 6768136468</span>
+      <span><b>Loja</b> BR · v1.2.5</span>
+      <span><b>Medições próprias</b> 2026-09-01</span>
+    </div>
+
+    <div class="key">
+      <div class="key-card"><span class="g of">Regra oficial</span><p>Documentado pela Apple. Verificável em developer.apple.com. Não é opinião.</p></div>
+      <div class="key-card"><span class="g me">Experimento medido</span><p>Alguém rodou um teste com metodologia declarada. Amostra e método citados.</p></div>
+      <div class="key-card"><span class="g fo">Folclore</span><p>Repetido por agências sem fonte, sem amostra, sem controle. Às vezes falso.</p></div>
+      <div class="key-card"><span class="g na">Sem evidência</span><p>Procurei e não achei nada publicado. Digo isso em vez de inventar.</p></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ DIAGNOSIS ============ -->
+<section class="q">
+  <p class="qnum">DIAGNÓSTICO — o que eu medi na sua listagem</p>
+  <h2>O problema não é indexação. É demanda, prova social e um bloqueio administrativo.</h2>
+
+  <p class="col">Antes da teoria, o que os dados públicos da sua própria listagem dizem. Puxei a Lookup API da Apple, a página da loja e o feed de charts do Brasil em 1º de setembro de 2026.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="v">30/30</div><div class="l">Nome — sem espaço sobrando</div></div>
+    <div class="stat"><div class="v">30/30</div><div class="l">Subtítulo — sem espaço sobrando</div></div>
+    <div class="stat"><div class="v acc">46%</div><div class="l">do campo de keywords é recuperável</div></div>
+    <div class="stat"><div class="v">0</div><div class="l">vídeos de prévia</div></div>
+    <div class="stat"><div class="v">~132</div><div class="l">impressões/dia estimadas</div></div>
+  </div>
+
+  <h3>1. Você está fora de toda a União Europeia — e provavelmente não sabe</h3>
+  <p>Testei a disponibilidade do app em 22 vitrines. O padrão é inequívoco:</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Vitrine</th><th>Disponível</th><th>Vitrine</th><th>Disponível</th></tr></thead>
+    <tbody>
+      <tr><td>Brasil, EUA, Reino Unido</td><td>sim</td><td><strong>Portugal</strong></td><td><strong>não</strong></td></tr>
+      <tr><td>México, Argentina, Chile</td><td>sim</td><td><strong>Espanha</strong></td><td><strong>não</strong></td></tr>
+      <tr><td>Colômbia, Peru</td><td>sim</td><td><strong>Alemanha</strong></td><td><strong>não</strong></td></tr>
+      <tr><td>Angola, Moçambique</td><td>sim</td><td><strong>França</strong></td><td><strong>não</strong></td></tr>
+      <tr><td>Canadá, Austrália, Japão</td><td>sim</td><td><strong>Itália</strong></td><td><strong>não</strong></td></tr>
+      <tr><td>Índia, África do Sul, N. Zelândia</td><td>sim</td><td><strong>Irlanda</strong></td><td><strong>não</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Todas as ausências são países da UE. Todas as presenças são de fora da UE. Isso não é coincidência: desde <strong>18 de fevereiro de 2025</strong> a Apple removeu das vitrines europeias todo app cujo desenvolvedor não declarou e teve verificado o <em>trader status</em> exigido pelos artigos 30 e 31 do Digital Services Act. <span class="g of">Regra oficial</span></p>
+
+  <blockquote>
+    <p>“Apps sem trader status foram removidos da App Store na União Europeia até que o trader status seja fornecido e verificado pela Apple.”</p>
+    <cite>Apple Developer News, 18 fev 2025</cite>
+  </blockquote>
+
+  <div class="flag">
+    <p class="lab">O que isso custa</p>
+    <p>Portugal é o segundo maior mercado de língua portuguesa do mundo e sua listagem pt-BR funcionaria lá quase sem adaptação. Hoje ele é inalcançável — não por concorrência, mas por um formulário não preenchido em App Store Connect › Negócios › Acordos › Conformidade › Digital Services Act.</p>
+  </div>
+
+  <div class="do">
+    <p class="lab">Ação — custo zero, maior retorno do dossiê</p>
+    <p>Preencha o trader status. Você é pessoa física; a Apple pede endereço, telefone e e-mail que serão <em>exibidos publicamente</em> na sua página de produto na UE. Se não quiser expor endereço residencial, esse é um motivo legítimo para não fazer — mas é uma decisão, não um esquecimento.</p>
+  </div>
+
+  <h3>2. Você já ranqueia bem — nas buscas que ninguém faz</h3>
+  <p>Testei a posição do PetLife em 21 termos no Brasil. O retrato:</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Termo</th><th class="num">Posição</th><th>Concorrente nº 1</th><th class="num">Avaliações dele</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td>lembrete vacina pet</td><td class="num">1</td><td>—</td><td class="num">—</td></tr>
+      <tr class="hi"><td>carteirinha de vacinação pet</td><td class="num">2</td><td>Xodó</td><td class="num">4</td></tr>
+      <tr class="hi"><td>vacina gato</td><td class="num">2</td><td>Carteira Pet</td><td class="num">10</td></tr>
+      <tr><td>saúde do pet</td><td class="num">4</td><td>Carteira Pet</td><td class="num">10</td></tr>
+      <tr><td>vacina cachorro</td><td class="num">7</td><td>Carteira Pet</td><td class="num">10</td></tr>
+      <tr><td>pet IA</td><td class="num">13</td><td>—</td><td class="num">—</td></tr>
+      <tr><td>carteirinha vacina</td><td class="num">14</td><td>DailyPet</td><td class="num">15</td></tr>
+      <tr><td>carteira pet</td><td class="num">18</td><td>Carteira Pet</td><td class="num">10</td></tr>
+      <tr><td>vacina pet</td><td class="num">ausente</td><td>Carteira Pet / PetZillas</td><td class="num">10 / 1.700</td></tr>
+      <tr><td>carteirinha pet</td><td class="num">ausente</td><td>DailyPet</td><td class="num">15</td></tr>
+      <tr><td>clínica veterinária</td><td class="num">ausente</td><td>—</td><td class="num">—</td></tr>
+      <tr><td>raça de cachorro</td><td class="num">ausente</td><td>—</td><td class="num">—</td></tr>
+      <tr><td>animal de estimação</td><td class="num">ausente</td><td>—</td><td class="num">—</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="flag">
+    <p class="lab">Ressalva metodológica importante — leia antes de usar esses números</p>
+    <p>Isso é a <strong>iTunes Search API</strong>, não a busca real da App Store. Elas usam índices diferentes: a API retorna o PetLife em <strong>1º lugar</strong> para <code>vermifugo</code>, palavra que não está no nome, no subtítulo nem nas keywords — só na descrição. Ou seja, a API indexa descrição e a busca da loja não. Trate as posições acima como <em>proxy direcional</em> de proximidade semântica, não como ranking. O ranking real só o App Store Connect (Analytics › termos de busca) e ferramentas pagas mostram. <span class="g me">Medição própria, proxy imperfeito</span></p>
+  </div>
+
+  <p>Ainda assim o padrão é robusto e bate com o resto do dossiê: <strong>você domina a cauda longa e some nas cabeças de cauda.</strong> Os termos onde você é 1º ou 2º são exatamente aqueles cujos concorrentes têm 3, 4 ou 10 avaliações — nichos onde ninguém disputa porque quase ninguém busca. Nos termos com volume real (<code>vacina pet</code>, <code>carteirinha pet</code>) você não aparece, apesar de “Vacina” estar no seu nome e “Carteirinha” no seu subtítulo. Relevância textual você já tem. O que falta é o outro fator que a Apple declara oficialmente: <em>comportamento de usuário</em>.</p>
+
+  <h3>3. Quase metade do campo de keywords está desperdiçada</h3>
+  <p>Seu nome e subtítulo ao vivo já indexam estes tokens: <code>petlife · vacina · saude · pet · carteirinha · lembrete · vet · ia</code>. A Apple monta as combinações automaticamente entre os campos, então repetir qualquer um deles nas keywords é jogar bytes fora.</p>
+
+  <p>Assumindo que seu campo de keywords ainda é o do <code>STORE_LISTING.md</code> do repositório (não dá para ver o campo ao vivo — ele é privado; confirme em App Store Connect):</p>
+
+  <div class="kw"><span class="dup">pet,</span>veterinario,<span class="dup">vacina,</span>cachorro,gato,<span class="dup">saude</span> animal,<span class="dup">carteirinha,</span><span class="dup">IA,</span>passeio,filhote</div>
+
+  <div class="stats">
+    <div class="stat"><div class="v">26</div><div class="l">bytes duplicando nome/subtítulo</div></div>
+    <div class="stat"><div class="v">20</div><div class="l">bytes nunca usados</div></div>
+    <div class="stat"><div class="v acc">46</div><div class="l">bytes recuperáveis de 100</div></div>
+  </div>
+
+  <p>Termos de alto valor que você <strong>não</strong> indexa em lugar nenhum: <code>carteira</code> (token diferente de “carteirinha”, e o líder da categoria se chama literalmente <em>Carteira Pet</em>), <code>cao</code>, <code>caes</code>, <code>animal</code>, <code>vermifugo</code>, <code>antipulgas</code>, <code>castracao</code>, <code>consulta</code>, <code>clinica</code>, <code>agenda</code>, <code>raca</code>, <code>tutor</code>, <code>felino</code>, <code>canino</code>.</p>
+
+  <div class="do">
+    <p class="lab">Proposta de campo de keywords (100 bytes, zero duplicação)</p>
+    <div class="kw"><span class="new">carteira,veterinario,cachorro,gato,cao,animal,vermifugo,antipulgas,agenda,clinica,raca,filhote</span></div>
+    <p style="margin-top:12px">93 bytes. Cada token é novo. Combinado com nome e subtítulo, isso gera frases como “carteira vacina pet”, “agenda vacina cachorro”, “clinica veterinaria pet” sem gastar um byte a mais.</p>
+  </div>
+
+  <h3>4. O primeiro screenshot vende a coisa errada</h3>
+  <p>Seus 6 screenshots são bem feitos: legendas em português, tipografia legível, identidade consistente, retrato 1290×2796 — que continua sendo um tamanho <strong>válido</strong> para a classe obrigatória de 6,9″ (a Apple aceita 1260×2736, 1290×2796 e 1320×2868). Não há nada quebrado ali. <span class="g of">Regra oficial</span></p>
+
+  <p>Dois problemas, porém:</p>
+
+  <p><strong>(a) Ordem.</strong> O screenshot 1 mostra o <em>Health Score</em> — um mostrador de 84 pontos. Quem busca “carteirinha de vacinação pet” quer ver uma carteirinha de vacinação, não um índice de bem-estar. A Apple exibe <strong>os três primeiros</strong> screenshots no resultado de busca quando não há vídeo, e em retrato são os três que aparecem. Hoje seus três primeiros são: painel, passeio com GPS, IA+carteirinha. A carteirinha — a razão pela qual as pessoas te encontram — só aparece como assunto secundário na terceira imagem.</p>
+
+  <p><strong>(b) Risco de marca no screenshot 2.</strong> A legenda diz <em>“Passeios com GPS estilo Strava”</em>. Screenshots são metadados, e a diretriz 2.3.7 é explícita:</p>
+
+  <blockquote>
+    <p>“Escolha um nome de app único, atribua palavras-chave que descrevam seu app com precisão, e não tente empacotar nenhum dos seus metadados com <strong>termos de marca registrada</strong>, nomes de apps populares, informação de preço ou outras frases irrelevantes só para burlar o sistema. […] Subtítulos […] não devem <strong>referenciar outros apps</strong>.”</p>
+    <cite>App Review Guidelines 2.3.7</cite>
+  </blockquote>
+
+  <div class="flag">
+    <p class="lab">Ação</p>
+    <p>Tire “Strava” da legenda. É uma marca registrada de terceiro num metadado seu. O ganho de clareza é quase nulo e o risco é rejeição de metadado — ou, pior, uma marcação no seu histórico de submissões. Troque por algo como “Passeios com GPS, rota e ritmo”.</p>
+  </div>
+
+  <h3>5. O app é só português, mas a loja promete quatro idiomas</h3>
+  <p>A Lookup API reporta <code>languageCodesISO2A: ["PT"]</code> — o binário declara apenas português. Mas existem listagens completas em inglês (EUA e Reino Unido) e espanhol (México), com descrições e screenshots traduzidos. Um usuário americano ou mexicano que instalar encontra um app inteiramente em português.</p>
+  <p>Isso não é ilegal nem motivo automático de rejeição, mas é uma máquina de avaliações de 1 estrela — exatamente o ativo de que você mais precisa e menos tem.</p>
+</section>
+
+<!-- ============ 1 ============ -->
+<section class="q">
+  <p class="qnum">PERGUNTA 01</p>
+  <h2>O algoritmo de busca em 2026: o que é indexado, com que peso, e o que mudou</h2>
+
+  <h4>O que a Apple realmente declara</h4>
+  <p>A página oficial <em>App Store search</em> é a única declaração pública da Apple sobre fatores de ranking, e ela é curta e específica: <span class="g of">Regra oficial</span></p>
+
+  <blockquote>
+    <p>“Os resultados de busca são baseados em uma série de fatores, incluindo <strong>relevância textual</strong> (correspondências para o título, subtítulo, palavras-chave e <strong>categoria primária</strong> do seu app), bem como <strong>comportamento do usuário</strong> (downloads, avaliações e resenhas, e mais).”</p>
+    <p style="margin-top:12px">“Sua categoria primária e a categoria secundária opcional são indexadas pelo nosso algoritmo de busca.”</p>
+    <cite>developer.apple.com/app-store/search</cite>
+  </blockquote>
+
+  <p>Note o que <strong>não</strong> está nessa lista: descrição, texto promocional, nome do desenvolvedor, in-app events, screenshots, sinais da web. A Apple ainda afirma explicitamente, na página do produto, que <em>“o texto promocional não afeta o ranking de busca do seu app, então não deve ser usado para exibir palavras-chave.”</em></p>
+
+  <h4>A evidência mais forte que existe: o próprio paper da Apple</h4>
+  <p>Em março de 2026 a Apple publicou <em>Scaling Search Relevance: Augmenting App Store Ranking with LLM-Generated Judgments</em> (SIGIR'26). É a descrição pública mais explícita já feita do ranking da App Store. <span class="g of">Regra oficial</span> <span class="g me">Experimento medido</span></p>
+
+  <ul>
+    <li>O ranker otimiza <strong>dois objetivos combinados</strong>: relevância comportamental (cliques e downloads) e relevância textual (adequação semântica entre consulta e metadados).</li>
+    <li>Eles combinam os dois por <em>escalarização</em> — uma mistura ponderada dos dados de treino (testaram 90–10, 70–30, 50–50).</li>
+    <li>Um modelo próprio de <strong>3 bilhões de parâmetros</strong>, afinado, gerou milhões de rótulos sintéticos de relevância — e superou um modelo pré-treinado <strong>10× maior</strong> (F1 0,800 contra 0,382).</li>
+    <li>O teste A/B em produção deu <strong>+0,24% de taxa de conversão</strong>, estatisticamente significativo, em <strong>89% das vitrines</strong>.</li>
+    <li>O ganho concentrou-se onde importa para você: <em>“as melhorias mais substanciais ocorrem na cauda […] consultas de cauda não têm tráfego suficiente para gerar sinais comportamentais confiáveis.”</em></li>
+  </ul>
+
+  <div class="verdict">
+    <p class="lab">Veredito</p>
+    <p>Relevância semântica virou objetivo de primeira classe, e ela é justamente o que <em>não</em> exige volume. Para um app de 5 downloads/dia isso é a melhor notícia do dossiê: na cauda longa, texto bem escrito compete com apps grandes, porque lá o sinal comportamental deles também é ralo. Na cabeça de cauda, não há truque textual que compense 1.700 avaliações.</p>
+  </div>
+
+  <h4>O que mudou nos últimos dois anos</h4>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Mudança</th><th>Quando</th><th>Evidência</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Legendas de screenshot passaram a ser indexadas</strong></td><td>jun 2025</td><td><span class="g me">Medido</span> mas fraco — ver abaixo</td></tr>
+      <tr><td><strong>Custom Product Pages entram na busca orgânica</strong>, com keywords atribuíveis</td><td>jul 2025</td><td><span class="g of">Oficial</span></td></tr>
+      <tr><td><strong>App Tags</strong> geradas por LLM, revisadas por humanos</td><td>WWDC25 →</td><td><span class="g of">Oficial</span> — só EUA</td></tr>
+      <tr><td>Limite de CPPs sobe para <strong>70</strong></td><td>out 2025</td><td><span class="g of">Oficial</span></td></tr>
+      <tr><td>Resumos de avaliações por LLM na página de produto</td><td>2025→2026</td><td><span class="g of">Oficial</span></td></tr>
+      <tr><td>Ranker com julgamentos de relevância por LLM</td><td>mar 2026</td><td><span class="g of">Oficial</span> (paper)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h4>Screenshots são indexados? A resposta honesta é “quase não”</h4>
+  <p>Em junho de 2025, Ariel Michaeli (Appfigures) — a fonte independente mais respeitada de ASO — reportou que a Apple passou a extrair texto de legendas de screenshot e tratá-lo como metadado de keyword. Método: “milhares de keywords” analisadas manualmente mais ferramentas próprias. <strong>Sem tamanho de amostra, sem controle, sem validação estatística.</strong> <span class="g me">Medido, observacional</span></p>
+
+  <p>A ASO community transformou isso em dogma. Então a ConsultMyApp fez o teste rigoroso que faltava: 8 apps líderes (Audible, Libby, Indeed, DoorDash, Duolingo, PictureThis, Cash App, PayPal), 64 frases extraídas de legendas, com <em>teste atômico de keyword</em> para descartar falsos positivos — exigindo que o app ranqueasse para a frase, que a frase não estivesse no título/subtítulo, e que as palavras componentes não ranqueassem sozinhas. <span class="g me">Medido, metodologia clara</span></p>
+
+  <div class="stats">
+    <div class="stat"><div class="v">36</div><div class="l">das 64 frases não ranquearam</div></div>
+    <div class="stat"><div class="v">27</div><div class="l">explicadas por metadado já existente</div></div>
+    <div class="stat"><div class="v acc">1</div><div class="l">caso ambíguo, não explicado</div></div>
+  </div>
+
+  <blockquote>
+    <p>“Não há <strong>evidência forte</strong> de que a Apple esteja indexando amplamente títulos de screenshot.”</p>
+    <cite>ConsultMyApp</cite>
+  </blockquote>
+
+  <p>Conclusão prática: escreva legendas semanticamente ricas porque elas <strong>convertem</strong>, não porque ranqueiam. Não reorganize sua estratégia de keywords em torno disso.</p>
+
+  <h4>Ordem de peso dos campos</h4>
+  <p>Todo mundo publica a mesma hierarquia — nome &gt; subtítulo &gt; campo de keywords &gt; nomes de IAP e de eventos. SplitMetrics, AppTweak, Appfigures, todos afirmam isso. <strong>Nenhum publica um número.</strong> Não existe percentual medido de peso relativo entre os campos; é consenso de comunidade apresentado com confiança de doutrina. <span class="g fo">Folclore plausível</span></p>
+
+  <p>O que <em>é</em> oficial: nome, subtítulo, keywords e categoria primária são inputs de relevância textual; categoria secundária é indexada. In-app purchases e in-app events aparecem na busca (a Apple documenta isso) mas <strong>não estão</strong> na lista de fatores de ranking — o que é uma distinção que quase todo blog apaga.</p>
+
+  <ul class="srcs">
+    <li>· <a href="https://developer.apple.com/app-store/search/">developer.apple.com/app-store/search</a></li>
+    <li>· <a href="https://machinelearning.apple.com/research/augmenting-app">Apple ML Research — Scaling Search Relevance</a> · <a href="https://arxiv.org/abs/2602.23234">arXiv:2602.23234</a> · <a href="https://doi.org/10.1145/3805712.3808460">SIGIR'26</a></li>
+    <li>· <a href="https://appfigures.com/resources/guides/app-store-algorithm-update-2025">Appfigures — App Store algorithm update 2025</a></li>
+    <li>· <a href="https://www.consultmyapp.com/blog/-is-apple-now-indexing-screenshot-titles-on-the-app-store">ConsultMyApp — Is Apple indexing screenshot titles?</a></li>
+    <li>· <a href="https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-tags/">App Store Connect Help — Manage app tags</a></li>
+  </ul>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="q">
+  <p class="qnum">PERGUNTA 02</p>
+  <h2>Nome, subtítulo e os 100 bytes de keywords</h2>
+
+  <h4>Limites e regras oficiais</h4>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Campo</th><th class="num">Limite</th><th>Indexado?</th><th>Editável sem nova versão?</th></tr></thead>
+    <tbody>
+      <tr><td>Nome do app</td><td class="num">30</td><td>sim — maior peso</td><td>não</td></tr>
+      <tr><td>Subtítulo</td><td class="num">30</td><td>sim</td><td>não</td></tr>
+      <tr><td>Keywords</td><td class="num">100 bytes</td><td>sim, privado</td><td>não</td></tr>
+      <tr><td>Texto promocional</td><td class="num">170</td><td><strong>não</strong> (Apple diz explicitamente)</td><td><strong>sim</strong></td></tr>
+      <tr><td>Descrição</td><td class="num">4.000</td><td>não</td><td>não</td></tr>
+      <tr><td>Categoria primária</td><td class="num">—</td><td>sim</td><td>não</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><strong>100 bytes, não 100 caracteres.</strong> Letras ASCII consomem 1 byte; acentuadas consomem 2 em UTF-8. Escrever <code>vermífugo</code> em vez de <code>vermifugo</code> custa um byte a mais e não traz nada — a Apple normaliza diacríticos na busca. Escreva tudo sem acento.</p>
+
+  <h4>Como não desperdiçar o campo</h4>
+  <p>Regras que a própria Apple publica na página do produto: <span class="g of">Regra oficial</span></p>
+  <ul>
+    <li>Separe por <strong>vírgula sem espaço</strong>. Cada espaço depois da vírgula é um byte jogado fora.</li>
+    <li>Não use <strong>plurais</strong> de palavras já incluídas no singular.</li>
+    <li>Não use <strong>nomes de categorias</strong> nem a palavra “app”. (A categoria já é indexada automaticamente — gastar bytes com <code>saude</code> ou <code>medicina</code> é redundante.)</li>
+    <li>Não use <strong>palavras duplicadas</strong>.</li>
+    <li>Nada de caracteres especiais, marcas registradas de terceiros, nomes de apps concorrentes ou termos irrelevantes.</li>
+  </ul>
+
+  <p>A regra mais valiosa não está escrita pela Apple, mas é consenso técnico sólido e verificável por qualquer um: <strong>a Apple combina automaticamente palavras entre nome, subtítulo e keywords para formar frases</strong>. Se “vacina” está no nome e “cachorro” nas keywords, você ranqueia para “vacina cachorro” sem gastar bytes com a frase. Corolário: <strong>nunca repita nas keywords uma palavra que já está no nome ou no subtítulo</strong> — ela conta uma vez só. É exatamente onde você perde 26 dos seus 100 bytes. <span class="g fo">Consenso sem teste publicado</span></p>
+
+  <h4>O nome do desenvolvedor é indexado?</h4>
+  <p>Gummicube, AppRadar e outras afirmam que sim. <strong>A Apple não lista o nome do desenvolvedor entre os fatores de relevância textual</strong>, e não achei nenhum teste medido. <span class="g fo">Folclore</span> — plausível, barato de testar, mas não construa nada em cima disso. (No seu caso o nome do vendedor é “Glauter Correia”, keyword-valor zero. Se a hipótese for verdadeira, um DBA tipo “PetLife Saúde Animal” seria ganho grátis; se for falsa, você não perdeu nada.)</p>
+
+  <h4>Quanto tempo até o ranking mexer</h4>
+  <p>Rápido para aparecer, lento para estabilizar. O caso mais citado e verificável: em janeiro de 2019 o Spotify mudou o nome de “Spotify Music” para “Spotify: Music and Podcasts” e <strong>em um dia</strong> passou de não-ranqueado para <strong>#11</strong> em “podcast” no iOS. <span class="g me">Caso documentado</span> Mas a AppTweak recomenda esperar <strong>~4 semanas</strong> após um novo build para avaliar impacto, porque é quando os rankings estabilizam.</p>
+
+  <div class="flag">
+    <p class="lab">O erro que realmente derruba ranking</p>
+    <p>Não é keyword ruim — é <strong>trocar nome e subtítulo com frequência</strong>. Cada mudança reinicia o relógio de 4 semanas e destrói sua capacidade de atribuir causa. Faça uma mudança de metadado indexado por vez e espere 28 dias antes da próxima. A AppTweak observa que <strong>~80% dos apps não mudam o título nem uma vez por ano</strong> — a inércia é a norma, não o risco.</p>
+  </div>
+
+  <p>Sobre “atualizar sempre ajuda o ranking”: <span class="g fo">Folclore</span>. Frequência de atualização não está na lista oficial de fatores. O que <em>é</em> oficial é o processo <em>App Store Improvements</em>: a Apple remove apps que não são atualizados há <strong>3 anos</strong> <em>e</em> que não atingem um limiar mínimo de downloads em 12 meses corridos (2,8 milhões de apps removidos em 6 anos). Isso é uma regra de sobrevivência, não de ranking.</p>
+
+  <ul class="srcs">
+    <li>· <a href="https://developer.apple.com/app-store/product-page/">Apple — App Store Product Page</a></li>
+    <li>· <a href="https://www.apptweak.com/en/aso-blog/how-often-should-you-update-your-app-store-metadata">AppTweak — How often should you update metadata</a></li>
+    <li>· <a href="https://developer.apple.com/support/app-store-improvements/">Apple — App Store Improvements</a></li>
+  </ul>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="q">
+  <p class="qnum">PERGUNTA 03</p>
+  <h2>Screenshots e vídeo de prévia</h2>
+
+  <h4>O que é oficial</h4>
+  <ul>
+    <li>Até <strong>10 screenshots</strong> e até <strong>3 app previews</strong> por idioma, cada vídeo com até <strong>30 segundos</strong>. <span class="g of">Oficial</span></li>
+    <li>Vídeos <strong>reproduzem automaticamente e sem som</strong> na página de produto <em>e nos resultados de busca</em>. “Certifique-se de que os primeiros segundos sejam visualmente atraentes.”</li>
+    <li>Sem vídeo, <em>“dependendo da orientação dos seus screenshots, as primeiras uma a três imagens aparecerão nos resultados de busca”</em>. Em retrato: três.</li>
+    <li>O vídeo deve mostrar <strong>apenas conteúdo de dentro do app</strong> — nada de dedos ou mãos filmadas.</li>
+    <li>Tamanho obrigatório hoje: <strong>6,9″ para iPhone</strong> (1260×2736, 1290×2796 ou 1320×2868) e 13″ para iPad. A Apple escala para baixo sozinha. Os seus 1290×2796 estão corretos.</li>
+  </ul>
+
+  <h4>Vídeo vale a pena? Os números não concordam entre si</h4>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Fonte</th><th>Efeito relatado</th><th>Qualidade</th></tr></thead>
+    <tbody>
+      <tr><td>StoreMaven (A/B, listagens idênticas + vídeo)</td><td>+20% conversão</td><td><span class="g me">Medido</span></td></tr>
+      <tr><td>SplitMetrics (agregado)</td><td>~+16% médio</td><td><span class="g me">Medido</span></td></tr>
+      <tr><td>Vários fornecedores (faixa)</td><td>+15% a +30%</td><td><span class="g fo">Folclore agregado</span></td></tr>
+      <tr><td>Finanças e Produtividade</td><td><strong>−3% a −7%</strong></td><td><span class="g fo">Sem metodologia</span></td></tr>
+      <tr><td>Apple, caso Simply Piano (PPO real)</td><td><strong>Página sem vídeo venceu</strong></td><td><span class="g me">Medido pela Apple</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>O caso Simply Piano é o mais instrutivo, porque é um teste da própria Apple no qual a variante <strong>sem</strong> vídeo bateu a variante com vídeo. A média de “+16% a +20%” esconde uma variância enorme: um vídeo ruim é pior que nenhum vídeo, porque ele <em>substitui</em> os três screenshots no resultado de busca — você troca três argumentos de venda estáticos por um único vídeo que talvez ninguém assista.</p>
+
+  <div class="verdict">
+    <p class="lab">Veredito para o PetLife</p>
+    <p><strong>Vídeo não é sua prioridade.</strong> A 132 impressões/dia, o custo de produzir um vídeo de 30s decente não se paga contra o ganho esperado, e você nem conseguiria medir se ajudou (ver pergunta 4). Muito mais barato e mais provável de funcionar: <strong>reordenar os screenshots que você já tem</strong> para que a carteirinha de vacinação seja a primeira imagem. Esse é o ativo que casa com a intenção de quem te acha.</p>
+  </div>
+
+  <h4>Sobre o primeiro screenshot</h4>
+  <p>Circula muito que “o primeiro screenshot decide ~60% da instalação” (SplitMetrics) e que “60% dos usuários nunca passam da primeira impressão” (eye-tracking StoreMaven). São números de fornecedor, repetidos há anos, cuja metodologia original não está publicada de forma auditável. <span class="g fo">Folclore de origem provavelmente real</span> A direção quase certamente está certa; a precisão decimal, não. Não trate “60%” como um número, trate como “muito”.</p>
+
+  <ul class="srcs">
+    <li>· <a href="https://developer.apple.com/app-store/app-previews/">Apple — App Previews</a></li>
+    <li>· <a href="https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications/">Apple — Screenshot specifications</a></li>
+    <li>· <a href="https://splitmetrics.com/blog/create-app-preview-video-app-store-ios/">SplitMetrics — App preview videos</a></li>
+  </ul>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="q">
+  <p class="qnum">PERGUNTA 04</p>
+  <h2>Product Page Optimization e Custom Product Pages</h2>
+
+  <h4>PPO — as regras oficiais</h4>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Item</th><th>Regra</th></tr></thead>
+    <tbody>
+      <tr><td>Treatments</td><td>até <strong>3</strong> além da original</td></tr>
+      <tr><td>O que dá para variar</td><td><strong>só ícone, screenshots e app previews</strong></td></tr>
+      <tr><td>O que <em>não</em> dá</td><td>título, subtítulo, descrição, texto promocional, keywords</td></tr>
+      <tr><td>Nova versão do app?</td><td>não — exceto se o teste incluir ícones alternativos</td></tr>
+      <tr><td>Teto de tráfego</td><td>nenhum treatment recebe mais que a original → <strong>máx. 50%</strong> com 1 treatment</td></tr>
+      <tr><td>Duração</td><td><strong>90 dias</strong> ou parada manual; parou, não reinicia</td></tr>
+      <tr><td>Simultâneos</td><td><strong>um teste por vez</strong></td></tr>
+      <tr><td>Estatística</td><td>bayesiana; intervalo de credibilidade de 90%; resultados só após os 5 primeiros downloads; <strong>nenhum nível de confiança nos primeiros 7 dias</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p><span class="g of">Tudo acima é regra oficial</span>, das páginas de ajuda de configuração do App Store Connect e dos Tech Talks 10888 e 110349.</p>
+
+  <div class="flag">
+    <p class="lab">Contradição nas próprias fontes da Apple — vale saber</p>
+    <p>A página <em>Analytics Help</em> afirma que o PPO testa “screenshots, app previews, <strong>descriptions</strong> e ícones” e que dá para rodar vários testes simultâneos. Ambas contradizem o help de configuração e a página de marketing. <strong>Confie no help de configuração</strong>, que é o mais restritivo e o que terceiros confirmam. Da mesma forma, o Tech Talk 110361 ainda diz “35 CPPs” — o número correto desde 29 de outubro de 2025 é <strong>70</strong>.</p>
+  </div>
+
+  <h4>Você consegue rodar um PPO significativo? Não.</h4>
+  <p>Esta é a pergunta mais importante da seção e ela tem resposta numérica. No Tech Talk 10888 a Apple demonstra o próprio estimador: para detectar <strong>5% de melhoria</strong> com 90% de confiança, o app de exemplo precisaria de <strong>≈174.404 impressões</strong>. Reproduzi o cálculo de forma independente (duas proporções, limiar bayesiano P(melhor)≥0,90, poder 80%) e cheguei a ~177.000 — ou seja, o modelo bate com o número da Apple, o que valida aplicá-lo ao PetLife. <span class="g me">Oficial + verificação independente</span></p>
+
+  <p>Com 5 downloads/dia, o gargalo não são impressões: são <strong>conversões</strong>. Rodando os 90 dias inteiros em 50/50, sobram cerca de <strong>225 downloads por variante</strong>.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="v acc">+21%</div><div class="l">menor efeito detectável em 90 dias, poder 80%</div></div>
+    <div class="stat"><div class="v">+8%</div><div class="l">maior efeito real medido pela Apple (Peak)</div></div>
+    <div class="stat"><div class="v">154 mil</div><div class="l">impressões/variante no menor caso oficial da Apple</div></div>
+  </div>
+
+  <p>Os três estudos de caso que a própria Apple publica, com volume declarado:</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>App</th><th>Teste</th><th class="num">Dias</th><th class="num">Impressões/variante</th><th>Resultado</th></tr></thead>
+    <tbody>
+      <tr><td>Peak Brain Training</td><td>4 ícones</td><td class="num">44</td><td class="num">154.000</td><td>+8% — hipótese do time estava <strong>errada</strong></td></tr>
+      <tr><td>Angry Birds 2</td><td>screenshot sazonal</td><td class="num">20</td><td class="num">2.000.000</td><td>controle venceu, +1,5% — hipótese <strong>errada</strong></td></tr>
+      <tr><td>Simply Piano</td><td>com vs sem vídeo</td><td class="num">12</td><td class="num">430.000</td><td>sem vídeo +3,3% — hipótese <strong>errada</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="verdict">
+    <p class="lab">Veredito</p>
+    <p>Efeitos reais em apps grandes ficaram entre <strong>+1,5% e +8%</strong>. Você precisaria de <strong>+21%</strong> para detectar qualquer coisa em 90 dias. O desfecho mais provável de um PPO no PetLife é o status <em>Likely to be Inconclusive</em> — e o risco prático é pior que inútil: parar cedo e “ver” um vencedor que é ruído. <strong>Não rode PPO agora.</strong> Mude os screenshots com base em julgamento e nas regras oficiais, sem fingir que é experimento.</p>
+  </div>
+
+  <p>Registro explícito de ausência: procurei benchmark agregado de lift mediano em PPO na AppTweak, SplitMetrics, MobileAction, Adjust e Appbot. <strong>Não existe</strong> — nem mediana de lift, nem estatística de quantos testes terminam inconclusivos. <span class="g na">Sem evidência</span> Quem citar “o PPO médio dá X%” está inventando. Cuidado especial com o número “500 por variação” da SplitMetrics: é para a ferramenta paga <em>deles</em>, com páginas simuladas de CVR 30–40%, e <strong>não transfere</strong> para PPO real, onde o CVR é 2–5%.</p>
+
+  <h4>CPP — este sim é utilizável</h4>
+  <p>Custom Product Pages são outra coisa: não são teste, são páginas alternativas. Até <strong>70</strong>, variando screenshots, previews, texto promocional, keywords e deep link (iOS 18+). Passam por App Review mas <strong>independem de nova versão do app</strong>. <span class="g of">Oficial</span></p>
+
+  <p>A mudança que importa para você é de 2025: dá para <strong>atribuir keywords do seu campo a uma CPP</strong>, e ela passa a aparecer na busca orgânica no lugar da página padrão. Nas palavras da Apple:</p>
+  <blockquote>
+    <p>“Custom product pages só são visíveis para as pessoas se elas seguirem um link de custom product page, <strong>ou se você escolher tornar sua custom product page visível nos resultados de busca da App Store adicionando keywords</strong>.”</p>
+    <cite>App Store Connect Help</cite>
+  </blockquote>
+  <p>Regra: cada combinação de keywords precisa ser <strong>única por página</strong>, senão suas páginas competem entre si. E você só pode atribuir keywords que já estão no campo de 100 bytes — CPP não expande seu orçamento de keywords, ela redireciona a intenção.</p>
+
+  <div class="do">
+    <p class="lab">Ação — grátis, orgânica, sem review de versão</p>
+    <p>Crie uma CPP “carteirinha de vacinação”: mesmos screenshots, mas com a carteirinha em primeiro lugar e as legendas focadas em vacina/reforço/lembrete. Atribua a ela as keywords <code>carteira</code>, <code>vermifugo</code>, <code>antipulgas</code>, <code>agenda</code>. Quem buscar esses termos cai numa página alinhada com a intenção. <strong>Isso não é um teste A/B</strong> — não tem controle nem significância. É melhoria de relevância, e é o único dos dois recursos que faz sentido no seu volume.</p>
+  </div>
+
+  <p>Sobre os números de CPP: a Apple afirma “+2,5 pontos percentuais de conversão em média, um aumento de 156% sobre os 1,6% da página padrão”. <strong>Sem metodologia, sem amostra, sem período</strong>, e com viés de seleção óbvio — quem chega por link de CPP veio de campanha segmentada, então comparar com tráfego padrão não é experimento. <span class="g fo">Marketing da Apple</span> A melhor evidência real é da Adapty, sobre <strong>&gt;1 milhão de ad groups</strong>: CPP casada com keyword deu <strong>23% mais downloads com o mesmo gasto</strong> (TTR 9,72%→10,90%; tap-to-install 63,91%→70,05%). Ressalva: é tráfego <em>pago</em>, não orgânico, e a Adapty vende ferramenta de Apple Ads. <span class="g me">Medido, escopo declarado</span></p>
+
+  <ul class="srcs">
+    <li>· <a href="https://developer.apple.com/app-store/product-page-optimization/">Apple — Product Page Optimization</a></li>
+    <li>· <a href="https://developer.apple.com/videos/play/tech-talks/110349/">Tech Talk 110349 — casos Peak, Angry Birds 2, Simply Piano</a></li>
+    <li>· <a href="https://developer.apple.com/app-store/custom-product-pages/">Apple — Custom Product Pages</a> · <a href="https://developer.apple.com/news/?id=gf6mgrs6">limite 70 (out 2025)</a></li>
+  </ul>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="q">
+  <p class="qnum">PERGUNTA 05</p>
+  <h2>In-App Events</h2>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Regra</th><th>Valor</th></tr></thead>
+    <tbody>
+      <tr><td>Publicados simultaneamente</td><td><strong>10</strong></td></tr>
+      <tr><td>Aprovados no ASC ao mesmo tempo</td><td>15</td></tr>
+      <tr><td>Nome do evento</td><td>30 caracteres</td></tr>
+      <tr><td>Descrição curta / longa</td><td>50 / 120 caracteres</td></tr>
+      <tr><td>Duração</td><td>mín. 15 minutos, máx. <strong>31 dias</strong></td></tr>
+      <tr><td>Antecedência de publicação</td><td>máx. 14 dias</td></tr>
+      <tr><td>Nova versão do app?</td><td>não</td></tr>
+      <tr><td>Depois de publicado</td><td>só dá para mudar as datas</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p><span class="g of">Tudo oficial.</span> (Cuidado: a ASOMobile publica “a Apple permite 5 eventos ao vivo” — está simplesmente errado.)</p>
+
+  <h4>Eventos são indexados para busca? A resposta honesta é “quase certamente não”</h4>
+  <p>A Apple nunca usa as palavras “indexado” ou “keyword” sobre eventos. Ela diz que o card do evento aparece nos resultados, e que <em>“usuários também podem buscar por In-App Events diretamente”</em>. O Tech Talk 110347 demonstra isso com uma busca pelo nome exato do evento (“June Leaderboard Climb”). Isso é <strong>recuperação por nome exato</strong>, não contribuição de ranking para termos genéricos.</p>
+
+  <p>Decisivo: <strong>in-app events não estão na lista oficial de fatores de relevância textual</strong> (que é título, subtítulo, keywords e categoria primária). E a única coisa parecida com teste é uma observação da Phiture com um cliente não identificado, sem controle, de 2021. A yellowHEAD — agência que não tem incentivo para desinflar o recurso — diz o contrário: <em>“ainda estamos por ver resultados conclusivos.”</em> <span class="g fo">Folclore contestado</span></p>
+
+  <p>Também importante: as páginas de 2026 que afirmam coisas como “apps que publicam 2–4 eventos por mês ganham significativamente mais impressões orgânicas” <strong>não citam nada</strong>, não nomeiam amostra, e têm cara de conteúdo gerado por IA para SEO. Não aja com base nelas.</p>
+
+  <h4>Funciona para app utilitário pequeno?</h4>
+  <p>Adoção entre apps grandes é real: <strong>38% dos top apps</strong> (não-jogos) da App Store americana rodaram mais de 5 eventos em 2025, segundo os benchmarks da AppTweak sobre os top 1.000. O único resultado medido em não-jogo é da Phiture: um app de produtividade teve <strong>~50% de aumento em impressões e downloads de primeira vez</strong> no evento ao vivo. Um cliente, sem grupo de controle. <span class="g me">Medido, fraco</span></p>
+
+  <p><strong>Não encontrei nenhum estudo de caso de in-app event para app pequeno.</strong> <span class="g na">Sem evidência</span> E o mecanismo explica por quê: as três superfícies de descoberta da Apple para eventos são (i) sua própria página de produto, (ii) resultados de busca <em>para quem já baixou o app</em>, e (iii) curadoria <em>editorial</em> nas abas Today/Apps. Nenhuma dessas converte um app sem base instalada. Com 5 downloads/dia não existe base para (ii) e praticamente não existe chance em (iii).</p>
+
+  <div class="flag">
+    <p class="lab">Onde um app como o seu se mata</p>
+    <p>A diretriz 2.3.13 lista o que <strong>não</strong> é um evento válido, e um app utilitário cai direto nas três: “atividades repetitivas como tarefas ou recompensas diárias”; “promoções de preço que não introduzem conteúdo novo”; e <strong>“promoções gerais para aumentar reconhecimento do app”</strong>. Um “IA veterinária grátis este mês!” é rejeição certa. Preço no metadado do evento <em>“levará à rejeição pelo App Review”</em>.</p>
+  </div>
+
+  <div class="verdict">
+    <p class="lab">Veredito</p>
+    <p>Baixa prioridade, mas não zero — e por um motivo lateral. Um evento com badge <strong>Challenge</strong> ou <strong>Major Update</strong> amarrado a um momento externo real e datado (uma <em>campanha municipal de vacinação antirrábica</em>, com as datas verdadeiras) é defensável perante o App Review, adiciona um card à sua página, e principalmente é um <strong>gancho legítimo de pitch editorial</strong> — a Apple convida explicitamente a compartilhar eventos com o time de editores. Use como munição para a nomeação de featuring, não como canal de instalação.</p>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section class="q">
+  <p class="qnum">PERGUNTA 06</p>
+  <h2>Avaliações: sair de 2 para 50</h2>
+
+  <h4>É fator de ranking? Sim — e a Apple diz isso em exatamente uma frase</h4>
+  <blockquote>
+    <p>“Avaliações e resenhas aparecem na sua página de produto e nos resultados de busca, e <strong>podem influenciar como seu app ranqueia na busca da App Store</strong>.”</p>
+    <cite>developer.apple.com/app-store/search</cite>
+  </blockquote>
+  <p>Note o hedge: “<em>podem</em> influenciar”. A Apple nunca diz quanto, nunca diz se é a contagem ou a média, nunca dá peso. Essa frase é <strong>toda</strong> a base oficial da afirmação. A página de ajuda do ASC sobre avaliações não menciona ranking nenhuma vez.</p>
+
+  <p>Rejeite estas, todas sem fonte primária recuperável: <span class="g fo">Folclore</span> “acima de 4,0 o algoritmo lê como qualidade e o ranking melhora”; “análise de 500 apps top achou a maior correlação entre avaliação e rank”; “abaixo de 3,5 você perde visibilidade em 3× mais keywords top-10”. Procurei os primários dos três. Não existem em forma recuperável.</p>
+
+  <h4>Os números famosos vêm de uma pesquisa de opinião com 350 pessoas</h4>
+  <p>Todo “+89% de conversão de 3 para 4 estrelas” e “+340% por estrela” da internet vem da <strong>Apptentive 2015 Consumer Survey</strong>: n = 350 americanos, perguntados sobre o que <em>fariam</em>. Considerariam baixar: 15% com 2 estrelas, 50% com 3, 96% com 4. O “+89%” é apenas 50%→96% expresso como aumento relativo. <span class="g me">Estudo fraco</span> — é aritmética sobre intenção declarada, não conversão observada, tem 11 anos, é só EUA, e antecede o prompt moderno de avaliação. <strong>Não planeje com base nisso.</strong></p>
+
+  <p>Resposta honesta a “qual a diferença medida de conversão entre 4,0 e 4,5?”: <strong>não existe medição pública crível disso.</strong> <span class="g na">Sem evidência</span> Ninguém publicou uma estimativa causal limpa. Quem te der um número está citando a pesquisa de 2015 ou inventando.</p>
+
+  <h4>A evidência boa existe — e ela diz que o que importa é a CONTAGEM, não a nota</h4>
+  <p>Este é o achado mais relevante do dossiê para a sua situação. Sällberg, Wang &amp; Numminen (2023), <em>Journal of Marketing Analytics</em> 11(3):426–442. <span class="g me">Estudo revisado por pares</span></p>
+  <ul>
+    <li><strong>Dados:</strong> painel diário da App Store americana, jan/2015 a dez/2016, <strong>341 apps</strong> (295 jogos, 46 produtividade), acompanhados <strong>desde o lançamento</strong> — ou seja, desde zero avaliações, exatamente a sua posição.</li>
+    <li><strong>Método:</strong> regressão log-linear de efeitos fixos, ~16.560 observações. Variável dependente: contagem real de downloads diários, não intenção declarada.</li>
+    <li><strong>Para apps de produtividade</strong> (utilitários — o comportamento da sua categoria): <em>“volume de avaliações é a única variável de rating com efeito direto significativo sobre downloads […] positivo e significativo.”</em></li>
+    <li>E, decisivo: <em>“a nota média <strong>não</strong> impacta downloads”</em> desses apps. A explicação dos autores: as médias dos concorrentes são parecidas demais para serem informativas — a média da amostra era 4,027.</li>
+  </ul>
+  <p>Ressalvas honestas: é painel correlacional com efeitos fixos, não experimento natural; só 46 apps de produtividade; dados de 2015–16. Para jogos o volume foi significativo mas <em>negativo</em>, o que é estranho e os próprios autores sinalizam.</p>
+
+  <div class="verdict">
+    <p class="lab">Veredito</p>
+    <p><strong>Sua nota 5,0 não é ativo; sua contagem de 2 é o passivo.</strong> Ir de 2 para 50 quase certamente vai te custar o 5,0 — espere pousar entre 4,3 e 4,7. Pela evidência acima, <strong>essa troca é favorável</strong>. E atenção à assimetria de negatividade (Chevalier &amp; Mayzlin, <em>JMR</em> 2006, diferenças-em-diferenças Amazon vs BN.com): o impacto de uma resenha de 1 estrela é maior que o de uma de 5. Com n=50, um único 1 estrela move muito a média exibida — responda rápido.</p>
+  </div>
+
+  <h4>As regras da Apple, com os números exatos</h4>
+  <ul>
+    <li><strong>Limite do prompt:</strong> <code>requestReview</code> exibe o pedido <strong>no máximo 3 vezes em 365 dias</strong>, por pessoa e por dispositivo. Usuários podem desativar prompts globalmente, então seu orçamento real é menor que 3. Não funciona em builds do TestFlight.</li>
+    <li><strong>Não chame em resposta a um toque de botão.</strong> A própria documentação: <em>“Como esta API pode não apresentar um alerta, não a chame em resposta a um toque ou outra ação do usuário.”</em></li>
+    <li><strong>Diretriz 5.6.1</strong> — <em>“Use a API fornecida para pedir avaliações […] e nós <strong>proibiremos prompts customizados</strong>.”</em></li>
+    <li><strong>Preâmbulo da Seção 3</strong> — manipular avaliações com feedback “pago, incentivado, <strong>filtrado</strong> ou falso” pode levar a <strong>expulsão do Apple Developer Program</strong>. A palavra “filtrado” é <em>review gating</em>, nomeado explicitamente.</li>
+    <li><strong>Diretriz 3.2.2(x)</strong> — não force o usuário a avaliar para acessar funcionalidade.</li>
+    <li>A diretriz <strong>1.1.7 não trata de avaliações</strong> — ela é sobre conteúdo que lucra com tragédias. Quem te mandar para lá está errado.</li>
+  </ul>
+
+  <div class="flag">
+    <p class="lab">Mudança de fiscalização recente e concreta</p>
+    <p>Em <strong>junho de 2026</strong> a Apple começou a <strong>rejeitar apps que mostram o prompt de avaliação durante o onboarding</strong>, citando a diretriz <strong>5.6.3 (Discovery Fraud)</strong>. Não é diretriz nova — é aplicação nova. Alguns apps estavam colhendo milhares de 5 estrelas antes de o usuário fazer qualquer coisa. Se o PetLife pede avaliação no onboarding, tire hoje.</p>
+  </div>
+
+  <h4>Quando pedir — a orientação de design da própria Apple</h4>
+  <blockquote>
+    <p>“Peça avaliação <strong>somente depois</strong> que as pessoas demonstrarem engajamento […] <strong>Evite pedir avaliação no primeiro lançamento ou durante o onboarding</strong>, porque as pessoas ainda não tiveram tempo de formar uma opinião. As pessoas podem até ser <strong>mais propensas a deixar feedback negativo</strong> se sentirem que o app está pedindo avaliação antes de terem tido chance de usá-lo.”</p>
+    <cite>Human Interface Guidelines — Ratings and Reviews</cite>
+  </blockquote>
+  <p>O código de exemplo da própria Apple usa três condições antes de disparar: não pediu ainda <em>nesta versão do bundle</em>; a pessoa completou o fluxo-chave <strong>ao menos 4 vezes</strong>; e ela <strong>pausou alguns segundos na tela de sucesso</strong>. A HIG ainda recomenda <em>“ao menos uma ou duas semanas entre pedidos”</em>.</p>
+
+  <div class="do">
+    <p class="lab">Ação concreta para o PetLife</p>
+    <p>Os momentos de sucesso são óbvios: salvar uma vacina na carteirinha, concluir um registro, agir sobre o 3º ou 4º lembrete disparado. Dispare o <code>requestReview</code> <strong>depois da confirmação de salvamento, na 4ª ocorrência, com 2–3 segundos de atraso</strong>, uma vez por versão, nunca no onboarding, nunca a partir de botão, nunca condicionado a sentimento. Some a isso um link permanente “Avalie o app” em Ajustes usando <code>?action=write-review</code> na URL da sua página — esse <em>pode</em> ser botão, porque não é o prompt da API.</p>
+  </div>
+
+  <h4>Não resete a nota</h4>
+  <p>É possível resetar ao lançar nova versão, mas a Apple desaconselha duas vezes, e exatamente na sua circunstância: <em>“ter poucas avaliações pode desencorajar potenciais usuários”</em> (página de ratings) e <em>“pese os benefícios de resetar contra a potencial desvantagem de exibir menos avaliações”</em> (HIG). Você tem 2 avaliações. Resetar te leva a 0 e ainda adiciona um aviso de “nota recentemente resetada” na página. <strong>Não há lado positivo.</strong></p>
+
+  <h4>Responder às resenhas ajuda?</h4>
+  <p>O melhor dado é de Hassan et al. (2018), <em>Empirical Software Engineering</em>: 4,5 milhões de resenhas com 126.686 respostas de desenvolvedores em 2.328 apps. Efeito: <strong>4,4% dos usuários subiram a nota após uma resposta, contra 0,7% sem</strong> — cerca de 6×. <span class="g me">Estudo, com ressalvas</span> Duas ressalvas que precisam ficar juntas ao número: é <strong>Google Play, não App Store</strong>, e é correlacional (o dev provavelmente responde justamente às resenhas mais revisáveis). E note a magnitude absoluta: <strong>4,4% é pouco</strong>. “Toda resposta melhora sua nota” não é o que isso mostra. Os números da AppFollow (“38% atualizam a resenha”, “+0,3 a 0,7 estrela”) vêm de uma página <strong>sem metodologia nenhuma</strong> que, no próprio texto, admite que mais de 50% dos usuários atualizam feedback <em>sem</em> resposta do dev. <span class="g fo">Marketing</span></p>
+
+  <p>Registro de ausência: <strong>não existe benchmark público crível de “avaliações por 1.000 instalações”</strong> nem de taxa de resposta ao prompt do StoreKit. <span class="g na">Sem evidência</span> Quem te der esse número está chutando.</p>
+
+  <ul class="srcs">
+    <li>· <a href="https://doi.org/10.1057/s41270-022-00171-w">Sällberg, Wang &amp; Numminen (2023), J. Marketing Analytics</a> · <a href="https://d-nb.info/1264002645/34">PDF aberto</a></li>
+    <li>· <a href="https://journals.sagepub.com/doi/10.1509/jmkr.43.3.345">Chevalier &amp; Mayzlin (2006), JMR</a></li>
+    <li>· <a href="https://doi.org/10.1007/s10664-017-9538-9">Hassan et al. (2018), EMSE</a></li>
+    <li>· <a href="https://developer.apple.com/documentation/storekit/requestreviewaction">Apple — requestReviewAction</a> · <a href="https://developer.apple.com/design/human-interface-guidelines/ratings-and-reviews">HIG</a></li>
+    <li>· <a href="https://www.revenuecat.com/blog/engineering/dont-prompt-ratings-during-onboarding">RevenueCat — rejeições por prompt no onboarding (jun 2026)</a></li>
+  </ul>
+</section>
+
+<!-- ============ 7 ============ -->
+<section class="q">
+  <p class="qnum">PERGUNTA 07</p>
+  <h2>Categoria e concorrência</h2>
+
+  <p>Duas crenças difundidas foram <strong>refutadas</strong> nesta pesquisa, e as duas importam:</p>
+
+  <h4>Refutação 1 — trocar de categoria EXIGE nova versão</h4>
+  <p>A tabela oficial <em>Required, localizable, and editable properties</em> define “Editable” como aquilo que pode ser mudado <em>sem submeter nova versão</em>. Categoria primária e secundária <strong>não têm a marcação de editável</strong> — só o idioma primário tem. Fontes que afirmam “dá para trocar categoria a qualquer momento sem review” estão <strong>erradas</strong>. <span class="g of">Oficial</span></p>
+
+  <h4>Refutação 2 — a categoria secundária NÃO te coloca no chart dela</h4>
+  <p>Medição própria no feed de charts do Brasil, 1º/set/2026, cruzando o Top Free 100 de Saúde e Fitness, Medicina, Estilo de Vida e Utilidades com a Lookup API: <strong>400 de 400</strong> apps nos charts tinham aquela categoria como <em>primária</em>. Dos 400, <strong>130 tinham como secundária uma das outras três categorias — e 0 dos 130 apareciam no chart dessa secundária.</strong> Exemplo: o Flo ranqueia em Saúde e Fitness com Medicina como secundária e está ausente do top 100 de Medicina. <span class="g me">Medição própria</span></p>
+  <p>Ressalva honesta: esse é o feed RSS legado da Apple. Se ele próprio for construído só a partir da categoria primária, o teste seria circular. Não consegui confirmar contra a UI real do app da App Store.</p>
+
+  <h4>Dificuldade dos charts no Brasil</h4>
+  <p>Usando contagem vitalícia de avaliações como proxy grosseiro de escala (imperfeito — charts respondem a velocidade recente, não a total histórico):</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Chart BR Top Free</th><th class="num">avaliações do #100</th><th class="num">mediana #81–100</th><th class="num">mediana dos 100</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><strong>Medicina</strong></td><td class="num">14</td><td class="num">512</td><td class="num">1.802</td></tr>
+      <tr><td>Estilo de Vida</td><td class="num">1.647</td><td class="num">742</td><td class="num">5.003</td></tr>
+      <tr><td>Utilidades</td><td class="num">7.102</td><td class="num">924</td><td class="num">7.459</td></tr>
+      <tr><td>Saúde e Fitness <span style="color:var(--muted)">(sua atual)</span></td><td class="num">1.062</td><td class="num">2.211</td><td class="num">11.413</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><strong>Medicina é de longe o chart mais mole do Brasil</strong> — a cauda dele tem apps com 14 e 21 avaliações. A cauda de Saúde e Fitness é ~4× mais dura. E, pela definição da própria Apple, Medicina descreve o seu app melhor: <em>“gestão de informação ou referência de saúde […] <strong>manutenção de prontuários médicos</strong>, […] <strong>acompanhamento de saúde</strong>”</em>. Saúde e Fitness é enquadrada em torno do corpo do <em>próprio usuário</em> — yoga, corrida, gravidez. E o concorrente sério mais próximo, o Vetsmart Cães e Gatos (26.784 avaliações), está em <strong>Medicina</strong>.</p>
+
+  <div class="flag">
+    <p class="lab">O contra-argumento, que é forte</p>
+    <p>A Phiture sinaliza que <strong>Medicina pode não ter lista Top Free visível</strong> na UI da App Store — o que tornaria uma posição de chart visível para ferramentas de ASO e invisível para humanos. Verifique no app da App Store brasileira antes de tratar isso como vitória. E o prêmio é pequeno de qualquer jeito: pelo único recorte público (Sensor Tower, 2017–18), busca era <strong>69% dos downloads de apps não-jogo</strong> contra ~15% de browse. <strong>Categoria é alavanca de segunda ordem.</strong></p>
+  </div>
+
+  <p>Estudos de caso de troca de categoria com números reais: procurei em Appfigures, AppTweak, Phiture, Sensor Tower, MobileAction, SplitMetrics. <strong>Não existe nenhum publicado.</strong> <span class="g na">Sem evidência</span> O que circula é uma faixa sem fonte (“20–50% de aumento em 3–6 meses”) e o hipotético eterno do “app de meditação que é #150 em Saúde e #5 em Estilo de Vida”, repetido literalmente em vários blogs sem nunca nomear o app.</p>
+
+  <div class="verdict">
+    <p class="lab">Veredito</p>
+    <p>Trate como decisão de <strong>adequação</strong>, não como growth hack. Medicina descreve melhor um app de prontuário de vacinas e tem chart mais mole. Mas custa uma submissão de versão, o ganho de browse é estruturalmente pequeno, e ninguém nunca publicou prova de que troca de categoria salvou um app. Faça junto com a próxima versão que você fosse enviar de qualquer forma — não faça uma versão só para isso.</p>
+  </div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section class="q">
+  <p class="qnum">PERGUNTA 08</p>
+  <h2>Localização: 175 territórios, 4 idiomas</h2>
+
+  <h4>A descoberta mais acionável do dossiê inteiro</h4>
+  <p>A Apple publica uma tabela oficial de territórios com duas colunas: idioma padrão e <strong>idiomas adicionais suportados</strong>. As linhas que importam:</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Território</th><th>Idioma padrão</th><th>Idioma(s) adicional(is)</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><strong>Brasil</strong></td><td>Português (Brasil)</td><td><strong>Inglês (Reino Unido)</strong></td></tr>
+      <tr><td>Estados Unidos</td><td>Inglês (EUA)</td><td>árabe, chinês, francês, coreano, <strong>português (Brasil)</strong>, russo, <strong>espanhol (México)</strong>, vietnamita</td></tr>
+      <tr><td>Reino Unido</td><td>Inglês (Reino Unido)</td><td>nenhum</td></tr>
+      <tr><td>México</td><td>Espanhol (México)</td><td>Inglês (Reino Unido)</td></tr>
+      <tr><td>Portugal</td><td>Português (Portugal)</td><td>Inglês (Reino Unido)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>O truque do “locale extra = keywords extras” é real e bem corroborado, mas <strong>nunca foi documentado pela Apple</strong>. O único experimento público: AppTweak e Phiture injetaram tokens falsos (tipo <code>enuk1201</code>) numa localização en-GB e rastrearam onde ranqueavam. <span class="g me">Medido, uma vez, em 2022</span> A evidência estrutural que o sustenta é que as tabelas das ferramentas de ASO batem <em>exatamente</em> com a coluna “idiomas adicionais” da Apple — o conjunto que a loja <em>exibe</em> num território é o conjunto que ela <em>indexa</em>.</p>
+
+  <div class="do">
+    <p class="lab">Consequência direta — 100 bytes grátis no seu único mercado real</p>
+    <p><strong>Na vitrine do Brasil só pt-BR e en-GB são indexados.</strong> Suas localizações en-US e es-MX não contribuem absolutamente nada para a busca brasileira. Como o campo de keywords <em>nunca é exibido ao usuário</em>, você pode preencher o campo de keywords do <strong>en-GB com termos em português</strong> a custo zero de apresentação — mantendo título e subtítulo do en-GB em inglês, porque esses <em>são</em> exibidos. Isso dobra seu orçamento de keywords no Brasil, de 100 para 200 bytes.</p>
+  </div>
+
+  <p>Regra que limita o ganho, unânime entre as fontes: <strong>a App Store não combina palavras entre locales.</strong> Todas as frases se formam dentro de uma mesma localização. E cada palavra conta uma vez só — duplicar o mesmo campo de keywords entre locales dá <strong>zero</strong>.</p>
+
+  <div class="flag">
+    <p class="lab">Correção importante</p>
+    <p>Verifique se seu idioma primário no App Store Connect é <strong>en-GB e não en-US</strong>. Inglês (Reino Unido) é o padrão em praticamente todo território exceto EUA, Canadá, Austrália e Japão. Se seu primário for en-US, o fallback global dos seus 175 territórios está apontando para o idioma errado. E cuidado com a tabela da MobileAction, que afirma que o secundário do Reino Unido é “inglês (Austrália)” — contradiz a tabela oficial da Apple, e a Phiture documentou a <em>remoção</em> desse comportamento em 2018. Tabela desatualizada.</p>
+  </div>
+
+  <h4>175 territórios diluem alguma coisa?</h4>
+  <p><strong>Não achei nada</strong> — nenhum teste, nenhuma alegação, nem folclore. <span class="g na">Sem evidência</span> E o mecanismo argumenta contra: o ranking é calculado <strong>por vitrine</strong>. Sua posição no Brasil vem de sinais do Brasil. <strong>Mantenha os 175.</strong></p>
+
+  <h4>Localização malfeita prejudica?</h4>
+  <p>O famoso “+128% de downloads ao adicionar um idioma” vem de um estudo da <strong>Distimo de 2012</strong> sobre 200 apps. Tem 14 anos e antecede a aba Search, o Apple Search Ads, o campo de subtítulo e o algoritmo atual. <span class="g fo">Folclore de origem real mas obsoleta</span> Os “+10–30% de CR” modernos não citam metodologia, amostra nem controle.</p>
+  <p>Tradução automática <strong>prejudica o ranking</strong>? Nenhuma evidência medida. <span class="g na">Sem evidência</span> A Apple não restringe <em>como</em> o metadado é produzido, só exige que seja preciso. O risco real é de <em>review</em>: uma legenda mal traduzida prometendo um termo que a UI não usa aciona rejeição por 2.3.7 / 5.2.1. No seu caso específico o risco não é tradução — é que o app é só português e a loja promete quatro idiomas.</p>
+</section>
+
+<!-- ============ 9 ============ -->
+<section class="q">
+  <p class="qnum">PERGUNTA 09</p>
+  <h2>O que a Apple penaliza</h2>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Prática</th><th>Diretriz</th><th>Consequência</th></tr></thead>
+    <tbody>
+      <tr><td>Empacotar metadado com marcas registradas, nomes de apps populares, preço ou frases irrelevantes</td><td><strong>2.3.7</strong></td><td>Rejeição; a Apple pode “modificar keywords inapropriadas a qualquer momento”</td></tr>
+      <tr><td>Subtítulo que referencia outros apps ou faz alegação não verificável</td><td>2.3.7</td><td>Rejeição</td></tr>
+      <tr><td>Marketing enganoso, promover recurso que não existe, preço falso</td><td>2.3.1(a)</td><td><strong>Remoção do app e encerramento da conta de desenvolvedor</strong></td></tr>
+      <tr><td>Metadado com informação irrelevante ou de outras plataformas</td><td>2.3.10</td><td>Rejeição</td></tr>
+      <tr><td>Avaliações pagas, incentivadas, <strong>filtradas</strong> ou falsas</td><td>Seção 3, preâmbulo</td><td><strong>Expulsão do Apple Developer Program</strong></td></tr>
+      <tr><td>Prompt de avaliação customizado (não usar a API)</td><td>5.6.1</td><td>Rejeição</td></tr>
+      <tr><td>Manipular charts, busca, avaliações ou referrals</td><td>5.6.3</td><td>Rejeição — <strong>aplicada a prompts no onboarding desde jun/2026</strong></td></tr>
+      <tr><td>Forçar avaliação para liberar funcionalidade</td><td>3.2.2(x)</td><td>Rejeição</td></tr>
+      <tr><td>Evento que é feature permanente ou promoção genérica</td><td>2.3.13</td><td>Rejeição do evento</td></tr>
+      <tr><td>Não atualizar há 3 anos <em>e</em> downloads quase nulos em 12 meses</td><td>App Store Improvements</td><td>Remoção (2,8 mi de apps em 6 anos)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Sobre penalização <em>de ranking</em> por keyword stuffing: a Apple documenta <strong>rejeição</strong> e modificação de keywords, mas <span class="g na">não achei nenhuma documentação de rebaixamento algorítmico de ranking</span>. A afirmação de que “rejeições repetidas de metadado marcam sua conta e afetam submissões futuras” aparece em blogs sem fonte. <span class="g fo">Folclore plausível</span></p>
+
+  <div class="flag">
+    <p class="lab">Seus dois riscos concretos hoje</p>
+    <p><strong>1.</strong> “Passeios com GPS estilo <strong>Strava</strong>” na legenda do screenshot 2 — marca de terceiro em metadado seu (2.3.7).<br>
+    <strong>2.</strong> Uma empresa brasileira chamada <em>PETLIFE SISTEMA INTEGRADO DE SAUDE UNICA ANIMAL LTDA</em> publicou o app “PetlifeApp” na App Store em julho de 2026, em Saúde e Medicina. Isso não é problema de ASO, é de marca — mas vale saber que existe uma pessoa jurídica com o nome registrado operando no seu nicho exato.</p>
+  </div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section class="q">
+  <p class="qnum">PERGUNTA 10</p>
+  <h2>Sinais fora da loja</h2>
+
+  <h4>Web, backlinks, Smart App Banner: a Apple não usa nada disso</h4>
+  <p>Este é o achado negativo mais limpo do dossiê. A lista oficial de fatores da Apple contém apenas relevância textual e comportamento do usuário. <strong>Nenhum sinal da web aparece.</strong> O paper de ranking da própria Apple, de 2026, descreve um sistema puramente interno de dois objetivos. Smart App Banners são documentados exclusivamente como mecanismo de conversão web→App Store, nunca como input de ranking. O mesmo vale para App Clips e Universal Links. <span class="g of">Oficial, por omissão</span></p>
+  <p>Onde a presença web <em>de fato</em> importa é indiretamente: ela gera <strong>buscas pelo nome da marca dentro da App Store</strong>, e isso é sinal comportamental que a Apple usa. Esse é o mecanismo real — não backlink. <strong>Não invista em “SEO para App Store”.</strong></p>
+
+  <h4>Apple Search Ads influencia ranking orgânico?</h4>
+  <p>Efeito direto: <strong>sem suporte</strong>. Nem a Apple nem ninguém publicou evidência de link algorítmico entre gasto em anúncio e posição orgânica. A própria AppTweak retratou a alegação antiga: <em>“hoje, não é mais o caso.”</em></p>
+  <p>Efeito indireto: <strong>real e medido</strong>. <span class="g me">Medido</span> A Incipia rodou estudos de incrementalidade ON/OFF e estima ~40% de incrementalidade em anúncios de marca (ou seja, ~60% canibalização). Thomas Petit, com media-mix model, encontrou a Apple como <em>“de longe o canal de maior impacto no orgânico — 50% maior que Facebook Ads e mais de 3× o Google Ads.”</em> O modelo honesto é: <strong>anúncio → instalações → o termo “downloads” que a Apple lista oficialmente → ranking.</strong></p>
+
+  <h4>US$100/mês em Apple Ads — a aritmética</h4>
+  <p>Regra oficial: gasto mensal = orçamento diário × <strong>30,4</strong>. Logo US$100/mês = <strong>US$3,28/dia</strong>. Não existe mínimo publicado pela Apple (o “mínimo de US$5.000” que circula é <strong>falso</strong>).</p>
+  <div class="stats">
+    <div class="stat"><div class="v">US$1,05</div><div class="l">CPI no Brasil (AppTweak, 2025)</div></div>
+    <div class="stat"><div class="v">54%</div><div class="l">taxa de conversão em Search Results BR</div></div>
+    <div class="stat"><div class="v acc">~95</div><div class="l">instalações/mês com US$100</div></div>
+    <div class="stat"><div class="v acc">+62%</div><div class="l">sobre suas ~152 instalações/mês atuais</div></div>
+  </div>
+  <p>Benchmarks da AppTweak sobre ~3.500 apps, 50.000 campanhas e US$1 bi em gasto. O Brasil é uma das praças mais baratas da plataforma. <span class="g me">Medido, escopo declarado</span></p>
+
+  <div class="do">
+    <p class="lab">Ação</p>
+    <p>Use <strong>Apple Ads Advanced</strong> (não Basic — Basic não dá keywords nem relatório de termos de busca, o que torna o gasto irrecuperável como inteligência). <strong>Só Search Results, só Brasil.</strong> No Brasil, Search Results converte a 54% contra 8,1% da aba Search e 3,5% da Today. <strong>Pule defesa de marca</strong> — ~60% canibalização, e você não tem marca a defender com 5 downloads/dia. E reivindique o <strong>crédito promocional de US$100</strong> que a Apple dá automaticamente a novos anunciantes: dobra o mês 1.</p>
+    <p style="margin-top:10px">O entregável real dos primeiros US$100 não são as instalações — é o <strong>relatório de termos de busca</strong>, que te diz quais consultas em português realmente convertem. Isso alimenta as perguntas 2 e 8.</p>
+  </div>
+
+  <h4>Uma alavanca gratuita que quase ninguém usa</h4>
+  <p>A Apple aceita <strong>nomeação para featuring</strong> direto no App Store Connect (menu Nominations, papel de Admin/Marketing). Lead time mínimo de 2 a 3 semanas; até 3 meses de antecedência para consideração ampla. Os critérios oficiais que os editores usam incluem <em>“localização de alta qualidade com conteúdo culturalmente relevante”</em> e <em>“página de produto: screenshots, previews e descrições atraentes, além de avaliações positivas”</em>. <span class="g of">Oficial</span></p>
+  <p>Chance realista para um app de 5 downloads/dia: baixa. Custo: uma hora de escrita. Vale como bilhete de loteria com preço de café — especialmente amarrado a um in-app event de campanha de vacinação com data real.</p>
+</section>
+
+<!-- ============ PLANO ============ -->
+<section class="q">
+  <p class="qnum">SÍNTESE</p>
+  <h2>O que fazer, em ordem</h2>
+  <p class="col">Ordenado por retorno esperado dividido por esforço, não por interesse intelectual. As três primeiras linhas valem mais que todo o resto somado.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th class="num">#</th><th>Ação</th><th>Por quê</th><th>Evidência</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td class="num">1</td><td><strong>Preencher o trader status do DSA</strong></td><td>Destrava toda a União Europeia, incluindo Portugal. Hoje você está removido de lá.</td><td><span class="g of">Oficial</span></td></tr>
+      <tr class="hi"><td class="num">2</td><td><strong>Disparar <code>requestReview</code> no momento certo</strong></td><td>Contagem de avaliações é a única variável de rating com efeito significativo em downloads de apps utilitários. 2 é o seu passivo.</td><td><span class="g me">Estudo revisado</span></td></tr>
+      <tr class="hi"><td class="num">3</td><td><strong>Reescrever o campo de keywords + preencher o do en-GB com termos em português</strong></td><td>46% do campo pt-BR está desperdiçado, e o en-GB são 100 bytes grátis indexados no Brasil.</td><td><span class="g of">Oficial</span> + <span class="g me">1 teste</span></td></tr>
+      <tr><td class="num">4</td><td>Pôr a <strong>carteirinha como screenshot 1</strong></td><td>3 primeiros screenshots aparecem na busca; hoje o primeiro mostra um score, não o que buscam.</td><td><span class="g of">Oficial</span></td></tr>
+      <tr><td class="num">5</td><td>Tirar <strong>“Strava”</strong> da legenda do screenshot 2</td><td>Marca de terceiro em metadado. Risco de rejeição por 2.3.7.</td><td><span class="g of">Oficial</span></td></tr>
+      <tr><td class="num">6</td><td>Verificar se o <strong>idioma primário é en-GB</strong>, não en-US</td><td>en-GB é o padrão em ~170 dos seus 175 territórios.</td><td><span class="g of">Oficial</span></td></tr>
+      <tr><td class="num">7</td><td>Rodar <strong>Apple Ads Advanced</strong>, só Search Results, só BR, US$3,28/dia</td><td>~+62% de instalações, e o relatório de termos de busca é a inteligência que falta.</td><td><span class="g me">Benchmarks</span></td></tr>
+      <tr><td class="num">8</td><td>Criar uma <strong>CPP “carteirinha”</strong> com keywords atribuídas</td><td>Grátis, orgânica, sem nova versão. Melhora relevância, não é experimento.</td><td><span class="g of">Oficial</span></td></tr>
+      <tr><td class="num">9</td><td>Decidir sobre <strong>Medicina</strong> como categoria primária</td><td>Descreve melhor o app e o chart BR é ~4× mais mole. Mas exige nova versão e o prêmio é pequeno.</td><td><span class="g me">Medição própria</span></td></tr>
+      <tr><td class="num">10</td><td><strong>Nomear para featuring</strong>, de preferência junto de um in-app event de campanha de vacinação com data real</td><td>Bilhete de loteria, mas custa uma hora.</td><td><span class="g of">Oficial</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>O que explicitamente NÃO fazer</h3>
+  <ul>
+    <li><strong>Não rode PPO.</strong> Você precisaria de um efeito real de +21% para detectar algo em 90 dias; efeitos reais medidos ficam entre +1,5% e +8%.</li>
+    <li><strong>Não resete a nota.</strong> A Apple desaconselha duas vezes, exatamente na sua situação.</li>
+    <li><strong>Não produza vídeo de prévia agora.</strong> No caso da própria Apple (Simply Piano), a versão sem vídeo venceu — e o vídeo <em>substitui</em> seus três screenshots na busca.</li>
+    <li><strong>Não corte territórios.</strong> Ranking é por vitrine; não há evidência de diluição.</li>
+    <li><strong>Não construa backlinks nem “SEO de App Store”.</strong> A lista oficial de fatores da Apple não contém um único sinal da web.</li>
+    <li><strong>Não gaste bytes de keyword com nomes de categoria</strong> (<code>saude</code>, <code>medicina</code>) — a categoria já é indexada automaticamente.</li>
+    <li><strong>Não peça avaliação no onboarding.</strong> A Apple começou a rejeitar por isso em junho de 2026, citando 5.6.3.</li>
+    <li><strong>Não mude nome/subtítulo mais de uma vez a cada 4 semanas.</strong> Você destrói sua capacidade de atribuir causa.</li>
+  </ul>
+
+  <h3>A verdade desconfortável</h3>
+  <p class="col">O teto de tudo acima é a demanda de busca do nicho. Você já é #1 ou #2 em “lembrete vacina pet” e “carteirinha de vacinação pet” — e continua com 5 downloads/dia. Isso significa que esses termos têm volume quase nulo. As correções de ASO aqui listadas provavelmente te levam de 5 para algo entre 10 e 20 downloads/dia; o Apple Ads soma mais uns 3. <strong>Nada disso é um ponto de inflexão.</strong></p>
+  <p class="col">Um ponto de inflexão exigiria disputar as cabeças de cauda (<code>vacina pet</code>, <code>carteirinha pet</code>), onde a barreira é <em>comportamental</em> — o PetZillas tem 1.700 avaliações, o Flockr tem 1.093 — e não textual. O caminho para lá passa por avaliações e por retenção, não por metadado. Metadado é o que te impede de desperdiçar a demanda que já existe; ele não cria demanda.</p>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Dossiê compilado em 1º de setembro de 2026. Medições de disponibilidade, posicionamento e metadados feitas diretamente contra as APIs públicas da Apple na mesma data. Toda afirmação carrega a classificação de evidência correspondente; onde não encontrei evidência, isso está dito explicitamente.</p>
+  </div>
+</footer>

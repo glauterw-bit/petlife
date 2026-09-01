@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -163,6 +164,67 @@ async def root():
         "version": "1.2.0",
         "status": "online",
         "docs": "/docs",
+    }
+
+
+@app.get("/public/wrapped/{pet_id}", tags=["Público"])
+async def public_wrapped(pet_id: int, year: Optional[int] = None):
+    """Retrospectiva anual pública — sem login.
+
+    A tela do Wrapped compartilhava /wrapped/{id}, que bate num endpoint
+    autenticado: quem recebia o link caía num muro de login (HTTP 401). Era o
+    conteúdo de maior carga emocional do app com o loop cortado no destino.
+
+    Esta versão devolve só os NÚMEROS, sem chamar a IA — o endpoint privado
+    segue gerando a narrativa para o dono. Assim a página pública é barata,
+    determinística e não vira porta de abuso do modelo.
+
+    Não expõe nada do tutor: nome do pet, raça e contadores do ano.
+    """
+    from datetime import datetime
+    from sqlalchemy import func, extract, select as sel
+    from sqlalchemy.orm import selectinload
+    from database import AsyncSessionLocal
+    from models import Pet, Vaccine, Exam, WalkSession, UserChallenge
+
+    from fastapi import HTTPException
+    ano = year or datetime.utcnow().year
+    async with AsyncSessionLocal() as db:
+        q = await db.execute(sel(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id))
+        pet = q.scalar_one_or_none()
+        if not pet:
+            raise HTTPException(status_code=404, detail="Pet não encontrado")
+
+        async def conta(modelo, campo_data, filtro_pet=True):
+            cond = [extract("year", campo_data) == ano]
+            if filtro_pet:
+                cond.append(modelo.pet_id == pet_id)
+            r = await db.execute(sel(func.count()).select_from(modelo).where(*cond))
+            return int(r.scalar() or 0)
+
+        vacinas = await conta(Vaccine, Vaccine.date_given)
+        exames = await conta(Exam, Exam.date)
+        passeios = await conta(WalkSession, WalkSession.started_at)
+
+        km = await db.execute(
+            sel(func.coalesce(func.sum(WalkSession.distance_km), 0))
+            .where(WalkSession.pet_id == pet_id,
+                   extract("year", WalkSession.started_at) == ano)
+        )
+        km_total = round(float(km.scalar() or 0), 1)
+
+    return {
+        "pet_name": pet.name,
+        "species": pet.species.value if hasattr(pet.species, "value") else pet.species,
+        "breed_name": pet.breed.name if pet.breed else "SRD",
+        "year": ano,
+        "title": f"O ano de {pet.name} em {ano}",
+        "highlights": [
+            {"emoji": "💉", "stat": vacinas, "label": "vacinas"},
+            {"emoji": "🏥", "stat": exames, "label": "exames"},
+            {"emoji": "🐾", "stat": passeios, "label": "passeios"},
+            {"emoji": "📍", "stat": km_total, "label": "km percorridos"},
+        ],
     }
 
 

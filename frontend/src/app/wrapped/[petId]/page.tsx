@@ -24,7 +24,7 @@ export default function WrappedPage() {
 
   function shareWhatsApp() {
     if (!data) return
-    const text = encodeURIComponent(`${data.share_text}\n\n${window.location.origin}/wrapped/${petId}`)
+    const text = encodeURIComponent(`${data.share_text}\n\n${window.location.origin}/public/wrapped/${petId}`)
     window.open(`https://wa.me/?text=${text}`, '_blank')
   }
 

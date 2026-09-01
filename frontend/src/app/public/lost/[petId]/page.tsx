@@ -89,6 +89,7 @@ export default function LostPetPage() {
 
         <div className="max-w-md w-full">
           <DownloadCta
+          campanha="pet_perdido"
             headline="Seu pet também pode ter uma identidade dessas."
             sub="QR na coleira, carteira de vacinação digital e página de busca instantânea se ele sumir."
           />
@@ -207,6 +208,7 @@ export default function LostPetPage() {
 
         {/* Abaixo do contato de propósito: achar o pet vem primeiro. */}
         <DownloadCta
+          campanha="pet_perdido"
           className="mt-5"
           headline="Se o seu sumir, essa página existe em segundos."
           sub="Cadastre seu pet e tenha QR na coleira, carteira de vacinação e alerta de desaparecimento prontos."

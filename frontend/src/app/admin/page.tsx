@@ -57,7 +57,13 @@ export default function AdminPage() {
       setTimeout(() => router.replace('/dashboard'), 1500)
     } finally { setRefreshing(false) }
   }
-  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    load()
+    // Recarrega a cada 60s: o painel ficava aberto envelhecendo em silêncio,
+    // e quem olha um painel espera número de agora.
+    const id = setInterval(load, 60_000)
+    return () => clearInterval(id)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (denied) return (
     <DashboardLayout>

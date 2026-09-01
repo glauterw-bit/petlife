@@ -3,7 +3,23 @@
 import Link from 'next/link'
 import { Download, PawPrint } from 'lucide-react'
 
-export const APP_STORE_URL = 'https://apps.apple.com/br/app/petlife-sa%C3%BAde-do-pet/id6768136468'
+const APP_STORE_BASE = 'https://apps.apple.com/br/app/petlife-sa%C3%BAde-do-pet/id6768136468'
+
+/**
+ * Link da App Store com rastreio de campanha.
+ *
+ * A Apple aceita `ct` (campaign text) sem SDK nenhum e mostra o resultado no
+ * App Analytics — de graça. Sem isso temos sete superfícies virais e nenhuma
+ * forma de saber qual traz instalação.
+ */
+export function appStoreUrl(campanha?: string): string {
+  return campanha
+    ? `${APP_STORE_BASE}?ct=${encodeURIComponent(campanha)}&mt=8`
+    : APP_STORE_BASE
+}
+
+/** @deprecated use appStoreUrl(campanha) — sem campanha não dá pra medir. */
+export const APP_STORE_URL = APP_STORE_BASE
 
 /**
  * CTA de download nas páginas públicas.
@@ -18,10 +34,13 @@ export const APP_STORE_URL = 'https://apps.apple.com/br/app/petlife-sa%C3%BAde-d
 export function DownloadCta({
   headline,
   sub,
+  campanha,
   className = '',
 }: {
   headline: string
   sub?: string
+  /** Identifica a origem no App Analytics: 'carteirinha', 'pet_perdido'… */
+  campanha?: string
   className?: string
 }) {
   return (
@@ -40,7 +59,7 @@ export function DownloadCta({
 
       <div className="flex flex-col gap-2 mt-4">
         <a
-          href={APP_STORE_URL}
+          href={appStoreUrl(campanha)}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center justify-center gap-2 bg-surface-900 dark:bg-white text-white dark:text-surface-900 px-5 py-3 rounded-2xl text-sm font-semibold hover:opacity-90 transition"

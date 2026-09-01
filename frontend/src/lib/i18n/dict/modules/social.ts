@@ -186,6 +186,8 @@ export const social: LocaleBundle = {
     'g.inv.role.family': 'Família (visualização)',
 
     // ── Compartilhar pet (SharePetModal) ──────────────────────────────
+    'g.sh.sendWhatsApp': 'Enviar pelo WhatsApp',
+    'g.sh.whatsAppText': 'Te convidei pra cuidar do {name} comigo no PetLife! Toca aqui pra aceitar: {url}',
     'g.sh.title': 'Compartilhar {name}',
     'g.sh.desc': 'Convide co-tutor, pet sitter ou família para acompanhar {name}.',
     'g.sh.errEmail': 'E-mail inválido',
@@ -612,6 +614,8 @@ export const social: LocaleBundle = {
     'g.inv.role.family': 'Family (view only)',
 
     // ── Share pet ─────────────────────────────────────────────────────
+    'g.sh.sendWhatsApp': 'Send via WhatsApp',
+    'g.sh.whatsAppText': "I've invited you to look after {name} with me on PetLife! Tap here to accept: {url}",
     'g.sh.title': 'Share {name}',
     'g.sh.desc': 'Invite a co-owner, pet sitter or family member to follow along with {name}.',
     'g.sh.errEmail': 'Invalid email',
@@ -1038,6 +1042,8 @@ export const social: LocaleBundle = {
     'g.inv.role.family': 'Familia (solo ver)',
 
     // ── Compartir mascota ─────────────────────────────────────────────
+    'g.sh.sendWhatsApp': 'Enviar por WhatsApp',
+    'g.sh.whatsAppText': '¡Te invité a cuidar de {name} conmigo en PetLife! Toca aquí para aceptar: {url}',
     'g.sh.title': 'Compartir a {name}',
     'g.sh.desc': 'Invita a un cotutor, cuidador o familiar a seguir a {name}.',
     'g.sh.errEmail': 'Correo inválido',
