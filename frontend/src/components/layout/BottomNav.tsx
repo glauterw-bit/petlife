@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Home, PawPrint, Footprints, ShieldCheck, LayoutGrid, X,
-  Trophy, Route, MapPin, Brain, MailOpen, Crown, FlaskConical,
+  Trophy, Route, MapPin, Brain, MailOpen, Crown, FlaskConical, Camera,
   Settings, CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -30,6 +30,7 @@ const MORE = [
   { href: '/behavior', label: 'Comportamento', Icon: Brain, tint: 'text-purple-600 bg-purple-50 dark:text-purple-300 dark:bg-purple-500/15' },
   { href: '/health/exams', label: 'Exames', Icon: FlaskConical, tint: 'text-sky-600 bg-sky-50 dark:text-sky-300 dark:bg-sky-500/15' },
   { href: '/convites', label: 'Convites', Icon: MailOpen, tint: 'text-pink-600 bg-pink-50 dark:text-pink-300 dark:bg-pink-500/15' },
+  { href: '/momentos', label: 'Momentos', Icon: Camera, tint: 'text-pink-600 bg-pink-50 dark:text-pink-300 dark:bg-pink-500/15' },
   { href: '/plans', label: 'Planos', Icon: Crown, tint: 'text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15' },
   { href: '/settings', label: 'Perfil', Icon: Settings, tint: 'text-surface-600 bg-surface-100 dark:text-surface-300 dark:bg-surface-700' },
 ]

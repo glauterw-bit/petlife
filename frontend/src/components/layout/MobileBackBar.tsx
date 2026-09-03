@@ -9,7 +9,7 @@ import { useT } from '@/contexts/LocaleContext'
 // inferior — precisam de um "voltar" explícito no mobile (o app nativo/PWA
 // não tem gesto de voltar do navegador).
 const BACK_PREFIXES = [
-  '/challenges', '/routines', '/nearby', '/behavior', '/convites',
+  '/challenges', '/routines', '/momentos', '/nearby', '/behavior', '/convites',
   '/plans', '/settings', '/admin', '/health/exams', '/wrapped', '/memorial',
 ]
 
