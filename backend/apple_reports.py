@@ -70,7 +70,7 @@ async def _fetch_day(client, d: date) -> Optional[dict]:
             "filter[vendorNumber]": os.getenv("ASC_VENDOR_NUMBER", "").strip(),
             "filter[reportDate]": iso,
         },
-        headers={"Authorization": f"bearer {_token()}"},
+        headers={"Authorization": f"Bearer {_token()}"  # maiúsculo: salesReports recusa "bearer" com 401},
     )
     if r.status_code != 200:
         _MISS_AT[iso] = time.time()
