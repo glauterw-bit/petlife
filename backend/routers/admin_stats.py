@@ -273,6 +273,19 @@ def _ddd_from_phone(phone: str | None):
     return None
 
 
+@router.get("/apple-downloads")
+async def admin_apple_downloads(
+    admin: User = Depends(require_admin),
+):
+    """Downloads por país/dia direto da Apple. Ver apple_reports.py.
+
+    Download sem cadastro não existe no nosso banco — só a Apple sabe. Com a
+    config ausente devolve {available: false} e o card simplesmente não rende.
+    """
+    import apple_reports
+    return await apple_reports.daily_downloads(days=14)
+
+
 @router.get("/users/locations")
 async def admin_user_locations(
     admin: User = Depends(require_admin),

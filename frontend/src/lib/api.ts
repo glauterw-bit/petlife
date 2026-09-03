@@ -1552,6 +1552,11 @@ export const adminStats = {
     const res = await fetch(`${API_URL}/admin/users`, { headers: getAuthHeaders() })
     return handleResponse<{ total: number; users: AdminUser[] }>(res)
   },
+  appleDownloads: async () => {
+    const res = await fetch(`${API_URL}/admin/apple-downloads`, { headers: getAuthHeaders() })
+    return handleResponse<AppleDownloads>(res)
+  },
+
   locations: async () => {
     const res = await fetch(`${API_URL}/admin/users/locations`, { headers: getAuthHeaders() })
     return handleResponse<AdminLocations>(res)
@@ -1589,6 +1594,13 @@ export interface ResetCodeResult {
   message: string
   whatsapp_url: string | null
   expires_in_minutes: number
+}
+
+export interface AppleDownloads {
+  available: boolean
+  total?: number
+  by_country?: Array<{ country: string; count: number }>
+  days?: Array<{ date: string; reported: boolean; total: number; by_country: Record<string, number> }>
 }
 
 export interface AdminLocations {

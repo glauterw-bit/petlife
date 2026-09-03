@@ -9,7 +9,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import dynamic from 'next/dynamic'
-import { adminStats, feedback as feedbackApi, type AdminStats, type AdminUser, type AdminLocations, type ResetRequest, type FeedbackList, type AiTopicsReport } from '@/lib/api'
+import { adminStats, feedback as feedbackApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type ResetRequest, type FeedbackList, type AiTopicsReport } from '@/lib/api'
 
 const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
   ssr: false,
@@ -33,6 +33,7 @@ export default function AdminPage() {
   const [data, setData] = useState<AdminStats | null>(null)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [locations, setLocations] = useState<AdminLocations | null>(null)
+  const [appleDl, setAppleDl] = useState<AppleDownloads | null>(null)
   const [resetReqs, setResetReqs] = useState<ResetRequest[]>([])
   const [fb, setFb] = useState<FeedbackList | null>(null)
   const [topics, setTopics] = useState<AiTopicsReport | null>(null)
@@ -44,13 +45,14 @@ export default function AdminPage() {
   async function load() {
     try {
       setRefreshing(true)
-      const [st, us, loc, rr, fbs, tps] = await Promise.all([
+      const [st, us, loc, rr, fbs, tps, apdl] = await Promise.all([
         adminStats.get(),
         adminStats.users().catch(() => ({ total: 0, users: [] })),
         adminStats.locations().catch(() => null),
         adminStats.resetRequests().catch(() => ({ pending: 0, requests: [] })),
         feedbackApi.list().catch(() => null),
         adminStats.aiTopics().catch(() => null),
+        adminStats.appleDownloads().catch(() => null),
       ])
       setData(st)
       setUsers(us.users)
@@ -58,6 +60,7 @@ export default function AdminPage() {
       setResetReqs(rr.requests)
       setFb(fbs)
       setTopics(tps)
+      setAppleDl(apdl)
     } catch {
       setDenied(true)
       setTimeout(() => router.replace('/dashboard'), 1500)
@@ -462,6 +465,37 @@ export default function AdminPage() {
             {locations.by_state.slice(0, 8).map(s => (
               <span key={s.state} className="text-[11px] bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300 rounded-full px-2.5 py-1 tabular-nums font-medium">
                 {s.state}: <b>{s.count}</b>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Downloads oficiais da Apple — download sem cadastro só existe aqui */}
+      {appleDl?.available && (appleDl.total ?? 0) >= 0 && (
+        <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <h3 className="font-bold text-surface-900 dark:text-white">⬇️ Downloads na App Store</h3>
+            <span className="text-xs text-surface-400">últimos 14 dias fechados · fonte: Apple · atraso de 24–48h</span>
+          </div>
+          <div className="flex items-end gap-1 h-24 mb-2">
+            {appleDl.days?.map(d => {
+              const max = Math.max(1, ...(appleDl.days ?? []).map(x => x.total))
+              return (
+                <div key={d.date} className="flex-1 flex flex-col items-center gap-1" title={`${d.date}: ${d.reported ? d.total : 'sem relatório'}`}>
+                  <span className="text-[10px] text-surface-500 dark:text-surface-400 tabular-nums">{d.reported ? d.total : '·'}</span>
+                  <div className={`w-full rounded-t ${d.reported ? 'bg-primary-500' : 'bg-surface-200 dark:bg-surface-700'}`}
+                       style={{ height: `${d.reported ? Math.max(6, (d.total / max) * 70) : 4}px` }} />
+                  <span className="text-[9px] text-surface-400">{d.date.slice(8)}</span>
+                </div>
+              )
+            })}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-surface-700 dark:text-surface-200 tabular-nums">Total: {appleDl.total}</span>
+            {appleDl.by_country?.map(c => (
+              <span key={c.country} className={`text-xs rounded-full px-2.5 py-1 tabular-nums font-medium ${c.country === 'BR' ? 'bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-bold'}`}>
+                {flagEmoji(c.country)} {c.country}: <b>{c.count}</b>
               </span>
             ))}
           </div>
