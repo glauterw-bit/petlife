@@ -88,6 +88,17 @@ async def login(request: Request, credentials: UserLogin, db: AsyncSession = Dep
         else settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     token = create_access_token(data={"sub": str(user.id)}, expires_delta=timedelta(minutes=minutes))
+
+    # País/cidade pro painel admin — o login é o momento natural de captura
+    # (o hook do get_current_user cobre sessões longas que nunca relogam).
+    try:
+        import geo_service
+        if geo_service.precisa_atualizar(user):
+            ip = geo_service.client_ip(request.headers, request.client.host if request.client else None)
+            geo_service.agenda_geolocalizacao(user.id, ip)
+    except Exception:
+        pass
+
     return Token(access_token=token, user=UserResponse.model_validate(user))
 
 
