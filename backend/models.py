@@ -62,6 +62,11 @@ class User(Base):
     trial_used = Column(Boolean, default=False, nullable=False)
     # Última atividade (atualizado com throttle no get_current_user) — base de DAU/WAU/MAU
     last_seen_at = Column(DateTime, nullable=True, index=True)
+    # ─── Localização (painel admin; LGPD: só o derivado, nunca o IP) ─────────
+    geo_country = Column(String(2), nullable=True, index=True)   # ISO-3166 (BR, US…)
+    geo_region = Column(String(60), nullable=True)
+    geo_city = Column(String(80), nullable=True)
+    geo_updated_at = Column(DateTime, nullable=True)
     # ─── Indicação (recompensa dupla) ────────────────────────────────────────
     referral_code = Column(String(12), unique=True, nullable=True, index=True)
     referred_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)

@@ -125,6 +125,8 @@ export default function RegisterPage() {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
                   type="email"
+                  name="email"
+                  autoComplete="username"
                   required
                   value={form.email}
                   onChange={set('email')}
@@ -156,6 +158,7 @@ export default function RegisterPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
                   type={showPass ? 'text' : 'password'}
+                  autoComplete="new-password"
                   required
                   value={form.password}
                   onChange={set('password')}
@@ -178,6 +181,7 @@ export default function RegisterPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
                   type={showPass ? 'text' : 'password'}
+                  autoComplete="new-password"
                   required
                   value={form.confirm}
                   onChange={set('confirm')}

@@ -319,10 +319,35 @@ async def admin_user_locations(
             by_state[state] = by_state.get(state, 0) + 1
         out.append({"id": u.id, "name": u.name, "lat": lat, "lng": lng, "source": source, "state": state})
 
+    # País e cidade (derivados de IP no login — ver geo_service). O mapa por
+    # GPS/DDD só enxergava Brasil; isto mostra de onde o mundo está chegando.
+    by_country, by_city, estrangeiros = {}, {}, []
+    for u in users:
+        cc = getattr(u, "geo_country", None)
+        if not cc:
+            continue
+        by_country[cc] = by_country.get(cc, 0) + 1
+        cidade = getattr(u, "geo_city", None)
+        if cidade:
+            chave = f"{cidade}|{cc}"
+            by_city[chave] = by_city.get(chave, 0) + 1
+        if cc != "BR":
+            estrangeiros.append({
+                "id": u.id, "name": u.name, "country": cc,
+                "city": getattr(u, "geo_city", None),
+                "region": getattr(u, "geo_region", None),
+            })
+
     return {
         "located": len(out), "total_users": len(users),
         "by_state": sorted(([{"state": k, "count": v} for k, v in by_state.items()]), key=lambda x: -x["count"]),
         "points": out,
+        "geo_located": sum(by_country.values()),
+        "by_country": sorted([{"country": k, "count": v} for k, v in by_country.items()], key=lambda x: -x["count"]),
+        "by_city": sorted(
+            [{"city": k.split("|")[0], "country": k.split("|")[1], "count": v} for k, v in by_city.items()],
+            key=lambda x: -x["count"])[:15],
+        "foreign_users": estrangeiros,
     }
 
 

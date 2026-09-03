@@ -1596,6 +1596,11 @@ export interface AdminLocations {
   total_users: number
   by_state: Array<{ state: string; count: number }>
   points: Array<{ id: number; name: string; lat: number; lng: number; source: string | null; state: string | null }>
+  /** País/cidade derivados de IP no login (geo_service). Podem faltar em respostas antigas. */
+  geo_located?: number
+  by_country?: Array<{ country: string; count: number }>
+  by_city?: Array<{ city: string; country: string; count: number }>
+  foreign_users?: Array<{ id: number; name: string; country: string; city: string | null; region: string | null }>
 }
 
 export interface AdminUser {

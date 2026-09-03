@@ -21,6 +21,12 @@ import { useChartTheme } from '@/lib/charts'
  * Painel do administrador — KPIs de uso do PetLife.
  * O guard REAL é no servidor (403 pra não-admin); aqui só redirecionamos.
  */
+/** BR -> 🇧🇷 : bandeira a partir do código ISO, sem dependência. */
+function flagEmoji(cc: string): string {
+  if (!cc || cc.length !== 2) return '🌐'
+  return String.fromCodePoint(...cc.toUpperCase().split('').map(c => 0x1f1a5 + c.charCodeAt(0)))
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const { palette, ink } = useChartTheme()
@@ -459,6 +465,44 @@ export default function AdminPage() {
               </span>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Países e cidades (IP do login; cresce conforme a base volta a abrir) */}
+      {locations && (locations.by_country?.length ?? 0) > 0 && (
+        <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <h3 className="font-bold text-surface-900 dark:text-white">🌍 Países e cidades</h3>
+            <span className="text-xs text-surface-400">{locations.geo_located} com origem identificada · via IP do login</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap mb-3">
+            {locations.by_country!.map(c => (
+              <span key={c.country} className={`text-xs rounded-full px-2.5 py-1 tabular-nums font-medium ${c.country === 'BR' ? 'bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-bold'}`}>
+                {flagEmoji(c.country)} {c.country}: <b>{c.count}</b>
+              </span>
+            ))}
+          </div>
+          {(locations.by_city?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {locations.by_city!.map(c => (
+                <span key={`${c.city}-${c.country}`} className="text-[11px] bg-surface-50 dark:bg-surface-700/60 text-surface-500 dark:text-surface-400 rounded-full px-2 py-0.5 tabular-nums">
+                  {c.city}{c.country !== 'BR' ? ` ${flagEmoji(c.country)}` : ''}: {c.count}
+                </span>
+              ))}
+            </div>
+          )}
+          {(locations.foreign_users?.length ?? 0) > 0 && (
+            <div className="mt-3 pt-3 border-t border-surface-100 dark:border-surface-700">
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1.5">Usuários fora do Brasil</p>
+              <div className="space-y-1">
+                {locations.foreign_users!.map(u => (
+                  <p key={u.id} className="text-xs text-surface-600 dark:text-surface-300">
+                    {flagEmoji(u.country)} <b>{u.name}</b> — {[u.city, u.region].filter(Boolean).join(', ') || u.country}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

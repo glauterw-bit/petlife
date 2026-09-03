@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Request, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -44,6 +44,7 @@ def decode_token(token: str) -> dict:
 
 
 async def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
@@ -72,6 +73,13 @@ async def get_current_user(
         if user.last_seen_at is None or (now - user.last_seen_at) > timedelta(hours=1):
             user.last_seen_at = now
             await db.flush()
+            # País/cidade pro painel (máx. 1 consulta por usuário / 30 dias).
+            # Fica DENTRO do throttle de 1h de propósito: custo zero no caminho
+            # quente. Fire-and-forget: nunca atrasa a resposta.
+            import geo_service
+            if geo_service.precisa_atualizar(user):
+                ip = geo_service.client_ip(request.headers, request.client.host if request.client else None)
+                geo_service.agenda_geolocalizacao(user.id, ip)
     except Exception:
         pass
 

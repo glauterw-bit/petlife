@@ -154,6 +154,12 @@ async def _run_migrations():
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_device_tokens_token ON device_tokens(token)",
         "CREATE INDEX IF NOT EXISTS ix_device_tokens_user_active ON device_tokens(user_id) WHERE disabled_at IS NULL",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_push_logs_dedupe ON push_logs(dedupe_key)",
+        # País/cidade do usuário (derivado de IP; nunca guardamos o IP)
+        "ALTER TABLE users ADD COLUMN geo_country VARCHAR(2)",
+        "ALTER TABLE users ADD COLUMN geo_region VARCHAR(60)",
+        "ALTER TABLE users ADD COLUMN geo_city VARCHAR(80)",
+        f"ALTER TABLE users ADD COLUMN geo_updated_at {timestamp_type}",
+        "CREATE INDEX IF NOT EXISTS ix_users_geo_country ON users(geo_country)",
         "CREATE INDEX IF NOT EXISTS ix_pet_expenses_pet_spent ON pet_expenses(pet_id, spent_at)",
         f"ALTER TABLE users ADD COLUMN last_seen_at {timestamp_type}",
         "CREATE INDEX IF NOT EXISTS ix_users_last_seen ON users(last_seen_at)",

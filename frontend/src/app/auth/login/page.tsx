@@ -22,6 +22,15 @@ function LoginInner() {
   const t = useT()
 
   const [email, setEmail] = useState('')
+
+  // Entrar mais rápido: lembra o último e-mail usado (a senha fica com o
+  // gerenciador do sistema — autoComplete acima — nunca no nosso storage).
+  useEffect(() => {
+    try {
+      const last = localStorage.getItem('petlife_last_email')
+      if (last) setEmail(last)
+    } catch {}
+  }, [])
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [remember, setRemember] = useState(true)
@@ -40,6 +49,7 @@ function LoginInner() {
     setError('')
     setLoading(true)
     try {
+      try { localStorage.setItem('petlife_last_email', email.trim().toLowerCase()) } catch {}
       await login(email, password, remember)
       router.push('/dashboard')
     } catch (err: unknown) {
@@ -88,6 +98,8 @@ function LoginInner() {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
                   type="email"
+                  name="email"
+                  autoComplete="username"
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -105,6 +117,8 @@ function LoginInner() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
                   type={showPass ? 'text' : 'password'}
+                  name="password"
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
