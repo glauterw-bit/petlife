@@ -207,10 +207,19 @@ export default function PlansPage() {
                     {isFree ? (
                       <p className="text-2xl font-extrabold text-gray-900 dark:text-white">R$ 0</p>
                     ) : product ? (
-                      <p className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                        {brl(product.price_brl)}
-                        <span className="text-sm font-medium text-gray-400">/{cadence === 'monthly' ? t('ac.plans.perMonth') : t('ac.plans.perYear')}</span>
-                      </p>
+                      <>
+                        <p className="text-2xl font-extrabold text-gray-900 dark:text-white">
+                          {brl(product.price_brl)}
+                          <span className="text-sm font-medium text-gray-400">/{cadence === 'monthly' ? t('ac.plans.perMonth') : t('ac.plans.perYear')}</span>
+                        </p>
+                        {/* O trial de 30 dias é o maior argumento de venda (o
+                            mercado dá 3–7) e ficava invisível até o clique. */}
+                        {product.has_trial && (
+                          <span className="inline-block mt-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                            {t('ac.plans.trialBadge')}
+                          </span>
+                        )}
+                      </>
                     ) : null}
                   </div>
 

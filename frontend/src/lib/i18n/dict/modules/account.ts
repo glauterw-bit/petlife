@@ -112,6 +112,7 @@ export const account: LocaleBundle = {
     'ac.set.deletePermanently': 'Apagar permanentemente',
 
     // Planos & assinatura
+    'ac.plans.trialBadge': '30 dias grátis',
     'ac.plans.title': 'Planos PetLife',
     'ac.plans.subtitle': 'Desbloqueie a Vyron IA e os recursos de saúde por IA sem limites.',
     'ac.plans.tier.free': 'Grátis',
@@ -290,6 +291,7 @@ export const account: LocaleBundle = {
     'ac.set.deletePermanently': 'Delete permanently',
 
     // Plans & subscription
+    'ac.plans.trialBadge': '30 days free',
     'ac.plans.title': 'PetLife Plans',
     'ac.plans.subtitle': 'Unlock Vyron AI and the AI health features without limits.',
     'ac.plans.tier.free': 'Free',
@@ -468,6 +470,7 @@ export const account: LocaleBundle = {
     'ac.set.deletePermanently': 'Eliminar permanentemente',
 
     // Planes y suscripción
+    'ac.plans.trialBadge': '30 días gratis',
     'ac.plans.title': 'Planes PetLife',
     'ac.plans.subtitle': 'Desbloquea Vyron IA y las funciones de salud con IA sin límites.',
     'ac.plans.tier.free': 'Gratis',

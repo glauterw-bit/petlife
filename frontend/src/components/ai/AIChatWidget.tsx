@@ -3,11 +3,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { X, Send, ChevronDown } from 'lucide-react'
 import { VyronAvatar } from './VyronAvatar'
-import { ai, type Pet } from '@/lib/api'
+import { ai, billing, type Pet } from '@/lib/api'
 import { cn, getSpeciesEmoji } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
 
 interface Message {
+  upsell?: boolean
   id: string
   role: 'user' | 'assistant'
   content: string
@@ -18,6 +19,10 @@ interface Message {
   contentKey?: string
   timestamp: Date
 }
+
+const UPSELL_KEY = 'petlife_vyron_upsell_at'
+const UPSELL_COOLDOWN_DIAS = 7
+const UPSELL_APOS_RESPOSTAS = 3
 
 interface AIChatWidgetProps {
   pets: Pet[]
@@ -41,6 +46,38 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
   const [petDropdown, setPetDropdown] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Oferta no momento de valor: o paywall só aparecia como punição (402), e o
+  // dado provou que ninguém chega perto do limite — 1 pessoa em 154 usou 7 de
+  // 10 mensagens no mês. Quem gosta da Vyron precisa OUVIR a oferta.
+  const respostasRef = useRef(0)
+  const usageRef = useRef<{ tier: string; restam: number } | null>(null)
+
+  useEffect(() => {
+    if (!open || usageRef.current) return
+    billing.me().then(me => {
+      const u = me?.usage
+      if (u) usageRef.current = { tier: u.tier, restam: Math.max(0, (u.limits.ai_chat ?? 0) - (u.used.ai_chat ?? 0)) }
+    }).catch(() => {})
+  }, [open])
+
+  function talvezOferecer() {
+    const info = usageRef.current
+    if (!info || info.tier !== 'free') return
+    respostasRef.current += 1
+    if (respostasRef.current !== UPSELL_APOS_RESPOSTAS) return
+    try {
+      const ultima = Number(localStorage.getItem(UPSELL_KEY) || 0)
+      if (Date.now() - ultima < UPSELL_COOLDOWN_DIAS * 864e5) return
+      localStorage.setItem(UPSELL_KEY, String(Date.now()))
+    } catch {}
+    setMessages(prev => [...prev, {
+      id: `up-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+      upsell: true,
+      timestamp: new Date(),
+    }])
+  }
 
   useEffect(() => {
     if (open) {
@@ -78,6 +115,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
         timestamp: new Date(),
       }
       setMessages(prev => [...prev, assistantMsg])
+      talvezOferecer()
     } catch {
       const errMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -185,7 +223,19 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
                       : 'bg-surface-100 dark:bg-surface-700 text-surface-800 dark:text-surface-100 rounded-tl-sm'
                   )}
                 >
-                  {msg.contentKey ? t(msg.contentKey) : msg.content}
+                  {msg.upsell ? (
+                    <span className="block">
+                      <span className="block font-semibold mb-1">{t('v.ai.upsellTitle')}</span>
+                      <span className="block text-[13px] opacity-90">
+                        {usageRef.current && usageRef.current.restam <= 3
+                          ? t('v.ai.upsellLow', { n: usageRef.current.restam })
+                          : t('v.ai.upsellBody')}
+                      </span>
+                      <a href="/plans" className="inline-block mt-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                        {t('v.ai.upsellCta')}
+                      </a>
+                    </span>
+                  ) : msg.contentKey ? t(msg.contentKey) : msg.content}
                 </div>
               </div>
             ))}

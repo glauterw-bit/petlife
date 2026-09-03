@@ -281,6 +281,10 @@ export const misc: LocaleBundle = {
     'v.ui.shareCta': 'Compartilhar 🎉',
 
     // ── Chat da Vyron (IA) ────────────────────────────────────────────
+    'v.ai.upsellTitle': 'Gostou das respostas da Vyron?',
+    'v.ai.upsellBody': 'No PetLife+ são 100 mensagens por mês — e os primeiros 30 dias são grátis.',
+    'v.ai.upsellLow': 'Restam {n} mensagens grátis este mês. No PetLife+ são 100 — e os primeiros 30 dias são grátis.',
+    'v.ai.upsellCta': 'Ver os planos',
     'v.ai.welcome': 'Oi! Eu sou a Vyron, a veterinária virtual do PetLife 🩺🐾 Pode me perguntar sobre saúde, comportamento, alimentação... Estou aqui pro que seu pet precisar!',
     'v.ai.error': 'Desculpe, tive um problema de conexão. Tente novamente em instantes.',
     'v.ai.openChat': 'Abrir chat com Vyron IA',
@@ -561,6 +565,10 @@ export const misc: LocaleBundle = {
     'v.ui.shareCta': 'Share 🎉',
 
     // ── Vyron AI chat ─────────────────────────────────────────────────
+    'v.ai.upsellTitle': 'Enjoying Vyron?',
+    'v.ai.upsellBody': 'PetLife+ gives you 100 messages a month — and the first 30 days are free.',
+    'v.ai.upsellLow': 'You have {n} free messages left this month. PetLife+ gives you 100 — first 30 days free.',
+    'v.ai.upsellCta': 'See plans',
     'v.ai.welcome': "Hi! I'm Vyron, PetLife's virtual vet 🩺🐾 Ask me anything about health, behavior, nutrition... I'm here for whatever your pet needs!",
     'v.ai.error': 'Sorry, I hit a connection problem. Please try again in a moment.',
     'v.ai.openChat': 'Open chat with Vyron AI',
@@ -841,6 +849,10 @@ export const misc: LocaleBundle = {
     'v.ui.shareCta': 'Compartir 🎉',
 
     // ── Chat de Vyron (IA) ────────────────────────────────────────────
+    'v.ai.upsellTitle': '¿Te gustan las respuestas de Vyron?',
+    'v.ai.upsellBody': 'Con PetLife+ son 100 mensajes al mes — y los primeros 30 días son gratis.',
+    'v.ai.upsellLow': 'Te quedan {n} mensajes gratis este mes. Con PetLife+ son 100 — y los primeros 30 días son gratis.',
+    'v.ai.upsellCta': 'Ver los planes',
     'v.ai.welcome': '¡Hola! Soy Vyron, la veterinaria virtual de PetLife 🩺🐾 Puedes preguntarme sobre salud, comportamiento, alimentación... ¡Estoy aquí para lo que tu mascota necesite!',
     'v.ai.error': 'Lo siento, tuve un problema de conexión. Inténtalo de nuevo en unos instantes.',
     'v.ai.openChat': 'Abrir chat con Vyron IA',

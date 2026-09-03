@@ -206,12 +206,13 @@ async def public_wrapped(pet_id: int, year: Optional[int] = None):
         exames = await conta(Exam, Exam.date)
         passeios = await conta(WalkSession, WalkSession.started_at)
 
-        km = await db.execute(
-            sel(func.coalesce(func.sum(WalkSession.distance_km), 0))
+        # a coluna guarda METROS, não km
+        m = await db.execute(
+            sel(func.coalesce(func.sum(WalkSession.distance_meters), 0))
             .where(WalkSession.pet_id == pet_id,
                    extract("year", WalkSession.started_at) == ano)
         )
-        km_total = round(float(km.scalar() or 0), 1)
+        km_total = round(float(m.scalar() or 0) / 1000, 1)
 
     return {
         "pet_name": pet.name,
