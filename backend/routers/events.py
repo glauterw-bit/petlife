@@ -22,6 +22,9 @@ ALLOWED = {
     "paywall_shown",   # bateu na quota e viu o modal de upgrade
     "recap_share",     # compartilhou o recap do mês
     "carteirinha_share",
+    "rate_prompt_shown",   # modal de avaliação exibido
+    "rate_prompt_store",   # clicou em "Avaliar na loja"
+    "rate_prompt_later",   # dispensou o modal ("Agora não")
 }
 
 

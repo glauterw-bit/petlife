@@ -100,6 +100,10 @@ export const core: LocaleBundle = {
     'fb.face3': 'Ok',
     'fb.face4': 'Bom',
     'fb.face5': 'Adoro!',
+    'fb.storeTitle': 'Que bom que está gostando! 🐾',
+    'fb.storeBody': 'Sua sugestão já está comigo. Deixa essa nota também na loja? Leva 10 segundos e ajuda demais outros tutores a encontrarem o PetLife.',
+    'fb.storeCta': '⭐ Avaliar na loja',
+    'fb.storeLater': 'Agora não',
 
     'walk.title': 'Passeios',
     'walk.start': 'Iniciar passeio',
@@ -227,6 +231,10 @@ export const core: LocaleBundle = {
     'fb.face3': 'Okay',
     'fb.face4': 'Good',
     'fb.face5': 'Love it!',
+    'fb.storeTitle': "So glad you're enjoying it! 🐾",
+    'fb.storeBody': 'Your suggestion is with me. Would you leave that rating on the store too? It takes 10 seconds and really helps other pet parents find PetLife.',
+    'fb.storeCta': '⭐ Rate on the store',
+    'fb.storeLater': 'Not now',
 
     'walk.title': 'Walks',
     'walk.start': 'Start walk',
@@ -354,6 +362,10 @@ export const core: LocaleBundle = {
     'fb.face3': 'Bien',
     'fb.face4': 'Buena',
     'fb.face5': '¡Me encanta!',
+    'fb.storeTitle': '¡Qué bueno que te está gustando! 🐾',
+    'fb.storeBody': 'Tu sugerencia ya está conmigo. ¿Dejas esa calificación también en la tienda? Toma 10 segundos y ayuda mucho a otros tutores a encontrar PetLife.',
+    'fb.storeCta': '⭐ Calificar en la tienda',
+    'fb.storeLater': 'Ahora no',
 
     'walk.title': 'Paseos',
     'walk.start': 'Iniciar paseo',
