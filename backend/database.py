@@ -170,6 +170,8 @@ async def _run_migrations():
         "ALTER TABLE users ADD COLUMN referral_code VARCHAR(12)",
         "ALTER TABLE users ADD COLUMN referred_by_id INTEGER",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_referral_code ON users(referral_code)",
+        # Proteção em dia (antiparasitários recorrentes)
+        "CREATE INDEX IF NOT EXISTS ix_pet_protections_pet_kind ON pet_protections(pet_id, kind, applied_at)",
         "ALTER TABLE pets ADD COLUMN is_public BOOLEAN DEFAULT FALSE NOT NULL",
         "ALTER TABLE pets ADD COLUMN public_slug VARCHAR(80)",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_pets_public_slug ON pets(public_slug)",

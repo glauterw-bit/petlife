@@ -59,6 +59,7 @@ from routers import (
     admin_stats,
     events,
     growth,
+    protections,
 )
 
 
@@ -148,6 +149,7 @@ app.include_router(push.router)
 app.include_router(admin_stats.router)
 app.include_router(events.router)
 app.include_router(growth.router)
+app.include_router(protections.router)
 app.include_router(feedback.router)
 
 

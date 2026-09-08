@@ -14,6 +14,7 @@ import { formatDate, formatAge, getSpeciesEmoji, getVaccineStatus, getLevelName,
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { HealthScoreCard } from '@/components/health/HealthScoreCard'
 import { DailyCheckin } from '@/components/health/DailyCheckin'
+import { ProtectionCard } from '@/components/health/ProtectionCard'
 import { StreakFlame } from '@/components/health/StreakFlame'
 import { syncHealthNotifications } from '@/lib/notifications'
 import { initPush } from '@/lib/push'
@@ -120,6 +121,9 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Proteção em dia — a recorrência real (30-90d) que traz o tutor de volta */}
+      {pets.length > 0 && <ProtectionCard pets={pets} />}
 
       {/* Stats — cartões unificados (superfície neutra + chip de ícone colorido) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">

@@ -6,6 +6,7 @@ import { Plus, Filter, CreditCard, ChevronDown, Camera, HelpCircle } from 'lucid
 import Link from 'next/link'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { VaccineTimeline } from '@/components/health/VaccineTimeline'
+import { VaccineQuickStart } from '@/components/health/VaccineQuickStart'
 import { Modal } from '@/components/ui/Modal'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { vaccines as vaccinesApi, pets as petsApi, type Vaccine, type Pet, type ScannedVaccine } from '@/lib/api'
@@ -53,6 +54,8 @@ function VaccinesPageInner() {
   const [loading, setLoading] = useState(true)
   const [filterPet, setFilterPet] = useState<number | ''>('')
   const [showModal, setShowModal] = useState(false)
+  // Quick-start pós-cadastro: 2 vacinas em 30s, no lugar do formulário completo
+  const [quickStartPet, setQuickStartPet] = useState<Pet | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({
     pet_id: '',
@@ -88,7 +91,11 @@ function VaccinesPageInner() {
           ? petParam
           : (p.length > 0 ? String(p[0].id) : '')
         if (preselected) setForm(f => ({ ...f, pet_id: preselected }))
-        if (fromNewPet && preselected) setShowModal(true)
+        if (fromNewPet && preselected) {
+          const petObj = p.find(x => String(x.id) === preselected)
+          if (petObj) setQuickStartPet(petObj)
+          else setShowModal(true)
+        }
       } finally { setLoading(false) }
     }
     load()
@@ -262,6 +269,14 @@ function VaccinesPageInner() {
       {loading ? <PageLoader /> : <VaccineTimeline vaccines={filtered} onDelete={handleDelete} />}
 
       {/* Modal */}
+      {quickStartPet && (
+        <VaccineQuickStart
+          pet={{ id: quickStartPet.id, name: quickStartPet.name, species: String(quickStartPet.species) }}
+          onCreated={v => setVaccineList(prev => [v, ...prev])}
+          onClose={() => setQuickStartPet(null)}
+        />
+      )}
+
       <Modal open={showModal} onClose={closeModal} title={t('dash.newVaccine')} size="lg">
         {/* Passo 1: o tutor tem a carteirinha em mãos? Perguntar isso primeiro
             evita travar quem não tem — que era a maioria. */}

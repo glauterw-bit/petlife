@@ -1686,6 +1686,53 @@ export const petExport = {
   },
 }
 
+// ─── Proteção em dia (antiparasitários recorrentes) ───────────────────────────
+
+export interface ProtectionKindStatus {
+  kind: 'vermifugo' | 'antipulgas'
+  status: 'never' | 'ok' | 'due_soon' | 'overdue'
+  next_due: string | null
+  days_left: number | null
+  product: string | null
+  interval_days: number
+}
+
+export interface ProtectionPetSummary {
+  pet_id: number
+  pet_name: string
+  species: string
+  kinds: ProtectionKindStatus[]
+}
+
+export interface ProtectionEntry {
+  id: number
+  pet_id: number
+  kind: string
+  product: string | null
+  applied_at: string
+  interval_days: number
+  next_due: string
+}
+
+export const protections = {
+  summary: async () => {
+    const res = await fetch(`${API_URL}/protections/summary`, { headers: getAuthHeaders() })
+    return handleResponse<{ pets: ProtectionPetSummary[] }>(res)
+  },
+  register: async (petId: number, data: { kind: string; product?: string; applied_at?: string; interval_days?: number }) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/protections`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return handleResponse<ProtectionEntry>(res)
+  },
+  list: async (petId: number) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/protections`, { headers: getAuthHeaders() })
+    return handleResponse<ProtectionEntry[]>(res)
+  },
+}
+
 // ─── Growth: indicação + perfil público do pet ────────────────────────────────
 
 export interface ReferralInfo {

@@ -741,3 +741,21 @@ class PushLog(Base):
     sent_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     ok = Column(Boolean, default=True, nullable=False)
     detail = Column(String(300), nullable=True)
+
+
+class PetProtection(Base):
+    """Aplicação de antiparasitário — vermífugo/antipulgas.
+
+    Vacina é evento anual; antiparasitário é a recorrência REAL da vida de um
+    pet saudável (30–90 dias). Cada aplicação registrada arma o próximo aviso.
+    """
+    __tablename__ = "pet_protections"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind = Column(String(20), nullable=False)          # vermifugo | antipulgas
+    product = Column(String(120), nullable=True)       # nome comercial (opcional)
+    applied_at = Column(DateTime, nullable=False)
+    interval_days = Column(Integer, nullable=False)
+    next_due = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

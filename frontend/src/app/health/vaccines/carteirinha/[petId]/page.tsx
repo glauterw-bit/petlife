@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Printer, Share2, CheckCircle, AlertCircle, Clock, QrCode, Shield } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
-import { pets as petsApi } from '@/lib/api'
+import { pets as petsApi, petExport } from '@/lib/api'
 import { formatDate, formatAge, getSpeciesEmoji } from '@/lib/utils'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
@@ -142,6 +142,17 @@ export default function CarteirinhaPage() {
           >
             <Share2 className="w-4 h-4" />
             WhatsApp
+          </button>
+          <button
+            onClick={() => {
+              petExport.sharePdf(Number(petId), data?.pet.name ?? 'pet')
+                .then(() => trackHappyMoment('pdf_export'))
+                .catch(() => {})
+            }}
+            aria-label={t('h.card.ariaPdf')}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition"
+          >
+            📄 PDF
           </button>
           <button
             onClick={handleShare}
