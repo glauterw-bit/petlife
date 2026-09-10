@@ -55,13 +55,29 @@ export function FeedbackModal() {
         const { answered } = await feedbackApi.status(SOURCE)
         if (answered || !alive) return
         timer = setTimeout(() => {
+          // O anúncio de novidade tem prioridade — nunca dois modais na sessão.
+          try { if (sessionStorage.getItem('petlife_announce_active')) return } catch {}
           if (alive) { setOpen(true); track('rate_prompt_shown') }
         }, DELAY_MS)
       } catch { /* offline/erro: não incomoda */ }
     }
     maybeOpen()
 
-    return () => { alive = false; clearTimeout(timer) }
+    // Reabertura forçada (ex.: botão "dar feedback" do anúncio de novidade) —
+    // vale até pra quem já respondeu ou dispensou.
+    function forceOpen() {
+      setDone(false)
+      setAskStore(false)
+      setOpen(true)
+      track('rate_prompt_shown')
+    }
+    window.addEventListener('petlife:open-feedback', forceOpen)
+
+    return () => {
+      alive = false
+      clearTimeout(timer)
+      window.removeEventListener('petlife:open-feedback', forceOpen)
+    }
   }, [])
 
   function dismiss() {

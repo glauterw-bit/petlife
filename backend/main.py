@@ -60,6 +60,7 @@ from routers import (
     events,
     growth,
     protections,
+    support,
 )
 
 
@@ -150,6 +151,7 @@ app.include_router(admin_stats.router)
 app.include_router(events.router)
 app.include_router(growth.router)
 app.include_router(protections.router)
+app.include_router(support.router)
 app.include_router(feedback.router)
 
 

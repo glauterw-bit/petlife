@@ -1733,6 +1733,60 @@ export const protections = {
   },
 }
 
+// ─── Suporte (conversa tutor ↔ admin) ─────────────────────────────────────────
+
+export interface SupportMsg {
+  id: number
+  sender: 'user' | 'admin'
+  body: string
+  created_at: string
+}
+
+export interface SupportThread {
+  user_id: number
+  name: string | null
+  email: string
+  last_body: string
+  last_sender: string
+  last_at: string
+  unread: number
+}
+
+export const support = {
+  list: async () => {
+    const res = await fetch(`${API_URL}/support/messages`, { headers: getAuthHeaders() })
+    return handleResponse<SupportMsg[]>(res)
+  },
+  send: async (body: string) => {
+    const res = await fetch(`${API_URL}/support/messages`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    })
+    return handleResponse<SupportMsg>(res)
+  },
+  unread: async () => {
+    const res = await fetch(`${API_URL}/support/unread`, { headers: getAuthHeaders() })
+    return handleResponse<{ unread: number }>(res)
+  },
+  adminThreads: async () => {
+    const res = await fetch(`${API_URL}/support/admin/threads`, { headers: getAuthHeaders() })
+    return handleResponse<{ threads: SupportThread[] }>(res)
+  },
+  adminThread: async (userId: number) => {
+    const res = await fetch(`${API_URL}/support/admin/threads/${userId}`, { headers: getAuthHeaders() })
+    return handleResponse<{ user: { id: number; name: string | null; email: string }; messages: SupportMsg[] }>(res)
+  },
+  adminReply: async (userId: number, body: string) => {
+    const res = await fetch(`${API_URL}/support/admin/threads/${userId}`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    })
+    return handleResponse<SupportMsg>(res)
+  },
+}
+
 // ─── Growth: indicação + perfil público do pet ────────────────────────────────
 
 export interface ReferralInfo {

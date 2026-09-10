@@ -15,6 +15,7 @@ import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { HealthScoreCard } from '@/components/health/HealthScoreCard'
 import { DailyCheckin } from '@/components/health/DailyCheckin'
 import { ProtectionCard } from '@/components/health/ProtectionCard'
+import { SupportAnnouncement } from '@/components/growth/SupportAnnouncement'
 import { StreakFlame } from '@/components/health/StreakFlame'
 import { syncHealthNotifications } from '@/lib/notifications'
 import { initPush } from '@/lib/push'
@@ -121,6 +122,9 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Anúncio único: canal de suporte nasceu dos feedbacks */}
+      <SupportAnnouncement />
 
       {/* Proteção em dia — a recorrência real (30-90d) que traz o tutor de volta */}
       {pets.length > 0 && <ProtectionCard pets={pets} />}

@@ -9,7 +9,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import dynamic from 'next/dynamic'
-import { adminStats, feedback as feedbackApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type ResetRequest, type FeedbackList, type AiTopicsReport } from '@/lib/api'
+import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type ResetRequest, type FeedbackList, type AiTopicsReport, type SupportThread, type SupportMsg } from '@/lib/api'
 
 const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
   ssr: false,
@@ -36,6 +36,10 @@ export default function AdminPage() {
   const [appleDl, setAppleDl] = useState<AppleDownloads | null>(null)
   const [resetReqs, setResetReqs] = useState<ResetRequest[]>([])
   const [fb, setFb] = useState<FeedbackList | null>(null)
+  const [threads, setThreads] = useState<SupportThread[]>([])
+  const [chat, setChat] = useState<{ user: { id: number; name: string | null; email: string }; messages: SupportMsg[] } | null>(null)
+  const [reply, setReply] = useState('')
+  const [replying, setReplying] = useState(false)
   const [topics, setTopics] = useState<AiTopicsReport | null>(null)
   const [codeFor, setCodeFor] = useState<{ id: number; code: string; wa: string | null; msg: string } | null>(null)
   const [search, setSearch] = useState('')
@@ -45,7 +49,7 @@ export default function AdminPage() {
   async function load() {
     try {
       setRefreshing(true)
-      const [st, us, loc, rr, fbs, tps, apdl] = await Promise.all([
+      const [st, us, loc, rr, fbs, tps, apdl, sup] = await Promise.all([
         adminStats.get(),
         adminStats.users().catch(() => ({ total: 0, users: [] })),
         adminStats.locations().catch(() => null),
@@ -53,6 +57,7 @@ export default function AdminPage() {
         feedbackApi.list().catch(() => null),
         adminStats.aiTopics().catch(() => null),
         adminStats.appleDownloads().catch(() => null),
+        supportApi.adminThreads().catch(() => ({ threads: [] })),
       ])
       setData(st)
       setUsers(us.users)
@@ -61,6 +66,7 @@ export default function AdminPage() {
       setFb(fbs)
       setTopics(tps)
       setAppleDl(apdl)
+      setThreads(sup.threads)
     } catch {
       setDenied(true)
       setTimeout(() => router.replace('/dashboard'), 1500)
@@ -217,6 +223,88 @@ export default function AdminPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Atendimento e suporte — conversa direta com os tutores */}
+      <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl p-4 md:p-5 mb-6">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+          <h3 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
+            🎧 Atendimento e suporte
+            {threads.reduce((a, th) => a + th.unread, 0) > 0 && (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-500 text-white tabular-nums">
+                {threads.reduce((a, th) => a + th.unread, 0)} nova{threads.reduce((a, th) => a + th.unread, 0) > 1 ? 's' : ''}
+              </span>
+            )}
+          </h3>
+          <span className="text-xs text-surface-400 tabular-nums">{threads.length} conversa{threads.length === 1 ? '' : 's'}</span>
+        </div>
+        {threads.length === 0 ? (
+          <p className="text-sm text-surface-500 dark:text-surface-400">Nenhuma mensagem ainda — o canal acabou de abrir. 💬</p>
+        ) : (
+          <div className="space-y-2 max-h-[420px] overflow-y-auto">
+            {threads.map(th => (
+              <button
+                key={th.user_id}
+                onClick={async () => { setChat(await supportApi.adminThread(th.user_id).catch(() => null)); setReply('') }}
+                className="w-full text-left rounded-xl border border-surface-100 dark:border-surface-700 p-3 bg-surface-50/60 dark:bg-surface-900/30 hover:border-primary-300 transition"
+              >
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <span className="text-sm font-semibold text-surface-900 dark:text-white truncate">
+                    {th.name || th.email}
+                    {th.unread > 0 && <span className="ml-2 inline-block w-2 h-2 rounded-full bg-red-500 align-middle" />}
+                  </span>
+                  <span className="text-[10px] text-surface-400 shrink-0">{new Date(th.last_at + (th.last_at.endsWith('Z') ? '' : 'Z')).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div className="text-xs text-surface-500 dark:text-surface-400 truncate">
+                  {th.last_sender === 'admin' ? 'Você: ' : ''}{th.last_body}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modal da conversa de suporte */}
+      {chat && (
+        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[90dvh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-surface-100 dark:border-surface-700">
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-surface-900 dark:text-white truncate">{chat.user.name || chat.user.email}</div>
+                <div className="text-xs text-surface-400 truncate">{chat.user.email}</div>
+              </div>
+              <button onClick={() => { setChat(null); load() }} className="p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-700 transition text-surface-500">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+              {chat.messages.map(m => (
+                <div key={m.id} className={`flex ${m.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${m.sender === 'admin' ? 'bg-primary-500 text-white rounded-br-md' : 'bg-surface-100 dark:bg-surface-700 text-surface-800 dark:text-surface-100 rounded-bl-md'}`}>
+                    {m.body}
+                    <div className={`text-[10px] mt-0.5 ${m.sender === 'admin' ? 'text-white/70' : 'text-surface-400'}`}>{new Date(m.created_at + (m.created_at.endsWith('Z') ? '' : 'Z')).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-3 border-t border-surface-100 dark:border-surface-700 flex gap-2 items-end pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              <textarea
+                value={reply}
+                onChange={e => setReply(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && reply.trim() && !replying) { e.preventDefault(); (async () => { setReplying(true); try { const m = await supportApi.adminReply(chat.user.id, reply.trim()); setChat(c => c ? { ...c, messages: [...c.messages, m] } : c); setReply('') } catch {} finally { setReplying(false) } })() } }}
+                rows={2}
+                maxLength={4000}
+                placeholder="Responder… (Enter envia)"
+                className="flex-1 px-3 py-2 rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-900 text-sm text-surface-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
+              />
+              <button
+                onClick={async () => { if (!reply.trim() || replying) return; setReplying(true); try { const m = await supportApi.adminReply(chat.user.id, reply.trim()); setChat(c => c ? { ...c, messages: [...c.messages, m] } : c); setReply('') } catch {} finally { setReplying(false) } }}
+                disabled={!reply.trim() || replying}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition disabled:opacity-40"
+              >
+                {replying ? '…' : 'Enviar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

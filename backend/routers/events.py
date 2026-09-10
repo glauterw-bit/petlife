@@ -25,6 +25,9 @@ ALLOWED = {
     "rate_prompt_shown",   # modal de avaliação exibido
     "rate_prompt_store",   # clicou em "Avaliar na loja"
     "rate_prompt_later",   # dispensou o modal ("Agora não")
+    "support_open",        # abriu a tela do suporte
+    "announce_suporte_shown",  # viu o anúncio do canal de suporte
+    "announce_suporte_cta",    # clicou em "conhecer o suporte"
 }
 
 

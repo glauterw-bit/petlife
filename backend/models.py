@@ -743,6 +743,22 @@ class PushLog(Base):
     detail = Column(String(300), nullable=True)
 
 
+class SupportMessage(Base):
+    """Canal de suporte — uma conversa por usuário (estilo WhatsApp).
+
+    `sender` diz quem escreveu ('user' ou 'admin'); `read_at` marca quando o
+    DESTINATÁRIO leu (admin lê msgs de user, user lê msgs de admin).
+    """
+    __tablename__ = "support_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    sender = Column(String(10), nullable=False)   # user | admin
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    read_at = Column(DateTime, nullable=True)
+
+
 class PetProtection(Base):
     """Aplicação de antiparasitário — vermífugo/antipulgas.
 

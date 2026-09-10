@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   PawPrint, LayoutDashboard, Heart, Syringe, FlaskConical,
-  Route, Trophy, MapPin, Settings, LogOut, Menu, X, Brain, MailOpen,
+  Route, Trophy, MapPin, Settings, LogOut, Menu, X, Brain, MailOpen, MessageCircleHeart,
   ChevronDown, ChevronRight, Plus, CreditCard, Footprints, Crown, BarChart3
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -45,6 +45,7 @@ const navItems: NavItem[] = [
   { href: '/nearby', icon: <MapPin className="w-5 h-5" />, labelKey: 'v.side.nearby' },
   { href: '/behavior', icon: <Brain className="w-5 h-5" />, labelKey: 'v.side.behavior' },
   { href: '/convites', icon: <MailOpen className="w-5 h-5" />, labelKey: 'v.side.invites' },
+  { href: '/suporte', icon: <MessageCircleHeart className="w-5 h-5" />, labelKey: 'v.side.support' },
   { href: '/plans', icon: <Crown className="w-5 h-5" />, labelKey: 'v.side.plans' },
   { href: '/settings', icon: <Settings className="w-5 h-5" />, labelKey: 'v.side.settings' },
 ]
