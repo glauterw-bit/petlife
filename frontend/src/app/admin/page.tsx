@@ -9,7 +9,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import dynamic from 'next/dynamic'
-import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type ResetRequest, type FeedbackList, type AiTopicsReport, type SupportThread, type SupportMsg } from '@/lib/api'
+import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type ResetRequest, type FeedbackList, type FeedbackItem, type AiTopicsReport, type SupportThread, type SupportMsg } from '@/lib/api'
 
 const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
   ssr: false,
@@ -45,6 +45,18 @@ export default function AdminPage() {
   const [search, setSearch] = useState('')
   const [denied, setDenied] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+
+  async function startChatFromFeedback(f: FeedbackItem) {
+    const c = await supportApi.adminThread(f.user_id).catch(() => null)
+    if (!c) return
+    setChat(c)
+    if (c.messages.length === 0) {
+      const nome = (f.user_name || '').split(' ')[0]
+      setReply(`Oi${nome ? ' ' + nome : ''}! Aqui é o Glauter, criador do PetLife. Vi seu feedback e queria te agradecer pessoalmente — `)
+    } else {
+      setReply('')
+    }
+  }
 
   async function load() {
     try {
@@ -369,6 +381,12 @@ export default function AdminPage() {
                       })}
                     </span>
                   )}
+                  <button
+                    onClick={() => startChatFromFeedback(f)}
+                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition"
+                  >
+                    💬 Conversar
+                  </button>
                 </div>
                 {f.likes_most && (
                   <p className="text-xs text-surface-700 dark:text-surface-200 leading-snug">

@@ -105,6 +105,7 @@ async def list_feedback(
         "items": [
             {
                 "id": f.id,
+                "user_id": f.user_id,
                 "rating": f.rating,
                 "likes_most": f.likes_most,
                 "suggestion": f.suggestion,

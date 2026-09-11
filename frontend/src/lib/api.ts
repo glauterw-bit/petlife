@@ -1823,6 +1823,7 @@ export interface AiTopicsReport {
 
 export interface FeedbackItem {
   id: number
+  user_id: number
   rating: number | null
   likes_most: string | null
   suggestion: string | null
