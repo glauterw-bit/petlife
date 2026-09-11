@@ -16,6 +16,7 @@ import { HealthScoreCard } from '@/components/health/HealthScoreCard'
 import { DailyCheckin } from '@/components/health/DailyCheckin'
 import { ProtectionCard } from '@/components/health/ProtectionCard'
 import { SupportAnnouncement } from '@/components/growth/SupportAnnouncement'
+import { support as supportApi } from '@/lib/api'
 import { StreakFlame } from '@/components/health/StreakFlame'
 import { syncHealthNotifications } from '@/lib/notifications'
 import { initPush } from '@/lib/push'
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const [scoreRefresh, setScoreRefresh] = useState(0)
   const [hasVaccine, setHasVaccine] = useState(false)
   const [hasWalk, setHasWalk] = useState(false)
+  const [supUnread, setSupUnread] = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -57,6 +59,7 @@ export default function DashboardPage() {
         if (recentWalks.status === 'fulfilled') setHasWalk((recentWalks.value?.length ?? 0) > 0)
         // Push do servidor: alcança quem parou de abrir — a local, não.
         void initPush()
+        supportApi.unread().then(r => setSupUnread(r.unread)).catch(() => {})
         // Agenda notificações locais (no-op fora do app nativo)
         void syncHealthNotifications(
           v.status === 'fulfilled' ? v.value : [],
@@ -125,6 +128,21 @@ export default function DashboardPage() {
 
       {/* Anúncio único: canal de suporte nasceu dos feedbacks */}
       <SupportAnnouncement />
+
+      {/* Resposta do suporte esperando — o aviso mais importante da home */}
+      {supUnread > 0 && (
+        <Link
+          href="/suporte"
+          className="flex items-center gap-3 mb-6 rounded-2xl border border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/25 p-4 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition"
+        >
+          <span className="text-2xl">💬</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-primary-800 dark:text-primary-200">{t('g.sup.replyBanner')}</div>
+            <div className="text-xs text-primary-700/80 dark:text-primary-300/80">{t('g.sup.replyCta')}</div>
+          </div>
+          <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center tabular-nums shrink-0">{supUnread}</span>
+        </Link>
+      )}
 
       {/* Proteção em dia — a recorrência real (30-90d) que traz o tutor de volta */}
       {pets.length > 0 && <ProtectionCard pets={pets} />}

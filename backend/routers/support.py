@@ -22,6 +22,7 @@ from models import User, SupportMessage
 from routers.events import track_event
 from routers.admin_stats import require_admin, _admin_emails
 from email_service import send_email
+import push_service
 
 _limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/support", tags=["Suporte"])
@@ -209,4 +210,16 @@ async def admin_reply(
     await db.flush()
     await db.refresh(msg)
     _notify_user(user, msg.body)
+    # Push no celular (quando APNs estiver configurado e o aparelho registrado).
+    # Nunca pode derrubar a resposta — o e-mail acima já garante a entrega.
+    if push_service.configured():
+        try:
+            from routers.push import _deliver
+            await _deliver(
+                db, user_id, f"support:{msg.id}", "suporte",
+                "💬 O suporte do PetLife respondeu você",
+                msg.body[:150],
+            )
+        except Exception:
+            pass
     return msg
