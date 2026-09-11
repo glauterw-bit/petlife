@@ -9,7 +9,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import dynamic from 'next/dynamic'
-import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type ResetRequest, type FeedbackList, type FeedbackItem, type AiTopicsReport, type SupportThread, type SupportMsg, type UserRanking } from '@/lib/api'
+import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type FeedbackList, type FeedbackItem, type AiTopicsReport, type SupportThread, type SupportMsg, type UserRanking } from '@/lib/api'
 
 const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
   ssr: false,
@@ -34,7 +34,6 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [locations, setLocations] = useState<AdminLocations | null>(null)
   const [appleDl, setAppleDl] = useState<AppleDownloads | null>(null)
-  const [resetReqs, setResetReqs] = useState<ResetRequest[]>([])
   const [fb, setFb] = useState<FeedbackList | null>(null)
   const [threads, setThreads] = useState<SupportThread[]>([])
   const [ranking, setRanking] = useState<UserRanking | null>(null)
@@ -42,7 +41,6 @@ export default function AdminPage() {
   const [reply, setReply] = useState('')
   const [replying, setReplying] = useState(false)
   const [topics, setTopics] = useState<AiTopicsReport | null>(null)
-  const [codeFor, setCodeFor] = useState<{ id: number; code: string; wa: string | null; msg: string } | null>(null)
   const [search, setSearch] = useState('')
   const [denied, setDenied] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -62,11 +60,10 @@ export default function AdminPage() {
   async function load() {
     try {
       setRefreshing(true)
-      const [st, us, loc, rr, fbs, tps, apdl, sup, rk] = await Promise.all([
+      const [st, us, loc, fbs, tps, apdl, sup, rk] = await Promise.all([
         adminStats.get(),
         adminStats.users().catch(() => ({ total: 0, users: [] })),
         adminStats.locations().catch(() => null),
-        adminStats.resetRequests().catch(() => ({ pending: 0, requests: [] })),
         feedbackApi.list().catch(() => null),
         adminStats.aiTopics().catch(() => null),
         adminStats.appleDownloads().catch(() => null),
@@ -76,7 +73,6 @@ export default function AdminPage() {
       setData(st)
       setUsers(us.users)
       setLocations(loc)
-      setResetReqs(rr.requests)
       setFb(fbs)
       setTopics(tps)
       setAppleDl(apdl)
@@ -135,57 +131,6 @@ export default function AdminPage() {
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} /> Atualizar
         </button>
       </div>
-
-      {/* Pedidos de redefinição de senha — ação imediata */}
-      {resetReqs.length > 0 && (
-        <div className="mb-6 rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-5">
-          <h3 className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2 mb-1">
-            🔑 Pedidos de redefinição de senha ({resetReqs.length})
-          </h3>
-          <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mb-3">
-            Tutores que esqueceram a senha. Clique em “Gerar código” e mande pelo WhatsApp — leva 5 segundos.
-          </p>
-          <div className="space-y-2">
-            {resetReqs.map(r => (
-              <div key={r.id} className="flex items-center gap-3 flex-wrap bg-white dark:bg-surface-800 rounded-xl p-3 border border-amber-200 dark:border-amber-800">
-                <div className="flex-1 min-w-[180px]">
-                  <div className="font-semibold text-sm text-surface-900 dark:text-white">{r.name || r.email}</div>
-                  <div className="text-xs text-surface-500 dark:text-surface-400">
-                    {r.email}{r.phone ? ` · ${r.phone}` : ' · sem telefone'} · {new Date(r.created_at + 'Z').toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-                {codeFor?.id === r.id ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-bold text-lg tracking-widest text-surface-900 dark:text-white bg-surface-100 dark:bg-surface-700 rounded-lg px-3 py-1.5">{codeFor.code}</span>
-                    {codeFor.wa && (
-                      <a href={codeFor.wa} target="_blank" rel="noopener"
-                        className="pressable bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-3 py-2 rounded-xl">
-                        💬 Abrir WhatsApp
-                      </a>
-                    )}
-                    <button onClick={() => { navigator.clipboard.writeText(codeFor.msg).catch(() => {}) }}
-                      className="pressable text-xs font-semibold text-surface-600 dark:text-surface-300 px-3 py-2 rounded-xl border border-surface-200 dark:border-surface-600">
-                      Copiar mensagem
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const k = await adminStats.generateResetCode(r.id)
-                        setCodeFor({ id: r.id, code: k.code, wa: k.whatsapp_url, msg: k.message })
-                      } catch {}
-                    }}
-                    className="pressable bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl"
-                  >
-                    Gerar código
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* O que perguntam à Vyron IA — só temas, sem o texto das perguntas */}
       {topics && (
