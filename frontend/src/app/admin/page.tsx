@@ -9,7 +9,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import dynamic from 'next/dynamic'
-import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type ResetRequest, type FeedbackList, type FeedbackItem, type AiTopicsReport, type SupportThread, type SupportMsg } from '@/lib/api'
+import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type ResetRequest, type FeedbackList, type FeedbackItem, type AiTopicsReport, type SupportThread, type SupportMsg, type UserRanking } from '@/lib/api'
 
 const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
   ssr: false,
@@ -37,6 +37,7 @@ export default function AdminPage() {
   const [resetReqs, setResetReqs] = useState<ResetRequest[]>([])
   const [fb, setFb] = useState<FeedbackList | null>(null)
   const [threads, setThreads] = useState<SupportThread[]>([])
+  const [ranking, setRanking] = useState<UserRanking | null>(null)
   const [chat, setChat] = useState<{ user: { id: number; name: string | null; email: string }; messages: SupportMsg[] } | null>(null)
   const [reply, setReply] = useState('')
   const [replying, setReplying] = useState(false)
@@ -61,7 +62,7 @@ export default function AdminPage() {
   async function load() {
     try {
       setRefreshing(true)
-      const [st, us, loc, rr, fbs, tps, apdl, sup] = await Promise.all([
+      const [st, us, loc, rr, fbs, tps, apdl, sup, rk] = await Promise.all([
         adminStats.get(),
         adminStats.users().catch(() => ({ total: 0, users: [] })),
         adminStats.locations().catch(() => null),
@@ -70,6 +71,7 @@ export default function AdminPage() {
         adminStats.aiTopics().catch(() => null),
         adminStats.appleDownloads().catch(() => null),
         supportApi.adminThreads().catch(() => ({ threads: [] })),
+        adminStats.ranking().catch(() => null),
       ])
       setData(st)
       setUsers(us.users)
@@ -79,6 +81,7 @@ export default function AdminPage() {
       setTopics(tps)
       setAppleDl(apdl)
       setThreads(sup.threads)
+      setRanking(rk)
     } catch {
       setDenied(true)
       setTimeout(() => router.replace('/dashboard'), 1500)
@@ -235,6 +238,55 @@ export default function AdminPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Ranking de acesso — quem mais abre o app */}
+      {ranking && ranking.items.length > 0 && (
+        <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl p-4 md:p-5 mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <h3 className="font-bold text-surface-900 dark:text-white">🏆 Usuários mais ativos</h3>
+            <span className="text-xs text-surface-400">últimos {ranking.days} dias · por dias de uso</span>
+          </div>
+          <div className="space-y-1.5 max-h-[420px] overflow-y-auto">
+            {ranking.items.map((u, i) => (
+              <div
+                key={u.user_id}
+                className="flex items-center gap-2.5 rounded-xl border border-surface-100 dark:border-surface-700 px-3 py-2 bg-surface-50/60 dark:bg-surface-900/30"
+              >
+                <span className="w-7 text-center text-sm font-bold tabular-nums shrink-0">
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-surface-900 dark:text-white truncate">
+                    {u.name || u.email}
+                    {u.tier !== 'free' && (
+                      <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 align-middle">
+                        {u.tier === 'pro' ? 'PRO' : 'PLUS'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-surface-400 truncate">{u.email}</div>
+                </div>
+                <div className="text-right shrink-0 mr-1">
+                  <div className="text-sm font-bold text-primary-700 dark:text-primary-300 tabular-nums">
+                    {u.active_days} {u.active_days === 1 ? 'dia' : 'dias'}
+                  </div>
+                  <div className="text-[10px] text-surface-400 tabular-nums">
+                    {u.opens} abertura{u.opens === 1 ? '' : 's'}
+                    {u.last_open ? ` · últ. ${new Date(u.last_open + 'Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : ''}
+                  </div>
+                </div>
+                <button
+                  onClick={async () => { const c = await supportApi.adminThread(u.user_id).catch(() => null); if (c) { setChat(c); setReply(c.messages.length === 0 ? `Oi${(u.name || '').split(' ')[0] ? ' ' + (u.name || '').split(' ')[0] : ''}! Aqui é o Glauter, criador do PetLife. ` : '') } }}
+                  title="Conversar no suporte"
+                  className="text-xs px-2 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition shrink-0"
+                >
+                  💬
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

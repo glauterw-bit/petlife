@@ -1566,6 +1566,10 @@ export const adminStats = {
     return handleResponse<{ pending: number; requests: ResetRequest[] }>(res)
   },
   /** O que os tutores mais perguntam à Vyron — por tema (sem texto das perguntas). */
+  ranking: async (days = 30) => {
+    const res = await fetch(`${API_URL}/admin/users/ranking?days=${days}`, { headers: getAuthHeaders() })
+    return handleResponse<UserRanking>(res)
+  },
   aiTopics: async (days = 90) => {
     const res = await fetch(`${API_URL}/admin/ai-topics?days=${days}`, { headers: getAuthHeaders() })
     return handleResponse<AiTopicsReport>(res)
@@ -1576,6 +1580,21 @@ export const adminStats = {
     })
     return handleResponse<ResetCodeResult>(res)
   },
+}
+
+export interface UserRankingItem {
+  user_id: number
+  name: string | null
+  email: string
+  tier: string
+  opens: number
+  active_days: number
+  last_open: string | null
+}
+
+export interface UserRanking {
+  days: number
+  items: UserRankingItem[]
 }
 
 export interface ResetRequest {
