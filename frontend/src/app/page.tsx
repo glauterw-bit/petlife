@@ -1,6 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   Heart, Shield, Calendar, Trophy, MapPin, Zap,
   Stethoscope, Bell, Star, ChevronRight, PawPrint
@@ -46,6 +49,15 @@ const steps = [
 ]
 
 export default function LandingPage() {
+  const router = useRouter()
+  const { user, isLoading, isVetUser } = useAuth()
+
+  // O app nativo abre nesta página: sem isto, quem tinha sessão salva ("manter
+  // conectado") caía na apresentação e digitava a senha de novo a cada abertura.
+  useEffect(() => {
+    if (!isLoading && user) router.replace(isVetUser ? '/vet/dashboard' : '/dashboard')
+  }, [isLoading, user, isVetUser, router])
+
   return (
     <div className="min-h-screen bg-white dark:bg-surface-800">
       {/* Header */}

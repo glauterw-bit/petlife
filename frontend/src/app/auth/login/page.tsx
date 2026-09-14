@@ -18,7 +18,7 @@ export default function LoginPage() {
 function LoginInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { login } = useAuth()
+  const { login, user, isLoading, isVetUser } = useAuth()
   const t = useT()
 
   const [email, setEmail] = useState('')
@@ -43,6 +43,12 @@ function LoginInner() {
       setSessionExpired(true)
     }
   }, [searchParams])
+
+  // Sessão salva ainda válida não deve ver o formulário de novo.
+  useEffect(() => {
+    if (searchParams?.get('session_expired') === '1') return
+    if (!isLoading && user) router.replace(isVetUser ? '/vet/dashboard' : '/dashboard')
+  }, [isLoading, user, isVetUser, router, searchParams])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
