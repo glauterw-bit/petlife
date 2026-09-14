@@ -1631,6 +1631,10 @@ export const adminStats = {
     return handleResponse<{ pending: number; requests: ResetRequest[] }>(res)
   },
   /** O que os tutores mais perguntam à Vyron — por tema (sem texto das perguntas). */
+  platforms: async (days = 30) => {
+    const res = await fetch(`${API_URL}/admin/users/platforms?days=${days}`, { headers: getAuthHeaders() })
+    return handleResponse<PlatformUsage>(res)
+  },
   ranking: async (days = 30) => {
     const res = await fetch(`${API_URL}/admin/users/ranking?days=${days}`, { headers: getAuthHeaders() })
     return handleResponse<UserRanking>(res)
@@ -1645,6 +1649,21 @@ export const adminStats = {
     })
     return handleResponse<ResetCodeResult>(res)
   },
+}
+
+export interface PlatformUsageUser {
+  user_id: number
+  name: string | null
+  email: string
+  opens: number
+  first_open: string | null
+  last_open: string | null
+}
+
+export interface PlatformUsage {
+  days: number
+  users_by_platform: Record<string, number>
+  android_users: PlatformUsageUser[]
 }
 
 export interface UserRankingItem {

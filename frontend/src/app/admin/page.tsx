@@ -9,7 +9,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import dynamic from 'next/dynamic'
-import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type FeedbackList, type FeedbackItem, type AiTopicsReport, type SupportThread, type SupportMsg, type UserRanking } from '@/lib/api'
+import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type FeedbackList, type FeedbackItem, type AiTopicsReport, type SupportThread, type SupportMsg, type UserRanking, type PlatformUsage } from '@/lib/api'
 
 const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
   ssr: false,
@@ -37,6 +37,7 @@ export default function AdminPage() {
   const [fb, setFb] = useState<FeedbackList | null>(null)
   const [threads, setThreads] = useState<SupportThread[]>([])
   const [ranking, setRanking] = useState<UserRanking | null>(null)
+  const [platforms, setPlatforms] = useState<PlatformUsage | null>(null)
   const [chat, setChat] = useState<{ user: { id: number; name: string | null; email: string }; messages: SupportMsg[] } | null>(null)
   const [reply, setReply] = useState('')
   const [replying, setReplying] = useState(false)
@@ -60,7 +61,7 @@ export default function AdminPage() {
   async function load() {
     try {
       setRefreshing(true)
-      const [st, us, loc, fbs, tps, apdl, sup, rk] = await Promise.all([
+      const [st, us, loc, fbs, tps, apdl, sup, rk, plt] = await Promise.all([
         adminStats.get(),
         adminStats.users().catch(() => ({ total: 0, users: [] })),
         adminStats.locations().catch(() => null),
@@ -69,6 +70,7 @@ export default function AdminPage() {
         adminStats.appleDownloads().catch(() => null),
         supportApi.adminThreads().catch(() => ({ threads: [] })),
         adminStats.ranking().catch(() => null),
+        adminStats.platforms().catch(() => null),
       ])
       setData(st)
       setUsers(us.users)
@@ -78,6 +80,7 @@ export default function AdminPage() {
       setAppleDl(apdl)
       setThreads(sup.threads)
       setRanking(rk)
+      setPlatforms(plt)
     } catch {
       setDenied(true)
       setTimeout(() => router.replace('/dashboard'), 1500)
@@ -179,6 +182,47 @@ export default function AdminPage() {
                   <span className="text-xs font-bold text-surface-900 dark:text-white tabular-nums w-16 text-right">
                     {t.count} <span className="text-surface-400 font-normal">({t.pct}%)</span>
                   </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Por onde abrem o app — Android ainda é teste fechado: quem abre por lá é testador */}
+      {platforms && (
+        <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl p-4 md:p-5 mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <h3 className="font-bold text-surface-900 dark:text-white">🤖 Testadores Android (pelo app)</h3>
+            <span className="text-xs text-surface-400">
+              {Object.entries(platforms.users_by_platform)
+                .map(([p, n]) => `${p === 'ios' ? 'iPhone' : p === 'android' ? 'Android' : p === 'web' ? 'Navegador' : 'sem registro'}: ${n}`)
+                .join(' · ')} · {platforms.days}d
+            </span>
+          </div>
+          {platforms.android_users.length === 0 ? (
+            <p className="text-sm text-surface-500 dark:text-surface-400">
+              Ninguém abriu pelo Android desde que o registro começou. Quem aceitar o teste e abrir o app aparece aqui.
+            </p>
+          ) : (
+            <div className="space-y-1.5 max-h-[360px] overflow-y-auto">
+              {platforms.android_users.map(u => (
+                <div
+                  key={u.user_id}
+                  className="flex items-center gap-2.5 rounded-xl border border-surface-100 dark:border-surface-700 px-3 py-2 bg-surface-50/60 dark:bg-surface-900/30"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-surface-900 dark:text-white truncate">{u.name || u.email}</div>
+                    <div className="text-[11px] text-surface-400 truncate">{u.email}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">
+                      {u.opens} abertura{u.opens === 1 ? '' : 's'}
+                    </div>
+                    <div className="text-[10px] text-surface-400 tabular-nums">
+                      {u.last_open ? `últ. ${new Date(u.last_open + 'Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : ''}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

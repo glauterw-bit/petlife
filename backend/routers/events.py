@@ -37,12 +37,13 @@ ALLOWED = {
 
 class EventIn(BaseModel):
     event: str
+    platform: str | None = None
 
 
-async def track_event(db: AsyncSession, user_id: int, event: str) -> None:
+async def track_event(db: AsyncSession, user_id: int, event: str, platform: str | None = None) -> None:
     """Uso interno (server-side) — não valida whitelist, não levanta exceção."""
     try:
-        db.add(UsageEvent(user_id=user_id, event=event))
+        db.add(UsageEvent(user_id=user_id, event=event, platform=platform))
         await db.flush()
     except Exception:
         pass
@@ -58,4 +59,5 @@ async def post_event(
 ):
     if body.event not in ALLOWED:
         raise HTTPException(status_code=400, detail="Evento desconhecido")
-    await track_event(db, current_user.id, body.event)
+    platform = body.platform if body.platform in ("ios", "android", "web") else None
+    await track_event(db, current_user.id, body.event, platform)

@@ -171,6 +171,7 @@ async def _run_migrations():
         "ALTER TABLE users ADD COLUMN referred_by_id INTEGER",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_referral_code ON users(referral_code)",
         "CREATE INDEX IF NOT EXISTS ix_support_msgs_user_created ON support_messages(user_id, created_at)",
+        "ALTER TABLE usage_events ADD COLUMN platform VARCHAR(10)",
         # Proteção em dia (antiparasitários recorrentes)
         "CREATE INDEX IF NOT EXISTS ix_pet_protections_pet_kind ON pet_protections(pet_id, kind, applied_at)",
         "ALTER TABLE pets ADD COLUMN is_public BOOLEAN DEFAULT FALSE NOT NULL",

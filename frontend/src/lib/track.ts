@@ -3,6 +3,15 @@
 /** Telemetria própria (fire-and-forget). Nunca quebra a UI. */
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
+function platform(): string {
+  try {
+    const w = window as typeof window & { Capacitor?: { getPlatform?: () => string } }
+    return w.Capacitor?.getPlatform?.() || 'web'
+  } catch {
+    return 'web'
+  }
+}
+
 export function track(event: string): void {
   try {
     const token = localStorage.getItem('petlife_token')
@@ -10,7 +19,7 @@ export function track(event: string): void {
     void fetch(`${API_URL}/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ event }),
+      body: JSON.stringify({ event, platform: platform() }),
       keepalive: true,
     }).catch(() => {})
   } catch {}

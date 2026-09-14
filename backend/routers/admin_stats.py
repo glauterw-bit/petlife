@@ -38,6 +38,53 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+@router.get("/users/platforms")
+async def users_platforms(
+    days: int = 30,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Por onde cada usuário abre o app. O Android ainda é teste fechado no
+    Google Play, então quem abre por lá é, na prática, testador."""
+    since = datetime.utcnow() - timedelta(days=max(1, min(days, 90)))
+    totals = {
+        (p or "desconhecido"): int(n)
+        for p, n in (await db.execute(
+            select(UsageEvent.platform, func.count(func.distinct(UsageEvent.user_id)))
+            .where(UsageEvent.event == "app_open", UsageEvent.created_at >= since)
+            .group_by(UsageEvent.platform)
+        )).all()
+    }
+    res = await db.execute(
+        select(
+            UsageEvent.user_id, User.name, User.email,
+            func.count(UsageEvent.id).label("opens"),
+            func.min(UsageEvent.created_at).label("first_open"),
+            func.max(UsageEvent.created_at).label("last_open"),
+        )
+        .join(User, User.id == UsageEvent.user_id)
+        .where(UsageEvent.event == "app_open", UsageEvent.platform == "android")
+        .group_by(UsageEvent.user_id, User.name, User.email)
+        .order_by(func.max(UsageEvent.created_at).desc())
+        .limit(100)
+    )
+    return {
+        "days": days,
+        "users_by_platform": totals,
+        "android_users": [
+            {
+                "user_id": r.user_id,
+                "name": r.name,
+                "email": r.email,
+                "opens": int(r.opens),
+                "first_open": r.first_open.isoformat() if r.first_open else None,
+                "last_open": r.last_open.isoformat() if r.last_open else None,
+            }
+            for r in res.all()
+        ],
+    }
+
+
 @router.get("/users/ranking")
 async def users_ranking(
     days: int = 30,

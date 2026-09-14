@@ -114,6 +114,7 @@ class UsageEvent(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     event = Column(String(40), nullable=False, index=True)
+    platform = Column(String(10), nullable=True)  # ios | android | web
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
