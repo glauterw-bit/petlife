@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from statistics import mean
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -42,6 +42,56 @@ class HeatCycleUpdate(BaseModel):
     started_at: Optional[datetime] = None
     ended_at: Optional[datetime] = None  # enviar null reabre o ciclo
     notes: Optional[str] = Field(default=None, max_length=500)
+
+
+# ── Respostas ────────────────────────────────────────────────────────────────
+# Espelham os dicts de _overview e upcoming_heats. Existem pra rota entrar no
+# OpenAPI: o check-api-contract casa a interface TS `HeatCycle` com
+# `HeatCycleResponse` (sem ele, casava com HeatCycleCreate e acusava id e
+# duration_days ausentes). Datas seguem como string ISO, igual ao dict.
+
+class HeatCycleResponse(BaseModel):
+    id: int
+    started_at: str
+    ended_at: Optional[str] = None
+    duration_days: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class HeatCurrentResponse(BaseModel):
+    id: int
+    started_at: str
+    day: int
+    expected_end: str
+    overdue: bool
+
+
+class HeatPredictionResponse(BaseModel):
+    next_start: str
+    days_until: int
+    interval_days: int
+    duration_days: int
+    based_on: Literal["history", "species"]
+    cycles_used: int
+
+
+class HeatCycleOverviewResponse(BaseModel):
+    species: Literal["dog", "cat"]
+    applicable: bool
+    neutered: bool
+    notify_lead_days: int
+    current: Optional[HeatCurrentResponse] = None
+    prediction: Optional[HeatPredictionResponse] = None
+    cycles: list[HeatCycleResponse]
+
+
+class HeatUpcomingResponse(BaseModel):
+    pet_id: int
+    pet_name: str
+    species: Literal["dog", "cat"]
+    next_start: str
+    days_until: int
+    lead_days: int
 
 
 def _naive_utc(dt: Optional[datetime]) -> Optional[datetime]:
@@ -156,7 +206,7 @@ async def _load_cycles(db: AsyncSession, pet_id: int) -> list[PetHeatCycle]:
     return list(q.scalars().all())
 
 
-@router.get("/{pet_id}/heat-cycles")
+@router.get("/{pet_id}/heat-cycles", response_model=HeatCycleOverviewResponse)
 async def list_heat_cycles(
     pet_id: int,
     current_user: User = Depends(get_current_user),
@@ -166,7 +216,7 @@ async def list_heat_cycles(
     return _overview(pet, await _load_cycles(db, pet_id))
 
 
-@router.post("/{pet_id}/heat-cycles", status_code=status.HTTP_201_CREATED)
+@router.post("/{pet_id}/heat-cycles", status_code=status.HTTP_201_CREATED, response_model=HeatCycleOverviewResponse)
 async def add_heat_cycle(
     pet_id: int,
     body: HeatCycleCreate,
@@ -196,7 +246,7 @@ async def add_heat_cycle(
     return _overview(pet, await _load_cycles(db, pet_id))
 
 
-@router.put("/{pet_id}/heat-cycles/{cycle_id}")
+@router.put("/{pet_id}/heat-cycles/{cycle_id}", response_model=HeatCycleOverviewResponse)
 async def update_heat_cycle(
     pet_id: int,
     cycle_id: int,
@@ -275,7 +325,7 @@ async def heat_predictions(db: AsyncSession, *where) -> list[dict]:
     return out
 
 
-@upcoming_router.get("/upcoming")
+@upcoming_router.get("/upcoming", response_model=list[HeatUpcomingResponse])
 async def upcoming_heats(
     days: int = 200,
     current_user: User = Depends(get_current_user),
