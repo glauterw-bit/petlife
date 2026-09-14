@@ -176,6 +176,8 @@ async def _run_migrations():
         "ALTER TABLE pets ADD COLUMN is_public BOOLEAN DEFAULT FALSE NOT NULL",
         "ALTER TABLE pets ADD COLUMN public_slug VARCHAR(80)",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_pets_public_slug ON pets(public_slug)",
+        # Cio (pet_heat_cycles é criada por create_all)
+        "CREATE INDEX IF NOT EXISTS ix_pet_heat_cycles_pet_started ON pet_heat_cycles(pet_id, started_at)",
     ]
     for stmt in migrations:
         try:

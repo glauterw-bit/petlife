@@ -9,7 +9,7 @@ from database import get_db, settings
 from models import Pet, Breed, Vaccine, Exam, Anamnesis, Reminder, WalkRoutine, PetShare
 from schemas import PetCreate, PetUpdate, PetResponse, PetFullProfile
 from auth import get_current_user
-from models import User, pet_accessible_filter
+from models import User, pet_accessible_filter, SpeciesEnum as ModelSpecies
 import subscriptions
 
 router = APIRouter(prefix="/pets", tags=["Pets"])
@@ -19,6 +19,11 @@ def _check_pet_ownership(pet: Pet, user_id: int):
     """Apenas owner — usar para ações destrutivas (delete, transfer)."""
     if pet.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas o tutor principal pode realizar essa ação")
+
+
+def _enum_value(v):
+    """'dog' tanto pro Enum do model quanto pro do schema (ou string crua)."""
+    return getattr(v, "value", v)
 
 
 async def _check_pet_access(db: AsyncSession, pet: Pet, user_id: int):
@@ -120,6 +125,22 @@ async def update_pet(
     await _check_pet_access(db, pet, current_user.id)
 
     update_fields = pet_data.model_dump(exclude_unset=True)
+
+    # Espécie e raça andam juntas: a raça precisa ser da espécie final do pet.
+    if update_fields.get("species") is not None:
+        update_fields["species"] = ModelSpecies(_enum_value(update_fields["species"]))
+    target_species = _enum_value(update_fields.get("species") or pet.species)
+    breed_id = update_fields["breed_id"] if "breed_id" in update_fields else pet.breed_id
+    if breed_id:
+        breed = (await db.execute(select(Breed).where(Breed.id == breed_id))).scalar_one_or_none()
+        if not breed:
+            raise HTTPException(status_code=404, detail="Raça não encontrada")
+        if _enum_value(breed.species) != target_species:
+            if "breed_id" in update_fields:
+                raise HTTPException(status_code=400, detail="Essa raça é de outra espécie")
+            # Trocou a espécie e a raça antiga não serve mais (ex.: "Siamês" num cachorro).
+            update_fields["breed_id"] = None
+
     for field, value in update_fields.items():
         setattr(pet, field, value)
 

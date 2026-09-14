@@ -33,6 +33,8 @@ import { PublicProfileModal } from '@/components/growth/PublicProfileModal'
 import { FamilyTreeSection } from '@/components/innovations/FamilyTreeSection'
 import { HealthForecast } from '@/components/health/HealthForecast'
 import { ExpensesCard } from '@/components/innovations/ExpensesCard'
+import { EditPetModal } from '@/components/pets/EditPetModal'
+import { HeatCycleCard } from '@/components/health/HeatCycleCard'
 import { RecapCard } from '@/components/innovations/RecapCard'
 import { EnrichmentCard } from '@/components/innovations/EnrichmentCard'
 import { petExport } from '@/lib/api'
@@ -66,6 +68,9 @@ export default function PetProfilePage() {
   const [behaviorLogOpen, setBehaviorLogOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [publicOpen, setPublicOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  // incrementa a cada edição do perfil — cards que dependem de espécie/sexo recarregam
+  const [profileVersion, setProfileVersion] = useState(0)
 
   // Anamnesis form
   const [anamForm, setAnamForm] = useState({ symptoms: '', duration: '', behavior_changes: '', appetite: '', water_intake: '', medications: '', notes: '' })
@@ -148,6 +153,13 @@ export default function PetProfilePage() {
     success(t('pw.pet.examDeleted'))
   }
 
+  function handlePetSaved(updated: Pet) {
+    setPet(updated)
+    setCareGuide(null) // o guia era da raça antiga
+    setProfileVersion(v => v + 1)
+    breedsApi.petHealthSuggestions(petId).then(setSuggestions).catch(() => {})
+  }
+
   if (loading) return <DashboardLayout><PageLoader /></DashboardLayout>
   if (!pet) return null
 
@@ -180,6 +192,13 @@ export default function PetProfilePage() {
           <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white leading-tight truncate">{pet.name}</h1>
           <p className="text-surface-500 dark:text-surface-400 text-xs md:text-sm truncate">{pet.breed?.name ?? ''} {pet.birth_date ? `• ${formatAge(pet.birth_date)}` : ''}</p>
         </div>
+        <button
+          onClick={() => setEditOpen(true)}
+          aria-label={t('common.edit')}
+          className="tap-target flex items-center gap-1.5 px-3 py-2 rounded-xl border border-surface-200 dark:border-surface-700 text-sm font-medium text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700/40 transition"
+        >
+          <Edit2 className="w-4 h-4" /> <span className="hidden sm:inline">{t('common.edit')}</span>
+        </button>
       </div>
 
       <BedtimeStoryModal petId={petId} petName={pet.name} open={storyOpen} onClose={() => setStoryOpen(false)} />
@@ -189,6 +208,7 @@ export default function PetProfilePage() {
       <BehaviorLogModal petId={petId} petName={pet.name} open={behaviorLogOpen} onClose={() => setBehaviorLogOpen(false)} />
       <SharePetModal petId={petId} petName={pet.name} open={shareOpen} onClose={() => setShareOpen(false)} />
       <PublicProfileModal pet={pet} open={publicOpen} onClose={() => setPublicOpen(false)} />
+      <EditPetModal pet={pet} open={editOpen} onClose={() => setEditOpen(false)} onSaved={handlePetSaved} />
 
       {/* Quick actions IA — grade uniforme (bordas alinhadas, sem sobras irregulares) */}
       <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4 items-stretch">
@@ -412,6 +432,19 @@ export default function PetProfilePage() {
               </div>
             )}
           </div>
+
+          {pet.gender !== 'male' && (
+            <div className="border-t border-surface-200 dark:border-surface-700 pt-6">
+              <HeatCycleCard
+                petId={petId}
+                petName={pet.name}
+                gender={pet.gender}
+                neutered={pet.neutered}
+                onEditProfile={() => setEditOpen(true)}
+                refreshKey={profileVersion}
+              />
+            </div>
+          )}
         </div>
       )}
 

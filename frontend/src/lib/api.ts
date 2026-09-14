@@ -141,7 +141,7 @@ export const pets = {
     return handleResponse<Pet>(res)
   },
 
-  update: async (id: number, data: Partial<CreatePetData>) => {
+  update: async (id: number, data: UpdatePetData) => {
     const res = await fetch(`${API_URL}/pets/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
@@ -1512,6 +1512,56 @@ export const expenses = {
   },
 }
 
+// ── Cio (fêmeas) ──────────────────────────────────────
+export const heatCycles = {
+  get: async (petId: number) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/heat-cycles`, { headers: getAuthHeaders() })
+    return handleResponse<HeatCycleOverview>(res)
+  },
+  add: async (petId: number, data: { started_at: string; ended_at?: string; notes?: string }) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/heat-cycles`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data),
+    })
+    return handleResponse<HeatCycleOverview>(res)
+  },
+  update: async (petId: number, cycleId: number, data: { started_at?: string; ended_at?: string | null; notes?: string | null }) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/heat-cycles/${cycleId}`, {
+      method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data),
+    })
+    return handleResponse<HeatCycleOverview>(res)
+  },
+  remove: async (petId: number, cycleId: number) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/heat-cycles/${cycleId}`, {
+      method: 'DELETE', headers: getAuthHeaders(),
+    })
+    return handleResponse<void>(res)
+  },
+}
+
+export interface HeatCycle {
+  id: number
+  started_at: string
+  ended_at: string | null
+  duration_days: number | null
+  notes: string | null
+}
+
+export interface HeatCycleOverview {
+  species: 'dog' | 'cat'
+  applicable: boolean
+  neutered: boolean
+  current: { id: number; started_at: string; day: number; expected_end: string; overdue: boolean } | null
+  prediction: {
+    next_start: string
+    days_until: number
+    interval_days: number
+    duration_days: number
+    based_on: 'history' | 'species'
+    cycles_used: number
+  } | null
+  cycles: HeatCycle[]
+}
+
 export interface PetExpense {
   id: number
   category: string
@@ -1985,6 +2035,9 @@ export interface CreatePetData {
   microchip?: string
   bio?: string
 }
+
+/** PUT /pets/:id — null limpa o campo (ex.: breed_id ao trocar a espécie). */
+export type UpdatePetData = { [K in keyof CreatePetData]?: CreatePetData[K] | null }
 
 /**
  * A API devolve os campos do pet na RAIZ (não dentro de `pet`), e usa

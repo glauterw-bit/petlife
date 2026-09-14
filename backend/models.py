@@ -775,3 +775,20 @@ class PetProtection(Base):
     interval_days = Column(Integer, nullable=False)
     next_due = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PetHeatCycle(Base):
+    """Cio da fêmea — um registro por ciclo (início obrigatório; fim quando acabar).
+
+    O intervalo médio entre inícios alimenta a previsão do próximo cio. Sem
+    histórico suficiente, a previsão usa a referência da espécie.
+    """
+    __tablename__ = "pet_heat_cycles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    started_at = Column(DateTime, nullable=False)
+    ended_at = Column(DateTime, nullable=True)          # NULL = cio em andamento
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

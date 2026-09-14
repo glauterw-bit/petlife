@@ -56,6 +56,7 @@ from routers import (
     billing,
     exports,
     expenses,
+    heat_cycles,
     admin_stats,
     events,
     growth,
@@ -146,6 +147,7 @@ app.include_router(billing.router)
 app.include_router(billing.webhook_router)
 app.include_router(exports.router)
 app.include_router(expenses.router)
+app.include_router(heat_cycles.router)
 app.include_router(push.router)
 app.include_router(admin_stats.router)
 app.include_router(events.router)

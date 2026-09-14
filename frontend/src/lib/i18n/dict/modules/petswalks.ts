@@ -283,6 +283,24 @@ export const petswalks: LocaleBundle = {
     'pw.chart.paceSub': 'média por trecho · km/h',
     'pw.chart.start': 'início',
     'pw.chart.end': 'fim',
+
+    // ── Editar pet ───────────────────────────────────────
+    'pw.editPet.title': 'Editar {name}',
+    'pw.editPet.name': 'Nome',
+    'pw.editPet.species': 'Espécie',
+    'pw.editPet.speciesChanged': 'Espécie alterada para {species}. Vacinas, exames e demais registros continuam salvos.',
+    'pw.editPet.breedRemoved': 'A raça "{breed}" é de outra espécie e será removida. Escolha a raça certa abaixo (opcional).',
+    'pw.editPet.breedPh': 'Buscar raça…',
+    'pw.editPet.clearBreed': 'Remover raça',
+    'pw.editPet.genderUnset': 'Não informado',
+    'pw.editPet.birth': 'Data de nascimento',
+    'pw.editPet.weight': 'Peso (kg)',
+    'pw.editPet.color': 'Cor',
+    'pw.editPet.microchip': 'Microchip',
+    'pw.editPet.bio': 'Sobre',
+    'pw.editPet.saved': 'Perfil atualizado',
+    'pw.editPet.errSave': 'Não foi possível salvar',
+    'pw.editPet.errWeight': 'Peso inválido',
   },
 
   en: {
@@ -561,6 +579,24 @@ export const petswalks: LocaleBundle = {
     'pw.chart.paceSub': 'average per segment · km/h',
     'pw.chart.start': 'start',
     'pw.chart.end': 'end',
+
+    // ── Edit pet ─────────────────────────────────────────
+    'pw.editPet.title': 'Edit {name}',
+    'pw.editPet.name': 'Name',
+    'pw.editPet.species': 'Species',
+    'pw.editPet.speciesChanged': 'Species changed to {species}. Vaccines, exams and other records stay saved.',
+    'pw.editPet.breedRemoved': 'The breed "{breed}" belongs to another species and will be removed. Pick the right breed below (optional).',
+    'pw.editPet.breedPh': 'Search breed…',
+    'pw.editPet.clearBreed': 'Remove breed',
+    'pw.editPet.genderUnset': 'Not set',
+    'pw.editPet.birth': 'Date of birth',
+    'pw.editPet.weight': 'Weight (kg)',
+    'pw.editPet.color': 'Color',
+    'pw.editPet.microchip': 'Microchip',
+    'pw.editPet.bio': 'About',
+    'pw.editPet.saved': 'Profile updated',
+    'pw.editPet.errSave': 'Could not save',
+    'pw.editPet.errWeight': 'Invalid weight',
   },
 
   es: {
@@ -839,5 +875,23 @@ export const petswalks: LocaleBundle = {
     'pw.chart.paceSub': 'promedio por tramo · km/h',
     'pw.chart.start': 'inicio',
     'pw.chart.end': 'fin',
+
+    // ── Editar mascota ───────────────────────────────────
+    'pw.editPet.title': 'Editar {name}',
+    'pw.editPet.name': 'Nombre',
+    'pw.editPet.species': 'Especie',
+    'pw.editPet.speciesChanged': 'Especie cambiada a {species}. Vacunas, exámenes y demás registros siguen guardados.',
+    'pw.editPet.breedRemoved': 'La raza "{breed}" es de otra especie y se quitará. Elige la raza correcta abajo (opcional).',
+    'pw.editPet.breedPh': 'Buscar raza…',
+    'pw.editPet.clearBreed': 'Quitar raza',
+    'pw.editPet.genderUnset': 'Sin indicar',
+    'pw.editPet.birth': 'Fecha de nacimiento',
+    'pw.editPet.weight': 'Peso (kg)',
+    'pw.editPet.color': 'Color',
+    'pw.editPet.microchip': 'Microchip',
+    'pw.editPet.bio': 'Sobre',
+    'pw.editPet.saved': 'Perfil actualizado',
+    'pw.editPet.errSave': 'No se pudo guardar',
+    'pw.editPet.errWeight': 'Peso inválido',
   },
 }
