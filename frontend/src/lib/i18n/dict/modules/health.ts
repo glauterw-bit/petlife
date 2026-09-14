@@ -249,6 +249,7 @@ export const health: LocaleBundle = {
     'h.heat.tipDog': 'Durante o cio: passeio sempre na guia e longe de machos não castrados. Converse com o veterinário sobre castração.',
     'h.heat.tipCat': 'No cio a gata mia alto, rola no chão e tenta fugir — mantenha as janelas teladas. Converse com o veterinário sobre castração.',
     'h.heat.errSave': 'Não foi possível salvar',
+    'h.heat.notifyInfo': 'No app, avisamos {count} dias antes e no dia previsto.',
   },
 
   en: {
@@ -493,6 +494,7 @@ export const health: LocaleBundle = {
     'h.heat.tipDog': 'During heat: always walk on a leash and keep away from intact males. Ask your vet about spaying.',
     'h.heat.tipCat': 'In heat, cats yowl, roll on the floor and try to get out — keep window screens closed. Ask your vet about spaying.',
     'h.heat.errSave': 'Could not save',
+    'h.heat.notifyInfo': 'In the app, we remind you {count} days before and on the expected day.',
   },
 
   es: {
@@ -737,5 +739,6 @@ export const health: LocaleBundle = {
     'h.heat.tipDog': 'Durante el celo: paseos siempre con correa y lejos de machos no castrados. Consulta al veterinario sobre la esterilización.',
     'h.heat.tipCat': 'En celo la gata maúlla fuerte, se revuelca y intenta escaparse — mantén las ventanas con malla. Consulta al veterinario sobre la esterilización.',
     'h.heat.errSave': 'No se pudo guardar',
+    'h.heat.notifyInfo': 'En la app, te avisamos {count} días antes y el día previsto.',
   },
 }

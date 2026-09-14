@@ -8,13 +8,14 @@
  * Estratégia: a cada carga do dashboard, cancela as pendentes do app
  * (faixa de IDs própria) e reagenda a partir dos dados frescos — idempotente.
  */
-import type { Vaccine, Reminder, Pet } from './api'
+import type { Vaccine, Reminder, Pet, HeatUpcoming } from './api'
 
 // Faixas de ID determinísticas (permitem cancelar/reagendar sem duplicar)
 const VACCINE_BASE = 100_000
 const REMINDER_BASE = 500_000
 const BDAY_BASE = 900_000
 const ENGAGE_BASE = 700_000
+const HEAT_BASE = 800_000
 
 function isNative(): boolean {
   if (typeof window === 'undefined') return false
@@ -41,6 +42,8 @@ export async function syncHealthNotifications(
   pets: Pet[] = [],
   /** true = o tutor já registrou ao menos 1 vacina (não é o mesmo que ter vacina vencendo). */
   hasAnyVaccine = true,
+  /** Cios previstos (GET /heat-cycles/upcoming). */
+  heats: HeatUpcoming[] = [],
 ): Promise<boolean> {
   if (!isNative()) return false
   try {
@@ -94,6 +97,30 @@ export async function syncHealthNotifications(
           title: '🔔 Lembrete do PetLife',
           body: r.title,
           schedule: { at: dayOf },
+        })
+      }
+    }
+
+    // 🌸 cio previsto: alguns dias antes (cadela 7, gata 2) e no dia, às 9h
+    for (const h of heats) {
+      const antes = at9am(h.next_start, h.lead_days)
+      const noDia = at9am(h.next_start)
+      if (h.lead_days > 0 && antes.getTime() > now) {
+        notifs.push({
+          id: HEAT_BASE + h.pet_id * 2 + 1,
+          title: `🌸 Cio de ${h.pet_name} chegando`,
+          body: h.species === 'cat'
+            ? `Deve começar em ${h.lead_days} dias. Mantenha as janelas teladas e fique de olho nos sinais.`
+            : `Deve começar em ${h.lead_days} dias. Passeios só na guia e longe de machos não castrados.`,
+          schedule: { at: antes },
+        })
+      }
+      if (noDia.getTime() > now) {
+        notifs.push({
+          id: HEAT_BASE + h.pet_id * 2,
+          title: `🌸 O cio de ${h.pet_name} pode começar hoje`,
+          body: 'Quando começar, registre no PetLife: a previsão fica mais certeira.',
+          schedule: { at: noDia },
         })
       }
     }

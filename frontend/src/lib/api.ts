@@ -1518,6 +1518,11 @@ export const heatCycles = {
     const res = await fetch(`${API_URL}/pets/${petId}/heat-cycles`, { headers: getAuthHeaders() })
     return handleResponse<HeatCycleOverview>(res)
   },
+  /** Próximos cios previstos de todos os pets (alimenta as notificações locais). */
+  upcoming: async () => {
+    const res = await fetch(`${API_URL}/heat-cycles/upcoming`, { headers: getAuthHeaders() })
+    return handleResponse<HeatUpcoming[]>(res)
+  },
   add: async (petId: number, data: { started_at: string; ended_at?: string; notes?: string }) => {
     const res = await fetch(`${API_URL}/pets/${petId}/heat-cycles`, {
       method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data),
@@ -1546,10 +1551,20 @@ export interface HeatCycle {
   notes: string | null
 }
 
+export interface HeatUpcoming {
+  pet_id: number
+  pet_name: string
+  species: 'dog' | 'cat'
+  next_start: string
+  days_until: number
+  lead_days: number
+}
+
 export interface HeatCycleOverview {
   species: 'dog' | 'cat'
   applicable: boolean
   neutered: boolean
+  notify_lead_days: number
   current: { id: number; started_at: string; day: number; expected_end: string; overdue: boolean } | null
   prediction: {
     next_start: string

@@ -1,6 +1,7 @@
 """Cio da fêmea — registro dos ciclos + previsão do próximo."""
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from statistics import mean
 from typing import Optional
@@ -12,9 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from auth import get_current_user
-from models import Pet, User, PetHeatCycle, user_has_pet_access
+from models import Pet, User, PetHeatCycle, GenderEnum, pet_accessible_filter, user_has_pet_access
 
 router = APIRouter(prefix="/pets", tags=["Cio"])
+# Fora de /pets: "/pets/heat-cycles/..." cairia nas rotas /pets/{pet_id}/... (422).
+upcoming_router = APIRouter(prefix="/heat-cycles", tags=["Cio"])
 
 # Referência quando o pet ainda não tem histórico próprio.
 # Cadela: cio a cada ~6 meses (varia de 4 a 12), com ~2–3 semanas de duração.
@@ -24,6 +27,9 @@ SPECIES_DEFAULTS = {"dog": {"interval": 180, "duration": 21}, "cat": {"interval"
 # digitação — não entram na média para não distorcer a previsão.
 INTERVAL_BOUNDS = {"dog": (90, 400), "cat": (7, 120)}
 DURATION_BOUNDS = (1, 60)
+# Aviso do próximo cio: dias de antecedência. Cadela precisa de mais tempo pra
+# planejar; o ciclo da gata é curto.
+NOTIFY_LEAD_DAYS = {"dog": 7, "cat": 2}
 
 
 class HeatCycleCreate(BaseModel):
@@ -129,6 +135,7 @@ def _overview(pet: Pet, cycles: list[PetHeatCycle]) -> dict:
         "species": species,
         "applicable": gender != "male",
         "neutered": bool(pet.neutered),
+        "notify_lead_days": NOTIFY_LEAD_DAYS[species],
         "current": current,
         "prediction": prediction,
         "cycles": [
@@ -227,3 +234,65 @@ async def delete_heat_cycle(
     cycle = await _get_cycle(db, pet_id, cycle_id)
     await db.delete(cycle)
     await db.commit()
+
+
+async def heat_predictions(db: AsyncSession, *where) -> list[dict]:
+    """Próximo cio previsto de cada fêmea não castrada que tem histórico.
+
+    Fica de fora quem está em cio agora (a previsão é do ciclo seguinte, longe
+    demais pra avisar) e pet em modo memorial. Usado pelo app (notificação
+    local) e pelo /push/run.
+    """
+    pets = (await db.execute(
+        select(Pet).where(
+            Pet.gender == GenderEnum.female,
+            Pet.neutered.is_not(True),
+            Pet.is_deceased.is_(False),
+            Pet.id.in_(select(PetHeatCycle.pet_id)),
+            *where,
+        )
+    )).scalars().all()
+    if not pets:
+        return []
+    by_pet = defaultdict(list)
+    rows = await db.execute(select(PetHeatCycle).where(PetHeatCycle.pet_id.in_([p.id for p in pets])))
+    for c in rows.scalars().all():
+        by_pet[c.pet_id].append(c)
+
+    out = []
+    for p in pets:
+        ov = _overview(p, by_pet[p.id])
+        pred = ov["prediction"]
+        if not pred or ov["current"]:
+            continue
+        out.append({
+            "pet": p,
+            "species": ov["species"],
+            "next_start": pred["next_start"],
+            "days_until": pred["days_until"],
+            "lead_days": ov["notify_lead_days"],
+        })
+    return out
+
+
+@upcoming_router.get("/upcoming")
+async def upcoming_heats(
+    days: int = 200,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Cios previstos nos próximos `days` dias, dos pets que o usuário acessa."""
+    horizon = max(0, min(days, 400))
+    items = await heat_predictions(db, pet_accessible_filter(current_user.id))
+    return [
+        {
+            "pet_id": i["pet"].id,
+            "pet_name": i["pet"].name,
+            "species": i["species"],
+            "next_start": i["next_start"],
+            "days_until": i["days_until"],
+            "lead_days": i["lead_days"],
+        }
+        for i in items
+        if 0 <= i["days_until"] <= horizon
+    ]

@@ -192,6 +192,9 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
               ? t('h.heat.basedHistory', { interval: pred.interval_days, duration: pred.duration_days })
               : t(data.species === 'cat' ? 'h.heat.basedSpeciesCat' : 'h.heat.basedSpeciesDog')}
           </p>
+          {!data.neutered && (
+            <p className="text-xs text-surface-400 mt-1">🔔 {t('h.heat.notifyInfo', { count: data.notify_lead_days })}</p>
+          )}
         </div>
       ) : (
         <p className="text-sm text-surface-400 text-center py-3">{t('h.heat.empty')}</p>

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
-import { pets as petsApi, vaccines as vaccinesApi, walks as walksApi, gamification, reminders as remindersApi, type Pet, type Vaccine, type Reminder, type UserPoints } from '@/lib/api'
+import { pets as petsApi, vaccines as vaccinesApi, walks as walksApi, gamification, reminders as remindersApi, heatCycles as heatCyclesApi, type Pet, type Vaccine, type Reminder, type UserPoints } from '@/lib/api'
 import { formatDate, formatAge, getSpeciesEmoji, getVaccineStatus, getLevelName, getBadgeColor } from '@/lib/utils'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { HealthScoreCard } from '@/components/health/HealthScoreCard'
@@ -43,13 +43,14 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [p, v, r, pts, allVax, recentWalks] = await Promise.allSettled([
+        const [p, v, r, pts, allVax, recentWalks, heats] = await Promise.allSettled([
           petsApi.list(),
           vaccinesApi.getUpcoming(30),
           remindersApi.getUpcoming(7),
           gamification.getUserPoints(),
           vaccinesApi.list(),
           walksApi.list({ limit: 1 }),
+          heatCyclesApi.upcoming(),
         ])
         if (p.status === 'fulfilled') setPets(p.value)
         if (v.status === 'fulfilled') setUpcomingVaccines(v.value)
@@ -66,6 +67,7 @@ export default function DashboardPage() {
           r.status === 'fulfilled' ? r.value : [],
           p.status === 'fulfilled' ? p.value : [],
           allVax.status === 'fulfilled' ? (allVax.value?.length ?? 0) > 0 : true,
+          heats.status === 'fulfilled' ? heats.value : [],
         )
       } finally {
         setLoading(false)
