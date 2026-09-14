@@ -22,18 +22,29 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EVENTO = "convite_teste_android"
+EVENTO = os.getenv("EVENTO", "convite_teste_android")
 
 
 def montar(nome: str, url: str):
     primeiro = (nome or "").split(" ")[0] or "Oi"
-    assunto = "Quer o PetLife no Android antes de todo mundo? 🤖🐾"
+    lembrete = bool(os.getenv("LEMBRETE"))
+    placar = os.getenv("PLACAR", "").strip() or "alguns"
+    assunto = ("Lembrete: faltam poucos testadores pro PetLife chegar ao Android 🤖🐾" if lembrete
+               else "Quer o PetLife no Android antes de todo mundo? 🤖🐾")
+    aviso = (
+        '<p style="background:#eff6ff;border-left:3px solid #3b82f6;padding:12px 16px;font-size:14px">'
+        f'⏳ <strong>Lembrete:</strong> já somos {placar} testadores — faltam poucos pra liberar o app. '
+        'Se você já aceitou e instalou, obrigado! Só mantenha o app instalado até o fim do teste.</p>'
+    ) if lembrete else ""
+    aviso_txt = (f"Lembrete: ja somos {placar} testadores, faltam poucos. Se voce ja aceitou, "
+                 "obrigado! Mantenha o app instalado ate o fim do teste.\n\n") if lembrete else ""
     html = f"""\
 <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f2937;line-height:1.6">
   <div style="text-align:center;padding:24px 0">
     <div style="font-size:28px;font-weight:800;color:#10b981">PetLife 🐾</div>
   </div>
   <p>Oi, {primeiro}!</p>
+  {aviso}
   <p>O PetLife pro <strong>Android</strong> está pronto — e o Google exige um grupo
   de testadores reais antes de liberar pra todo mundo. É aí que você entra.</p>
   <p><strong>Se você tem um celular Android</strong> (ou alguém em casa tem), são 2 passos:</p>
@@ -59,7 +70,7 @@ def montar(nome: str, url: str):
 </div>"""
     texto = f"""Oi, {primeiro}!
 
-O PetLife pro Android esta pronto — e o Google exige testadores reais antes de
+{aviso_txt}O PetLife pro Android esta pronto — e o Google exige testadores reais antes de
 liberar pra todo mundo.
 
 Tem um celular Android (ou alguem em casa tem)? Sao 2 passos:
@@ -100,12 +111,18 @@ async def main():
     from sqlalchemy import text
     from database import AsyncSessionLocal
     async with AsyncSessionLocal() as db:
-        q = await db.execute(text("""
+        # ALVO_EVENTO: lembrete só para quem recebeu o convite anterior
+        alvo_ev = os.getenv("ALVO_EVENTO", "").strip()
+        filtro_alvo = ("AND EXISTS (SELECT 1 FROM usage_events e2 WHERE e2.user_id=u.id AND e2.event=:alvo)"
+                       if alvo_ev else "")
+        params = {"ev": EVENTO, **({"alvo": alvo_ev} if alvo_ev else {})}
+        q = await db.execute(text(f"""
             SELECT u.id, u.name, u.email FROM users u
             WHERE u.email NOT LIKE '%@petlifeqa.com'
               AND NOT EXISTS (SELECT 1 FROM usage_events e
                               WHERE e.user_id=u.id AND e.event=:ev)
-            ORDER BY u.created_at DESC"""), {"ev": EVENTO})
+              {filtro_alvo}
+            ORDER BY u.created_at DESC"""), params)
         alvos = q.fetchall()
     # Convida só quem o Google ACEITOU na lista de testadores — pra ninguém
     # clicar num link que não funciona pro e-mail dele (34 foram recusados:
