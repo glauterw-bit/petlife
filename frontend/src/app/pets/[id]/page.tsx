@@ -34,6 +34,7 @@ import { FamilyTreeSection } from '@/components/innovations/FamilyTreeSection'
 import { HealthForecast } from '@/components/health/HealthForecast'
 import { ExpensesCard } from '@/components/innovations/ExpensesCard'
 import { EditPetModal } from '@/components/pets/EditPetModal'
+import { track } from '@/lib/track'
 import { HeatCycleCard } from '@/components/health/HeatCycleCard'
 import { RecapCard } from '@/components/innovations/RecapCard'
 import { EnrichmentCard } from '@/components/innovations/EnrichmentCard'
@@ -69,6 +70,7 @@ export default function PetProfilePage() {
   const [shareOpen, setShareOpen] = useState(false)
   const [publicOpen, setPublicOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [fixingSpecies, setFixingSpecies] = useState(false)
   // incrementa a cada edição do perfil — cards que dependem de espécie/sexo recarregam
   const [profileVersion, setProfileVersion] = useState(0)
 
@@ -200,6 +202,35 @@ export default function PetProfilePage() {
           <Edit2 className="w-4 h-4" /> <span className="hidden sm:inline">{t('common.edit')}</span>
         </button>
       </div>
+
+      {/* Espécie e raça divergentes: 1 toque resolve (e destrava a edição do perfil) */}
+      {pet.breed && pet.species !== 'other' && pet.breed.species !== pet.species && (
+        <div className="mb-4 rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-4">
+          <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">{t('pw.pet.speciesMismatchTitle')}</p>
+          <p className="text-xs text-amber-800/90 dark:text-amber-300/90 mb-3">
+            {t('pw.pet.speciesMismatchBody', { name: pet.name, breed: pet.breed.name })}
+          </p>
+          <div className="flex gap-2">
+            {(['dog', 'cat'] as const).map(s => (
+              <button
+                key={s}
+                disabled={fixingSpecies}
+                onClick={async () => {
+                  setFixingSpecies(true)
+                  try {
+                    const updated = await petsApi.update(petId, { species: s })
+                    track('species_fix')
+                    handlePetSaved(updated)
+                  } catch {} finally { setFixingSpecies(false) }
+                }}
+                className="flex-1 px-3 py-2.5 rounded-xl bg-white dark:bg-surface-800 border border-amber-300 dark:border-amber-700 text-sm font-semibold text-surface-800 dark:text-surface-100 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition disabled:opacity-50"
+              >
+                {s === 'dog' ? `🐕 ${t('pet.dog')}` : `🐈 ${t('pet.cat')}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <BedtimeStoryModal petId={petId} petName={pet.name} open={storyOpen} onClose={() => setStoryOpen(false)} />
       <SnapshotTriageModal petId={petId} petName={pet.name} open={snapshotOpen} onClose={() => setSnapshotOpen(false)} />

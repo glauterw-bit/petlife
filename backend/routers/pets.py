@@ -50,17 +50,21 @@ async def create_pet(
     # Quota de pets por plano (free: 3, plus: 5, pro: ilimitado) — ver pricing.QUOTAS
     await subscriptions.check_quota(db, current_user, "pets")
 
-    if pet_data.breed_id:
-        breed_result = await db.execute(select(Breed).where(Breed.id == pet_data.breed_id))
+    breed_id = pet_data.breed_id
+    if breed_id:
+        breed_result = await db.execute(select(Breed).where(Breed.id == breed_id))
         breed = breed_result.scalar_one_or_none()
         if not breed:
             raise HTTPException(status_code=404, detail="Raça não encontrada")
+        if _enum_value(breed.species) != _enum_value(pet_data.species):
+            # Espécie escolhida pelo tutor prevalece; raça de outra espécie trava a edição depois.
+            breed_id = None
 
     pet = Pet(
         user_id=current_user.id,
         name=pet_data.name,
         species=pet_data.species,
-        breed_id=pet_data.breed_id,
+        breed_id=breed_id,
         birth_date=pet_data.birth_date,
         weight=pet_data.weight,
         color=pet_data.color,

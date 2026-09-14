@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Syringe, Check, Share2 } from 'lucide-react'
 import { vaccines as vaccinesApi, reminders as remindersApi, petExport, type Vaccine } from '@/lib/api'
 import { hapticSuccess, celebrate } from '@/lib/feedback'
 import { trackHappyMoment } from '@/lib/review'
+import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
 
 /**
@@ -42,12 +43,14 @@ export function VaccineQuickStart({ pet, onCreated, onClose }: {
   const [saved, setSaved] = useState(false)
   const [sharing, setSharing] = useState(false)
 
+  useEffect(() => { track('quickstart_shown') }, [])
+
   function setRow(i: number, patch: Partial<RowState>) {
     setRows(rs => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)))
   }
 
   const anyDate = rows.some(r => r.date && !r.unknown)
-  const allAnswered = rows.every(r => (r.date && !r.unknown) || r.unknown)
+  const anyAnswered = rows.some(r => (r.date && !r.unknown) || r.unknown)
 
   async function save() {
     if (saving) return
@@ -80,6 +83,7 @@ export function VaccineQuickStart({ pet, onCreated, onClose }: {
       void hapticSuccess()
       celebrate()
       trackHappyMoment('vacina_cadastrada')
+      track('quickstart_saved')
       setSaved(true)
     } catch {
       onClose()
@@ -175,14 +179,14 @@ export function VaccineQuickStart({ pet, onCreated, onClose }: {
 
             <button
               onClick={save}
-              disabled={saving || !allAnswered}
+              disabled={saving || !anyAnswered}
               className="w-full px-4 py-3.5 rounded-xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition shadow-md shadow-primary-500/30 disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
               {anyDate ? t('h.qs.save') : t('h.qs.saveUnknown')}
             </button>
             <button
-              onClick={onClose}
+              onClick={() => { track('quickstart_skipped'); onClose() }}
               className="mt-2 w-full px-4 py-2 rounded-xl text-xs font-medium text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition"
             >
               {t('h.qs.skip')}

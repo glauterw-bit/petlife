@@ -28,6 +28,10 @@ ALLOWED = {
     "support_open",        # abriu a tela do suporte
     "announce_suporte_shown",  # viu o anúncio do canal de suporte
     "announce_suporte_cta",    # clicou em "conhecer o suporte"
+    "quickstart_shown",    # quick-start de vacinas exibido após cadastrar pet
+    "quickstart_saved",    # registrou ao menos uma vacina pelo quick-start
+    "quickstart_skipped",  # pulou o quick-start
+    "species_fix",         # confirmou a espécie num pet com raça divergente
 }
 
 

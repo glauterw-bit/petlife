@@ -80,10 +80,12 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
     if (weight !== null && (isNaN(weight) || weight <= 0)) { error(t('pw.editPet.errWeight')); return }
     setSaving(true)
     try {
+      // Reenviar a raça intacta de um pet com espécie divergente fazia o servidor recusar (400) qualquer edição.
+      const breedChanged = (breed?.id ?? null) !== (pet.breed?.id ?? null)
       const updated = await petsApi.update(pet.id, {
         name: form.name.trim(),
         species: form.species,
-        breed_id: breed ? breed.id : null,
+        ...(breedChanged ? { breed_id: breed ? breed.id : null } : {}),
         gender: form.gender || null,
         neutered: form.neutered,
         birth_date: form.birth_date || null,
