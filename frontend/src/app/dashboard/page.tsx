@@ -9,11 +9,14 @@ import {
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
-import { pets as petsApi, vaccines as vaccinesApi, walks as walksApi, gamification, reminders as remindersApi, type Pet, type Vaccine, type Reminder, type UserPoints } from '@/lib/api'
+import { pets as petsApi, vaccines as vaccinesApi, walks as walksApi, gamification, reminders as remindersApi, heatCycles as heatCyclesApi, type Pet, type Vaccine, type Reminder, type UserPoints } from '@/lib/api'
 import { formatDate, formatAge, getSpeciesEmoji, getVaccineStatus, getLevelName, getBadgeColor } from '@/lib/utils'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { HealthScoreCard } from '@/components/health/HealthScoreCard'
 import { DailyCheckin } from '@/components/health/DailyCheckin'
+import { ProtectionCard } from '@/components/health/ProtectionCard'
+import { SupportAnnouncement } from '@/components/growth/SupportAnnouncement'
+import { support as supportApi } from '@/lib/api'
 import { StreakFlame } from '@/components/health/StreakFlame'
 import { syncHealthNotifications } from '@/lib/notifications'
 import { initPush } from '@/lib/push'
@@ -35,17 +38,19 @@ export default function DashboardPage() {
   const [scoreRefresh, setScoreRefresh] = useState(0)
   const [hasVaccine, setHasVaccine] = useState(false)
   const [hasWalk, setHasWalk] = useState(false)
+  const [supUnread, setSupUnread] = useState(0)
 
   useEffect(() => {
     async function load() {
       try {
-        const [p, v, r, pts, allVax, recentWalks] = await Promise.allSettled([
+        const [p, v, r, pts, allVax, recentWalks, heats] = await Promise.allSettled([
           petsApi.list(),
           vaccinesApi.getUpcoming(30),
           remindersApi.getUpcoming(7),
           gamification.getUserPoints(),
           vaccinesApi.list(),
           walksApi.list({ limit: 1 }),
+          heatCyclesApi.upcoming(),
         ])
         if (p.status === 'fulfilled') setPets(p.value)
         if (v.status === 'fulfilled') setUpcomingVaccines(v.value)
@@ -55,12 +60,14 @@ export default function DashboardPage() {
         if (recentWalks.status === 'fulfilled') setHasWalk((recentWalks.value?.length ?? 0) > 0)
         // Push do servidor: alcança quem parou de abrir — a local, não.
         void initPush()
+        supportApi.unread().then(r => setSupUnread(r.unread)).catch(() => {})
         // Agenda notificações locais (no-op fora do app nativo)
         void syncHealthNotifications(
           v.status === 'fulfilled' ? v.value : [],
           r.status === 'fulfilled' ? r.value : [],
           p.status === 'fulfilled' ? p.value : [],
           allVax.status === 'fulfilled' ? (allVax.value?.length ?? 0) > 0 : true,
+          heats.status === 'fulfilled' ? heats.value : [],
         )
       } finally {
         setLoading(false)
@@ -120,6 +127,27 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Anúncio único: canal de suporte nasceu dos feedbacks */}
+      <SupportAnnouncement />
+
+      {/* Resposta do suporte esperando — o aviso mais importante da home */}
+      {supUnread > 0 && (
+        <Link
+          href="/suporte"
+          className="flex items-center gap-3 mb-6 rounded-2xl border border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/25 p-4 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition"
+        >
+          <span className="text-2xl">💬</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-primary-800 dark:text-primary-200">{t('g.sup.replyBanner')}</div>
+            <div className="text-xs text-primary-700/80 dark:text-primary-300/80">{t('g.sup.replyCta')}</div>
+          </div>
+          <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center tabular-nums shrink-0">{supUnread}</span>
+        </Link>
+      )}
+
+      {/* Proteção em dia — a recorrência real (30-90d) que traz o tutor de volta */}
+      {pets.length > 0 && <ProtectionCard pets={pets} />}
 
       {/* Stats — cartões unificados (superfície neutra + chip de ícone colorido) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">

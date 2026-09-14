@@ -183,6 +183,9 @@ class PetCreate(BaseModel):
 
 class PetUpdate(BaseModel):
     name: Optional[str] = None
+    # Corrigir a espécie (ex.: gato cadastrado como cachorro). Se a raça atual
+    # for de outra espécie, o update_pet remove a raça.
+    species: Optional[SpeciesEnum] = None
     breed_id: Optional[int] = None
     birth_date: Optional[datetime] = None
     weight: Optional[float] = None

@@ -741,3 +741,54 @@ class PushLog(Base):
     sent_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     ok = Column(Boolean, default=True, nullable=False)
     detail = Column(String(300), nullable=True)
+
+
+class SupportMessage(Base):
+    """Canal de suporte — uma conversa por usuário (estilo WhatsApp).
+
+    `sender` diz quem escreveu ('user' ou 'admin'); `read_at` marca quando o
+    DESTINATÁRIO leu (admin lê msgs de user, user lê msgs de admin).
+    """
+    __tablename__ = "support_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    sender = Column(String(10), nullable=False)   # user | admin
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    read_at = Column(DateTime, nullable=True)
+
+
+class PetProtection(Base):
+    """Aplicação de antiparasitário — vermífugo/antipulgas.
+
+    Vacina é evento anual; antiparasitário é a recorrência REAL da vida de um
+    pet saudável (30–90 dias). Cada aplicação registrada arma o próximo aviso.
+    """
+    __tablename__ = "pet_protections"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind = Column(String(20), nullable=False)          # vermifugo | antipulgas
+    product = Column(String(120), nullable=True)       # nome comercial (opcional)
+    applied_at = Column(DateTime, nullable=False)
+    interval_days = Column(Integer, nullable=False)
+    next_due = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PetHeatCycle(Base):
+    """Cio da fêmea — um registro por ciclo (início obrigatório; fim quando acabar).
+
+    O intervalo médio entre inícios alimenta a previsão do próximo cio. Sem
+    histórico suficiente, a previsão usa a referência da espécie.
+    """
+    __tablename__ = "pet_heat_cycles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    started_at = Column(DateTime, nullable=False)
+    ended_at = Column(DateTime, nullable=True)          # NULL = cio em andamento
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

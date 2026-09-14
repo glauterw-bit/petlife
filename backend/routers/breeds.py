@@ -104,16 +104,19 @@ async def identify_breed_from_photo(
 
     # Cruza candidatos com o catálogo de raças do banco para devolver breed_id
     candidates = result.get("candidates") or []
+    # Sem filtrar a espécie, o "SRD" de um gato casava com o SRD de cachorro.
+    detected_species = {"dog": "dog", "cachorro": "dog", "cão": "dog", "cat": "cat", "gato": "cat"}.get(
+        str(result.get("species") or "").strip().lower()
+    )
     enriched = []
     for c in candidates:
         breed_id = None
         breed_name = (c.get("breed") or "").strip()
         if breed_name:
-            row = await db.execute(
-                select(Breed.id, Breed.name).where(
-                    or_(Breed.name.ilike(breed_name), Breed.name_en.ilike(c.get("name_en") or breed_name))
-                ).limit(1)
-            )
+            conds = [or_(Breed.name.ilike(breed_name), Breed.name_en.ilike(c.get("name_en") or breed_name))]
+            if detected_species:
+                conds.append(Breed.species == detected_species)
+            row = await db.execute(select(Breed.id, Breed.name).where(*conds).limit(1))
             r = row.first()
             if r:
                 breed_id = r[0]

@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MessageCircleHeart, X, Send, PartyPopper } from 'lucide-react'
+import { MessageCircleHeart, X, Send, PartyPopper, Star } from 'lucide-react'
 import { feedback as feedbackApi } from '@/lib/api'
 import { hapticLight, hapticSuccess } from '@/lib/feedback'
+import { openReviewPage } from '@/lib/review'
+import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
 
 /**
@@ -17,7 +19,7 @@ import { useT } from '@/contexts/LocaleContext'
 
 // Bump da versão = a pesquisa volta a aparecer pra todo mundo (o servidor
 // checa "já respondeu?" por origem, então uma origem nova reabre o convite).
-const SOURCE = 'popup_2026_08_v2'
+const SOURCE = 'popup_2026_09'
 const DISMISS_KEY = `petlife_feedback_${SOURCE}_dismissed`
 const DELAY_MS = 4000
 
@@ -38,6 +40,8 @@ export function FeedbackModal() {
   const [canContact, setCanContact] = useState(true)
   const [sending, setSending] = useState(false)
   const [done, setDone] = useState(false)
+  // nota 4-5 → convite pra levar a nota pra loja (só quem está feliz)
+  const [askStore, setAskStore] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -50,16 +54,41 @@ export function FeedbackModal() {
       try {
         const { answered } = await feedbackApi.status(SOURCE)
         if (answered || !alive) return
-        timer = setTimeout(() => { if (alive) setOpen(true) }, DELAY_MS)
+        timer = setTimeout(() => {
+          // O anúncio de novidade tem prioridade — nunca dois modais na sessão.
+          try { if (sessionStorage.getItem('petlife_announce_active')) return } catch {}
+          if (alive) { setOpen(true); track('rate_prompt_shown') }
+        }, DELAY_MS)
       } catch { /* offline/erro: não incomoda */ }
     }
     maybeOpen()
 
-    return () => { alive = false; clearTimeout(timer) }
+    // Reabertura forçada (ex.: botão "dar feedback" do anúncio de novidade) —
+    // vale até pra quem já respondeu ou dispensou.
+    function forceOpen() {
+      setDone(false)
+      setAskStore(false)
+      setOpen(true)
+      track('rate_prompt_shown')
+    }
+    window.addEventListener('petlife:open-feedback', forceOpen)
+
+    return () => {
+      alive = false
+      clearTimeout(timer)
+      window.removeEventListener('petlife:open-feedback', forceOpen)
+    }
   }, [])
 
   function dismiss() {
     try { localStorage.setItem(DISMISS_KEY, '1') } catch {}
+    track('rate_prompt_later')
+    setOpen(false)
+  }
+
+  function goToStore() {
+    track('rate_prompt_store')
+    openReviewPage()
     setOpen(false)
   }
 
@@ -78,7 +107,12 @@ export function FeedbackModal() {
       try { localStorage.setItem(DISMISS_KEY, '1') } catch {}
       void hapticSuccess()
       setDone(true)
-      setTimeout(() => setOpen(false), 2600)
+      if ((rating ?? 0) >= 4) {
+        // feliz → convida a levar a nota pra loja; infeliz → só agradece
+        setAskStore(true)
+      } else {
+        setTimeout(() => setOpen(false), 2600)
+      }
     } catch {
       // falhou: fecha sem travar o usuário (pode responder depois)
       dismiss()
@@ -94,7 +128,31 @@ export function FeedbackModal() {
   return (
     <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
       <div className="relative bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[92dvh] overflow-y-auto animate-slide-up shadow-2xl pb-[env(safe-area-inset-bottom)]">
-        {done ? (
+        {done && askStore ? (
+          <div className="p-8 text-center">
+            <div className="w-20 h-20 mx-auto bg-amber-50 dark:bg-amber-900/30 rounded-3xl flex items-center justify-center mb-4">
+              <Star className="w-10 h-10 text-amber-500 fill-amber-400" />
+            </div>
+            <h2 className="font-display text-xl font-bold text-surface-900 dark:text-white mb-2">
+              {t('fb.storeTitle')}
+            </h2>
+            <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed mb-6">
+              {t('fb.storeBody')}
+            </p>
+            <button
+              onClick={goToStore}
+              className="w-full px-4 py-3.5 rounded-xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition shadow-md shadow-primary-500/30"
+            >
+              {t('fb.storeCta')}
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              className="mt-2.5 w-full px-4 py-2.5 rounded-xl text-sm font-medium text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition"
+            >
+              {t('fb.storeLater')}
+            </button>
+          </div>
+        ) : done ? (
           <div className="p-8 text-center">
             <div className="w-20 h-20 mx-auto bg-primary-50 dark:bg-primary-900/30 rounded-3xl flex items-center justify-center mb-4">
               <PartyPopper className="w-10 h-10 text-primary-600 dark:text-primary-400" />

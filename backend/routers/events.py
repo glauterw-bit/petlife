@@ -22,6 +22,16 @@ ALLOWED = {
     "paywall_shown",   # bateu na quota e viu o modal de upgrade
     "recap_share",     # compartilhou o recap do mês
     "carteirinha_share",
+    "rate_prompt_shown",   # modal de avaliação exibido
+    "rate_prompt_store",   # clicou em "Avaliar na loja"
+    "rate_prompt_later",   # dispensou o modal ("Agora não")
+    "support_open",        # abriu a tela do suporte
+    "announce_suporte_shown",  # viu o anúncio do canal de suporte
+    "announce_suporte_cta",    # clicou em "conhecer o suporte"
+    "quickstart_shown",    # quick-start de vacinas exibido após cadastrar pet
+    "quickstart_saved",    # registrou ao menos uma vacina pelo quick-start
+    "quickstart_skipped",  # pulou o quick-start
+    "species_fix",         # confirmou a espécie num pet com raça divergente
 }
 
 

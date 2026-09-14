@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   PawPrint, LayoutDashboard, Heart, Syringe, FlaskConical,
-  Route, Trophy, MapPin, Settings, LogOut, Menu, X, Brain, MailOpen,
+  Route, Trophy, MapPin, Settings, LogOut, Menu, X, Brain, MailOpen, MessageCircleHeart,
   ChevronDown, ChevronRight, Plus, CreditCard, Footprints, Crown, BarChart3
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { support as supportApi } from '@/lib/api'
 import { useT } from '@/contexts/LocaleContext'
 import { cn, getSpeciesEmoji } from '@/lib/utils'
 import type { Pet } from '@/lib/api'
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
   { href: '/nearby', icon: <MapPin className="w-5 h-5" />, labelKey: 'v.side.nearby' },
   { href: '/behavior', icon: <Brain className="w-5 h-5" />, labelKey: 'v.side.behavior' },
   { href: '/convites', icon: <MailOpen className="w-5 h-5" />, labelKey: 'v.side.invites' },
+  { href: '/suporte', icon: <MessageCircleHeart className="w-5 h-5" />, labelKey: 'v.side.support' },
   { href: '/plans', icon: <Crown className="w-5 h-5" />, labelKey: 'v.side.plans' },
   { href: '/settings', icon: <Settings className="w-5 h-5" />, labelKey: 'v.side.settings' },
 ]
@@ -57,6 +59,17 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [healthOpen, setHealthOpen] = useState(pathname.startsWith('/health'))
   const [petSelectOpen, setPetSelectOpen] = useState(false)
+  const [supUnread, setSupUnread] = useState(0)
+
+  useEffect(() => {
+    let alive = true
+    async function poll() {
+      try { const { unread } = await supportApi.unread(); if (alive) setSupUnread(unread) } catch {}
+    }
+    poll()
+    const iv = setInterval(poll, 60_000)
+    return () => { alive = false; clearInterval(iv) }
+  }, [])
 
   const activePet = pets.find(p => p.id === activePetId) ?? pets[0]
 
@@ -213,6 +226,11 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
                 {item.icon}
               </span>
               {t(item.labelKey)}
+              {item.href === '/suporte' && supUnread > 0 && (
+                <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
+                  {supUnread}
+                </span>
+              )}
             </Link>
           )
         })}

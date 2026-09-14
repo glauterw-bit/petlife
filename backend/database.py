@@ -170,9 +170,14 @@ async def _run_migrations():
         "ALTER TABLE users ADD COLUMN referral_code VARCHAR(12)",
         "ALTER TABLE users ADD COLUMN referred_by_id INTEGER",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_referral_code ON users(referral_code)",
+        "CREATE INDEX IF NOT EXISTS ix_support_msgs_user_created ON support_messages(user_id, created_at)",
+        # Proteção em dia (antiparasitários recorrentes)
+        "CREATE INDEX IF NOT EXISTS ix_pet_protections_pet_kind ON pet_protections(pet_id, kind, applied_at)",
         "ALTER TABLE pets ADD COLUMN is_public BOOLEAN DEFAULT FALSE NOT NULL",
         "ALTER TABLE pets ADD COLUMN public_slug VARCHAR(80)",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_pets_public_slug ON pets(public_slug)",
+        # Cio (pet_heat_cycles é criada por create_all)
+        "CREATE INDEX IF NOT EXISTS ix_pet_heat_cycles_pet_started ON pet_heat_cycles(pet_id, started_at)",
     ]
     for stmt in migrations:
         try:

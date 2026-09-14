@@ -20,6 +20,7 @@ from database import get_db
 from models import DeviceToken, PushLog, User, Pet, Vaccine, Reminder
 from auth import get_current_user
 import push_service
+from routers.heat_cycles import heat_predictions
 
 router = APIRouter(prefix="/push", tags=["Push"])
 
@@ -120,10 +121,11 @@ async def run_push_jobs(
 ):
     """Roda os disparos do dia. Protegido por segredo compartilhado.
 
-    Três avisos, em ordem de valor:
+    Avisos, em ordem de valor:
       1. vacina vencendo (7 dias antes e no dia)
       2. vacina vencida (3 dias depois)
       3. pet sem nenhuma vacina registrada (uma vez, 3+ dias após cadastrar)
+      4. cio previsto chegando (cadela 7 dias antes, gata 2), uma vez por data prevista
 
     O item 3 existe porque hoje 106 dos 111 pets não têm vacina nenhuma — sem
     isso não há o que lembrar, e o app não tem motivo para ser reaberto.
@@ -134,7 +136,8 @@ async def run_push_jobs(
 
     hoje = datetime.utcnow().date()
     resultado = {"configurado": push_service.configured(), "dry_run": dry_run,
-                 "vence_em_7": 0, "vence_hoje": 0, "vencida": 0, "sem_vacina": 0}
+                 "vence_em_7": 0, "vence_hoje": 0, "vencida": 0, "sem_vacina": 0,
+                 "cio_previsto": 0}
 
     # ── 1 e 2: vacinas com data de reforço ────────────────────────────────
     janelas = [(7, "vence_em_7", "Faltam 7 dias", "A {vac} de {pet} vence em 7 dias."),
@@ -172,6 +175,30 @@ async def run_push_jobs(
             db, pet.user_id, f"sem-vacina:{pet.id}", "sem_vacina",
             f"{pet.name} está sem vacinas",
             "Registre a carteirinha e a gente avisa antes de cada reforço vencer.",
+        )
+
+    # ── 4: cio previsto chegando ──────────────────────────────────────────
+    # Vale qualquer dia da janela (0..antecedência): se o cron falhar um dia, o
+    # aviso sai no seguinte, e a dedupe pela data prevista garante uma vez só.
+    # Valores copiados antes do loop: _deliver faz commit a cada envio.
+    cios = [
+        (i["pet"].user_id, i["pet"].id, i["pet"].name, i["species"],
+         i["next_start"][:10], i["days_until"], i["lead_days"])
+        for i in await heat_predictions(db)
+    ]
+    for user_id, pet_id, nome, especie, data, dias, antecedencia in cios:
+        if not 0 <= dias <= antecedencia:
+            continue
+        resultado["cio_previsto"] += 1
+        if dry_run:
+            continue
+        quando = "hoje" if dias == 0 else "amanhã" if dias == 1 else f"em {dias} dias ({data[8:10]}/{data[5:7]})"
+        dica = ("Mantenha as janelas teladas e fique de olho nos sinais." if especie == "cat"
+                else "Passeios só na guia e longe de machos não castrados.")
+        await _deliver(
+            db, user_id, f"cio:{pet_id}:{data}", "cio",
+            f"🌸 Cio de {nome} chegando",
+            f"O próximo cio de {nome} deve começar {quando}. {dica}",
         )
 
     return resultado

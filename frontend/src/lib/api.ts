@@ -141,7 +141,7 @@ export const pets = {
     return handleResponse<Pet>(res)
   },
 
-  update: async (id: number, data: Partial<CreatePetData>) => {
+  update: async (id: number, data: UpdatePetData) => {
     const res = await fetch(`${API_URL}/pets/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
@@ -1512,6 +1512,71 @@ export const expenses = {
   },
 }
 
+// ── Cio (fêmeas) ──────────────────────────────────────
+export const heatCycles = {
+  get: async (petId: number) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/heat-cycles`, { headers: getAuthHeaders() })
+    return handleResponse<HeatCycleOverview>(res)
+  },
+  /** Próximos cios previstos de todos os pets (alimenta as notificações locais). */
+  upcoming: async () => {
+    const res = await fetch(`${API_URL}/heat-cycles/upcoming`, { headers: getAuthHeaders() })
+    return handleResponse<HeatUpcoming[]>(res)
+  },
+  add: async (petId: number, data: { started_at: string; ended_at?: string; notes?: string }) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/heat-cycles`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data),
+    })
+    return handleResponse<HeatCycleOverview>(res)
+  },
+  update: async (petId: number, cycleId: number, data: { started_at?: string; ended_at?: string | null; notes?: string | null }) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/heat-cycles/${cycleId}`, {
+      method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data),
+    })
+    return handleResponse<HeatCycleOverview>(res)
+  },
+  remove: async (petId: number, cycleId: number) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/heat-cycles/${cycleId}`, {
+      method: 'DELETE', headers: getAuthHeaders(),
+    })
+    return handleResponse<void>(res)
+  },
+}
+
+export interface HeatCycle {
+  id: number
+  started_at: string
+  ended_at: string | null
+  duration_days: number | null
+  notes: string | null
+}
+
+export interface HeatUpcoming {
+  pet_id: number
+  pet_name: string
+  species: 'dog' | 'cat'
+  next_start: string
+  days_until: number
+  lead_days: number
+}
+
+export interface HeatCycleOverview {
+  species: 'dog' | 'cat'
+  applicable: boolean
+  neutered: boolean
+  notify_lead_days: number
+  current: { id: number; started_at: string; day: number; expected_end: string; overdue: boolean } | null
+  prediction: {
+    next_start: string
+    days_until: number
+    interval_days: number
+    duration_days: number
+    based_on: 'history' | 'species'
+    cycles_used: number
+  } | null
+  cycles: HeatCycle[]
+}
+
 export interface PetExpense {
   id: number
   category: string
@@ -1566,6 +1631,10 @@ export const adminStats = {
     return handleResponse<{ pending: number; requests: ResetRequest[] }>(res)
   },
   /** O que os tutores mais perguntam à Vyron — por tema (sem texto das perguntas). */
+  ranking: async (days = 30) => {
+    const res = await fetch(`${API_URL}/admin/users/ranking?days=${days}`, { headers: getAuthHeaders() })
+    return handleResponse<UserRanking>(res)
+  },
   aiTopics: async (days = 90) => {
     const res = await fetch(`${API_URL}/admin/ai-topics?days=${days}`, { headers: getAuthHeaders() })
     return handleResponse<AiTopicsReport>(res)
@@ -1576,6 +1645,21 @@ export const adminStats = {
     })
     return handleResponse<ResetCodeResult>(res)
   },
+}
+
+export interface UserRankingItem {
+  user_id: number
+  name: string | null
+  email: string
+  tier: string
+  opens: number
+  active_days: number
+  last_open: string | null
+}
+
+export interface UserRanking {
+  days: number
+  items: UserRankingItem[]
 }
 
 export interface ResetRequest {
@@ -1686,6 +1770,107 @@ export const petExport = {
   },
 }
 
+// ─── Proteção em dia (antiparasitários recorrentes) ───────────────────────────
+
+export interface ProtectionKindStatus {
+  kind: 'vermifugo' | 'antipulgas'
+  status: 'never' | 'ok' | 'due_soon' | 'overdue'
+  next_due: string | null
+  days_left: number | null
+  product: string | null
+  interval_days: number
+}
+
+export interface ProtectionPetSummary {
+  pet_id: number
+  pet_name: string
+  species: string
+  kinds: ProtectionKindStatus[]
+}
+
+export interface ProtectionEntry {
+  id: number
+  pet_id: number
+  kind: string
+  product: string | null
+  applied_at: string
+  interval_days: number
+  next_due: string
+}
+
+export const protections = {
+  summary: async () => {
+    const res = await fetch(`${API_URL}/protections/summary`, { headers: getAuthHeaders() })
+    return handleResponse<{ pets: ProtectionPetSummary[] }>(res)
+  },
+  register: async (petId: number, data: { kind: string; product?: string; applied_at?: string; interval_days?: number }) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/protections`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return handleResponse<ProtectionEntry>(res)
+  },
+  list: async (petId: number) => {
+    const res = await fetch(`${API_URL}/pets/${petId}/protections`, { headers: getAuthHeaders() })
+    return handleResponse<ProtectionEntry[]>(res)
+  },
+}
+
+// ─── Suporte (conversa tutor ↔ admin) ─────────────────────────────────────────
+
+export interface SupportMsg {
+  id: number
+  sender: 'user' | 'admin'
+  body: string
+  created_at: string
+}
+
+export interface SupportThread {
+  user_id: number
+  name: string | null
+  email: string
+  last_body: string
+  last_sender: string
+  last_at: string
+  unread: number
+}
+
+export const support = {
+  list: async () => {
+    const res = await fetch(`${API_URL}/support/messages`, { headers: getAuthHeaders() })
+    return handleResponse<SupportMsg[]>(res)
+  },
+  send: async (body: string) => {
+    const res = await fetch(`${API_URL}/support/messages`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    })
+    return handleResponse<SupportMsg>(res)
+  },
+  unread: async () => {
+    const res = await fetch(`${API_URL}/support/unread`, { headers: getAuthHeaders() })
+    return handleResponse<{ unread: number }>(res)
+  },
+  adminThreads: async () => {
+    const res = await fetch(`${API_URL}/support/admin/threads`, { headers: getAuthHeaders() })
+    return handleResponse<{ threads: SupportThread[] }>(res)
+  },
+  adminThread: async (userId: number) => {
+    const res = await fetch(`${API_URL}/support/admin/threads/${userId}`, { headers: getAuthHeaders() })
+    return handleResponse<{ user: { id: number; name: string | null; email: string }; messages: SupportMsg[] }>(res)
+  },
+  adminReply: async (userId: number, body: string) => {
+    const res = await fetch(`${API_URL}/support/admin/threads/${userId}`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    })
+    return handleResponse<SupportMsg>(res)
+  },
+}
+
 // ─── Growth: indicação + perfil público do pet ────────────────────────────────
 
 export interface ReferralInfo {
@@ -1722,6 +1907,7 @@ export interface AiTopicsReport {
 
 export interface FeedbackItem {
   id: number
+  user_id: number
   rating: number | null
   likes_most: string | null
   suggestion: string | null
@@ -1864,6 +2050,9 @@ export interface CreatePetData {
   microchip?: string
   bio?: string
 }
+
+/** PUT /pets/:id — null limpa o campo (ex.: breed_id ao trocar a espécie). */
+export type UpdatePetData = { [K in keyof CreatePetData]?: CreatePetData[K] | null }
 
 /**
  * A API devolve os campos do pet na RAIZ (não dentro de `pet`), e usa

@@ -38,6 +38,53 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+@router.get("/users/ranking")
+async def users_ranking(
+    days: int = 30,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Ranking de acesso: quem mais abriu o app na janela — dias distintos
+    primeiro (constância vale mais que abrir 10x no mesmo dia)."""
+    since = datetime.utcnow() - timedelta(days=max(1, min(days, 90)))
+    day_expr = func.date(UsageEvent.created_at)
+    res = await db.execute(
+        select(
+            UsageEvent.user_id,
+            func.count(UsageEvent.id).label("opens"),
+            func.count(func.distinct(day_expr)).label("dias"),
+            func.max(UsageEvent.created_at).label("last_open"),
+            User.name,
+            User.email,
+            User.premium_tier,
+        )
+        .join(User, User.id == UsageEvent.user_id)
+        .where(
+            UsageEvent.event == "app_open",
+            UsageEvent.created_at >= since,
+            ~User.email.like("%petlifeqa%"),
+        )
+        .group_by(UsageEvent.user_id, User.name, User.email, User.premium_tier)
+        .order_by(func.count(func.distinct(day_expr)).desc(), func.count(UsageEvent.id).desc())
+        .limit(20)
+    )
+    return {
+        "days": days,
+        "items": [
+            {
+                "user_id": r.user_id,
+                "name": r.name,
+                "email": r.email,
+                "tier": r.premium_tier,
+                "opens": int(r.opens),
+                "active_days": int(r.dias),
+                "last_open": r.last_open.isoformat() if r.last_open else None,
+            }
+            for r in res.all()
+        ],
+    }
+
+
 @router.get("/stats")
 async def admin_stats(
     admin: User = Depends(require_admin),

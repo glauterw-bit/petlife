@@ -96,7 +96,8 @@ export default function NewPetPage() {
 
   function selectBreed(b: Breed) {
     setSelectedBreed(b)
-    setForm(f => ({ ...f, breed_id: b.id }))
+    // Candidato da identificação por foto pode ser de outra espécie que a marcada no formulário.
+    setForm(f => ({ ...f, breed_id: b.id, species: b.species === 'dog' || b.species === 'cat' ? b.species : f.species }))
     setBreedSearch(b.name)
     setBreedOpen(false)
   }
