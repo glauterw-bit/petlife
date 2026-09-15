@@ -10,6 +10,7 @@ import { formatDate, formatAge, getSpeciesEmoji } from '@/lib/utils'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
 import { trackHappyMoment } from '@/lib/review'
+import { requestSoftUpsell } from '@/lib/softUpsell'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
@@ -146,7 +147,7 @@ export default function CarteirinhaPage() {
           <button
             onClick={() => {
               petExport.sharePdf(Number(petId), data?.pet.name ?? 'pet')
-                .then(() => trackHappyMoment('pdf_export'))
+                .then(() => { trackHappyMoment('pdf_export'); requestSoftUpsell('pdf') })
                 .catch(() => {})
             }}
             aria-label={t('h.card.ariaPdf')}

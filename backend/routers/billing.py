@@ -1,16 +1,18 @@
 """Assinatura (Apple IAP) — catálogo, status, validação de recibo e webhook S2S."""
 from __future__ import annotations
 
-from datetime import datetime
+import os
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import pricing
 import apple_iap
 import subscriptions
+import asaas_service
 from database import get_db
 from auth import get_current_user
 from models import User, IapTransaction
@@ -37,6 +39,7 @@ async def list_products():
         "quotas": pricing.QUOTAS,
         "free_quotas": pricing.QUOTAS["free"],
         "currency": "BRL",
+        "web_checkout": asaas_service.configured(),
     }
 
 
@@ -224,3 +227,95 @@ async def apple_s2s_webhook(request: Request, db: AsyncSession = Depends(get_db)
 
     await db.commit()
     return {"ok": True}
+
+
+# ─── Checkout web (Asaas) — só para quem usa o navegador ─────────────────────
+class WebCheckoutIn(BaseModel):
+    sku: str
+    cpf: str = Field(min_length=11, max_length=18)
+
+
+_CYCLE = {"monthly": ("MONTHLY", 31), "annual": ("YEARLY", 366)}
+
+
+@router.post("/web/checkout")
+async def web_checkout(
+    body: WebCheckoutIn,
+    current_user: User = Depends(get_current_user),
+):
+    if not asaas_service.configured():
+        raise HTTPException(status_code=503, detail="Pagamento pela web indisponível no momento.")
+    product = pricing.product_by_sku(body.sku)
+    if not product:
+        raise HTTPException(status_code=400, detail="Plano desconhecido")
+    cpf = "".join(ch for ch in body.cpf if ch.isdigit())
+    if len(cpf) != 11:
+        raise HTTPException(status_code=400, detail="CPF inválido")
+    cycle, _ = _CYCLE[product["cadence"]]
+    try:
+        customer_id = await asaas_service.ensure_customer(
+            user_id=current_user.id, name=current_user.name or current_user.email,
+            email=current_user.email, cpf=cpf,
+        )
+        sub = await asaas_service.create_subscription(
+            customer_id=customer_id, value=product["price_brl"], cycle=cycle,
+            description=product["name"], ref=asaas_service.reference(current_user.id, product["sku"]),
+        )
+        invoice_url = await asaas_service.first_invoice_url(sub["id"])
+    except Exception:
+        raise HTTPException(status_code=502, detail="Não foi possível abrir o pagamento agora.")
+    if not invoice_url:
+        raise HTTPException(status_code=502, detail="Não foi possível abrir o pagamento agora.")
+    return {"invoice_url": invoice_url}
+
+
+@webhook_router.post("/webhooks/asaas")
+async def asaas_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    """Pagamento confirmado → libera o plano até o próximo vencimento (+3 dias de folga).
+
+    A conta Asaas é compartilhada com o ARKA: eventos sem referência "petlife:"
+    respondem 200 e são ignorados, para o Asaas não reenviar.
+    """
+    expected = (os.getenv("ASAAS_WEBHOOK_TOKEN") or "").strip()
+    if not expected or request.headers.get("asaas-access-token") != expected:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    event = await request.json()
+    if event.get("event") not in ("PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"):
+        return {"ok": True, "ignored": "event"}
+    payment = event.get("payment") or {}
+    ref = payment.get("externalReference")
+    if not ref and payment.get("subscription"):
+        try:
+            ref = await asaas_service.subscription_reference(payment["subscription"])
+        except Exception:
+            ref = None
+    parsed = asaas_service.parse_reference(ref)
+    if not parsed:
+        return {"ok": True, "ignored": "not_petlife"}
+    user_id, sku = parsed
+    product = pricing.product_by_sku(sku)
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not product or not user:
+        return {"ok": True, "ignored": "unknown_user_or_sku"}
+    payment_id = payment.get("id")
+    dup = (await db.execute(select(IapTransaction).where(
+        IapTransaction.transaction_id == payment_id, IapTransaction.source == "asaas",
+    ))).scalar_one_or_none()
+    if dup:
+        return {"ok": True, "duplicate": True}
+    _, days = _CYCLE[product["cadence"]]
+    try:
+        due = datetime.strptime(payment.get("dueDate") or "", "%Y-%m-%d")
+    except ValueError:
+        due = datetime.utcnow()
+    expires_at = max(due, datetime.utcnow()) + timedelta(days=days + 3)
+    user.premium_tier = product["tier"]
+    user.premium_expires_at = expires_at
+    user.active_product_sku = product["sku"]
+    db.add(IapTransaction(
+        user_id=user.id, original_transaction_id=payment.get("subscription"), transaction_id=payment_id,
+        product_id=product["sku"], tier=product["tier"], expires_at=expires_at,
+        source="asaas", environment=asaas_service.environment(),
+    ))
+    await db.commit()
+    return {"ok": True, "tier": product["tier"]}

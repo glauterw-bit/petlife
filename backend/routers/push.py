@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta
+from html import escape
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Header, status
@@ -17,9 +18,10 @@ from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from models import DeviceToken, PushLog, User, Pet, Vaccine, Reminder
+from models import DeviceToken, PushLog, User, Pet, Vaccine, Reminder, SupportMessage, IapTransaction
 from auth import get_current_user
 import push_service
+from email_service import send_email
 from routers.heat_cycles import heat_predictions
 
 router = APIRouter(prefix="/push", tags=["Push"])
@@ -126,6 +128,7 @@ async def run_push_jobs(
       2. vacina vencida (3 dias depois)
       3. pet sem nenhuma vacina registrada (uma vez, 3+ dias após cadastrar)
       4. cio previsto chegando (cadela 7 dias antes, gata 2), uma vez por data prevista
+      5. fim do mês grátis chegando (mensagem pessoal no suporte + e-mail, 5 dias antes)
 
     O item 3 existe porque hoje 106 dos 111 pets não têm vacina nenhuma — sem
     isso não há o que lembrar, e o app não tem motivo para ser reaberto.
@@ -200,5 +203,65 @@ async def run_push_jobs(
             f"🌸 Cio de {nome} chegando",
             f"O próximo cio de {nome} deve começar {quando}. {dica}",
         )
+
+    # ── 5: fim do mês grátis chegando ─────────────────────────────────────
+    # Quem está no trial e ainda não teve cobrança recebe, 5 dias antes, uma
+    # mensagem pessoal no canal de suporte (mais e-mail e push): o que já
+    # organizou no app e o que deixa de caber no grátis. Uma vez por vencimento.
+    resultado["fim_trial"] = 0
+    agora = datetime.utcnow()
+    q = await db.execute(
+        select(User).where(and_(
+            User.premium_tier != "free",
+            User.trial_used.is_(True),
+            User.premium_expires_at > agora,
+            User.premium_expires_at <= agora + timedelta(days=5),
+        ))
+    )
+    em_trial = []
+    for u in q.scalars().all():
+        cobrancas = (await db.execute(
+            select(func.count(IapTransaction.id)).where(IapTransaction.user_id == u.id)
+        )).scalar() or 0
+        if cobrancas <= 1:  # só a transação que abriu o trial
+            em_trial.append((u.id, u.name, u.email, u.premium_tier, u.premium_expires_at))
+    for uid, nome, email, tier, expira in em_trial:
+        chave = f"fim-trial:{uid}:{expira.date().isoformat()}"
+        if (await db.execute(select(PushLog).where(PushLog.dedupe_key == chave))).scalar_one_or_none():
+            continue
+        resultado["fim_trial"] += 1
+        if dry_run:
+            continue
+        pets = (await db.execute(select(func.count(Pet.id)).where(Pet.user_id == uid))).scalar() or 0
+        vacinas = (await db.execute(
+            select(func.count(Vaccine.id)).select_from(Vaccine)
+            .join(Pet, Pet.id == Vaccine.pet_id).where(Pet.user_id == uid)
+        )).scalar() or 0
+        primeiro = (nome or "").split(" ")[0] or "tutor(a)"
+        plano = "PetLife Pro" if tier == "pro" else "PetLife+"
+        data_fim = expira.strftime("%d/%m")
+        linhas = [f"Oi, {primeiro}! Aqui é o Glauter, do PetLife.",
+                  f"Seu mês grátis do {plano} termina em {data_fim}."]
+        if pets or vacinas:
+            linhas.append(f"Até aqui você organizou {pets} pet(s) e {vacinas} vacina(s) no app, e tudo isso continua salvo em qualquer plano.")
+        if pets > 3:
+            linhas.append(f"Só um aviso: o plano grátis vai até 3 pets, e você tem {pets}.")
+        linhas.append("Se quiser continuar, o plano anual sai mais em conta: o PetLife+ fica em menos de R$ 12,50 por mês. Qualquer dúvida, é só responder aqui.")
+        texto = "\n\n".join(linhas)
+        db.add(SupportMessage(user_id=uid, sender="admin", body=texto))
+        db.add(PushLog(user_id=uid, dedupe_key=chave, kind="fim_trial",
+                       title="Fim do mês grátis", body=texto[:400], ok=True, detail="suporte+email"))
+        await db.commit()
+        try:
+            await send_email(
+                email, f"Seu mês grátis do {plano} termina em {data_fim}",
+                "".join(f"<p>{escape(l)}</p>" for l in linhas)
+                + "<p><a href='https://petlife-frontend-production.up.railway.app/suporte'>Responder no app</a> 🐾</p>",
+            )
+        except Exception:
+            pass
+        await _deliver(db, uid, f"{chave}:push", "fim_trial",
+                       f"Seu mês grátis do {plano} termina em {data_fim}",
+                       "Toque para ver a mensagem do Glauter no suporte.")
 
     return resultado

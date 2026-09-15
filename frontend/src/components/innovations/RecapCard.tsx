@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/ToastContext'
 import { trackHappyMoment } from '@/lib/review'
 import { shareCardImage } from '@/lib/shareCard'
 import { track } from '@/lib/track'
+import { requestSoftUpsell } from '@/lib/softUpsell'
 import { useT } from '@/contexts/LocaleContext'
 
 function brl(v: number) {
@@ -23,7 +24,10 @@ export function RecapCard({ petId }: { petId: number }) {
   const [data, setData] = useState<MonthlyRecap | null>(null)
 
   useEffect(() => {
-    recap.monthly(petId).then(setData).catch(() => {})
+    recap.monthly(petId).then(d => {
+      setData(d)
+      if (d && (d.walks > 0 || d.stories > 0 || d.vaccines > 0 || d.expenses_total > 0)) requestSoftUpsell('recap')
+    }).catch(() => {})
   }, [petId])
 
   if (!data) return null

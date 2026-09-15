@@ -1,5 +1,7 @@
 'use client'
 
+import { requestSoftUpsell } from '@/lib/softUpsell'
+
 import { useState, useEffect, useRef, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -174,6 +176,7 @@ export default function NewPetPage() {
         bio: form.bio || undefined,
       }
       const pet = await petsApi.create(payload)
+      petsApi.list().then(l => { if (l.length >= 3) requestSoftUpsell('pet3') }).catch(() => {})
       if (photoFile) {
         await petsApi.uploadPhoto(pet.id, photoFile).catch(() => {})
       }

@@ -1461,6 +1461,15 @@ export const billing = {
     return handleResponse<BillingMe>(res)
   },
 
+  webCheckout: async (sku: string, cpf: string) => {
+    const res = await fetch(`${API_URL}/billing/web/checkout`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ sku, cpf }),
+    })
+    return handleResponse<WebCheckoutResult>(res)
+  },
+
   verifyIap: async (proof: { transactionId?: string; receipt?: string; appleProductId: string }) => {
     const res = await fetch(`${API_URL}/billing/iap/verify`, {
       method: 'POST',
@@ -2007,6 +2016,11 @@ export interface BillingCatalog {
   quotas: Record<PlanTier, { pets: number; ai_chat: number; ai_analysis: number }>
   free_quotas: { pets: number; ai_chat: number; ai_analysis: number }
   currency: string
+  web_checkout?: boolean
+}
+
+export interface WebCheckoutResult {
+  invoice_url: string
 }
 
 export interface BillingMe {

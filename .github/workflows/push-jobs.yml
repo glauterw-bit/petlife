@@ -1,0 +1,27 @@
+name: Avisos diários (push)
+
+# O backend não roda agendador em memória: o Railway reinicia o processo a
+# qualquer hora e execuções se perderiam sem aviso (ver backend/routers/push.py).
+# Este cron externo chama /push/run uma vez por dia; a dedupe em push_logs
+# garante que ninguém recebe o mesmo aviso duas vezes.
+
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 09:00 em Brasília
+  workflow_dispatch:
+
+jobs:
+  disparar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar /push/run
+        env:
+          PUSH_RUN_SECRET: ${{ secrets.PUSH_RUN_SECRET }}
+        run: |
+          if [ -z "$PUSH_RUN_SECRET" ]; then
+            echo "Secret PUSH_RUN_SECRET não configurado no repositório."
+            exit 1
+          fi
+          curl -sf -X POST \
+            -H "x-push-secret: $PUSH_RUN_SECRET" \
+            https://petlife-backend-production.up.railway.app/push/run

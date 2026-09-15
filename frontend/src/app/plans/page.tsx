@@ -52,7 +52,7 @@ export default function PlansPage() {
   const t = useT()
   const [catalog, setCatalog] = useState<BillingCatalog | null>(null)
   const [me, setMe] = useState<BillingMe | null>(null)
-  const [cadence, setCadence] = useState<Cadence>('monthly')
+  const [cadence, setCadence] = useState<Cadence>('annual')
   const [loading, setLoading] = useState(true)
   const [busySku, setBusySku] = useState<string | null>(null)
   const [restoring, setRestoring] = useState(false)
@@ -61,6 +61,10 @@ export default function PlansPage() {
   // antes do plugin subir e só voltava a ser verdadeiro por acaso, se algum
   // outro setState provocasse re-render na hora certa.
   const [canBuy, setCanBuy] = useState(false)
+  const [plat, setPlat] = useState<'ios' | 'android' | 'web'>('web')
+  const [webSku, setWebSku] = useState<string | null>(null)
+  const [cpf, setCpf] = useState('')
+  const [webBusy, setWebBusy] = useState(false)
 
   async function refresh() {
     try {
@@ -76,6 +80,10 @@ export default function PlansPage() {
 
   useEffect(() => {
     track('plans_view')
+    try {
+      const p = (window as typeof window & { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.()
+      setPlat(p === 'ios' || p === 'android' ? p : 'web')
+    } catch {}
     refresh()
     // Inicializa IAP: quando uma compra é aprovada, valida no backend.
     initIap(async (proof) => {
@@ -98,7 +106,9 @@ export default function PlansPage() {
     const product = catalog?.products.find(p => p.tier === tier && p.cadence === cadence)
     if (!product) return
     if (!canBuy) {
-      error(t('ac.plans.errIosOnly'))
+      // Checkout web só no navegador: dentro dos apps a Apple e o Google exigem a loja deles.
+      if (plat === 'web' && catalog?.web_checkout) { setWebSku(product.sku); return }
+      error(plat === 'android' ? t('ac.plans.androidSoon') : t('ac.plans.errIosOnly'))
       return
     }
     setBusySku(product.sku)
@@ -109,6 +119,21 @@ export default function PlansPage() {
       error(err instanceof Error ? err.message : t('ac.plans.errPurchase'))
     } finally {
       setBusySku(null)
+    }
+  }
+
+  async function startWebCheckout() {
+    if (!webSku || webBusy) return
+    const digits = cpf.replace(/\D/g, '')
+    if (digits.length !== 11) { error(t('ac.plans.cpfInvalid')); return }
+    setWebBusy(true)
+    try {
+      track('web_checkout_start')
+      const { invoice_url } = await billing.webCheckout(webSku, digits)
+      window.location.href = invoice_url
+    } catch {
+      error(t('ac.plans.webError'))
+      setWebBusy(false)
     }
   }
 
@@ -212,9 +237,14 @@ export default function PlansPage() {
                           {brl(product.price_brl)}
                           <span className="text-sm font-medium text-gray-400">/{cadence === 'monthly' ? t('ac.plans.perMonth') : t('ac.plans.perYear')}</span>
                         </p>
+                        {cadence === 'annual' && (
+                          <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                            {t('ac.plans.annualEquiv', { v: brl(product.price_brl / 12) })}
+                          </p>
+                        )}
                         {/* O trial de 30 dias é o maior argumento de venda (o
                             mercado dá 3–7) e ficava invisível até o clique. */}
-                        {product.has_trial && (
+                        {product.has_trial && canBuy && (
                           <span className="inline-block mt-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full">
                             {t('ac.plans.trialBadge')}
                           </span>
@@ -247,7 +277,7 @@ export default function PlansPage() {
                       className={`w-full py-2.5 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 ${highlight ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} disabled:opacity-60`}
                     >
                       {busySku === product?.sku && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {product?.has_trial ? t('ac.plans.startTrial') : t('ac.plans.subscribe')}
+                      {!canBuy && plat === 'web' && catalog?.web_checkout ? t('ac.plans.webCta') : product?.has_trial && canBuy ? t('ac.plans.startTrial') : t('ac.plans.subscribe')}
                     </button>
                   )}
                 </div>
@@ -268,7 +298,7 @@ export default function PlansPage() {
           </button>
           {!canBuy && (
             <p className="text-xs text-gray-400 mt-3 max-w-md mx-auto">
-              {t('ac.plans.iosOnly')}
+              {t(plat === 'web' && catalog?.web_checkout ? 'ac.plans.webNote' : plat === 'android' ? 'ac.plans.androidSoon' : 'ac.plans.iosOnly')}
             </p>
           )}
           <p className="text-[11px] text-gray-400 mt-3 max-w-lg mx-auto">
@@ -280,6 +310,47 @@ export default function PlansPage() {
             <a href="/privacy" className="text-emerald-600 hover:underline">{t('ac.plans.privacy')}</a>
           </p>
         </div>
+
+        {webSku && (
+          <div
+            className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+            onClick={() => { if (!webBusy) setWebSku(null) }}
+          >
+            <div
+              className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                {t('ac.plans.webTitle', { plan: catalog?.products.find(p => p.sku === webSku)?.name ?? '' })}
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('ac.plans.webBody')}</p>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">{t('ac.plans.cpfLabel')}</label>
+              <input
+                inputMode="numeric"
+                autoComplete="off"
+                value={cpf}
+                onChange={e => setCpf(e.target.value)}
+                placeholder="000.000.000-00"
+                className="w-full px-3.5 py-2.5 mb-4 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              />
+              <button
+                onClick={startWebCheckout}
+                disabled={webBusy}
+                className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {webBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+                {t('ac.plans.webGo')}
+              </button>
+              <button
+                onClick={() => setWebSku(null)}
+                disabled={webBusy}
+                className="w-full mt-2 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/40"
+              >
+                {t('ac.plans.webCancel')}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Prefere não pagar? Indique e ganhe */}
         <div className="max-w-md mx-auto mt-8">

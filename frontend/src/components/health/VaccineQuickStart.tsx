@@ -6,6 +6,7 @@ import { vaccines as vaccinesApi, reminders as remindersApi, petExport, type Vac
 import { hapticSuccess, celebrate } from '@/lib/feedback'
 import { trackHappyMoment } from '@/lib/review'
 import { track } from '@/lib/track'
+import { requestSoftUpsell } from '@/lib/softUpsell'
 import { useT } from '@/contexts/LocaleContext'
 
 /**
@@ -98,6 +99,7 @@ export function VaccineQuickStart({ pet, onCreated, onClose }: {
     try {
       await petExport.sharePdf(pet.id, pet.name)
       trackHappyMoment('pdf_export')
+      requestSoftUpsell('pdf')
     } catch {} finally {
       setSharing(false)
       onClose()

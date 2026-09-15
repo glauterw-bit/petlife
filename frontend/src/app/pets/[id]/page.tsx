@@ -35,6 +35,7 @@ import { HealthForecast } from '@/components/health/HealthForecast'
 import { ExpensesCard } from '@/components/innovations/ExpensesCard'
 import { EditPetModal } from '@/components/pets/EditPetModal'
 import { track } from '@/lib/track'
+import { requestSoftUpsell } from '@/lib/softUpsell'
 import { HeatCycleCard } from '@/components/health/HeatCycleCard'
 import { RecapCard } from '@/components/innovations/RecapCard'
 import { EnrichmentCard } from '@/components/innovations/EnrichmentCard'
@@ -253,7 +254,7 @@ export default function PetProfilePage() {
         <QuickAction icon={<ImageIcon className="w-4 h-4" />} label={t('pw.pet.tabStories')} onClick={() => setTab('stories' as Tab)} color="teal" />
         <QuickAction icon={<Users className="w-4 h-4" />} label={t('pw.common.share')} onClick={() => setShareOpen(true)} color="cyan" />
         <QuickAction icon={<span className="text-base">🔗</span>} label={t('pw.pet.qaLink')} onClick={() => setPublicOpen(true)} color="primary" />
-        <QuickAction icon={<span className="text-base">📄</span>} label={t('pw.pet.qaPdf')} onClick={() => { petExport.sharePdf(petId, pet.name).then(() => trackHappyMoment('pdf_export')).catch(() => {}) }} color="emerald" />
+        <QuickAction icon={<span className="text-base">📄</span>} label={t('pw.pet.qaPdf')} onClick={() => { petExport.sharePdf(petId, pet.name).then(() => { trackHappyMoment('pdf_export'); requestSoftUpsell('pdf') }).catch(() => {}) }} color="emerald" />
         <QuickAction icon={<GitFork className="w-4 h-4" />} label={t('pw.pet.tabFamily')} onClick={() => setTab('family' as Tab)} color="fuchsia" />
       </div>
 

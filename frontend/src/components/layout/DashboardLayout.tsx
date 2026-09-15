@@ -13,6 +13,7 @@ import { OnboardingModal } from '@/components/onboarding/OnboardingModal'
 import { FeedbackModal } from '@/components/feedback/FeedbackModal'
 import { AIChatWidget } from '@/components/ai/AIChatWidget'
 import { QuotaUpsellModal } from '@/components/billing/QuotaUpsellModal'
+import { SoftUpsell } from '@/components/billing/SoftUpsell'
 import { CelebrationOverlay, celebrate } from '@/components/ui/CelebrationOverlay'
 import { pets as petsApi, type Pet } from '@/lib/api'
 import { trackAppOpenOnce } from '@/lib/track'
@@ -102,6 +103,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {!isVetUser && <OnboardingModal />}
       {!isVetUser && <FeedbackModal />}
       {!isVetUser && <QuotaUpsellModal />}
+      {!isVetUser && <SoftUpsell />}
       <CelebrationOverlay />
     </div>
   )
