@@ -39,6 +39,8 @@ export function ProtectionCard({ pets }: { pets: Pet[] }) {
   const [modal, setModal] = useState<ModalState | null>(null)
   const [product, setProduct] = useState('')
   const [interval, setIntervalDays] = useState(30)
+  const today = new Date().toISOString().slice(0, 10)
+  const [appliedOn, setAppliedOn] = useState(today)
   const [saving, setSaving] = useState(false)
 
   async function load() {
@@ -55,6 +57,7 @@ export function ProtectionCard({ pets }: { pets: Pet[] }) {
     void hapticLight()
     setProduct(k.product ?? '')
     setIntervalDays(k.interval_days)
+    setAppliedOn(today)
     setModal({ petId, petName, k })
   }
 
@@ -66,6 +69,8 @@ export function ProtectionCard({ pets }: { pets: Pet[] }) {
         kind: modal.k.kind,
         product: product.trim() || undefined,
         interval_days: interval,
+        // meio-dia evita o fuso jogar a data pro dia anterior
+        applied_at: `${appliedOn}T12:00:00`,
       })
       void hapticSuccess()
       celebrate()
@@ -149,6 +154,17 @@ export function ProtectionCard({ pets }: { pets: Pet[] }) {
               className="w-full px-3.5 py-2.5 mb-4 rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-900 text-sm text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
 
+            <label className="block text-xs font-semibold text-surface-700 dark:text-surface-200 mb-1">
+              {t('h.prot.when')}
+            </label>
+            <input
+              type="date"
+              value={appliedOn}
+              max={today}
+              onChange={e => setAppliedOn(e.target.value || today)}
+              className="w-full px-3.5 py-2.5 mb-4 rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-900 text-sm text-surface-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+            />
+
             <label className="block text-xs font-semibold text-surface-700 dark:text-surface-200 mb-1.5">
               {t('h.prot.interval')}
             </label>
@@ -177,9 +193,13 @@ export function ProtectionCard({ pets }: { pets: Pet[] }) {
               {saving
                 ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 : <Check className="w-4 h-4" />}
-              {t('h.prot.save')}
+              {appliedOn === today ? t('h.prot.save') : t('h.prot.savePast')}
             </button>
-            <p className="text-[11px] text-center text-surface-400 mt-2.5">{t('h.prot.nextHint', { d: interval })}</p>
+            <p className="text-[11px] text-center text-surface-400 mt-2.5">
+              {t('h.prot.nextDateHint', {
+                date: (() => { const d = new Date(`${appliedOn}T12:00:00`); d.setDate(d.getDate() + interval); return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) })(),
+              })}
+            </p>
           </div>
         </div>
       )}
