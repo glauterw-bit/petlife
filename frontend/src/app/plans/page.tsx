@@ -167,6 +167,21 @@ export default function PlansPage() {
           </p>
         </div>
 
+        {/* Status de quem já assina: sem isso, quem acabou de comprar não sabe se deu certo */}
+        {me?.is_premium && me.premium_expires_at && (
+          <div className="mb-6 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4">
+            <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
+              {t('ac.plans.statusActive', {
+                plan: t(TIER_META[currentTier].nameKey),
+                date: new Date(me.premium_expires_at + (me.premium_expires_at.endsWith('Z') ? '' : 'Z')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+              })}
+            </p>
+            <p className="text-xs text-emerald-700/90 dark:text-emerald-300/90 mt-1 leading-relaxed">
+              {t('ac.plans.statusTrialHint')}
+            </p>
+          </div>
+        )}
+
         {/* Uso atual */}
         {usage && (
           <div className="mb-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
@@ -245,9 +260,14 @@ export default function PlansPage() {
                         {/* O trial de 30 dias é o maior argumento de venda (o
                             mercado dá 3–7) e ficava invisível até o clique. */}
                         {product.has_trial && canBuy && (
-                          <span className="inline-block mt-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                            {t('ac.plans.trialBadge')}
-                          </span>
+                          <>
+                            <span className="inline-block mt-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                              {t('ac.plans.trialBadge')}
+                            </span>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-snug">
+                              {t('ac.plans.trialNote', { price: brl(product.price_brl) })}
+                            </p>
+                          </>
                         )}
                       </>
                     ) : null}

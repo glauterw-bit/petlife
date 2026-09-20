@@ -128,7 +128,7 @@ async def run_push_jobs(
       2. vacina vencida (3 dias depois)
       3. pet sem nenhuma vacina registrada (uma vez, 3+ dias após cadastrar)
       4. cio previsto chegando (cadela 7 dias antes, gata 2), uma vez por data prevista
-      5. fim do mês grátis chegando (mensagem pessoal no suporte + e-mail, 5 dias antes)
+      5. fim do teste grátis chegando (mensagem pessoal no suporte + e-mail, 2 dias antes)
 
     O item 3 existe porque hoje 106 dos 111 pets não têm vacina nenhuma — sem
     isso não há o que lembrar, e o app não tem motivo para ser reaberto.
@@ -204,8 +204,9 @@ async def run_push_jobs(
             f"O próximo cio de {nome} deve começar {quando}. {dica}",
         )
 
-    # ── 5: fim do mês grátis chegando ─────────────────────────────────────
-    # Quem está no trial e ainda não teve cobrança recebe, 5 dias antes, uma
+    # ── 5: fim do teste grátis chegando ───────────────────────────────────
+    # O teste passou de 30 para 7 dias, então o aviso vai 2 dias antes. Quem
+    # está no teste e ainda não teve cobrança recebe uma
     # mensagem pessoal no canal de suporte (mais e-mail e push): o que já
     # organizou no app e o que deixa de caber no grátis. Uma vez por vencimento.
     resultado["fim_trial"] = 0
@@ -215,7 +216,7 @@ async def run_push_jobs(
             User.premium_tier != "free",
             User.trial_used.is_(True),
             User.premium_expires_at > agora,
-            User.premium_expires_at <= agora + timedelta(days=5),
+            User.premium_expires_at <= agora + timedelta(days=2),
         ))
     )
     em_trial = []
@@ -241,7 +242,7 @@ async def run_push_jobs(
         plano = "PetLife Pro" if tier == "pro" else "PetLife+"
         data_fim = expira.strftime("%d/%m")
         linhas = [f"Oi, {primeiro}! Aqui é o Glauter, do PetLife.",
-                  f"Seu mês grátis do {plano} termina em {data_fim}."]
+                  f"Seu teste grátis do {plano} termina em {data_fim}."]
         if pets or vacinas:
             linhas.append(f"Até aqui você organizou {pets} pet(s) e {vacinas} vacina(s) no app, e tudo isso continua salvo em qualquer plano.")
         if pets > 3:
@@ -250,18 +251,18 @@ async def run_push_jobs(
         texto = "\n\n".join(linhas)
         db.add(SupportMessage(user_id=uid, sender="admin", body=texto))
         db.add(PushLog(user_id=uid, dedupe_key=chave, kind="fim_trial",
-                       title="Fim do mês grátis", body=texto[:400], ok=True, detail="suporte+email"))
+                       title="Fim do teste grátis", body=texto[:400], ok=True, detail="suporte+email"))
         await db.commit()
         try:
             await send_email(
-                email, f"Seu mês grátis do {plano} termina em {data_fim}",
+                email, f"Seu teste grátis do {plano} termina em {data_fim}",
                 "".join(f"<p>{escape(l)}</p>" for l in linhas)
                 + "<p><a href='https://petlife-frontend-production.up.railway.app/suporte'>Responder no app</a> 🐾</p>",
             )
         except Exception:
             pass
         await _deliver(db, uid, f"{chave}:push", "fim_trial",
-                       f"Seu mês grátis do {plano} termina em {data_fim}",
+                       f"Seu teste grátis do {plano} termina em {data_fim}",
                        "Toque para ver a mensagem do Glauter no suporte.")
 
     return resultado
