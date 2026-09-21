@@ -19,7 +19,7 @@ import { useT } from '@/contexts/LocaleContext'
 
 // Bump da versão = a pesquisa volta a aparecer pra todo mundo (o servidor
 // checa "já respondeu?" por origem, então uma origem nova reabre o convite).
-const SOURCE = 'popup_2026_09'
+const SOURCE = 'popup_2026_09_b'
 const DISMISS_KEY = `petlife_feedback_${SOURCE}_dismissed`
 const DELAY_MS = 4000
 
