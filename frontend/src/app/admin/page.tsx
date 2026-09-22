@@ -9,7 +9,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import dynamic from 'next/dynamic'
-import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type FeedbackList, type FeedbackItem, type AiTopicsReport, type SupportThread, type SupportMsg, type UserRanking, type PlatformUsage } from '@/lib/api'
+import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type FeedbackList, type FeedbackItem, type AiTopicsReport, type SupportThread, type SupportMsg, type UserRanking, type PlatformUsage, type AdminSubscriptions, type AdminFunnels } from '@/lib/api'
 
 const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
   ssr: false,
@@ -38,6 +38,8 @@ export default function AdminPage() {
   const [threads, setThreads] = useState<SupportThread[]>([])
   const [ranking, setRanking] = useState<UserRanking | null>(null)
   const [platforms, setPlatforms] = useState<PlatformUsage | null>(null)
+  const [subs, setSubs] = useState<AdminSubscriptions | null>(null)
+  const [funnels, setFunnels] = useState<AdminFunnels | null>(null)
   const [chat, setChat] = useState<{ user: { id: number; name: string | null; email: string }; messages: SupportMsg[] } | null>(null)
   const [reply, setReply] = useState('')
   const [replying, setReplying] = useState(false)
@@ -61,7 +63,7 @@ export default function AdminPage() {
   async function load() {
     try {
       setRefreshing(true)
-      const [st, us, loc, fbs, tps, apdl, sup, rk, plt] = await Promise.all([
+      const [st, us, loc, fbs, tps, apdl, sup, rk, plt, sb, fn] = await Promise.all([
         adminStats.get(),
         adminStats.users().catch(() => ({ total: 0, users: [] })),
         adminStats.locations().catch(() => null),
@@ -71,6 +73,8 @@ export default function AdminPage() {
         supportApi.adminThreads().catch(() => ({ threads: [] })),
         adminStats.ranking().catch(() => null),
         adminStats.platforms().catch(() => null),
+        adminStats.subscriptions().catch(() => null),
+        adminStats.funnels().catch(() => null),
       ])
       setData(st)
       setUsers(us.users)
@@ -81,6 +85,8 @@ export default function AdminPage() {
       setThreads(sup.threads)
       setRanking(rk)
       setPlatforms(plt)
+      setSubs(sb)
+      setFunnels(fn)
     } catch {
       setDenied(true)
       setTimeout(() => router.replace('/dashboard'), 1500)
@@ -186,6 +192,99 @@ export default function AdminPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Assinaturas e receita — inclui o estado real na Apple (quem desligou a renovação) */}
+      {subs && subs.items.length > 0 && (
+        <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl p-4 md:p-5 mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <h3 className="font-bold text-surface-900 dark:text-white">💰 Assinaturas e receita</h3>
+            <span className="text-xs text-surface-400">
+              {subs.pagantes} pagante{subs.pagantes === 1 ? '' : 's'} · {subs.em_teste} em teste
+              {subs.testes_sem_renovacao > 0 && ` · ${subs.testes_sem_renovacao} sem renovação`}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="rounded-xl border border-surface-100 dark:border-surface-700 p-3 bg-surface-50/60 dark:bg-surface-900/30">
+              <div className="text-[11px] text-surface-500 dark:text-surface-400">Receita recorrente (preço cheio)</div>
+              <div className="text-lg font-bold text-surface-900 dark:text-white tabular-nums">
+                {subs.mrr_brl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}<span className="text-xs font-normal text-surface-400">/mês</span>
+              </div>
+            </div>
+            <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 p-3 bg-emerald-50/70 dark:bg-emerald-900/20">
+              <div className="text-[11px] text-emerald-700 dark:text-emerald-300">O que sobra pra você (~82%)</div>
+              <div className="text-lg font-bold text-emerald-800 dark:text-emerald-200 tabular-nums">
+                {subs.mrr_liquido_brl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}<span className="text-xs font-normal text-emerald-600/70">/mês</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2 max-h-[420px] overflow-y-auto">
+            {subs.items.map(a => {
+              const risco = a.is_trial && a.auto_renew === false
+              return (
+                <div
+                  key={a.user_id}
+                  className={`rounded-xl border p-3 ${risco ? 'border-red-300 dark:border-red-800 bg-red-50/60 dark:bg-red-900/15' : 'border-surface-100 dark:border-surface-700 bg-surface-50/60 dark:bg-surface-900/30'}`}
+                >
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-surface-900 dark:text-white truncate">
+                      {a.name || a.email}
+                      <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-200 align-middle">
+                        {a.sku ?? a.tier}
+                      </span>
+                    </span>
+                    <span className="text-xs tabular-nums text-surface-500 dark:text-surface-400">
+                      {a.price_brl > 0 ? a.price_brl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'cortesia'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-surface-500 dark:text-surface-400 mt-1 flex items-center gap-2 flex-wrap">
+                    {a.is_trial === true && <span className="font-semibold text-amber-700 dark:text-amber-300">teste grátis</span>}
+                    {a.is_trial === false && <span className="font-semibold text-emerald-700 dark:text-emerald-300">pago</span>}
+                    {a.auto_renew === true && <span>renova ✅</span>}
+                    {a.auto_renew === false && <span className="font-semibold text-red-700 dark:text-red-300">renovação DESLIGADA ⚠️</span>}
+                    {a.expires_at && <span>até {new Date(a.expires_at + (a.expires_at.endsWith('Z') ? '' : 'Z')).toLocaleDateString('pt-BR')}</span>}
+                    <button
+                      onClick={async () => { const c = await supportApi.adminThread(a.user_id).catch(() => null); if (c) { setChat(c); setReply(c.messages.length === 0 ? `Oi${(a.name || '').split(' ')[0] ? ' ' + (a.name || '').split(' ')[0] : ''}! Aqui é o Glauter, do PetLife. ` : '') } }}
+                      className="ml-auto text-[11px] px-2 py-1 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-100 transition"
+                    >
+                      💬 Conversar
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Funis das telas novas */}
+      {funnels && (
+        <div className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl p-4 md:p-5 mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <h3 className="font-bold text-surface-900 dark:text-white">🔻 Funis do app</h3>
+            <span className="text-xs text-surface-400">últimos {funnels.days} dias</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { titulo: 'Quick-start de vacinas', linhas: [['exibido', funnels.quickstart.exibido], ['registrou vacina', funnels.quickstart.salvou], ['pulou', funnels.quickstart.pulou]] },
+              { titulo: 'Planos', linhas: [['viu planos', funnels.planos.viu_planos], ['bateu no limite', funnels.planos.paywall], ['assinou', funnels.planos.assinaturas]] },
+              { titulo: 'Convite de plano (momentos)', linhas: [['exibido', funnels.upsell.exibido], ['tocou em ver planos', funnels.upsell.clicou]] },
+              { titulo: 'Pedido de avaliação', linhas: [['exibido', funnels.avaliacao.exibido], ['foi pra loja', funnels.avaliacao.foi_pra_loja], ['adiou', funnels.avaliacao.adiou]] },
+            ].map(bloco => (
+              <div key={bloco.titulo} className="rounded-xl border border-surface-100 dark:border-surface-700 p-3 bg-surface-50/60 dark:bg-surface-900/30">
+                <div className="text-xs font-bold text-surface-800 dark:text-surface-100 mb-2">{bloco.titulo}</div>
+                {bloco.linhas.map(([rot, val]) => (
+                  <div key={String(rot)} className="flex items-center justify-between text-[11px] text-surface-600 dark:text-surface-300 py-0.5">
+                    <span>{rot}</span>
+                    <span className="font-bold tabular-nums text-surface-900 dark:text-white">{val}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

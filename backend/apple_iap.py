@@ -81,6 +81,38 @@ async def fetch_transaction(transaction_id: str) -> dict:
         raise ValueError(f"Transação não encontrada na Apple (último status {last.status_code if last else '?'})")
 
 
+async def subscription_status(original_transaction_id: str) -> dict | None:
+    """Estado atual da assinatura na Apple: se é teste, se renova e quando vence.
+
+    O painel precisa disso porque nada no nosso banco sabe se a pessoa
+    desligou a renovação — quem guarda esse fato é a Apple.
+    """
+    if not server_api_configured():
+        return None
+    headers = {"Authorization": f"Bearer {_server_api_token()}"}
+    async with httpx.AsyncClient(timeout=20) as client:
+        for base in (SERVER_API_PROD, SERVER_API_SANDBOX):
+            try:
+                r = await client.get(f"{base}/inApps/v1/subscriptions/{original_transaction_id}", headers=headers)
+            except Exception:
+                continue
+            if r.status_code != 200:
+                continue
+            for grupo in r.json().get("data", []):
+                for lt in grupo.get("lastTransactions", []):
+                    info = decode_jws_payload(lt.get("signedTransactionInfo") or "") or {}
+                    renov = decode_jws_payload(lt.get("signedRenewalInfo") or "") or {}
+                    return {
+                        "status": lt.get("status"),          # 1 = ativa
+                        "product_id": info.get("productId"),
+                        "expires_ms": info.get("expiresDate"),
+                        "is_trial": info.get("offerType") == 1,
+                        "auto_renew": renov.get("autoRenewStatus") == 1,
+                        "environment": "Production" if base == SERVER_API_PROD else "Sandbox",
+                    }
+    return None
+
+
 def _shared_secret() -> str:
     return os.getenv("APPLE_SHARED_SECRET", "").strip()
 

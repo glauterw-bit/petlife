@@ -16,10 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from auth import get_current_user
+import pricing
+import apple_iap
 from models import (
     User, Pet, Vaccine, Exam, Reminder, WalkSession, PetStory, PetExpense,
     QuotaUsage, IapTransaction, PetActivityLog, Anamnesis, UsageEvent,
-    PetWeightHistory, PetBehaviorLog, PasswordResetRequest,
+    PetWeightHistory, PetBehaviorLog, PasswordResetRequest, PetProtection, PetHeatCycle,
 )
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -36,6 +38,107 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if (current_user.email or "").lower() not in _admin_emails():
         raise HTTPException(status_code=403, detail="Acesso restrito ao administrador.")
     return current_user
+
+
+@router.get("/subscriptions")
+async def admin_subscriptions(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Assinaturas com o estado REAL na Apple (teste/pago, renovação ligada)
+    e a receita que isso representa. Sem consultar a Apple não dá pra saber
+    quem desligou a renovação — é o dado que antecipa a perda."""
+    rows = (await db.execute(
+        select(User, IapTransaction)
+        .join(IapTransaction, IapTransaction.user_id == User.id)
+        .order_by(IapTransaction.created_at.desc())
+    )).all()
+
+    vistos: set[int] = set()
+    itens: list[dict] = []
+    mrr = 0.0
+    for user, tx in rows:
+        if user.id in vistos:
+            continue
+        vistos.add(user.id)
+        produto = pricing.product_by_sku(user.active_product_sku or "") or {}
+        preco = float(produto.get("price_brl") or 0)
+        estado = None
+        if user.apple_original_transaction_id:
+            try:
+                estado = await apple_iap.subscription_status(user.apple_original_transaction_id)
+            except Exception:
+                estado = None
+        renova = estado.get("auto_renew") if estado else None
+        teste = estado.get("is_trial") if estado else None
+        # MRR só conta quem vai mesmo renovar; anual entra rateado por mês
+        if renova:
+            mrr += preco / 12 if (produto.get("cadence") == "annual") else preco
+        itens.append({
+            "user_id": user.id, "name": user.name, "email": user.email,
+            "sku": user.active_product_sku, "tier": user.premium_tier,
+            "price_brl": preco,
+            "expires_at": user.premium_expires_at.isoformat() if user.premium_expires_at else None,
+            "is_trial": teste, "auto_renew": renova,
+            "apple_status": estado.get("status") if estado else None,
+            "started_at": tx.created_at.isoformat(),
+        })
+
+    # bônus de indicação e cortesia não têm transação, mas ocupam vaga premium
+    outros = (await db.execute(
+        select(User).where(
+            User.premium_tier != "free",
+            ~User.id.in_(vistos or {0}),
+        )
+    )).scalars().all()
+    for user in outros:
+        itens.append({
+            "user_id": user.id, "name": user.name, "email": user.email,
+            "sku": user.active_product_sku, "tier": user.premium_tier, "price_brl": 0.0,
+            "expires_at": user.premium_expires_at.isoformat() if user.premium_expires_at else None,
+            "is_trial": None, "auto_renew": None, "apple_status": None, "started_at": None,
+        })
+
+    pagantes = [i for i in itens if i["auto_renew"] and not i["is_trial"]]
+    testes = [i for i in itens if i["is_trial"]]
+    return {
+        "items": itens,
+        "mrr_brl": round(mrr, 2),
+        "mrr_liquido_brl": round(mrr * 0.82, 2),   # ~82% sobra após a Apple (medido nas vendas reais)
+        "pagantes": len(pagantes),
+        "em_teste": len(testes),
+        "testes_sem_renovacao": len([i for i in testes if i["auto_renew"] is False]),
+    }
+
+
+@router.get("/funnels")
+async def admin_funnels(
+    days: int = 30,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Funis das telas novas: quick-start de vacinas, convite de plano e planos."""
+    since = datetime.utcnow() - timedelta(days=max(1, min(days, 90)))
+
+    async def ev(nome: str) -> int:
+        return int((await db.execute(
+            select(func.count(UsageEvent.id))
+            .where(UsageEvent.event == nome, UsageEvent.created_at >= since)
+        )).scalar() or 0)
+
+    compras = int((await db.execute(
+        select(func.count(IapTransaction.id)).where(IapTransaction.created_at >= since)
+    )).scalar() or 0)
+    return {
+        "days": days,
+        "quickstart": {"exibido": await ev("quickstart_shown"), "salvou": await ev("quickstart_saved"),
+                        "pulou": await ev("quickstart_skipped")},
+        "upsell": {"exibido": await ev("soft_upsell_shown"), "clicou": await ev("soft_upsell_cta")},
+        "planos": {"viu_planos": await ev("plans_view"), "paywall": await ev("paywall_shown"),
+                    "checkout_web": await ev("web_checkout_start"), "assinaturas": compras},
+        "avaliacao": {"exibido": await ev("rate_prompt_shown"), "foi_pra_loja": await ev("rate_prompt_store"),
+                       "adiou": await ev("rate_prompt_later")},
+    }
 
 
 @router.get("/users/platforms")
@@ -240,8 +343,12 @@ async def admin_stats(
         "Vacinas": await c30(Vaccine, Vaccine.created_at),
         "Exames": await c30(Exam, Exam.created_at),
         "Lembretes": await c30(Reminder, Reminder.created_at),
+        "Proteção (vermífugo/antipulgas)": await count(
+            select(func.count(PetProtection.id)).where(PetProtection.created_at >= d30)),
+        "Cio registrado": await count(
+            select(func.count(PetHeatCycle.id)).where(PetHeatCycle.created_at >= d30)),
     }
-    for ev, label in [("pdf_export", "PDF pro vet"), ("recap_view", "Recap do mês"), ("recap_share", "Recap compartilhado"), ("plans_view", "Tela de planos"), ("paywall_shown", "Paywall exibido"), ("enrichment", "Bem-estar IA")]:
+    for ev, label in [("pdf_export", "PDF pro vet"), ("recap_view", "Recap do mês"), ("recap_share", "Recap compartilhado"), ("plans_view", "Tela de planos"), ("paywall_shown", "Paywall exibido"), ("enrichment", "Bem-estar IA"), ("support_sent", "Mensagem no suporte")]:
         features[label] = await count(select(func.count(UsageEvent.id)).where(UsageEvent.event == ev, UsageEvent.created_at >= d30))
     top_features = sorted([{"name": k, "count": v} for k, v in features.items() if v > 0], key=lambda x: -x["count"])[:12]
 

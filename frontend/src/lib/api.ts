@@ -1640,6 +1640,14 @@ export const adminStats = {
     return handleResponse<{ pending: number; requests: ResetRequest[] }>(res)
   },
   /** O que os tutores mais perguntam à Vyron — por tema (sem texto das perguntas). */
+  subscriptions: async () => {
+    const res = await fetch(`${API_URL}/admin/subscriptions`, { headers: getAuthHeaders() })
+    return handleResponse<AdminSubscriptions>(res)
+  },
+  funnels: async (days = 30) => {
+    const res = await fetch(`${API_URL}/admin/funnels?days=${days}`, { headers: getAuthHeaders() })
+    return handleResponse<AdminFunnels>(res)
+  },
   platforms: async (days = 30) => {
     const res = await fetch(`${API_URL}/admin/users/platforms?days=${days}`, { headers: getAuthHeaders() })
     return handleResponse<PlatformUsage>(res)
@@ -1658,6 +1666,37 @@ export const adminStats = {
     })
     return handleResponse<ResetCodeResult>(res)
   },
+}
+
+export interface SubscriptionItem {
+  user_id: number
+  name: string | null
+  email: string
+  sku: string | null
+  tier: string
+  price_brl: number
+  expires_at: string | null
+  is_trial: boolean | null
+  auto_renew: boolean | null
+  apple_status: number | null
+  started_at: string | null
+}
+
+export interface AdminSubscriptions {
+  items: SubscriptionItem[]
+  mrr_brl: number
+  mrr_liquido_brl: number
+  pagantes: number
+  em_teste: number
+  testes_sem_renovacao: number
+}
+
+export interface AdminFunnels {
+  days: number
+  quickstart: { exibido: number; salvou: number; pulou: number }
+  upsell: { exibido: number; clicou: number }
+  planos: { viu_planos: number; paywall: number; checkout_web: number; assinaturas: number }
+  avaliacao: { exibido: number; foi_pra_loja: number; adiou: number }
 }
 
 export interface PlatformUsageUser {
