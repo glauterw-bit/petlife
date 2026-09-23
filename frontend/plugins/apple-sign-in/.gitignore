@@ -1,0 +1,2 @@
+# dist é o próprio código do plugin (cópia local) — precisa ir pro build
+!dist/
