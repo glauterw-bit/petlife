@@ -4,7 +4,7 @@ O app mostra um popup (1x por usuário) pedindo nota + sugestões. Aqui a gente
 grava, evita duplicata por usuário/origem e expõe a leitura só pro admin.
 """
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,7 +13,7 @@ from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from models import Feedback, User
+from models import Feedback, User, UsageEvent
 from auth import get_current_user
 
 router = APIRouter(prefix="/feedback", tags=["Feedback"])
@@ -47,6 +47,40 @@ async def feedback_status(
         )
     )
     return {"answered": (res.scalar() or 0) > 0}
+
+
+# Convite pra avaliar na App Store — só pros usuários mais constantes.
+# Bump do sufixo = nova rodada (quem já foi pra loja nunca é convidado de novo).
+STORE_INVITE_MIN_DAYS = 4       # dias distintos com o app aberto…
+STORE_INVITE_WINDOW_DAYS = 30   # …nesta janela
+
+
+@router.get("/store-invite")
+async def store_invite(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Elegível = abriu o app em STORE_INVITE_MIN_DAYS+ dias distintos na janela
+    e nunca tocou em "avaliar na loja" (em nenhum dos convites)."""
+    ja_foi = await db.execute(
+        select(func.count(UsageEvent.id)).where(
+            UsageEvent.user_id == current_user.id,
+            UsageEvent.event.in_(("rate_prompt_store", "store_invite_cta")),
+        )
+    )
+    if (ja_foi.scalar() or 0) > 0:
+        return {"eligible": False, "active_days": None}
+
+    since = datetime.utcnow() - timedelta(days=STORE_INVITE_WINDOW_DAYS)
+    dias = await db.execute(
+        select(func.count(func.distinct(func.date(UsageEvent.created_at)))).where(
+            UsageEvent.user_id == current_user.id,
+            UsageEvent.event == "app_open",
+            UsageEvent.created_at >= since,
+        )
+    )
+    n = int(dias.scalar() or 0)
+    return {"eligible": n >= STORE_INVITE_MIN_DAYS, "active_days": n}
 
 
 @router.post("")

@@ -35,6 +35,9 @@ ALLOWED = {
     "soft_upsell_shown",   # convite de plano num momento de valor (PDF, recap, 3º pet)
     "soft_upsell_cta",     # tocou em "ver planos" no convite
     "web_checkout_start",  # abriu o pagamento pela web (Asaas)
+    "store_invite_shown",  # convite de avaliação na App Store (usuários ativos)
+    "store_invite_cta",    # tocou em "avaliar na App Store"
+    "store_invite_later",  # dispensou o convite
 }
 
 

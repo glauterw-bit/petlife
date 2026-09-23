@@ -11,6 +11,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { OnboardingModal } from '@/components/onboarding/OnboardingModal'
 import { FeedbackModal } from '@/components/feedback/FeedbackModal'
+import { StoreInvite } from '@/components/feedback/StoreInvite'
 import { AIChatWidget } from '@/components/ai/AIChatWidget'
 import { QuotaUpsellModal } from '@/components/billing/QuotaUpsellModal'
 import { SoftUpsell } from '@/components/billing/SoftUpsell'
@@ -101,6 +102,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {!isVetUser && <AIChatWidget pets={pets} />}
       {!isVetUser && <BottomNav />}
       {!isVetUser && <OnboardingModal />}
+      {!isVetUser && <StoreInvite />}
       {!isVetUser && <FeedbackModal />}
       {!isVetUser && <QuotaUpsellModal />}
       {!isVetUser && <SoftUpsell />}

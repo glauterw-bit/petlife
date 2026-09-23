@@ -2017,6 +2017,11 @@ export const feedback = {
     })
     return handleResponse<{ ok: boolean; id: number }>(res)
   },
+  /** Convite pra avaliar na App Store — o servidor decide quem é "ativo". */
+  storeInvite: async () => {
+    const res = await fetch(`${API_URL}/feedback/store-invite`, { headers: getAuthHeaders() })
+    return handleResponse<{ eligible: boolean; active_days: number | null }>(res)
+  },
 }
 
 export const growth = {
