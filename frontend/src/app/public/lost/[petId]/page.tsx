@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { localeTag } from '@/lib/utils'
 import { useParams } from 'next/navigation'
-import { AlertCircle, MapPin, Phone, PawPrint, ShieldCheck, Heart } from 'lucide-react'
+import { AlertCircle, MapPin, Phone, PawPrint, ShieldCheck, Heart, Send } from 'lucide-react'
 import { DownloadCta } from '@/components/public/DownloadCta'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
@@ -23,6 +23,75 @@ interface LostData {
   last_seen: string | null
   reward: string | null
   owner_contact: { name: string; phone: string | null } | null
+}
+
+/** "Encontrei este pet" — avisa o tutor (push + e-mail) sem expor o telefone dele. */
+function FoundForm({ petId, petName, urgent }: { petId: number; petName: string; urgent: boolean }) {
+  const [message, setMessage] = useState('')
+  const [contact, setContact] = useState('')
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+  async function send() {
+    if (message.trim().length < 3 || state === 'sending') return
+    setState('sending')
+    try {
+      const r = await fetch(`${API_URL}/public/lost/${petId}/found`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: message.trim(), contact: contact.trim() || undefined }),
+      })
+      setState(r.ok ? 'sent' : 'error')
+    } catch {
+      setState('error')
+    }
+  }
+
+  if (state === 'sent') {
+    return (
+      <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-lg p-6 text-center">
+        <p className="text-2xl mb-1">💚</p>
+        <p className="font-bold text-surface-900 dark:text-white">Aviso enviado ao tutor de {petName}</p>
+        <p className="text-sm text-surface-500 dark:text-surface-400 mt-1">Ele recebe agora no celular e por e-mail. Obrigado por ajudar!</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-lg p-5 text-left">
+      <p className="font-bold text-surface-900 dark:text-white">
+        {urgent ? `Viu ${petName}? Avise o tutor` : `Encontrou ${petName} na rua?`}
+      </p>
+      <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5 mb-3">
+        O tutor recebe na hora, no celular e por e-mail.
+      </p>
+      <textarea
+        value={message}
+        onChange={e => setMessage(e.target.value)}
+        rows={3}
+        maxLength={500}
+        placeholder={`Ex.: Encontrei ${petName} na Rua X, perto da padaria. Ele está comigo e está bem.`}
+        className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-900 text-sm text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
+      />
+      <input
+        value={contact}
+        onChange={e => setContact(e.target.value)}
+        maxLength={120}
+        placeholder="Seu WhatsApp ou telefone (opcional)"
+        className="mt-2 w-full px-3.5 py-2.5 rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-900 text-sm text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400"
+      />
+      {state === 'error' && (
+        <p className="text-xs text-red-600 mt-2">Não consegui enviar agora. Tente de novo em instantes.</p>
+      )}
+      <button
+        onClick={send}
+        disabled={message.trim().length < 3 || state === 'sending'}
+        className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition disabled:opacity-40"
+      >
+        <Send className="w-4 h-4" />
+        {state === 'sending' ? 'Enviando…' : 'Avisar o tutor'}
+      </button>
+    </div>
+  )
 }
 
 export default function LostPetPage() {
@@ -85,6 +154,10 @@ export default function LostPetPage() {
               {data.pet.species === 'dog' ? 'Cão' : 'Gato'} · {data.pet.breed ?? 'SRD'}
             </p>
           </div>
+        </div>
+
+        <div className="max-w-md w-full">
+          <FoundForm petId={petId} petName={data.pet.name} urgent={false} />
         </div>
 
         <div className="max-w-md w-full">
@@ -196,6 +269,10 @@ export default function LostPetPage() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="mt-5">
+          <FoundForm petId={petId} petName={data.pet.name} urgent />
         </div>
 
         <div className="text-center mt-6 text-xs text-surface-400">

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, PawPrint, Mail, Lock, AlertCircle, Info } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
+import { AppleSignInButton } from '@/components/auth/AppleSignInButton'
 
 export default function LoginPage() {
   return (
@@ -94,6 +95,8 @@ function LoginInner() {
               {error}
             </div>
           )}
+
+          <AppleSignInButton onSuccess={() => router.push('/dashboard')} />
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

@@ -34,6 +34,7 @@ import { FamilyTreeSection } from '@/components/innovations/FamilyTreeSection'
 import { HealthForecast } from '@/components/health/HealthForecast'
 import { ExpensesCard } from '@/components/innovations/ExpensesCard'
 import { EditPetModal } from '@/components/pets/EditPetModal'
+import { LostPetCard } from '@/components/pets/LostPetCard'
 import { track } from '@/lib/track'
 import { requestSoftUpsell } from '@/lib/softUpsell'
 import { HeatCycleCard } from '@/components/health/HeatCycleCard'
@@ -384,6 +385,8 @@ export default function PetProfilePage() {
           <WeightChart petId={petId} />
 
           <RecapCard petId={petId} />
+
+          <LostPetCard petId={petId} petName={pet.name} />
 
           <EnrichmentCard petId={petId} petName={pet.name} />
 

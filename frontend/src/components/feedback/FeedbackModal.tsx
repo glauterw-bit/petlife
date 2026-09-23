@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { MessageCircleHeart, X, Send, PartyPopper, Star } from 'lucide-react'
 import { feedback as feedbackApi } from '@/lib/api'
 import { hapticLight, hapticSuccess } from '@/lib/feedback'
-import { openReviewPage } from '@/lib/review'
+import { openReviewPage, requestNativeReview } from '@/lib/review'
 import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
 
@@ -108,8 +108,12 @@ export function FeedbackModal() {
       void hapticSuccess()
       setDone(true)
       if ((rating ?? 0) >= 4) {
-        // feliz → convida a levar a nota pra loja; infeliz → só agradece
+        // feliz → estrelas nativas da Apple (dentro do app) + cartão com o
+        // link de escrever comentário; infeliz → só agradece
         setAskStore(true)
+        setTimeout(() => {
+          void requestNativeReview().then(ok => { if (ok) track('rate_prompt_native') })
+        }, 700)
       } else {
         setTimeout(() => setOpen(false), 2600)
       }

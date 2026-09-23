@@ -179,6 +179,9 @@ async def _run_migrations():
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_pets_public_slug ON pets(public_slug)",
         # Cio (pet_heat_cycles é criada por create_all)
         "CREATE INDEX IF NOT EXISTS ix_pet_heat_cycles_pet_started ON pet_heat_cycles(pet_id, started_at)",
+        # Sign in with Apple
+        "ALTER TABLE users ADD COLUMN apple_sub VARCHAR(128)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_apple_sub ON users(apple_sub)",
     ]
     for stmt in migrations:
         try:

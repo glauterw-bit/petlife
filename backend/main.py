@@ -164,6 +164,13 @@ async def public_lost_pet_endpoint(pet_id: int):
     return await lost_pet.public_lost_pet(pet_id)
 
 
+@app.post("/public/lost/{pet_id}/found", tags=["Público"])
+@limiter.limit("5/hour")
+async def public_found_endpoint(request: Request, pet_id: int, data: lost_pet.FoundReport):
+    """Quem escaneou o QR avisa o tutor (push + e-mail) sem ver o telefone dele."""
+    return await lost_pet.public_found_report(pet_id, data)
+
+
 @app.get("/", tags=["Status"])
 async def root():
     return {

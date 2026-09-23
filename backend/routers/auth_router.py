@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 import logging
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -60,6 +61,82 @@ async def register(request: Request, user_data: UserRegister, db: AsyncSession =
     await db.refresh(user)
 
     # Quem acabou de se cadastrar já entra com sessão longa.
+    token = create_access_token(
+        data={"sub": str(user.id)},
+        expires_delta=timedelta(minutes=settings.REMEMBER_TOKEN_EXPIRE_MINUTES),
+    )
+    return Token(access_token=token, user=UserResponse.model_validate(user))
+
+
+# ── Sign in with Apple ───────────────────────────────────────────────────────
+APPLE_ISSUER = "https://appleid.apple.com"
+APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys"
+APPLE_AUDIENCES = [a.strip() for a in os.getenv("APPLE_SIGNIN_AUDIENCES", "app.petlife").split(",") if a.strip()]
+_apple_jwks = None
+
+
+class AppleSignIn(BaseModel):
+    identity_token: str
+    name: Optional[str] = None   # a Apple só manda o nome no PRIMEIRO login
+    referral_code: Optional[str] = None
+
+
+def _verify_apple_token(identity_token: str) -> dict:
+    global _apple_jwks
+    import jwt as pyjwt
+    if _apple_jwks is None:
+        _apple_jwks = pyjwt.PyJWKClient(APPLE_JWKS_URL, cache_keys=True)
+    key = _apple_jwks.get_signing_key_from_jwt(identity_token).key
+    return pyjwt.decode(
+        identity_token, key, algorithms=["RS256"],
+        audience=APPLE_AUDIENCES, issuer=APPLE_ISSUER,
+    )
+
+
+@router.post("/apple", response_model=Token)
+@_auth_limiter.limit("20/hour")
+async def apple_sign_in(request: Request, data: AppleSignIn, db: AsyncSession = Depends(get_db)):
+    """Entra ou cria a conta com o token da Apple (um toque, sem senha).
+
+    Casa primeiro pelo `sub` da Apple; se não houver, pelo e-mail (quem já tinha
+    conta por e-mail e senha passa a entrar também pela Apple)."""
+    import asyncio
+    try:
+        claims = await asyncio.to_thread(_verify_apple_token, data.identity_token)
+    except Exception as e:
+        logger.warning("apple sign-in inválido: %s", e)
+        raise HTTPException(status_code=401, detail="Não foi possível validar o login com a Apple")
+
+    sub = claims.get("sub")
+    email = (claims.get("email") or "").strip().lower()
+    if not sub:
+        raise HTTPException(status_code=401, detail="Login com a Apple sem identificador")
+
+    user = (await db.execute(select(User).where(User.apple_sub == sub))).scalar_one_or_none()
+    if not user and email:
+        user = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+        if user:
+            user.apple_sub = sub
+
+    if not user:
+        if not email:
+            raise HTTPException(status_code=400, detail="A Apple não enviou o e-mail. Entre com e-mail e senha.")
+        nome = (data.name or "").strip() or email.split("@")[0]
+        user = User(
+            name=nome[:200],
+            email=email,
+            password_hash=get_password_hash(secrets.token_urlsafe(32)),  # sem senha utilizável
+            apple_sub=sub,
+        )
+        db.add(user)
+        await db.flush()
+        db.add(UserPoints(user_id=user.id, total_points=0, level=1, badges=[]))
+        if data.referral_code:
+            from routers.growth import redeem_referral
+            await redeem_referral(db, user, data.referral_code)
+
+    await db.commit()
+    await db.refresh(user)
     token = create_access_token(
         data={"sub": str(user.id)},
         expires_delta=timedelta(minutes=settings.REMEMBER_TOKEN_EXPIRE_MINUTES),

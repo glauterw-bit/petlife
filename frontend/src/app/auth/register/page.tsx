@@ -3,18 +3,25 @@
 import { useState, useEffect, FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, PawPrint, Mail, Lock, User, Phone, AlertCircle, CheckCircle, Gift } from 'lucide-react'
+import { Eye, EyeOff, PawPrint, Mail, Lock, User, AlertCircle, Gift } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
 import { auth } from '@/lib/api'
+import { AppleSignInButton } from '@/components/auth/AppleSignInButton'
+import { consumePetDraft, loadPetDraft } from '@/lib/petDraft'
 
 export default function RegisterPage() {
   const router = useRouter()
   const { loginWithSession } = useAuth()
   const t = useT()
 
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' })
+  // Só 3 campos: telefone vai pro perfil depois; confirmar senha virou o
+  // botão de mostrar/ocultar (cada campo a mais derruba a conversão).
+  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [petName, setPetName] = useState('')
   const [referralCode, setReferralCode] = useState('')
+  useEffect(() => { setPetName(loadPetDraft()?.name ?? '') }, [])
+  const goNext = () => { void consumePetDraft().then(r => router.push(r)) }
 
   // Convite de indicação via link (?ref=PET-XXXXXX) — recompensa dupla
   useEffect(() => {
@@ -33,10 +40,6 @@ export default function RegisterPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
-    if (form.password !== form.confirm) {
-      setError(t('ac.err.passMismatch'))
-      return
-    }
     if (form.password.length < 6) {
       setError(t('ac.err.passMin6'))
       return
@@ -47,12 +50,11 @@ export default function RegisterPage() {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
-        phone: form.phone.trim() || undefined,
         referral_code: referralCode || undefined,
       })
       // Usa diretamente o token + user do response do register (sem segundo login)
       loginWithSession(res.access_token, res.user)
-      router.push('/pets/new')
+      goNext()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t('ac.register.errGeneric')
       // Mensagens mais amigáveis para erros comuns
@@ -68,10 +70,6 @@ export default function RegisterPage() {
     }
   }
 
-  const checks = [
-    { label: t('ac.register.check6'), ok: form.password.length >= 6 },
-    { label: t('ac.register.checkMatch'), ok: form.password.length > 0 && form.password === form.confirm },
-  ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center p-4">
@@ -84,7 +82,7 @@ export default function RegisterPage() {
             </div>
             <span className="text-2xl font-bold text-surface-900 dark:text-white">PetLife</span>
           </Link>
-          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">{t('ac.register.title')}</h1>
+          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">{petName ? t('ac.register.titlePet', { name: petName }) : t('ac.register.title')}</h1>
           {referralCode && (
             <div className="mt-3 inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-2 text-sm font-medium animate-slide-up">
               <Gift className="w-4 h-4 shrink-0" />
@@ -102,6 +100,8 @@ export default function RegisterPage() {
               {error}
             </div>
           )}
+
+          <AppleSignInButton onSuccess={goNext} referralCode={referralCode} />
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -136,21 +136,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
-                {t('ac.field.phone')} <span className="text-surface-400 font-normal">({t('common.optional')})</span>
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={set('phone')}
-                  placeholder={t('ac.field.phonePlaceholder')}
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                />
-              </div>
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.password')}</label>
@@ -162,7 +147,8 @@ export default function RegisterPage() {
                   required
                   value={form.password}
                   onChange={set('password')}
-                  placeholder="••••••••"
+                  minLength={6}
+                  placeholder={t('ac.register.passHint')}
                   className="w-full pl-10 pr-12 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                 />
                 <button
@@ -175,33 +161,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.confirmPassword')}</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  value={form.confirm}
-                  onChange={set('confirm')}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                />
-              </div>
-            </div>
 
-            {/* Password checks */}
-            {form.password && (
-              <div className="space-y-1">
-                {checks.map(c => (
-                  <div key={c.label} className="flex items-center gap-2 text-xs">
-                    <CheckCircle className={`w-3.5 h-3.5 ${c.ok ? 'text-green-500' : 'text-surface-300'}`} />
-                    <span className={c.ok ? 'text-green-600' : 'text-surface-400'}>{c.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
 
             <button
               type="submit"

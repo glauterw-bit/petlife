@@ -69,6 +69,16 @@ export const auth = {
     return handleResponse<{ access_token: string; token_type: string; user: User }>(res)
   },
 
+  /** Sign in with Apple — entra ou cria a conta com o token da Apple. */
+  apple: async (data: { identity_token: string; name?: string; referral_code?: string }) => {
+    const res = await fetch(`${API_URL}/auth/apple`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return handleResponse<{ access_token: string; token_type: string; user: User }>(res)
+  },
+
   getMe: async () => {
     const res = await fetch(`${API_URL}/auth/me`, { headers: getAuthHeaders() })
     return handleResponse<User>(res)

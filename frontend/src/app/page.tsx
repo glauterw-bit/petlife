@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -51,12 +51,24 @@ const steps = [
 export default function LandingPage() {
   const router = useRouter()
   const { user, isLoading, isVetUser } = useAuth()
+  const [native, setNative] = useState(false)
+  useEffect(() => {
+    try {
+      const w = window as typeof window & { Capacitor?: { isNativePlatform?: () => boolean } }
+      setNative(!!w.Capacitor?.isNativePlatform?.())
+    } catch {}
+  }, [])
 
   // O app nativo abre nesta página: sem isto, quem tinha sessão salva ("manter
   // conectado") caía na apresentação e digitava a senha de novo a cada abertura.
   useEffect(() => {
     if (!isLoading && user) router.replace(isVetUser ? '/vet/dashboard' : '/dashboard')
-  }, [isLoading, user, isVetUser, router])
+    // App nativo sem sessão: nada de página de apresentação do site (só em
+    // português e longa) — vai direto pra primeira abertura guiada.
+    else if (!isLoading && native) router.replace('/start')
+  }, [isLoading, user, isVetUser, router, native])
+
+  if (native) return <div className="min-h-screen bg-white dark:bg-surface-800" />
 
   return (
     <div className="min-h-screen bg-white dark:bg-surface-800">

@@ -22,19 +22,33 @@ ALLOWED = {
     "paywall_shown",   # bateu na quota e viu o modal de upgrade
     "recap_share",     # compartilhou o recap do mês
     "carteirinha_share",
+    "carteirinha_whatsapp",       # botão WhatsApp da carteirinha
+    "carteirinha_send_hotel",     # "enviar para quem cuida" → hotel/creche
+    "carteirinha_send_groomer",   # → banho e tosa
+    "carteirinha_send_vet",       # → veterinário
+    "lost_marked",         # marcou o pet como perdido
+    "lost_found",          # desmarcou (pet voltou)
+    "lost_share",          # compartilhou o alerta
+    "lost_qr_print",       # imprimiu o QR da coleira
     "rate_prompt_shown",   # modal de avaliação exibido
     "rate_prompt_store",   # clicou em "Avaliar na loja"
     "rate_prompt_later",   # dispensou o modal ("Agora não")
+    "rate_prompt_native",  # chamou as estrelas nativas da Apple (nota 4-5)
     "support_open",        # abriu a tela do suporte
     "announce_suporte_shown",  # viu o anúncio do canal de suporte
     "announce_suporte_cta",    # clicou em "conhecer o suporte"
     "quickstart_shown",    # quick-start de vacinas exibido após cadastrar pet
     "quickstart_saved",    # registrou ao menos uma vacina pelo quick-start
     "quickstart_skipped",  # pulou o quick-start
+    "quickstart_invite",   # abriu o convite de co-tutor no fim do quick-start
     "species_fix",         # confirmou a espécie num pet com raça divergente
     "soft_upsell_shown",   # convite de plano num momento de valor (PDF, recap, 3º pet)
     "soft_upsell_cta",     # tocou em "ver planos" no convite
     "web_checkout_start",  # abriu o pagamento pela web (Asaas)
+    "start_shown",         # primeira abertura guiada (/start) exibida
+    "start_pet_done",      # informou nome + espécie do pet antes da conta
+    "apple_signin_start",  # tocou em "Continuar com a Apple"
+    "apple_signin_ok",     # entrou/criou conta pela Apple
     "store_invite_shown",  # convite de avaliação na App Store (usuários ativos)
     "store_invite_cta",    # tocou em "avaliar na App Store"
     "store_invite_later",  # dispensou o convite

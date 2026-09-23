@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
 import { trackHappyMoment } from '@/lib/review'
 import { requestSoftUpsell } from '@/lib/softUpsell'
+import { track } from '@/lib/track'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
@@ -101,11 +102,11 @@ export default function CarteirinhaPage() {
     const text = t('h.card.shareText', { name: data?.pet.name ?? '', url: shareUrl })
     if (navigator.share) {
       navigator.share({ title: t('h.card.shareTitle', { name: data?.pet.name ?? '' }), text, url: shareUrl })
-        .then(() => trackHappyMoment('carteirinha_share'))
+        .then(() => { track('carteirinha_share'); trackHappyMoment('carteirinha_share') })
         .catch(() => {})
     } else {
       navigator.clipboard.writeText(shareUrl)
-        .then(() => { alert(t('h.card.linkCopied')); trackHappyMoment('carteirinha_share') })
+        .then(() => { alert(t('h.card.linkCopied')); track('carteirinha_share'); trackHappyMoment('carteirinha_share') })
     }
   }
 
@@ -114,6 +115,18 @@ export default function CarteirinhaPage() {
     const shareUrl = `${origin}/public/carteirinha/${petId}`
     const text = encodeURIComponent(t('h.card.shareWhatsAppText', { name: data?.pet.name ?? '', url: shareUrl }))
     window.open(`https://wa.me/?text=${text}`, '_blank')
+    track('carteirinha_whatsapp')
+    trackHappyMoment('carteirinha_whatsapp')
+  }
+
+  // "Enviar para quem cuida" — o documento que sai é o produto: hotel, creche,
+  // banho e tosa e veterinário pedem a carteirinha. Mensagem pronta por destino.
+  function sendTo(dest: 'hotel' | 'groomer' | 'vet') {
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const shareUrl = `${origin}/public/carteirinha/${petId}`
+    const text = encodeURIComponent(t(`h.card.sendText.${dest}`, { name: data?.pet.name ?? '', url: shareUrl }))
+    window.open(`https://wa.me/?text=${text}`, '_blank')
+    track(`carteirinha_send_${dest}`)
     trackHappyMoment('carteirinha_whatsapp')
   }
 
@@ -171,6 +184,30 @@ export default function CarteirinhaPage() {
             <Printer className="w-4 h-4" />
             {t('h.card.print')}
           </button>
+        </div>
+      </div>
+
+      {/* Enviar para quem cuida — hidden on print */}
+      <div className="max-w-2xl mx-auto mb-5 print:hidden">
+        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-900/20 p-4">
+          <p className="text-sm font-semibold text-surface-800 dark:text-surface-100">{t('h.card.sendTitle')}</p>
+          <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5 mb-3">{t('h.card.sendHint')}</p>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              ['hotel', '🏨', t('h.card.sendHotel')],
+              ['groomer', '✂️', t('h.card.sendGroomer')],
+              ['vet', '🩺', t('h.card.sendVet')],
+            ] as const).map(([dest, icon, label]) => (
+              <button
+                key={dest}
+                onClick={() => sendTo(dest)}
+                className="pressable flex flex-col items-center gap-1 py-2.5 rounded-xl bg-white dark:bg-surface-800 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold text-surface-700 dark:text-surface-200 hover:border-emerald-400 transition"
+              >
+                <span className="text-xl leading-none">{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

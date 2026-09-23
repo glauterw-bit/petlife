@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Syringe, Check, Share2 } from 'lucide-react'
+import { Syringe, Check, Share2, UserPlus } from 'lucide-react'
+import { SharePetModal } from '@/components/innovations/SharePetModal'
 import { vaccines as vaccinesApi, reminders as remindersApi, petExport, type Vaccine } from '@/lib/api'
 import { hapticSuccess, celebrate } from '@/lib/feedback'
 import { trackHappyMoment } from '@/lib/review'
@@ -43,6 +44,9 @@ export function VaccineQuickStart({ pet, onCreated, onClose }: {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [sharing, setSharing] = useState(false)
+  // convite contextual: quem cuida junto (parceiro, família) — antes ficava
+  // escondido no perfil do pet e nunca foi usado
+  const [inviteOpen, setInviteOpen] = useState(false)
 
   useEffect(() => { track('quickstart_shown') }, [])
 
@@ -106,6 +110,10 @@ export function VaccineQuickStart({ pet, onCreated, onClose }: {
     }
   }
 
+  if (inviteOpen) {
+    return <SharePetModal petId={pet.id} petName={pet.name} open onClose={() => { setInviteOpen(false); onClose() }} />
+  }
+
   return (
     <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] animate-slide-up shadow-2xl">
@@ -127,6 +135,13 @@ export function VaccineQuickStart({ pet, onCreated, onClose }: {
                 ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 : <Share2 className="w-4 h-4" />}
               {t('h.qs.sharePdf')}
+            </button>
+            <button
+              onClick={() => { track('quickstart_invite'); setInviteOpen(true) }}
+              className="mt-2.5 w-full px-4 py-3 rounded-xl text-sm font-semibold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition flex items-center justify-center gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              {t('h.qs.invite')}
             </button>
             <button
               onClick={onClose}

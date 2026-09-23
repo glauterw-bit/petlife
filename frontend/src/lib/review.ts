@@ -66,6 +66,27 @@ async function ask(): Promise<void> {
 }
 
 /**
+ * Janela nativa de estrelas (SKStoreReviewController), sem sair do app.
+ * Para depois de um sinal claro de satisfação (nota 4-5 na pesquisa) — nunca
+ * como resposta direta a um botão (pra botão, a Apple indica o deep link).
+ * Devolve true se a chamada nativa foi feita (a Apple pode não exibir se o
+ * limite de 3 por ano já foi atingido — não há como saber).
+ */
+export async function requestNativeReview(): Promise<boolean> {
+  if (!isNative() || isAndroid()) return false
+  try {
+    const { InAppReview } = await import('@capacitor-community/in-app-review')
+    await InAppReview.requestReview()
+    const s = load()
+    s.lastAskedAt = Date.now()
+    save(s)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * Pedido MANUAL de avaliação (botão nas configurações).
  *
  * Usa o deep link `action=write-review`, que a Apple documenta para botão

@@ -4,7 +4,7 @@ QR-tag física na coleira aponta para /public/lost/<pet_id>.
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -80,3 +80,49 @@ async def public_lost_pet(pet_id: int):
                 "phone": pet.owner.phone,
             } if pet.is_lost else None,
         }
+
+
+# ── "Encontrei este pet" — quem escaneia o QR avisa o tutor sem ver o telefone ──
+class FoundReport(BaseModel):
+    message: str = Field(..., min_length=3, max_length=500)
+    contact: Optional[str] = Field(None, max_length=120)
+
+
+async def public_found_report(pet_id: int, data: FoundReport) -> dict:
+    """Push + e-mail pro tutor. Funciona mesmo se o pet NÃO foi marcado como
+    perdido — o normal é alguém achar o pet antes do tutor abrir o app."""
+    import asyncio
+    from html import escape
+    from email_service import send_email
+
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(select(Pet).options(selectinload(Pet.owner)).where(Pet.id == pet_id))
+        pet = res.scalar_one_or_none()
+        if not pet or not pet.owner:
+            raise HTTPException(status_code=404, detail="Pet não cadastrado")
+        owner = pet.owner
+        msg = data.message.strip()
+        contato = (data.contact or "").strip()
+
+        html = (
+            f"<p>Oi, {escape((owner.name or '').split(' ')[0] or 'tutor(a)')}!</p>"
+            f"<p>Alguém leu o QR do <b>{escape(pet.name)}</b> e mandou esta mensagem pelo PetLife:</p>"
+            f"<blockquote style='border-left:3px solid #ef4444;padding-left:12px'>{escape(msg)}</blockquote>"
+            + (f"<p><b>Contato deixado:</b> {escape(contato)}</p>" if contato else "")
+            + "<p>Se o seu pet não está com você, responda a essa pessoa o quanto antes. 🐾</p>"
+        )
+        asyncio.ensure_future(send_email(owner.email, f"🐾 Alguém encontrou o {pet.name}?", html))
+
+        try:
+            import push_service
+            if push_service.configured():
+                from routers.push import _deliver
+                await _deliver(
+                    db, owner.id, f"found:{pet.id}:{int(datetime.utcnow().timestamp())}", "pet_encontrado",
+                    f"🐾 Alguém leu o QR do {pet.name}",
+                    (msg + (f" — contato: {contato}" if contato else ""))[:150],
+                )
+                await db.commit()
+        except Exception:
+            pass
+    return {"ok": True}

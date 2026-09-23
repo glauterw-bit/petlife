@@ -59,6 +59,7 @@ class User(Base):
     premium_expires_at = Column(DateTime, nullable=True)  # null = sem assinatura ativa
     active_product_sku = Column(String(64), nullable=True)  # ex: pro_monthly
     apple_original_transaction_id = Column(String(128), nullable=True, index=True)
+    apple_sub = Column(String(128), nullable=True, unique=True, index=True)  # Sign in with Apple
     trial_used = Column(Boolean, default=False, nullable=False)
     # Última atividade (atualizado com throttle no get_current_user) — base de DAU/WAU/MAU
     last_seen_at = Column(DateTime, nullable=True, index=True)
