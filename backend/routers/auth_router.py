@@ -203,7 +203,7 @@ async def update_profile(
 
 
 class DeleteAccountRequest(BaseModel):
-    password: str
+    password: str = ""  # vazio vale só pra conta criada com a Apple (não tem senha)
     confirmation: str  # tutor digita "APAGAR MINHA CONTA" pra confirmar
 
 
@@ -219,7 +219,10 @@ async def delete_account(
     Hard delete do user e todos os dados associados (cascade).
     Pets, vacinas, exames, anamneses, fotos, behavior logs, stories — tudo apagado.
     """
-    if not verify_password(data.password, current_user.password_hash):
+    # Conta criada com "Entrar com a Apple" não tem senha utilizável: a sessão
+    # válida + a frase de confirmação bastam (exigência 5.1.1(v) da Apple).
+    apple_sem_senha = bool(current_user.apple_sub) and not data.password
+    if not apple_sem_senha and not verify_password(data.password, current_user.password_hash):
         raise HTTPException(status_code=400, detail="Senha incorreta")
 
     if data.confirmation.strip() != "APAGAR MINHA CONTA":

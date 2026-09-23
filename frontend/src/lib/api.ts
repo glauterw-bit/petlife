@@ -2099,6 +2099,7 @@ export interface User {
   phone?: string
   avatar_url?: string
   is_vet?: boolean
+  has_apple?: boolean
   points?: number
   level?: number
   badge?: string

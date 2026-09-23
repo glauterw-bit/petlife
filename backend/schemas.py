@@ -112,6 +112,7 @@ class UserResponse(BaseModel):
     avatar: Optional[str] = None
     is_vet: bool
     created_at: datetime
+    has_apple: bool = False  # entrou com a Apple → apagar conta dispensa senha
 
     model_config = {"from_attributes": True}
 

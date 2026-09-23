@@ -197,7 +197,7 @@ export default function SettingsPage() {
 }
 
 function DangerZone() {
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const { success, error } = useToast()
   const router = useRouter()
   const t = useT()
@@ -211,7 +211,7 @@ function DangerZone() {
       error(t('ac.set.confirmErr', { phrase: DELETE_CONFIRM_PHRASE }))
       return
     }
-    if (!password) {
+    if (!password && !user?.has_apple) {
       error(t('ac.set.passRequired'))
       return
     }
@@ -251,6 +251,7 @@ function DangerZone() {
           <div>
             <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
               {t('ac.set.currentPassLabel')}
+              {user?.has_apple && <span className="font-normal text-surface-400"> — {t('ac.set.applePassOptional')}</span>}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
