@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 
 from database import get_db
 from auth import get_current_user
-from models import User, UsageEvent
+from models import User, UsageEvent, AppInstall
 
 _limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/events", tags=["Telemetria"])
@@ -81,3 +81,30 @@ async def post_event(
         raise HTTPException(status_code=400, detail="Evento desconhecido")
     platform = body.platform if body.platform in ("ios", "android", "web") else None
     await track_event(db, current_user.id, body.event, platform)
+
+
+class InstallIn(BaseModel):
+    device_id: str
+    platform: str | None = None
+    existing: bool = False  # já estava logado quando o contador chegou
+
+
+@router.post("/install", status_code=204)
+@_limiter.limit("30/hour")
+async def post_install(request: Request, body: InstallIn, db: AsyncSession = Depends(get_db)):
+    """Primeira abertura do app (sem login). Idempotente por aparelho."""
+    from sqlalchemy import select
+    dev = (body.device_id or "").strip()[:64]
+    if len(dev) < 16:
+        raise HTTPException(status_code=400, detail="device_id inválido")
+    platform = body.platform if body.platform in ("ios", "android") else None
+    if platform is None:
+        return  # web não é download
+    ja = (await db.execute(select(AppInstall.id).where(AppInstall.device_id == dev))).scalar_one_or_none()
+    if ja:
+        return
+    db.add(AppInstall(device_id=dev, platform=platform, is_new=not body.existing))
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()  # corrida entre duas chamadas do mesmo aparelho

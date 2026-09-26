@@ -367,8 +367,37 @@ async def admin_stats(
         "retained_7d_pct": round(100 * retained_7d / older_7d, 1) if older_7d else 0,
     }
 
+    # ── Hoje (horário de Brasília, UTC-3) — o que o painel mostra "ao vivo" ──
+    from models import AppInstall
+    from datetime import time as _time
+    hoje_utc = datetime.combine((now - timedelta(hours=3)).date(), _time()) + timedelta(hours=3)
+    ontem_utc = hoje_utc - timedelta(days=1)
+
+    async def hoje_ontem(model, col, *extra):
+        h = await count(select(func.count(model.id)).where(col >= hoje_utc, *extra))
+        o = await count(select(func.count(model.id)).where(col >= ontem_utc, col < hoje_utc, *extra))
+        return {"today": h, "yesterday": o}
+
+    installs_plat = {}
+    for plat, c in (await db.execute(
+        select(AppInstall.platform, func.count(AppInstall.id))
+        .where(AppInstall.created_at >= hoje_utc, AppInstall.is_new == True)  # noqa: E712
+        .group_by(AppInstall.platform)
+    )).all():
+        installs_plat[plat or "?"] = int(c)
+    last_signup = (await db.execute(select(func.max(User.created_at)))).scalar()
+    today = {
+        "installs": {**await hoje_ontem(AppInstall, AppInstall.created_at, AppInstall.is_new == True),  # noqa: E712
+                     "by_platform": installs_plat},
+        "signups": await hoje_ontem(User, User.created_at),
+        "pets": await hoje_ontem(Pet, Pet.created_at),
+        "vaccines": await hoje_ontem(Vaccine, Vaccine.created_at),
+        "last_signup_at": last_signup.isoformat() if last_signup else None,
+    }
+
     return {
         "generated_at": now.isoformat(),
+        "today": today,
         "opens": {"total": opens_total, "last_30d": opens_30d, "unique_users": openers,
                   "reopeners": reopeners, "avg_per_user": round(opens_total / openers, 1) if openers else 0,
                   "by_day": opens_by_day},

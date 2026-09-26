@@ -97,7 +97,15 @@ export default function AdminPage() {
     // Recarrega a cada 60s: o painel ficava aberto envelhecendo em silêncio,
     // e quem olha um painel espera número de agora.
     const id = setInterval(load, 60_000)
-    return () => clearInterval(id)
+    // Timers param com o app em segundo plano: ao voltar pra tela, recarrega na hora.
+    const onVisible = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (denied) return (
@@ -140,6 +148,34 @@ export default function AdminPage() {
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} /> Atualizar
         </button>
       </div>
+
+      {/* Hoje (horário de Brasília) — números ao vivo, comparados com ontem */}
+      {data.today && (() => {
+        const td = data.today
+        const plat = Object.entries(td.installs.by_platform).map(([k, v]) => `${k === 'ios' ? 'iPhone' : 'Android'} ${v}`).join(' · ')
+        const cards = [
+          { label: '📲 Instalações', v: td.installs, sub: plat || 'abriram o app pela 1ª vez' },
+          { label: '👤 Cadastros', v: td.signups, sub: td.last_signup_at ? `último às ${new Date(td.last_signup_at + 'Z').toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : '' },
+          { label: '🐾 Pets', v: td.pets, sub: '' },
+          { label: '💉 Vacinas', v: td.vaccines, sub: '' },
+        ]
+        return (
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400 mb-2">Hoje · ao vivo</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {cards.map(c => (
+                <div key={c.label} className="bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-2xl p-4">
+                  <p className="text-xs font-medium text-surface-500 dark:text-surface-400">{c.label}</p>
+                  <p className="text-3xl font-bold text-surface-900 dark:text-white tabular-nums mt-1">{c.v.today}</p>
+                  <p className="text-[11px] text-surface-500 dark:text-surface-400 mt-0.5 tabular-nums">
+                    ontem {c.v.yesterday}{c.sub ? ` · ${c.sub}` : ''}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* O que perguntam à Vyron IA — só temas, sem o texto das perguntas */}
       {topics && (
@@ -722,7 +758,9 @@ export default function AdminPage() {
         <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
             <h3 className="font-bold text-surface-900 dark:text-white">⬇️ Downloads na App Store</h3>
-            <span className="text-xs text-surface-400">últimos 14 dias fechados · fonte: Apple · atraso de 24–48h</span>
+            <span className="text-xs text-surface-400">
+              fonte: Apple · último dia publicado: {(() => { const r = [...(appleDl.days ?? [])].reverse().find(d => d.reported); return r ? r.date.slice(8, 10) + '/' + r.date.slice(5, 7) : '—' })()} · a Apple publica o dia anterior pela manhã
+            </span>
           </div>
           <div className="flex items-end gap-1 h-24 mb-2">
             {appleDl.days?.map(d => {

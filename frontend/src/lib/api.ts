@@ -1629,45 +1629,45 @@ export interface EnrichmentDay {
 // ── Admin (painel do dono) ────────────────────────────
 export const adminStats = {
   get: async () => {
-    const res = await fetch(`${API_URL}/admin/stats`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/admin/stats`, { headers: getAuthHeaders(), cache: 'no-store' })
     return handleResponse<AdminStats>(res)
   },
   users: async () => {
-    const res = await fetch(`${API_URL}/admin/users`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/admin/users`, { headers: getAuthHeaders(), cache: 'no-store' })
     return handleResponse<{ total: number; users: AdminUser[] }>(res)
   },
   appleDownloads: async () => {
-    const res = await fetch(`${API_URL}/admin/apple-downloads`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/admin/apple-downloads`, { headers: getAuthHeaders(), cache: 'no-store' })
     return handleResponse<AppleDownloads>(res)
   },
 
   locations: async () => {
-    const res = await fetch(`${API_URL}/admin/users/locations`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/admin/users/locations`, { headers: getAuthHeaders(), cache: 'no-store' })
     return handleResponse<AdminLocations>(res)
   },
   resetRequests: async () => {
-    const res = await fetch(`${API_URL}/admin/reset-requests`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/admin/reset-requests`, { headers: getAuthHeaders(), cache: 'no-store' })
     return handleResponse<{ pending: number; requests: ResetRequest[] }>(res)
   },
   /** O que os tutores mais perguntam à Vyron — por tema (sem texto das perguntas). */
   subscriptions: async () => {
-    const res = await fetch(`${API_URL}/admin/subscriptions`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/admin/subscriptions`, { headers: getAuthHeaders(), cache: 'no-store' })
     return handleResponse<AdminSubscriptions>(res)
   },
   funnels: async (days = 30) => {
-    const res = await fetch(`${API_URL}/admin/funnels?days=${days}`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/admin/funnels?days=${days}`, { headers: getAuthHeaders(), cache: 'no-store' })
     return handleResponse<AdminFunnels>(res)
   },
   platforms: async (days = 30) => {
-    const res = await fetch(`${API_URL}/admin/users/platforms?days=${days}`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/admin/users/platforms?days=${days}`, { headers: getAuthHeaders(), cache: 'no-store' })
     return handleResponse<PlatformUsage>(res)
   },
   ranking: async (days = 30) => {
-    const res = await fetch(`${API_URL}/admin/users/ranking?days=${days}`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/admin/users/ranking?days=${days}`, { headers: getAuthHeaders(), cache: 'no-store' })
     return handleResponse<UserRanking>(res)
   },
   aiTopics: async (days = 90) => {
-    const res = await fetch(`${API_URL}/admin/ai-topics?days=${days}`, { headers: getAuthHeaders() })
+    const res = await fetch(`${API_URL}/admin/ai-topics?days=${days}`, { headers: getAuthHeaders(), cache: 'no-store' })
     return handleResponse<AiTopicsReport>(res)
   },
   generateResetCode: async (id: number) => {
@@ -1790,8 +1790,16 @@ export interface AdminUser {
   walks: number
 }
 
+export interface AdminTodayCount { today: number; yesterday: number }
 export interface AdminStats {
   generated_at: string
+  today?: {
+    installs: AdminTodayCount & { by_platform: Record<string, number> }
+    signups: AdminTodayCount
+    pets: AdminTodayCount
+    vaccines: AdminTodayCount
+    last_signup_at: string | null
+  }
   opens: { total: number; last_30d: number; unique_users: number; reopeners: number; avg_per_user: number; by_day: Array<{ day: string; opens: number; users?: number }> }
   top_features: Array<{ name: string; count: number }>
   activation: { signed_up: number; created_pet: number; created_pet_pct: number; still_active_7d: number; still_active_30d: number; retained_7d: number; retained_7d_base: number; retained_7d_pct: number }

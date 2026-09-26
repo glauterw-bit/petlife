@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { LocaleProvider } from '@/contexts/LocaleContext'
 import { ToastProvider } from '@/components/ui/ToastContext'
 import { DeepLinks } from '@/components/native/DeepLinks'
+import { InstallPing } from '@/components/native/InstallPing'
 
 const inter = Inter({ subsets: ['latin'] })
 // Display arredondada só para títulos — o "fofo" que o nicho pet pede,
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AuthProvider>
               <ToastProvider>
                 <DeepLinks />
+                <InstallPing />
                 {children}
               </ToastProvider>
             </AuthProvider>

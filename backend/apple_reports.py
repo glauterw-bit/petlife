@@ -30,7 +30,7 @@ from typing import Optional
 
 _TOKEN: dict = {"jwt": None, "at": 0.0}
 _CACHE: dict[str, dict] = {}   # data ISO -> {"by_country": {...}} | {"missing": True}
-_CACHE_MISS_TTL = 6 * 3600
+_CACHE_MISS_TTL = 30 * 60   # a Apple publica o dia anterior pela manhã; 6h atrasava o painel
 _MISS_AT: dict[str, float] = {}
 
 

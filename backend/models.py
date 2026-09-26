@@ -125,6 +125,20 @@ class UsageEvent(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
+class AppInstall(Base):
+    """Primeira abertura do app num aparelho — o "download" que dá pra ver em
+    tempo real (a Apple só publica os números no dia seguinte). Sem PII: só um
+    id aleatório gerado no aparelho. `is_new=False` marca aparelhos que já
+    tinham o app antes deste contador existir (não contam como instalação)."""
+    __tablename__ = "app_installs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(String(64), nullable=False, unique=True, index=True)
+    platform = Column(String(10), nullable=True)  # ios | android
+    is_new = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
 class QuotaUsage(Base):
     """Contador mensal de uso de recursos com quota (IA). Reseta por mês-calendário.
     `month` no formato 'YYYY-MM' (UTC). Uma linha por (user, mês)."""
