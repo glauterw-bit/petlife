@@ -127,6 +127,7 @@ async def apple_sign_in(request: Request, data: AppleSignIn, db: AsyncSession = 
             email=email,
             password_hash=get_password_hash(secrets.token_urlsafe(32)),  # sem senha utilizável
             apple_sub=sub,
+            password_set=False,
         )
         db.add(user)
         await db.flush()
@@ -221,7 +222,7 @@ async def delete_account(
     """
     # Conta criada com "Entrar com a Apple" não tem senha utilizável: a sessão
     # válida + a frase de confirmação bastam (exigência 5.1.1(v) da Apple).
-    apple_sem_senha = bool(current_user.apple_sub) and not data.password
+    apple_sem_senha = (bool(current_user.apple_sub) or not current_user.has_password) and not data.password
     if not apple_sem_senha and not verify_password(data.password, current_user.password_hash):
         raise HTTPException(status_code=400, detail="Senha incorreta")
 
@@ -274,12 +275,14 @@ async def change_password(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if not verify_password(data.current_password, current_user.password_hash):
+    # Conta criada pela Apple ainda sem senha: cria a primeira sem pedir a atual.
+    if current_user.has_password and not verify_password(data.current_password, current_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Senha atual incorreta",
         )
     current_user.password_hash = get_password_hash(data.new_password)
+    current_user.password_set = True
     await db.commit()
     return {"message": "Senha alterada com sucesso"}
 
@@ -382,6 +385,7 @@ async def reset_password(request: Request, data: ResetPasswordRequest, db: Async
         raise HTTPException(status_code=400, detail="Código incorreto.")
 
     user.password_hash = get_password_hash(data.new_password)
+    user.password_set = True
     user.password_reset_code = None
     user.password_reset_expires = None
     await db.commit()

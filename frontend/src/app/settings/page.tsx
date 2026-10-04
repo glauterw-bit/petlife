@@ -4,7 +4,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { useLocale, useT } from '@/contexts/LocaleContext'
 import { LOCALES, LOCALE_FLAG, LOCALE_LABEL } from '@/lib/i18n/types'
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { User, Mail, Phone, Lock, Save, Eye, EyeOff, AlertTriangle, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
@@ -18,6 +18,10 @@ const DELETE_CONFIRM_PHRASE = 'APAGAR MINHA CONTA'
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
+  // conta criada pela Apple ainda não tem senha: cria a primeira sem pedir a atual
+  const hasPassword = user?.has_password !== false
+  // o usuário guardado no aparelho pode ser anterior a esse campo — busca o atual
+  useEffect(() => { void refreshUser() }, [refreshUser])
   const { success, error } = useToast()
   const t = useT()
 
@@ -50,7 +54,7 @@ export default function SettingsPage() {
 
   async function handlePassSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!passForm.current) { error(t('ac.set.currentPassRequired')); return }
+    if (hasPassword && !passForm.current) { error(t('ac.set.currentPassRequired')); return }
     if (passForm.password !== passForm.confirm) { error(t('ac.err.passMismatch')); return }
     if (passForm.password.length < 6) { error(t('ac.err.passMin6')); return }
     setSavingPass(true)
@@ -58,6 +62,7 @@ export default function SettingsPage() {
       await auth.changePassword(passForm.current, passForm.password)
       success(t('ac.set.passChanged'))
       setPassForm({ current: '', password: '', confirm: '' })
+      void refreshUser()
     } catch (err: unknown) {
       error(err instanceof Error ? err.message : t('ac.set.passErr'))
     } finally { setSavingPass(false) }
@@ -140,11 +145,26 @@ export default function SettingsPage() {
               <Lock className="w-5 h-5 text-accent-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-surface-900 dark:text-white">{t('ac.set.changePassword')}</h2>
-              <p className="text-sm text-surface-500 dark:text-surface-400">{t('ac.set.changePasswordDesc')}</p>
+              <h2 className="font-semibold text-surface-900 dark:text-white">{hasPassword ? t('ac.set.changePassword') : t('ac.set.createPassword')}</h2>
+              <p className="text-sm text-surface-500 dark:text-surface-400">{hasPassword ? t('ac.set.changePasswordDesc') : t('ac.set.createPasswordDesc', { email: user?.email ?? '' })}</p>
             </div>
           </div>
           <form onSubmit={handlePassSubmit} className="space-y-4">
+            {hasPassword && (
+              <div>
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.currentPassword')}</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={passForm.current}
+                    onChange={setPw('current')}
+                    className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm text-surface-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.newPassword')}</label>
               <div className="relative">
@@ -182,7 +202,7 @@ export default function SettingsPage() {
               className="flex items-center gap-2 bg-accent-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-accent-600 disabled:opacity-60 transition"
             >
               {savingPass ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Lock className="w-4 h-4" />}
-              {savingPass ? t('ac.set.saving') : t('ac.set.changePassword')}
+              {savingPass ? t('ac.set.saving') : hasPassword ? t('ac.set.changePassword') : t('ac.set.createPassword')}
             </button>
           </form>
         </div>

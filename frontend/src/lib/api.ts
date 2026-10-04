@@ -2108,6 +2108,7 @@ export interface User {
   avatar_url?: string
   is_vet?: boolean
   has_apple?: boolean
+  has_password?: boolean
   points?: number
   level?: number
   badge?: string

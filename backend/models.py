@@ -61,6 +61,13 @@ class User(Base):
     apple_original_transaction_id = Column(String(128), nullable=True, index=True)
     apple_sub = Column(String(128), nullable=True, unique=True, index=True)  # Sign in with Apple
 
+    # False = conta criada pelo "Entrar com a Apple", sem senha escolhida pelo tutor
+    password_set = Column(Boolean, nullable=True)
+
+    @property
+    def has_password(self) -> bool:
+        return self.password_set is not False
+
     @property
     def has_apple(self) -> bool:
         """Conta ligada ao "Entrar com a Apple" (pode não ter senha utilizável)."""

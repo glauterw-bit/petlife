@@ -113,6 +113,7 @@ class UserResponse(BaseModel):
     is_vet: bool
     created_at: datetime
     has_apple: bool = False  # entrou com a Apple → apagar conta dispensa senha
+    has_password: bool = True  # False → pode criar a senha sem informar a atual
 
     model_config = {"from_attributes": True}
 
@@ -124,7 +125,7 @@ class UserUpdate(BaseModel):
 
 
 class ChangePassword(BaseModel):
-    current_password: str
+    current_password: str = ""  # vazio só vale pra conta sem senha (criada pela Apple)
     new_password: str
 
     @field_validator("new_password")

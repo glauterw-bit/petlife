@@ -182,6 +182,10 @@ async def _run_migrations():
         # Sign in with Apple
         "ALTER TABLE users ADD COLUMN apple_sub VARCHAR(128)",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_apple_sub ON users(apple_sub)",
+        # Conta criada pela Apple não tem senha conhecida (login pela Apple começou em 23/09/2026)
+        "ALTER TABLE users ADD COLUMN password_set BOOLEAN",
+        "UPDATE users SET password_set = FALSE WHERE password_set IS NULL AND apple_sub IS NOT NULL AND created_at >= '2026-09-23 21:00:00'",
+        "UPDATE users SET password_set = TRUE WHERE password_set IS NULL",
     ]
     for stmt in migrations:
         try:
