@@ -143,6 +143,16 @@
   .reveal, .animate-sheet-up { animation: none !important; }
   .pressable:active { transform: none; }
 }
+/* "Reduzir movimento" do sistema: nenhuma animação de entrada, deslize ou pulso.
+   Só o indicador de carregamento continua girando (senão parece travado). */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin), *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* Scrollbar */
 ::-webkit-scrollbar {
