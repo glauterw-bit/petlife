@@ -1,3 +1,4 @@
+from __future__ import annotations
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +15,43 @@ from auth import get_current_user
 router = APIRouter(prefix="/gamification", tags=["Gamificação"])
 
 POINTS_PER_LEVEL = 100
+
+
+# Evento com prazo — é o que a App Store divulga como "evento dentro do app":
+# durante a janela, um desafio digital vale pontos em dobro. Horários em UTC
+# (00:00 de 13/10 a 23:59 de 12/11 em Brasília).
+SEASONAL_EVENT = {
+    "key": "carteirinha-em-dia-2026",
+    "challenge_title": "Vacinas em Dia",
+    "multiplier": 2,
+    "starts_at": datetime(2026, 10, 13, 3, 0),
+    "ends_at": datetime(2026, 11, 13, 2, 59),
+}
+
+
+def _active_event() -> dict | None:
+    now = datetime.utcnow()
+    ev = SEASONAL_EVENT
+    return ev if ev["starts_at"] <= now <= ev["ends_at"] else None
+
+
+@router.get("/event")
+async def seasonal_event(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Evento ativo (se houver) — a tela de desafios mostra o aviso."""
+    ev = _active_event()
+    if not ev:
+        return {"active": False}
+    ch = (await db.execute(select(Challenge).where(Challenge.title == ev["challenge_title"]))).scalars().first()
+    if not ch:
+        return {"active": False}
+    return {
+        "active": True, "key": ev["key"], "challenge_id": ch.id, "challenge_title": ch.title,
+        "multiplier": ev["multiplier"], "points": (ch.points or 0) * ev["multiplier"],
+        "ends_at": ev["ends_at"].isoformat(),
+    }
 
 
 def _calculate_level(points: int) -> int:
@@ -110,6 +148,9 @@ async def complete_challenge(
     user_points = points_result.scalar_one_or_none()
 
     challenge_points = user_challenge.challenge.points if user_challenge.challenge else 0
+    ev = _active_event()
+    if ev and user_challenge.challenge and user_challenge.challenge.title == ev["challenge_title"]:
+        challenge_points *= ev["multiplier"]
 
     if user_points:
         user_points.total_points += challenge_points

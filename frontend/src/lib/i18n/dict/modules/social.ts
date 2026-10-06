@@ -50,6 +50,9 @@ export const social: LocaleBundle = {
 
     // ── Gamificação / desafios ────────────────────────────────────────
     'g.gam.title': 'Desafios & Gamificação',
+    'g.gam.eventTag': 'Evento · por tempo limitado',
+    'g.gam.eventTitle': 'Desafio Carteirinha em Dia',
+    'g.gam.eventBody': 'Até {date}, o desafio “{challenge}” vale pontos em dobro: {points} pontos e o selo no seu perfil.',
     'g.gam.subtitle': 'Complete desafios e acumule pontos!',
     'g.gam.started': 'Desafio iniciado! Boa sorte! 🎯',
     'g.gam.errStart': 'Erro ao iniciar desafio.',
@@ -515,6 +518,9 @@ export const social: LocaleBundle = {
 
     // ── Gamification / challenges ─────────────────────────────────────
     'g.gam.title': 'Challenges & Rewards',
+    'g.gam.eventTag': 'Event · limited time',
+    'g.gam.eventTitle': 'Vaccine Card Challenge',
+    'g.gam.eventBody': 'Until {date}, the “{challenge}” challenge is worth double points: {points} points and the badge on your profile.',
     'g.gam.subtitle': 'Complete challenges and rack up points!',
     'g.gam.started': 'Challenge started! Good luck! 🎯',
     'g.gam.errStart': 'Could not start the challenge.',
@@ -980,6 +986,9 @@ export const social: LocaleBundle = {
 
     // ── Gamificación / desafíos ───────────────────────────────────────
     'g.gam.title': 'Desafíos y recompensas',
+    'g.gam.eventTag': 'Evento · por tiempo limitado',
+    'g.gam.eventTitle': 'Reto Cartilla al Día',
+    'g.gam.eventBody': 'Hasta el {date}, el reto “{challenge}” vale el doble: {points} puntos y la insignia en tu perfil.',
     'g.gam.subtitle': '¡Completa desafíos y suma puntos!',
     'g.gam.started': '¡Desafío iniciado! ¡Mucha suerte! 🎯',
     'g.gam.errStart': 'No se pudo iniciar el desafío.',

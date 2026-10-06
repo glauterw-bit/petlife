@@ -463,6 +463,12 @@ export const push = {
 
 // ── Gamification ──────────────────────────────────────
 export const gamification = {
+  /** Evento com prazo (pontos em dobro num desafio) — a tela de desafios mostra o aviso. */
+  getEvent: async () => {
+    const res = await fetch(`${API_URL}/gamification/event`, { headers: getAuthHeaders() })
+    return handleResponse<{ active: boolean; key?: string; challenge_id?: number; challenge_title?: string; multiplier?: number; points?: number; ends_at?: string }>(res)
+  },
+
   getChallenges: async () => {
     const res = await fetch(`${API_URL}/gamification/challenges`, { headers: getAuthHeaders() })
     return handleResponse<Challenge[]>(res)

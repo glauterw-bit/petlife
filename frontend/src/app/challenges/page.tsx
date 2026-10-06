@@ -32,6 +32,8 @@ export default function ChallengesPage() {
   const [section, setSection] = useState<Section>('available')
   const [actionLoading, setActionLoading] = useState<number | null>(null)
 
+  const [event, setEvent] = useState<Awaited<ReturnType<typeof gamification.getEvent>> | null>(null)
+  useEffect(() => { gamification.getEvent().then(setEvent).catch(() => {}) }, [])
   useEffect(() => {
     async function load() {
       try {
@@ -106,6 +108,21 @@ export default function ChallengesPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">{t('g.gam.title')}</h1>
         <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">{t('g.gam.subtitle')}</p>
       </div>
+
+      {/* Evento com prazo: pontos em dobro num desafio */}
+      {event?.active && (
+        <div className="rounded-2xl p-5 mb-6 text-white bg-gradient-to-br from-primary-600 to-emerald-500 shadow-lg shadow-primary-500/20">
+          <p className="text-xs font-semibold uppercase tracking-wide text-white/80">{t('g.gam.eventTag')}</p>
+          <h2 className="font-display text-xl font-bold mt-1">🏆 {t('g.gam.eventTitle')}</h2>
+          <p className="text-sm text-white/90 mt-1.5 leading-snug">
+            {t('g.gam.eventBody', {
+              challenge: event.challenge_title ?? '',
+              points: event.points ?? 0,
+              date: event.ends_at ? new Date(event.ends_at + 'Z').toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' }) : '',
+            })}
+          </p>
+        </div>
+      )}
 
       {/* Points banner */}
       {points && (

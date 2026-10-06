@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
  * petlife://health/vaccines → /health/vaccines. Rota fora da lista vai pro
  * início — nunca abre caminho arbitrário vindo de fora.
  */
-const ALLOWED = ['/dashboard', '/health', '/pets', '/walks', '/plans', '/suporte', '/start', '/convites']
+const ALLOWED = ['/dashboard', '/health', '/pets', '/walks', '/plans', '/suporte', '/start', '/convites', '/challenges']
 
 export function DeepLinks() {
   const router = useRouter()
