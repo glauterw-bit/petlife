@@ -25,7 +25,7 @@ import gzip
 import io
 import os
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 _TOKEN: dict = {"jwt": None, "at": 0.0}
@@ -92,7 +92,14 @@ async def daily_downloads(days: int = 14) -> dict:
     if not configured():
         return {"available": False}
     import httpx
-    hoje = date.today()
+    # A Apple fecha o dia no horário do Pacífico e publica na manhã seguinte.
+    # Com a data do servidor (UTC), depois das 21h de Brasília o painel já
+    # cobrava da Apple um dia que ainda nem tinha terminado.
+    try:
+        from zoneinfo import ZoneInfo
+        hoje = datetime.now(ZoneInfo("America/Los_Angeles")).date()
+    except Exception:
+        hoje = (datetime.utcnow() - timedelta(hours=8)).date()
     dias, total_pais = [], {}
     async with httpx.AsyncClient(timeout=20) as c:
         for i in range(1, days + 1):
@@ -108,6 +115,10 @@ async def daily_downloads(days: int = 14) -> dict:
             dias.append({"date": d.isoformat(), "reported": True,
                          "total": sum(bc.values()), "by_country": bc})
     dias.reverse()
+    # O dia mais recente ainda não publicado não é "zero downloads": some do
+    # gráfico até a Apple liberar (o painel mostra qual foi o último publicado).
+    if dias and not dias[-1]["reported"]:
+        dias.pop()
     return {
         "available": True,
         "days": dias,

@@ -759,7 +759,7 @@ export default function AdminPage() {
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
             <h3 className="font-bold text-surface-900 dark:text-white">⬇️ Downloads na App Store</h3>
             <span className="text-xs text-surface-400">
-              fonte: Apple · último dia publicado: {(() => { const r = [...(appleDl.days ?? [])].reverse().find(d => d.reported); return r ? r.date.slice(8, 10) + '/' + r.date.slice(5, 7) : '—' })()} · a Apple publica o dia anterior pela manhã
+              fonte: Apple · último dia publicado: {(() => { const r = [...(appleDl.days ?? [])].reverse().find(d => d.reported); return r ? r.date.slice(8, 10) + '/' + r.date.slice(5, 7) : '—' })()} · a Apple só publica cada dia na manhã seguinte — para hoje, veja “Instalações” no topo
             </span>
           </div>
           <div className="flex items-end gap-1 h-24 mb-2">
