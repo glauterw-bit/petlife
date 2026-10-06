@@ -69,7 +69,7 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
                     <div>
                       <h4 className="font-semibold text-surface-900 dark:text-white">{v.name}</h4>
                       {v.veterinarian && (
-                        <p className="text-xs text-surface-500 dark:text-surface-400">{t('h.vac.doctor', { name: v.veterinarian })}</p>
+                        <p className="text-xs text-surface-500 dark:text-surface-400">{/^\s*dr[a]?\.?\s/i.test(v.veterinarian) ? v.veterinarian : t('h.vac.doctor', { name: v.veterinarian })}</p>
                       )}
                     </div>
                   </div>
