@@ -266,7 +266,7 @@ function VaccinesPageInner() {
         </div>
       )}
 
-      {loading ? <PageLoader /> : <VaccineTimeline vaccines={filtered} onDelete={handleDelete} />}
+      {loading ? <PageLoader /> : <VaccineTimeline vaccines={filtered} onDelete={handleDelete} onUpdated={v => setVaccineList(list => list.map(x => (x.id === v.id ? { ...x, ...v } : x)))} />}
 
       {/* Modal */}
       {quickStartPet && (

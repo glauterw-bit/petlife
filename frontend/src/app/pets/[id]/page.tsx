@@ -447,7 +447,7 @@ export default function PetProfilePage() {
               <Plus className="w-4 h-4" /> {t('common.add')}
             </a>
           </div>
-          <VaccineTimeline vaccines={vaccines} onDelete={handleDeleteVaccine} />
+          <VaccineTimeline vaccines={vaccines} onDelete={handleDeleteVaccine} onUpdated={v => setVaccines(prev => prev.map(x => (x.id === v.id ? { ...x, ...v } : x)))} />
 
           <div className="border-t border-surface-200 dark:border-surface-700 pt-6">
             <div className="flex items-center justify-between mb-4">

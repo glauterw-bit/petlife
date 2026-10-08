@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, Loader2, AlertTriangle, X } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { pets as petsApi, breeds as breedsApi, type Pet, type Breed } from '@/lib/api'
@@ -37,6 +38,10 @@ function formFromPet(pet: Pet) {
 
 export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
   const t = useT()
+  const router = useRouter()
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  useEffect(() => { if (!open) setConfirmDelete(false) }, [open])
   const { success, error } = useToast()
   const [form, setForm] = useState(() => formFromPet(pet))
   const [breed, setBreed] = useState<BreedPick | null>(null)
@@ -100,6 +105,21 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
     } catch (e: unknown) {
       error(e instanceof Error ? e.message : t('pw.editPet.errSave'))
     } finally { setSaving(false) }
+  }
+
+  async function removePet() {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      await petsApi.delete(pet.id)
+      success(t('pw.editPet.deleted', { name: pet.name }))
+      onClose()
+      router.push('/pets')
+    } catch (e: unknown) {
+      error(e instanceof Error ? e.message : t('pw.editPet.deleteError'))
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -220,6 +240,29 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
             className="flex-1 py-3 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />} {t('common.save')}
           </button>
+        </div>
+
+        {/* Excluir o pet (ex.: cadastro duplicado) — pede confirmação */}
+        <div className="pt-3 border-t border-surface-100 dark:border-surface-700">
+          {!confirmDelete ? (
+            <button type="button" onClick={() => setConfirmDelete(true)} className="text-sm font-medium text-red-500 hover:text-red-600">
+              {t('pw.editPet.delete', { name: pet.name })}
+            </button>
+          ) : (
+            <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+              <p className="text-sm text-red-800 dark:text-red-200">{t('pw.editPet.deleteConfirm', { name: pet.name })}</p>
+              <div className="flex gap-2 mt-3">
+                <button type="button" onClick={() => setConfirmDelete(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-sm font-semibold text-surface-700 dark:text-surface-200">
+                  {t('common.cancel')}
+                </button>
+                <button type="button" onClick={removePet} disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2">
+                  {deleting && <Loader2 className="w-4 h-4 animate-spin" />} {t('pw.editPet.deleteYes')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Modal>

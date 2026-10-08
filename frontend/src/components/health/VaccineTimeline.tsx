@@ -4,14 +4,19 @@ import { CheckCircle, AlertCircle, Clock, FileText } from 'lucide-react'
 import { type Vaccine } from '@/lib/api'
 import { formatDate, getVaccineStatus } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
+import { useState } from 'react'
+import { EditVaccineModal } from '@/components/health/EditVaccineModal'
 
 interface VaccineTimelineProps {
   vaccines: Vaccine[]
   onDelete?: (id: number) => void
+  /** Quando presente, cada vacina ganha "Editar" (corrigir sem excluir). */
+  onUpdated?: (v: Vaccine) => void
 }
 
-export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
+export function VaccineTimeline({ vaccines, onDelete, onUpdated }: VaccineTimelineProps) {
   const t = useT()
+  const [editing, setEditing] = useState<Vaccine | null>(null)
 
   if (vaccines.length === 0) {
     return (
@@ -113,10 +118,18 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
                       {t('h.vac.viewDoc')}
                     </a>
                   )}
+                  {onUpdated && (
+                    <button
+                      onClick={() => setEditing(v)}
+                      className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline transition ml-auto"
+                    >
+                      {t('common.edit')}
+                    </button>
+                  )}
                   {onDelete && (
                     <button
                       onClick={() => onDelete(v.id)}
-                      className="text-xs text-red-400 hover:text-red-600 transition ml-auto"
+                      className={`text-xs text-red-400 hover:text-red-600 transition ${onUpdated ? '' : 'ml-auto'}`}
                     >
                       {t('common.delete')}
                     </button>
@@ -127,6 +140,7 @@ export function VaccineTimeline({ vaccines, onDelete }: VaccineTimelineProps) {
           )
         })}
       </div>
+      <EditVaccineModal vaccine={editing} onClose={() => setEditing(null)} onSaved={v => onUpdated?.(v)} />
     </div>
   )
 }
