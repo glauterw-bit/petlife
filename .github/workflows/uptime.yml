@@ -1,0 +1,30 @@
+name: Vigia do servidor
+
+# O servidor não consegue avisar da própria queda. Este vigia externo confere o
+# /health a cada 15 minutos; se falhar 3 vezes seguidas, o job falha e o GitHub
+# manda e-mail ao dono do repositório (em 26/09/2026 o backend ficou ~20 min
+# fora do ar depois de um deploy e ninguém foi avisado).
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conferir /health do backend e a página inicial do app
+        run: |
+          falhou=0
+          for alvo in https://petlife-backend-production.up.railway.app/health https://petlife-frontend-production.up.railway.app/start; do
+            ok=0
+            for tentativa in 1 2 3; do
+              cod=$(curl -s -o /dev/null -m 20 -w "%{http_code}" "$alvo" || echo 000)
+              echo "$alvo tentativa $tentativa: $cod"
+              if [ "$cod" = "200" ]; then ok=1; break; fi
+              sleep 30
+            done
+            if [ "$ok" = "0" ]; then echo "::error::FORA DO AR: $alvo"; falhou=1; fi
+          done
+          exit $falhou

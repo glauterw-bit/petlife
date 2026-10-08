@@ -127,3 +127,21 @@ async def daily_downloads(days: int = 14) -> dict:
             key=lambda x: -x["count"]),
         "total": sum(total_pais.values()),
     }
+
+
+async def latest_reviews(app_id: str = "6768136468", limit: int = 10) -> list[dict]:
+    """Avaliações escritas mais recentes na App Store (pro aviso ao admin)."""
+    if not configured():
+        return []
+    import httpx
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.get(
+            f"https://api.appstoreconnect.apple.com/v1/apps/{app_id}/customerReviews",
+            params={"sort": "-createdDate", "limit": limit},
+            headers={"Authorization": f"Bearer {_token()}"},
+        )
+    if r.status_code != 200:
+        return []
+    return [{"id": x["id"], **{k: x["attributes"].get(k) for k in
+            ("rating", "title", "body", "reviewerNickname", "territory", "createdDate")}}
+            for x in r.json().get("data", [])]

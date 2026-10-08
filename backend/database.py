@@ -186,6 +186,14 @@ async def _run_migrations():
         "ALTER TABLE users ADD COLUMN password_set BOOLEAN",
         "UPDATE users SET password_set = FALSE WHERE password_set IS NULL AND apple_sub IS NOT NULL AND created_at >= '2026-09-23 21:00:00'",
         "UPDATE users SET password_set = TRUE WHERE password_set IS NULL",
+        # Telemetria: eventos anônimos (pré-login), tela, detalhe e versão do app
+        "ALTER TABLE usage_events ALTER COLUMN user_id DROP NOT NULL",
+        "ALTER TABLE usage_events ADD COLUMN device_id VARCHAR(64)",
+        "ALTER TABLE usage_events ADD COLUMN path VARCHAR(80)",
+        "ALTER TABLE usage_events ADD COLUMN meta VARCHAR(120)",
+        "ALTER TABLE usage_events ADD COLUMN app_version VARCHAR(16)",
+        "CREATE INDEX IF NOT EXISTS ix_usage_events_device ON usage_events(device_id)",
+        "CREATE INDEX IF NOT EXISTS ix_usage_events_event_created ON usage_events(event, created_at)",
     ]
     for stmt in migrations:
         try:

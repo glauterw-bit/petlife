@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
 import { Toast, ToastItem, ToastType } from './Toast'
+import { track } from '@/lib/track'
 
 interface ToastContextValue {
   showToast: (message: string, type?: ToastType, duration?: number) => void
@@ -26,7 +27,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const success = useCallback((msg: string) => showToast(msg, 'success'), [showToast])
-  const error = useCallback((msg: string) => showToast(msg, 'error'), [showToast])
+  const error = useCallback((msg: string) => {
+    // cada erro mostrado ao tutor vira um sinal no painel admin (qual tela, qual mensagem)
+    track('ui_error', { meta: msg })
+    showToast(msg, 'error')
+  }, [showToast])
   const warning = useCallback((msg: string) => showToast(msg, 'warning'), [showToast])
   const info = useCallback((msg: string) => showToast(msg, 'info'), [showToast])
 

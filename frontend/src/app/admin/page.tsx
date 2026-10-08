@@ -9,6 +9,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import dynamic from 'next/dynamic'
+import { LivePanels } from '@/components/admin/LivePanels'
 import { adminStats, feedback as feedbackApi, support as supportApi, type AdminStats, type AdminUser, type AdminLocations, type AppleDownloads, type FeedbackList, type FeedbackItem, type AiTopicsReport, type SupportThread, type SupportMsg, type UserRanking, type PlatformUsage, type AdminSubscriptions, type AdminFunnels } from '@/lib/api'
 
 const AdminUserMap = dynamic(() => import('@/components/admin/AdminUserMap'), {
@@ -176,6 +177,9 @@ export default function AdminPage() {
           </div>
         )
       })()}
+
+      {/* Ao vivo: online agora, feed, funil, erros, telas, retenção, frustração */}
+      <LivePanels />
 
       {/* O que perguntam à Vyron IA — só temas, sem o texto das perguntas */}
       {topics && (
@@ -383,7 +387,9 @@ export default function AdminPage() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-surface-900 dark:text-white truncate">
-                    {u.name || u.email}
+                    <button onClick={() => window.dispatchEvent(new CustomEvent('petlife:admin-journey', { detail: u.user_id }))} className="hover:underline text-left">
+                      {u.name || u.email}
+                    </button>
                     {u.tier !== 'free' && (
                       <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 align-middle">
                         {u.tier === 'pro' ? 'PRO' : 'PLUS'}
@@ -855,7 +861,9 @@ export default function AdminPage() {
                 .filter(u => !search || `${u.name} ${u.email} ${u.phone ?? ''}`.toLowerCase().includes(search.toLowerCase()))
                 .map(u => (
                   <tr key={u.id} className="border-b border-surface-50 dark:border-surface-700/50 hover:bg-surface-50 dark:hover:bg-surface-700/30">
-                    <td className="py-2 pr-3 font-medium text-surface-900 dark:text-white whitespace-nowrap">{u.name}{u.is_vet ? ' 🩺' : ''}</td>
+                    <td className="py-2 pr-3 font-medium text-surface-900 dark:text-white whitespace-nowrap">
+                      <button onClick={() => window.dispatchEvent(new CustomEvent('petlife:admin-journey', { detail: u.id }))} className="hover:underline text-left">{u.name}{u.is_vet ? ' 🩺' : ''}</button>
+                    </td>
                     <td className="py-2 pr-3 text-surface-600 dark:text-surface-300">{u.email}</td>
                     <td className="py-2 pr-3 text-surface-600 dark:text-surface-300 whitespace-nowrap">{u.phone || '—'}</td>
                     <td className="py-2 pr-3">{u.tier === 'free' ? '🆓' : u.tier === 'plus' ? '✨' : '👑'}</td>

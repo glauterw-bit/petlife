@@ -62,6 +62,7 @@ from routers import (
     growth,
     protections,
     support,
+    admin_live,
 )
 
 
@@ -156,6 +157,7 @@ app.include_router(growth.router)
 app.include_router(protections.router)
 app.include_router(support.router)
 app.include_router(feedback.router)
+app.include_router(admin_live.router)
 
 
 @app.get("/public/lost/{pet_id}", tags=["Público"])

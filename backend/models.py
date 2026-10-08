@@ -126,9 +126,14 @@ class UsageEvent(Base):
     __tablename__ = "usage_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    # user_id nulo = evento anônimo (antes do login), identificado só por device_id
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     event = Column(String(40), nullable=False, index=True)
     platform = Column(String(10), nullable=True)  # ios | android | web
+    device_id = Column(String(64), nullable=True, index=True)   # id aleatório do aparelho
+    path = Column(String(80), nullable=True)                    # tela (ids viram :id)
+    meta = Column(String(120), nullable=True)                   # detalhe curto, sem dado pessoal
+    app_version = Column(String(16), nullable=True)             # versão nativa (ex.: 1.2.9)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 

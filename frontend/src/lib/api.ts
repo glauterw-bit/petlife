@@ -42,6 +42,13 @@ async function handleResponse<T>(res: Response): Promise<T> {
     if (res.status === 402 && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('petlife:quota', { detail: { message } }))
     }
+    // 5xx e erros de ação (menos 401/402/404) viram sinal no painel admin
+    if (typeof window !== 'undefined' && (res.status >= 500 || [400, 403, 409, 422, 429].includes(res.status))) {
+      try {
+        const u = new URL(res.url)
+        void import('@/lib/track').then(m => m.track('api_error', { meta: `${res.status} ${m.normalizePath(u.pathname)}` }))
+      } catch {}
+    }
     throw new Error(message)
   }
   const text = await res.text()
@@ -1633,6 +1640,21 @@ export interface EnrichmentDay {
 }
 
 // ── Admin (painel do dono) ────────────────────────────
+export const adminLive = {
+  live: async () => {
+    const res = await fetch(`${API_URL}/admin/live`, { headers: getAuthHeaders(), cache: 'no-store' })
+    return handleResponse<AdminLive>(res)
+  },
+  insights: async (days = 14) => {
+    const res = await fetch(`${API_URL}/admin/insights?days=${days}`, { headers: getAuthHeaders(), cache: 'no-store' })
+    return handleResponse<AdminInsights>(res)
+  },
+  journey: async (userId: number) => {
+    const res = await fetch(`${API_URL}/admin/users/${userId}/journey`, { headers: getAuthHeaders(), cache: 'no-store' })
+    return handleResponse<AdminJourney>(res)
+  },
+}
+
 export const adminStats = {
   get: async () => {
     const res = await fetch(`${API_URL}/admin/stats`, { headers: getAuthHeaders(), cache: 'no-store' })
@@ -1796,6 +1818,35 @@ export interface AdminUser {
   walks: number
 }
 
+export interface AdminLive {
+  generated_at: string
+  feed: Array<{ kind: string; at: string; user_id?: number; name?: string; platform?: string; detail?: string; species?: string; product?: string }>
+  online: Array<{ user_id: number; name: string; path: string | null; platform: string | null; at: string }>
+  online_anonymous: number
+}
+export interface AdminJourney {
+  user: { id: number; name: string; email: string; created_at: string; last_seen_at: string | null; premium_tier: string; active_product_sku: string | null; premium_expires_at: string | null; apple: boolean; geo_city: string | null; geo_region: string | null }
+  totals: { opens: number; active_days: number; errors: number; paywalls: number; app_version: string | null; platform: string | null }
+  support_messages: number
+  feedback: Array<{ rating: number | null; suggestion: string | null; at: string }>
+  pets: Array<{ id: number; name: string; species: string; vaccines: number; at: string }>
+  events: Array<{ event: string; path: string | null; meta: string | null; platform: string | null; app_version: string | null; at: string }>
+}
+export interface AdminInsights {
+  generated_at: string
+  funnel: { days: number; installs: number; start_shown: number; start_pet_done: number; register_view: number; signups: number; signups_apple: number; with_pet: number; with_vaccine: number; returned: number }
+  screens: Array<{ path: string; views: number; people: number }>
+  errors: Array<{ event: string; path: string; meta: string; last_24h: number; last_7d: number; people: number; last_at: string }>
+  cohorts: Array<{ wk: string; size: number; d1: number; d7: number; d30: number }>
+  versions: Array<{ platform: string; version: string; users: number }>
+  shares: Array<{ event: string; d7: number; d30: number; users: number }>
+  found_reports: number
+  frustration: {
+    paywall: Array<{ id: number; name: string; n: number; last_at: string }>
+    repeated_errors: Array<{ id: number; name: string; meta: string | null; path: string | null; n: number; last_at: string }>
+    no_pet: Array<{ id: number; name: string; created_at: string }>
+  }
+}
 export interface AdminTodayCount { today: number; yesterday: number }
 export interface AdminStats {
   generated_at: string

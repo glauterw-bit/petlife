@@ -226,6 +226,30 @@ async def apple_s2s_webhook(request: Request, db: AsyncSession = Depends(get_db)
             user.active_product_sku = None
 
     await db.commit()
+
+    # Aviso no celular do admin (assinatura nova, renovação desligada, fim, reembolso)
+    try:
+        subtype = notif.get("subtype") or ""
+        nome = (user.name if user else None) or "Alguém"
+        prod = (pricing.product_by_apple_id(product_id) or {}).get("name") or product_id or ""
+        alerta = None
+        if ntype == "SUBSCRIBED":
+            alerta = ("💰 Nova assinatura", f"{nome} assinou {prod}")
+        elif ntype == "DID_CHANGE_RENEWAL_STATUS" and subtype == "AUTO_RENEW_DISABLED":
+            alerta = ("⚠️ Renovação desligada", f"{nome} desligou a renovação de {prod}")
+        elif ntype == "DID_CHANGE_RENEWAL_STATUS" and subtype == "AUTO_RENEW_ENABLED":
+            alerta = ("✅ Renovação religada", f"{nome} religou a renovação de {prod}")
+        elif ntype == "DID_RENEW":
+            alerta = ("💰 Assinatura renovada", f"{nome} renovou {prod}")
+        elif ntype in ("REFUND", "REVOKE"):
+            alerta = ("↩️ Reembolso", f"A Apple reembolsou {nome} ({prod})")
+        elif ntype in ("EXPIRED", "GRACE_PERIOD_EXPIRED"):
+            alerta = ("⌛ Assinatura encerrada", f"A assinatura de {nome} ({prod}) terminou")
+        if alerta:
+            from admin_alerts import notify_admins
+            await notify_admins(db, f"iap:{ntype}:{subtype}:{tx.get('transactionId')}", "adm_assinatura", *alerta)
+    except Exception:
+        pass
     return {"ok": True}
 
 

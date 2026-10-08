@@ -36,6 +36,7 @@ export default function StartPage() {
 
   function next() {
     void hapticLight()
+    track('start_step', { meta: `passo ${step + 1}` })
     setStep(s => s + 1)
   }
 

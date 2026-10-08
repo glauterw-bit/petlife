@@ -57,7 +57,10 @@ export function AppleSignInButton({ onSuccess, referralCode }: {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''
       // cancelou a folha da Apple: silencioso
-      if (!/cancel|1001/i.test(msg)) setErr(msg || t('ac.apple.error'))
+      if (!/cancel|1001/i.test(msg)) {
+        track('apple_signin_error', { meta: msg })
+        setErr(msg || t('ac.apple.error'))
+      }
     } finally {
       setBusy(false)
     }

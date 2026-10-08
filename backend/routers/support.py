@@ -114,6 +114,9 @@ async def send_message(
     await db.flush()
     await db.refresh(msg)
     _notify_admin(current_user, msg.body)
+    from admin_alerts import notify_admins
+    await notify_admins(db, f"sup:{msg.id}", "adm_suporte",
+                        f"💬 {(current_user.name or 'Tutor').split(' ')[0]} escreveu no suporte", msg.body[:140])
     return msg
 
 

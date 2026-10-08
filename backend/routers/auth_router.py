@@ -57,6 +57,8 @@ async def register(request: Request, user_data: UserRegister, db: AsyncSession =
         from routers.growth import redeem_referral
         await redeem_referral(db, user, user_data.referral_code)
 
+    from routers.events import track_event
+    await track_event(db, user.id, "signup_email")
     await db.commit()
     await db.refresh(user)
 
@@ -135,6 +137,8 @@ async def apple_sign_in(request: Request, data: AppleSignIn, db: AsyncSession = 
         if data.referral_code:
             from routers.growth import redeem_referral
             await redeem_referral(db, user, data.referral_code)
+        from routers.events import track_event
+        await track_event(db, user.id, "signup_apple", "ios")
 
     await db.commit()
     await db.refresh(user)

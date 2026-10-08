@@ -49,28 +49,61 @@ ALLOWED = {
     "start_pet_done",      # informou nome + espécie do pet antes da conta
     "apple_signin_start",  # tocou em "Continuar com a Apple"
     "apple_signin_ok",     # entrou/criou conta pela Apple
+    "page_view",           # abriu uma tela (path normalizado, sem ids)
+    "ui_error",            # o app mostrou uma mensagem de erro ao tutor
+    "client_error",        # erro de JavaScript na tela
+    "api_error",           # o servidor respondeu erro a uma ação
+    "apple_signin_error",  # login com a Apple falhou
+    "register_view",       # abriu a tela de cadastro
+    "login_view",          # abriu a tela de login
+    "start_step",          # avançou um passo da primeira abertura
     "store_invite_shown",  # convite de avaliação na App Store (usuários ativos)
     "store_invite_cta",    # tocou em "avaliar na App Store"
     "store_invite_later",  # dispensou o convite
 }
 
 
+# Eventos que valem SEM login (primeira abertura, cadastro, erros) — por aparelho
+ANON_ALLOWED = {
+    "page_view", "ui_error", "client_error", "api_error",
+    "start_shown", "start_step", "start_pet_done", "register_view", "login_view",
+    "apple_signin_start", "apple_signin_error",
+}
+
+
 class EventIn(BaseModel):
     event: str
     platform: str | None = None
+    device_id: str | None = None
+    path: str | None = None
+    meta: str | None = None
+    app_version: str | None = None
 
 
-async def track_event(db: AsyncSession, user_id: int, event: str, platform: str | None = None) -> None:
+def _clean(body: "EventIn") -> dict:
+    return {
+        "platform": body.platform if body.platform in ("ios", "android", "web") else None,
+        "device_id": (body.device_id or "").strip()[:64] or None,
+        "path": (body.path or "").strip()[:80] or None,
+        "meta": (body.meta or "").strip()[:120] or None,
+        "app_version": (body.app_version or "").strip()[:16] or None,
+    }
+
+
+async def track_event(db: AsyncSession, user_id: int | None, event: str, platform: str | None = None,
+                      *, device_id: str | None = None, path: str | None = None,
+                      meta: str | None = None, app_version: str | None = None) -> None:
     """Uso interno (server-side) — não valida whitelist, não levanta exceção."""
     try:
-        db.add(UsageEvent(user_id=user_id, event=event, platform=platform))
+        db.add(UsageEvent(user_id=user_id, event=event, platform=platform, device_id=device_id,
+                          path=path, meta=meta, app_version=app_version))
         await db.flush()
     except Exception:
         pass
 
 
 @router.post("", status_code=204)
-@_limiter.limit("120/hour")
+@_limiter.limit("900/hour")
 async def post_event(
     request: Request,
     body: EventIn,
@@ -79,8 +112,21 @@ async def post_event(
 ):
     if body.event not in ALLOWED:
         raise HTTPException(status_code=400, detail="Evento desconhecido")
-    platform = body.platform if body.platform in ("ios", "android", "web") else None
-    await track_event(db, current_user.id, body.event, platform)
+    await track_event(db, current_user.id, body.event, **_clean(body))
+    await db.commit()
+
+
+@router.post("/anon", status_code=204)
+@_limiter.limit("300/hour")
+async def post_anon_event(request: Request, body: EventIn, db: AsyncSession = Depends(get_db)):
+    """Evento sem login — só o id aleatório do aparelho, nenhum dado pessoal."""
+    if body.event not in ANON_ALLOWED:
+        raise HTTPException(status_code=400, detail="Evento desconhecido")
+    c = _clean(body)
+    if not c["device_id"] or len(c["device_id"]) < 16:
+        raise HTTPException(status_code=400, detail="device_id inválido")
+    await track_event(db, None, body.event, **c)
+    await db.commit()
 
 
 class InstallIn(BaseModel):

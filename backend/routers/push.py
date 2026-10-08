@@ -265,4 +265,19 @@ async def run_push_jobs(
                        f"Seu teste grátis do {plano} termina em {data_fim}",
                        "Toque para ver a mensagem do Glauter no suporte.")
 
+    # 6. Avaliação nova na App Store → aviso no celular do admin
+    if not dry_run:
+        try:
+            import apple_reports
+            from admin_alerts import notify_admins
+            for rv in await apple_reports.latest_reviews():
+                estrelas = "★" * int(rv.get("rating") or 0)
+                await notify_admins(
+                    db, f"review:{rv['id']}", "adm_avaliacao",
+                    f"⭐ Nova avaliação na App Store: {estrelas}",
+                    f"{rv.get('reviewerNickname') or 'Alguém'}: {(rv.get('title') or '')} {(rv.get('body') or '')}".strip()[:200],
+                )
+        except Exception:
+            pass
+
     return resultado
