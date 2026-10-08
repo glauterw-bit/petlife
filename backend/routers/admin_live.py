@@ -49,8 +49,8 @@ async def admin_live(admin: User = Depends(require_admin), db: AsyncSession = De
     for r in await _rows(db, f"""
         SELECT e.event, e.created_at, e.platform, e.path, e.user_id, u.name
         FROM usage_events e JOIN users u ON u.id = e.user_id
-        WHERE e.created_at >= :s AND e.event = ANY(:evs) AND {QA}
-        ORDER BY e.created_at DESC LIMIT 60""", s=since, evs=list(FEED_EVENTS)):
+        WHERE e.created_at >= :s AND e.event = ANY(:evs) AND {QA} AND e.user_id <> :me
+        ORDER BY e.created_at DESC LIMIT 60""", s=since, evs=list(FEED_EVENTS), me=admin.id if admin else 0):
         feed.append({"kind": r["event"], "at": _iso(r["created_at"]), "user_id": r["user_id"],
                      "name": r["name"], "platform": r["platform"]})
 
@@ -96,8 +96,8 @@ async def admin_live(admin: User = Depends(require_admin), db: AsyncSession = De
     online = await _rows(db, f"""
         SELECT DISTINCT ON (e.user_id) e.user_id, u.name, e.path, e.platform, e.created_at
         FROM usage_events e JOIN users u ON u.id = e.user_id
-        WHERE e.created_at >= :s AND {QA}
-        ORDER BY e.user_id, e.created_at DESC""", s=now - timedelta(minutes=5))
+        WHERE e.created_at >= :s AND {QA} AND e.user_id <> :me
+        ORDER BY e.user_id, e.created_at DESC""", s=now - timedelta(minutes=5), me=admin.id if admin else 0)
     anon = (await db.execute(text("""
         SELECT count(DISTINCT device_id) FROM usage_events
         WHERE created_at >= :s AND user_id IS NULL AND device_id IS NOT NULL"""),

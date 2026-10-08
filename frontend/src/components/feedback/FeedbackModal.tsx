@@ -22,6 +22,7 @@ import { useT } from '@/contexts/LocaleContext'
 const SOURCE = 'popup_2026_09_b'
 const DISMISS_KEY = `petlife_feedback_${SOURCE}_dismissed`
 const DELAY_MS = 4000
+const MIN_ACCOUNT_AGE_DAYS = 3
 
 const FACES = [
   { v: 1, emoji: '😞', labelKey: 'fb.face1' },
@@ -50,6 +51,13 @@ export function FeedbackModal() {
     async function maybeOpen() {
       try {
         if (localStorage.getItem(DISMISS_KEY)) return
+        // Conta recém-criada ainda não tem opinião: pedir nota no primeiro
+        // minuto só gasta o pedido (a jornada no painel mostrou isso).
+        const u = JSON.parse(localStorage.getItem('petlife_user') || 'null') as { created_at?: string } | null
+        if (u?.created_at) {
+          const iso = /Z|[+-]\d\d:?\d\d$/.test(u.created_at) ? u.created_at : u.created_at + 'Z'
+          if (Date.now() - new Date(iso).getTime() < MIN_ACCOUNT_AGE_DAYS * 86400000) return
+        }
       } catch { /* sem storage: segue pelo servidor */ }
       try {
         const { answered } = await feedbackApi.status(SOURCE)
