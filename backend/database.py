@@ -82,6 +82,24 @@ async def get_db():
             await session.close()
 
 
+# ── Datas com fuso viram UTC "sem fuso" antes de gravar ──────────────────────
+# As colunas são TIMESTAMP sem fuso. Quando o app manda uma data ISO com "Z"
+# (ex.: new Date().toISOString()), o asyncpg recusa e a requisição vira erro 500
+# — foi assim que finalizar passeio ficou quebrado de ago a out/2026.
+from datetime import datetime as _dt, timezone as _tz
+from sqlalchemy import event as _sa_event
+from sqlalchemy.orm import Session as _SyncSession
+
+
+@_sa_event.listens_for(_SyncSession, "before_flush")
+def _strip_timezones(session, flush_context, instances):
+    for obj in list(session.new) + list(session.dirty):
+        state = getattr(obj, "__dict__", {})
+        for key, value in list(state.items()):
+            if isinstance(value, _dt) and value.tzinfo is not None:
+                setattr(obj, key, value.astimezone(_tz.utc).replace(tzinfo=None))
+
+
 async def create_tables():
     async with engine.begin() as conn:
         from models import Base as ModelBase

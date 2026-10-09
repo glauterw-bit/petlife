@@ -779,6 +779,16 @@ class WalkSessionStart(BaseModel):
 
 class WalkSessionFinish(BaseModel):
     ended_at: datetime
+
+    @field_validator("ended_at")
+    @classmethod
+    def _ended_at_naive_utc(cls, v: datetime) -> datetime:
+        # o app manda ISO com "Z"; a coluna é sem fuso
+        if v.tzinfo is not None:
+            from datetime import timezone
+            return v.astimezone(timezone.utc).replace(tzinfo=None)
+        return v
+
     duration_seconds: int
     distance_meters: float
     route_points: Optional[List[RoutePoint]] = None

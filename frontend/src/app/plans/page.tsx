@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Check, Crown, Sparkles, Star, RefreshCw, Loader2 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useToast } from '@/components/ui/ToastContext'
@@ -55,6 +55,7 @@ export default function PlansPage() {
   const [cadence, setCadence] = useState<Cadence>('annual')
   const [loading, setLoading] = useState(true)
   const [busySku, setBusySku] = useState<string | null>(null)
+  const userActionRef = useRef(false)
   const [restoring, setRestoring] = useState(false)
   // Estado, não cálculo de render: `window.CdvPurchase` aparece de forma
   // assíncrona (deviceready). Como valor de render, `canBuy` era avaliado
@@ -92,7 +93,9 @@ export default function PlansPage() {
         success(t('ac.plans.activated'))
         await refresh()
       } catch (err) {
-        error(err instanceof Error ? err.message : t('ac.plans.errConfirm'))
+        // A loja também reenvia compras antigas sozinha ao abrir a tela: erro
+        // só aparece pro tutor se ele acabou de tocar em assinar ou restaurar.
+        if (userActionRef.current) error(err instanceof Error ? err.message : t('ac.plans.errConfirm'))
       }
     })
       .then((ok) => setCanBuy(ok))
@@ -112,6 +115,7 @@ export default function PlansPage() {
       return
     }
     setBusySku(product.sku)
+    userActionRef.current = true
     try {
       await purchaseProduct(product.apple_product_id)
       // confirmação chega pelo callback do initIap
@@ -143,6 +147,7 @@ export default function PlansPage() {
       return
     }
     setRestoring(true)
+    userActionRef.current = true
     try {
       await restorePurchases()
       success(t('ac.plans.restored'))

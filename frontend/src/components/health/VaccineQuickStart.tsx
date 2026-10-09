@@ -80,7 +80,7 @@ export function VaccineQuickStart({ pet, onCreated, onClose }: {
           pet_id: pet.id,
           title: t('h.qs.reminderTitle', { name: pet.name }),
           due_date: plusDays(today, 7),
-          type: 'vacina',
+          type: 'vaccine',
         }).catch(() => {})
         onClose()
         return

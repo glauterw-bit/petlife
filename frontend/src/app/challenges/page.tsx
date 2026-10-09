@@ -68,7 +68,11 @@ export default function ChallengesPage() {
   async function handleComplete(userChallengeId: number) {
     setActionLoading(userChallengeId)
     try {
-      const uc = await gamification.completeChallenge(userChallengeId)
+      // a API conclui pelo id do DESAFIO, não pelo id do progresso do usuário
+      // (mandar o id errado dava "Desafio não iniciado" — ninguém concluía nada)
+      const mine = userChallenges.find(u => u.id === userChallengeId)
+      if (!mine) throw new Error(t('g.gam.errComplete'))
+      const uc = await gamification.completeChallenge(mine.challenge_id)
       setUserChallenges(prev => prev.map(u => u.id === uc.id ? uc : u))
       const pts = await gamification.getUserPoints()
       setPoints(pts)

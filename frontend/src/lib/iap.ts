@@ -117,6 +117,12 @@ export async function initIap(
         transaction?.parentReceipt?.nativeData?.appStoreReceipt ||
         w.CdvPurchase?.store?.localReceipts?.[0]?.nativeData?.appStoreReceipt
       const productId = transaction?.products?.[0]?.id || transaction?.productId
+      // O plugin cria uma transação VIRTUAL que representa o próprio app
+      // ("appstore.application", produto = bundle id). Ela é "aprovada" toda vez
+      // que a loja inicializa e não é uma compra: mandar pra validação fazia a
+      // Apple responder 400 e o tutor ver "Transação inválida" só de abrir os planos.
+      const isRealPurchase = APPLE_PRODUCT_IDS.includes(productId) && transactionId !== 'appstore.application'
+      if (!isRealPurchase) return
       if ((transactionId || receipt) && productId && onProofCb) {
         await onProofCb({ transactionId, receipt, appleProductId: productId })
       }
