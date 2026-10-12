@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { MessageCircleHeart, X, Send, PartyPopper, Star } from 'lucide-react'
 import { feedback as feedbackApi } from '@/lib/api'
 import { hapticLight, hapticSuccess } from '@/lib/feedback'
-import { openReviewPage, requestNativeReview } from '@/lib/review'
+import { openReviewPage, requestNativeReview, lastReviewAskAt } from '@/lib/review'
 import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
 
@@ -22,7 +22,7 @@ import { useT } from '@/contexts/LocaleContext'
 const SOURCE = 'popup_2026_09_b'
 const DISMISS_KEY = `petlife_feedback_${SOURCE}_dismissed`
 const DELAY_MS = 4000
-const MIN_ACCOUNT_AGE_DAYS = 3
+const MIN_ACCOUNT_AGE_DAYS = 7
 
 const FACES = [
   { v: 1, emoji: '😞', labelKey: 'fb.face1' },
@@ -53,6 +53,8 @@ export function FeedbackModal() {
         if (localStorage.getItem(DISMISS_KEY)) return
         // Conta recém-criada ainda não tem opinião: pedir nota no primeiro
         // minuto só gasta o pedido (a jornada no painel mostrou isso).
+        // Quem acabou de receber as estrelas da Apple não precisa de outro pedido
+        if (Date.now() - lastReviewAskAt() < 14 * 86400000) return
         const u = JSON.parse(localStorage.getItem('petlife_user') || 'null') as { created_at?: string } | null
         if (u?.created_at) {
           const iso = /Z|[+-]\d\d:?\d\d$/.test(u.created_at) ? u.created_at : u.created_at + 'Z'

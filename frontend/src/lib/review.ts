@@ -17,6 +17,11 @@ const MIN_HAPPY_EVENTS = 3
 // limite real (3 por ano) é da Apple, não nosso.
 const COOLDOWN_DAYS = 21
 const APP_ID = '6768136468'
+// Momentos de valor entregue — o pedido de nota vem mais cedo depois deles
+const STRONG_MOMENTS = new Set([
+  'vacina_cadastrada', 'vacina_scan', 'pdf_export', 'carteirinha_whatsapp',
+  'carteirinha_share', 'carteirinha_print', 'protection',
+])
 
 interface ReviewState {
   happy: number
@@ -102,7 +107,7 @@ export function openReviewPage(): void {
  * Registra um momento feliz (check-in feito, passeio concluído, lembrete cumprido…).
  * Quando as condições de throttle são atendidas, dispara o pedido de avaliação.
  */
-export function trackHappyMoment(_source: string): void {
+export function trackHappyMoment(source: string): void {
   if (!isNative()) return
   const s = load()
   s.happy += 1
@@ -110,13 +115,27 @@ export function trackHappyMoment(_source: string): void {
   const cooldownOk =
     !s.lastAskedAt || Date.now() - s.lastAskedAt > COOLDOWN_DAYS * 24 * 60 * 60 * 1000
 
-  if (s.happy >= MIN_HAPPY_EVENTS && cooldownOk) {
+  // Momentos em que o app acabou de entregar o que promete (vacina salva,
+  // carteirinha enviada) pedem a nota mais cedo: no 2º momento feliz.
+  // A pesquisa própria era dispensada por 90% das pessoas e quase ninguém
+  // chegava às estrelas; a janela nativa da Apple pede direto, sem sair do app.
+  const needed = STRONG_MOMENTS.has(source) ? 2 : MIN_HAPPY_EVENTS
+
+  if (s.happy >= needed && cooldownOk) {
     s.happy = 0
     s.lastAskedAt = Date.now()
     save(s)
     // pequeno delay pra não atropelar a animação de sucesso da tela
-    setTimeout(() => { void ask() }, 1200)
+    setTimeout(() => {
+      void ask()
+      void import('@/lib/track').then(m => m.track('rate_prompt_native', { meta: source })).catch(() => {})
+    }, 1200)
     return
   }
   save(s)
+}
+
+/** Quando foi o último pedido de nota neste aparelho (0 = nunca). */
+export function lastReviewAskAt(): number {
+  return load().lastAskedAt ?? 0
 }
