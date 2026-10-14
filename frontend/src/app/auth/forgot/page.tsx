@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Mail, AlertCircle, Copy, Check, PawPrint } from 'lucide-react'
 import { auth } from '@/lib/api'
+import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
 
 export default function ForgotPasswordPage() {
@@ -22,6 +23,7 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     try {
       const res = await auth.forgotPassword(email.trim().toLowerCase())
+      track('forgot_requested')
       setResult({ message: res.message, code: res.code, emailConfigured: res.email_configured !== false })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('ac.forgot.err'))
@@ -99,6 +101,10 @@ export default function ForgotPasswordPage() {
                 ) : null}
                 {loading ? t('ac.forgot.submitting') : t('ac.forgot.submit')}
               </button>
+              <p className="text-xs text-surface-500 dark:text-surface-400 text-center leading-snug">
+                {t('ac.forgot.appleHint')}{' '}
+                <Link href="/auth/login" className="text-primary-600 font-semibold">{t('ac.forgot.appleHintLink')}</Link>
+              </p>
             </form>
           ) : (
             <div className="space-y-4">

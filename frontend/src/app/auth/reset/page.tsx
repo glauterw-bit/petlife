@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Lock, Mail, AlertCircle, CheckCircle, KeyRound, Eye, EyeOff, PawPrint } from 'lucide-react'
 import { auth } from '@/lib/api'
+import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
 
 function ResetPasswordInner() {
@@ -33,6 +34,7 @@ function ResetPasswordInner() {
     setLoading(true)
     try {
       await auth.resetPassword(email.trim().toLowerCase(), code.trim(), password)
+      track('password_reset_done')
       setSuccess(true)
       setTimeout(() => router.push('/auth/login'), 2200)
     } catch (err: unknown) {

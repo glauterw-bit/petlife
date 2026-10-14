@@ -15,6 +15,7 @@ export const APP_VERSION_KEY = 'petlife_app_version'
 const ANON = new Set([
   'page_view', 'ui_error', 'client_error', 'api_error', 'start_shown', 'start_step',
   'start_pet_done', 'register_view', 'login_view', 'apple_signin_start', 'apple_signin_error',
+  'forgot_requested', 'password_reset_done',
 ])
 
 function platform(): string {

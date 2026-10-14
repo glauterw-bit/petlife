@@ -51,6 +51,8 @@ ALLOWED = {
     "apple_signin_ok",     # entrou/criou conta pela Apple
     "nearby_maps_apple",   # abriu a busca de clínicas no Mapas da Apple
     "nearby_maps_google",  # abriu a busca de clínicas no Google Maps
+    "forgot_requested",    # pediu o código de recuperação de senha
+    "password_reset_done", # trocou a senha com o código
     "page_view",           # abriu uma tela (path normalizado, sem ids)
     "ui_error",            # o app mostrou uma mensagem de erro ao tutor
     "client_error",        # erro de JavaScript na tela
@@ -69,7 +71,7 @@ ALLOWED = {
 ANON_ALLOWED = {
     "page_view", "ui_error", "client_error", "api_error",
     "start_shown", "start_step", "start_pet_done", "register_view", "login_view",
-    "apple_signin_start", "apple_signin_error",
+    "apple_signin_start", "apple_signin_error", "forgot_requested", "password_reset_done",
 }
 
 
