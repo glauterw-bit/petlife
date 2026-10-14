@@ -94,6 +94,20 @@ async def scan_vaccine_card(
     if media_type not in ("image/jpeg", "image/png", "image/webp", "image/heic"):
         media_type = "image/jpeg"
 
+    # A IA aceita JPEG/PNG/WEBP até ~5 MB: reduz e converte para JPEG antes
+    # (fotos grandes ou fora desses formatos falhavam com 503).
+    try:
+        from io import BytesIO
+        from PIL import Image, ImageOps
+        im = ImageOps.exif_transpose(Image.open(BytesIO(contents))).convert("RGB")
+        im.thumbnail((1800, 1800))
+        buf = BytesIO()
+        im.save(buf, "JPEG", quality=88)
+        contents, media_type = buf.getvalue(), "image/jpeg"
+    except Exception:
+        if media_type == "image/heic":
+            raise HTTPException(status_code=415, detail="Formato de foto não suportado. Tire a foto de novo ou envie em JPG.")
+
     b64 = base64.b64encode(contents).decode("ascii")
     pet_info = {"species": pet.species.value if hasattr(pet.species, "value") else pet.species}
     try:
@@ -102,6 +116,8 @@ async def scan_vaccine_card(
         msg = str(e).lower()
         if "credit balance" in msg or "insufficient" in msg or "billing" in msg:
             raise HTTPException(status_code=503, detail="Leitura indisponível: crédito da IA esgotado.")
+        import logging
+        logging.getLogger(__name__).warning("scan-card falhou: %s", str(e)[:300])
         raise HTTPException(status_code=503, detail="Não consegui ler a carteirinha. Tente outra foto.")
 
 

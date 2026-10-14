@@ -43,6 +43,24 @@ export default function NearbyPage() {
   const [searched, setSearched] = useState(false)
 
   async function getLocation() {
+    // No app (iPhone/Android) a permissão é do sistema: usa o plugin nativo,
+    // que pede a autorização certa e explica onde liberar se foi negada.
+    const w = window as typeof window & { Capacitor?: { isNativePlatform?: () => boolean } }
+    if (w.Capacitor?.isNativePlatform?.()) {
+      setLocating(true)
+      try {
+        const { Geolocation } = await import('@capacitor/geolocation')
+        const perm = await Geolocation.requestPermissions({ permissions: ['location'] }).catch(() => null)
+        if (perm && perm.location === 'denied') { error(t('v.nearby.geoDeniedApp')); return }
+        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 15000 })
+        setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude })
+      } catch {
+        error(t('v.nearby.geoDeniedApp'))
+      } finally {
+        setLocating(false)
+      }
+      return
+    }
     if (!navigator.geolocation) { error(t('v.nearby.geoUnsupported')); return }
     setLocating(true)
     navigator.geolocation.getCurrentPosition(

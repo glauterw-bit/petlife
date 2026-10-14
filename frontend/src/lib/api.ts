@@ -1,3 +1,4 @@
+import { prepareImage } from '@/lib/image'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
 function getAuthHeaders(): HeadersInit {
@@ -36,7 +37,9 @@ async function handleResponse<T>(res: Response): Promise<T> {
     let message = `Erro ${res.status}`
     try {
       const data = await res.json()
-      message = data.detail || data.message || message
+      message = Array.isArray(data.detail)
+        ? 'Confira os dados informados e tente de novo.'
+        : (data.detail || data.message || message)
     } catch {}
     // 402 = quota do plano esgotada → abre o funil de upgrade (modal global)
     if (res.status === 402 && typeof window !== 'undefined') {
@@ -178,7 +181,7 @@ export const pets = {
   uploadPhoto: async (id: number, file: File) => {
     const token = localStorage.getItem('petlife_token')
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', await prepareImage(file))
     const res = await fetch(`${API_URL}/pets/${id}/photo`, {
       method: 'POST',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -295,7 +298,7 @@ export const vaccines = {
   /** Lê a carteirinha por foto. Não grava — devolve pro tutor conferir. */
   scanCard: async (petId: number, file: File) => {
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', await prepareImage(file, 2000, 0.9))
     const token = typeof window !== 'undefined' ? localStorage.getItem('petlife_token') : null
     const res = await fetch(`${API_URL}/vaccines/scan-card?pet_id=${petId}`, {
       method: 'POST',
@@ -350,7 +353,7 @@ export const vaccines = {
   uploadDocument: async (id: number, file: File) => {
     const token = localStorage.getItem('petlife_token')
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', file.type.startsWith('image/') ? await prepareImage(file, 2000, 0.9) : file)
     const res = await fetch(`${API_URL}/vaccines/${id}/upload-document`, {
       method: 'POST',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -397,7 +400,7 @@ export const exams = {
   uploadFile: async (id: number, file: File) => {
     const token = localStorage.getItem('petlife_token')
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', file.type.startsWith('image/') ? await prepareImage(file, 2000, 0.9) : file)
     const res = await fetch(`${API_URL}/exams/${id}/upload`, {
       method: 'POST',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -706,7 +709,7 @@ export const walks = {
   uploadPhoto: async (id: number, file: File) => {
     const token = localStorage.getItem('petlife_token')
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', await prepareImage(file))
     const res = await fetch(`${API_URL}/walks/${id}/photo`, {
       method: 'POST',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },

@@ -280,7 +280,10 @@ export default function PetProfilePage() {
                   const f = e.target.files?.[0]
                   if (!f) return
                   try { await petsApi.uploadPhoto(pet.id, f); success(t('pw.pet.photoUpdated')) }
-                  catch { showError(t('pw.pet.photoError')) }
+                  catch (err) {
+                    const m = err instanceof Error && err.message && !/fetch|network|load failed/i.test(err.message) ? err.message : ''
+                    showError(m ? `${t('pw.pet.photoError')} ${m}` : t('pw.pet.photoError'))
+                  }
                 }}
               />
             </label>

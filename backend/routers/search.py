@@ -7,6 +7,21 @@ from schemas import NearbyLocation
 router = APIRouter(prefix="/search", tags=["Busca por Localização"])
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# O servidor público principal do Overpass vive sobrecarregado (504) e recusa
+# clientes mal identificados (406). Tenta espelhos em ordem, com prazo curto
+# em cada um, e guarda o resultado por 12h (clínicas não mudam de lugar).
+OVERPASS_MIRRORS = [
+    "https://z.overpass-api.de/api/interpreter",
+    "https://overpass-api.de/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+]
+OVERPASS_HEADERS = {
+    "User-Agent": "PetLife/1.2 (+https://petlife-frontend-production.up.railway.app; glauterw@gmail.com)",
+    "Accept": "application/json",
+}
+_NEARBY_CACHE: dict = {}
+_NEARBY_TTL = 12 * 3600
 NOMINATIM_URL = "https://nominatim.openstreetmap.org"
 
 
@@ -123,26 +138,34 @@ async def search_nearby(
 
     query = _build_overpass_query(lat, lon, radius_m, type)
 
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                OVERPASS_URL,
-                data={"data": query},
-                headers={"User-Agent": "PetLife/1.0"},
-            )
-            response.raise_for_status()
-            data = response.json()
+    import time as _time
+    key = (round(lat, 2), round(lon, 2), radius_m, type)
+    hit = _NEARBY_CACHE.get(key)
+    if hit and _time.time() - hit[0] < _NEARBY_TTL:
+        return hit[1]
 
-        elements = data.get("elements", [])
-        locations = _parse_overpass_elements(elements, lat, lon, type)
-        return locations[:30]
-
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Timeout ao buscar locais. Tente novamente.")
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"Erro ao consultar mapa: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+    data = None
+    async with httpx.AsyncClient(timeout=httpx.Timeout(18.0, connect=6.0)) as client:
+        for url in OVERPASS_MIRRORS:
+            try:
+                response = await client.post(url, data={"data": query}, headers=OVERPASS_HEADERS)
+                if response.status_code != 200:
+                    continue
+                data = response.json()
+                break
+            except (httpx.HTTPError, ValueError):
+                continue
+    if data is None:
+        raise HTTPException(
+            status_code=503,
+            detail="O serviço de mapas está fora do ar agora. Tente de novo em alguns minutos.",
+        )
+    elements = data.get("elements", [])
+    locations = _parse_overpass_elements(elements, lat, lon, type)[:30]
+    _NEARBY_CACHE[key] = (_time.time(), locations)
+    if len(_NEARBY_CACHE) > 2000:
+        _NEARBY_CACHE.clear()
+    return locations
 
 
 @router.get("/geocode")
