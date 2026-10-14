@@ -6,6 +6,7 @@ import { MapPin, Phone, Star, Navigation, ExternalLink, Loader2 } from 'lucide-r
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { search, type NearbyPlace } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
 import { cn } from '@/lib/utils'
 
@@ -194,6 +195,33 @@ export default function NearbyPage() {
       ) : (
         <div className="bg-surface-50 dark:bg-surface-900/60 border border-surface-200 dark:border-surface-700 rounded-2xl p-8 mb-6 text-center text-sm text-surface-500 dark:text-surface-400">
           {t('v.nearby.mapPermission')}
+        </div>
+      )}
+
+      {/* Sempre disponível: a mesma busca no app de mapas do celular (base de
+          clínicas bem mais completa que a do OpenStreetMap no Brasil) */}
+      {coords && (
+        <div className="mb-5 rounded-2xl border border-surface-100 dark:border-surface-700 bg-white dark:bg-surface-800 p-4">
+          <p className="text-sm font-semibold text-surface-800 dark:text-surface-100">{t('v.nearby.mapsTitle')}</p>
+          <p className="text-xs text-surface-500 dark:text-surface-400 mb-3">{t('v.nearby.mapsHint')}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href={`https://maps.apple.com/?q=${encodeURIComponent(type === 'veterinary' ? t('v.nearby.mapsQueryVet') : t('v.nearby.mapsQueryShop'))}&sll=${coords.lat},${coords.lon}&z=14`}
+              target="_blank" rel="noreferrer"
+              onClick={() => track('nearby_maps_apple')}
+              className="text-center py-2.5 rounded-xl bg-surface-900 text-white text-sm font-semibold"
+            >
+              {t('v.nearby.openApple')}
+            </a>
+            <a
+              href={`https://www.google.com/maps/search/${encodeURIComponent(type === 'veterinary' ? t('v.nearby.mapsQueryVet') : t('v.nearby.mapsQueryShop'))}/@${coords.lat},${coords.lon},14z`}
+              target="_blank" rel="noreferrer"
+              onClick={() => track('nearby_maps_google')}
+              className="text-center py-2.5 rounded-xl bg-primary-500 text-white text-sm font-semibold"
+            >
+              {t('v.nearby.openGoogle')}
+            </a>
+          </div>
         </div>
       )}
 

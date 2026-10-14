@@ -774,14 +774,19 @@ export const search = {
     const backendType = type === 'veterinary' ? 'vet' : type
     const qs = new URLSearchParams({ lat: String(lat), lon: String(lon), type: backendType })
     if (radius) qs.set('radius', String(radius))
-    const res = await fetch(`${API_URL}/search/nearby?${qs}`, { headers: getAuthHeaders() })
     type RawPlace = NearbyPlace & { latitude?: number; longitude?: number }
-    const raw = await handleResponse<RawPlace[]>(res)
-    return raw.map(p => ({
-      ...p,
-      lat: p.lat ?? p.latitude,
-      lon: p.lon ?? p.longitude,
-    })) as NearbyPlace[]
+    try {
+      const res = await fetch(`${API_URL}/search/nearby?${qs}`, { headers: getAuthHeaders() })
+      const raw = await handleResponse<RawPlace[]>(res)
+      return raw.map(p => ({ ...p, lat: p.lat ?? p.latitude, lon: p.lon ?? p.longitude }))
+    } catch (err) {
+      // Os servidores públicos de mapa (Overpass) costumam recusar o IP do nosso
+      // servidor, que é compartilhado; o celular do tutor não é bloqueado.
+      // Então, se o servidor falhar, o próprio aparelho consulta o mapa.
+      const direct = await nearbyFromDevice(lat, lon, backendType, radius ?? 5).catch(() => null)
+      if (direct) return direct
+      throw err
+    }
   },
 }
 
@@ -2407,6 +2412,50 @@ export interface CreateReminderData {
   description?: string
   due_date: string
   type: string
+}
+
+// ── Busca de clínicas direto do aparelho (plano B do /search/nearby) ─────────
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://z.overpass-api.de/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter',
+]
+function haversineKm(a: number, b: number, c: number, d: number): number {
+  const r = (x: number) => (x * Math.PI) / 180
+  const h = Math.sin(r(c - a) / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(r(d - b) / 2) ** 2
+  return 6371 * 2 * Math.asin(Math.sqrt(h))
+}
+async function nearbyFromDevice(lat: number, lon: number, type: string, radiusKm: number): Promise<NearbyPlace[]> {
+  const f = type === 'vet' ? '["amenity"="veterinary"]' : '["shop"="pet"]'
+  const m = Math.round(Math.min(radiusKm, 50) * 1000)
+  const q = `[out:json][timeout:20];(node${f}(around:${m},${lat},${lon});way${f}(around:${m},${lat},${lon}););out center tags;`
+  for (const url of OVERPASS_MIRRORS) {
+    try {
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 15000)
+      const res = await fetch(url, { method: 'POST', body: new URLSearchParams({ data: q }), signal: ctrl.signal })
+      clearTimeout(timer)
+      if (!res.ok) continue
+      const data = await res.json() as { elements?: Array<{ lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }> }
+      const out: NearbyPlace[] = []
+      for (const el of data.elements ?? []) {
+        const la = el.lat ?? el.center?.lat
+        const lo = el.lon ?? el.center?.lon
+        if (la == null || lo == null) continue
+        const tg = el.tags ?? {}
+        const addr = [tg['addr:street'] && `${tg['addr:street']}${tg['addr:housenumber'] ? ', ' + tg['addr:housenumber'] : ''}`, tg['addr:city']].filter(Boolean).join(' · ')
+        out.push({
+          name: tg.name || tg.operator || 'Sem nome',
+          address: addr || tg['addr:full'] || '',
+          phone: tg.phone || tg['contact:phone'] || undefined,
+          distance_km: Math.round(haversineKm(lat, lon, la, lo) * 100) / 100,
+          lat: la, lon: lo, type,
+        })
+      }
+      return out.sort((a, b) => (a.distance_km ?? 0) - (b.distance_km ?? 0)).slice(0, 30)
+    } catch { /* tenta o próximo espelho */ }
+  }
+  throw new Error('mapa indisponível')
 }
 
 export interface NearbyPlace {

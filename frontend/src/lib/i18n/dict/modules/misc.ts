@@ -200,6 +200,12 @@ export const misc: LocaleBundle = {
 
     // ── Clínicas e pet shops próximos ─────────────────────────────────
     'v.nearby.title': 'Clínicas e Pet Shops',
+    'v.nearby.mapsTitle': 'Ver no app de mapas',
+    'v.nearby.mapsHint': 'Abre a busca já na sua região, com horários, avaliações e rotas.',
+    'v.nearby.mapsQueryVet': 'clínica veterinária',
+    'v.nearby.mapsQueryShop': 'pet shop',
+    'v.nearby.openApple': 'Mapas da Apple',
+    'v.nearby.openGoogle': 'Google Maps',
     'v.nearby.subtitle': 'Encontre estabelecimentos próximos a você',
     'v.nearby.geoUnsupported': 'Geolocalização não suportada pelo seu navegador.',
     'v.nearby.geoError': 'Não foi possível obter sua localização. Verifique as permissões do navegador.',
@@ -486,6 +492,12 @@ export const misc: LocaleBundle = {
 
     // ── Nearby clinics and pet shops ──────────────────────────────────
     'v.nearby.title': 'Clinics and Pet Shops',
+    'v.nearby.mapsTitle': 'Open in a maps app',
+    'v.nearby.mapsHint': 'Opens the search around you, with hours, reviews and directions.',
+    'v.nearby.mapsQueryVet': 'veterinary clinic',
+    'v.nearby.mapsQueryShop': 'pet store',
+    'v.nearby.openApple': 'Apple Maps',
+    'v.nearby.openGoogle': 'Google Maps',
     'v.nearby.subtitle': 'Find places near you',
     'v.nearby.geoUnsupported': 'Geolocation is not supported by your browser.',
     'v.nearby.geoError': 'Could not get your location. Check your browser permissions.',
@@ -772,6 +784,12 @@ export const misc: LocaleBundle = {
 
     // ── Clínicas y pet shops cercanos ─────────────────────────────────
     'v.nearby.title': 'Clínicas y Pet Shops',
+    'v.nearby.mapsTitle': 'Ver en una app de mapas',
+    'v.nearby.mapsHint': 'Abre la búsqueda en tu zona, con horarios, reseñas y rutas.',
+    'v.nearby.mapsQueryVet': 'clínica veterinaria',
+    'v.nearby.mapsQueryShop': 'tienda de mascotas',
+    'v.nearby.openApple': 'Mapas de Apple',
+    'v.nearby.openGoogle': 'Google Maps',
     'v.nearby.subtitle': 'Encuentra establecimientos cerca de ti',
     'v.nearby.geoUnsupported': 'Tu navegador no admite geolocalización.',
     'v.nearby.geoError': 'No fue posible obtener tu ubicación. Revisa los permisos del navegador.',

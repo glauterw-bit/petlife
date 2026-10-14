@@ -49,6 +49,8 @@ ALLOWED = {
     "start_pet_done",      # informou nome + espécie do pet antes da conta
     "apple_signin_start",  # tocou em "Continuar com a Apple"
     "apple_signin_ok",     # entrou/criou conta pela Apple
+    "nearby_maps_apple",   # abriu a busca de clínicas no Mapas da Apple
+    "nearby_maps_google",  # abriu a busca de clínicas no Google Maps
     "page_view",           # abriu uma tela (path normalizado, sem ids)
     "ui_error",            # o app mostrou uma mensagem de erro ao tutor
     "client_error",        # erro de JavaScript na tela

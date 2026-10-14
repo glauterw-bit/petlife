@@ -1,3 +1,4 @@
+import asyncio
 import anthropic
 import json
 from datetime import date
@@ -1187,7 +1188,8 @@ REGRAS:
   "raiva"/"antirrábica" → "Antirrábica"; "quádrupla"/"V4" → "V4 (Quádrupla felina)".
 """
 
-    msg = await client.messages.create(
+    msg = await asyncio.to_thread(client.messages.create,
+        **dict(
         model=MODEL,
         max_tokens=2000,
         messages=[{
@@ -1197,7 +1199,7 @@ REGRAS:
                 {"type": "text", "text": prompt},
             ],
         }],
-    )
+    ))
     raw = msg.content[0].text.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1].removeprefix("json").strip()

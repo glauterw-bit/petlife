@@ -13,9 +13,7 @@ OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 OVERPASS_MIRRORS = [
     "https://z.overpass-api.de/api/interpreter",
     "https://overpass-api.de/api/interpreter",
-    "https://lz4.overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
-]
+]  # poucos e rápidos: se falharem, o app consulta o mapa direto do aparelho
 OVERPASS_HEADERS = {
     "User-Agent": "PetLife/1.2 (+https://petlife-frontend-production.up.railway.app; glauterw@gmail.com)",
     "Accept": "application/json",
@@ -145,7 +143,7 @@ async def search_nearby(
         return hit[1]
 
     data = None
-    async with httpx.AsyncClient(timeout=httpx.Timeout(18.0, connect=6.0)) as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=4.0)) as client:
         for url in OVERPASS_MIRRORS:
             try:
                 response = await client.post(url, data={"data": query}, headers=OVERPASS_HEADERS)
