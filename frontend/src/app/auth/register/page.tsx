@@ -21,6 +21,8 @@ export default function RegisterPage() {
   const [petName, setPetName] = useState('')
   const [referralCode, setReferralCode] = useState('')
   useEffect(() => { setPetName(loadPetDraft()?.name ?? '') }, [])
+  const [fromInvite, setFromInvite] = useState(false)
+  useEffect(() => { try { setFromInvite(new URLSearchParams(window.location.search).get('convite') === '1') } catch {} }, [])
   const goNext = () => { void consumePetDraft().then(r => router.push(r)) }
 
   // Convite de indicação via link (?ref=PET-XXXXXX) — recompensa dupla
@@ -83,6 +85,11 @@ export default function RegisterPage() {
             <span className="text-2xl font-bold text-surface-900 dark:text-white">PetLife</span>
           </Link>
           <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">{petName ? t('ac.register.titlePet', { name: petName }) : t('ac.register.title')}</h1>
+          {fromInvite && (
+            <div className="mt-3 inline-flex items-center gap-2 bg-primary-50 border border-primary-200 text-primary-800 rounded-xl px-4 py-2 text-sm font-medium">
+              {t('ac.register.inviteBanner')}
+            </div>
+          )}
           {referralCode && (
             <div className="mt-3 inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-2 text-sm font-medium animate-slide-up">
               <Gift className="w-4 h-4 shrink-0" />

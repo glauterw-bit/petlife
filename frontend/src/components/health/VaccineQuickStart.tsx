@@ -32,10 +32,12 @@ function plusDays(iso: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-export function VaccineQuickStart({ pet, onCreated, onClose }: {
+export function VaccineQuickStart({ pet, onCreated, onClose, onPhoto }: {
   pet: QuickPet
   onCreated: (v: Vaccine) => void
   onClose: () => void
+  /** Tem a carteirinha de papel? Abre a leitura por foto (a IA preenche tudo). */
+  onPhoto?: () => void
 }) {
   const t = useT()
   const today = new Date().toISOString().slice(0, 10)
@@ -160,7 +162,21 @@ export function VaccineQuickStart({ pet, onCreated, onClose }: {
                 {t('h.qs.title', { name: pet.name })}
               </h3>
             </div>
-            <p className="text-xs text-surface-500 dark:text-surface-400 mb-5">{t('h.qs.subtitle')}</p>
+            <p className="text-xs text-surface-500 dark:text-surface-400 mb-4">{t('h.qs.subtitle')}</p>
+
+            {onPhoto && (
+              <button
+                type="button"
+                onClick={() => { track('quickstart_photo'); onPhoto() }}
+                className="pressable w-full mb-5 flex items-center gap-3 p-3.5 rounded-2xl border-2 border-primary-300 bg-primary-50/70 dark:bg-primary-900/20 text-left"
+              >
+                <span className="text-2xl leading-none">📸</span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-surface-900 dark:text-white">{t('h.qs.photoTitle')}</span>
+                  <span className="block text-xs text-surface-600 dark:text-surface-300">{t('h.qs.photoDesc')}</span>
+                </span>
+              </button>
+            )}
 
             <div className="space-y-4 mb-5">
               {names.map((name, i) => (

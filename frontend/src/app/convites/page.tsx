@@ -6,6 +6,7 @@ import { Users, Check, X, Loader2, PawPrint, MailOpen } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { innovations, type InviteEntry } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { savePendingInvite } from '@/lib/petDraft'
 import { useT } from '@/contexts/LocaleContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
@@ -30,12 +31,26 @@ function InvitesContent() {
     catch {} finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [])
+  // Sem login: guarda o convite e leva ao cadastro — antes aparecia
+  // "Not authenticated" e o convidado desistia.
+  const logged = typeof window !== 'undefined' && !!localStorage.getItem('petlife_token')
+  useEffect(() => {
+    if (logged) return
+    const token = search.get('token')
+    if (token) {
+      savePendingInvite(token)
+      router.replace('/auth/register?convite=1')
+    } else {
+      router.replace('/auth/login')
+    }
+  }, [logged, search, router])
+
+  useEffect(() => { if (logged) load() }, [logged])
 
   // Aceitar automaticamente se URL tem ?token=
   useEffect(() => {
     const token = search.get('token')
-    if (token) {
+    if (token && logged) {
       innovations.acceptInvite(token)
         .then(r => {
           success(t('g.inv.accepted', { name: r.pet_name }))

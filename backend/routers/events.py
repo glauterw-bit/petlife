@@ -41,6 +41,8 @@ ALLOWED = {
     "quickstart_saved",    # registrou ao menos uma vacina pelo quick-start
     "quickstart_skipped",  # pulou o quick-start
     "quickstart_invite",   # abriu o convite de co-tutor no fim do quick-start
+    "quickstart_photo",    # escolheu fotografar a carteirinha no quick-start
+    "vaccine_scan_ok",     # a leitura por foto devolveu vacinas
     "species_fix",         # confirmou a espécie num pet com raça divergente
     "soft_upsell_shown",   # convite de plano num momento de valor (PDF, recap, 3º pet)
     "soft_upsell_cta",     # tocou em "ver planos" no convite

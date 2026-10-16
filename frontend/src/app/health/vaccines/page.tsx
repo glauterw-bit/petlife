@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { vaccines as vaccinesApi, pets as petsApi, type Vaccine, type Pet, type ScannedVaccine } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
 import { trackHappyMoment } from '@/lib/review'
 import { getVaccineStatus } from '@/lib/utils'
@@ -154,6 +155,7 @@ function VaccinesPageInner() {
     setScanning(true); setScanned(null); setScanNote('')
     try {
       const r = await vaccinesApi.scanCard(Number(form.pet_id), file)
+      track('vaccine_scan_ok', { meta: `${(r as { vaccines?: unknown[] }).vaccines?.length ?? 0} vacinas` })
       if (r.image_quality === 'ruim' || !r.vaccines.length) {
         setScanNote(r.image_quality_notes || t('h.scan.nothingFound'))
       } else {
@@ -274,6 +276,7 @@ function VaccinesPageInner() {
           pet={{ id: quickStartPet.id, name: quickStartPet.name, species: String(quickStartPet.species) }}
           onCreated={v => setVaccineList(prev => [v, ...prev])}
           onClose={() => setQuickStartPet(null)}
+          onPhoto={() => { setQuickStartPet(null); setMode('scan'); setShowModal(true) }}
         />
       )}
 

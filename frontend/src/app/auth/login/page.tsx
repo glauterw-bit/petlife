@@ -7,6 +7,7 @@ import { Eye, EyeOff, PawPrint, Mail, Lock, AlertCircle, Info } from 'lucide-rea
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
 import { AppleSignInButton } from '@/components/auth/AppleSignInButton'
+import { takePendingInviteRoute } from '@/lib/petDraft'
 
 export default function LoginPage() {
   return (
@@ -48,7 +49,7 @@ function LoginInner() {
   // Sessão salva ainda válida não deve ver o formulário de novo.
   useEffect(() => {
     if (searchParams?.get('session_expired') === '1') return
-    if (!isLoading && user) router.replace(isVetUser ? '/vet/dashboard' : '/dashboard')
+    if (!isLoading && user) router.replace(isVetUser ? '/vet/dashboard' : (takePendingInviteRoute() ?? '/dashboard'))
   }, [isLoading, user, isVetUser, router, searchParams])
 
   async function handleSubmit(e: FormEvent) {
@@ -58,7 +59,7 @@ function LoginInner() {
     try {
       try { localStorage.setItem('petlife_last_email', email.trim().toLowerCase()) } catch {}
       await login(email, password, remember)
-      router.push('/dashboard')
+      router.push(takePendingInviteRoute() ?? '/dashboard')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('ac.login.error'))
     } finally {
@@ -96,7 +97,7 @@ function LoginInner() {
             </div>
           )}
 
-          <AppleSignInButton onSuccess={() => router.push('/dashboard')} />
+          <AppleSignInButton onSuccess={() => router.push(takePendingInviteRoute() ?? '/dashboard')} />
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
