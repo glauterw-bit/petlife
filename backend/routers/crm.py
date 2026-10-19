@@ -64,6 +64,12 @@ async def crm_ctx(current_user: User = Depends(get_current_user), db: AsyncSessi
     return Ctx(current_user, member, clinic)
 
 
+def _naive(v: datetime) -> datetime:
+    """Datas de filtro chegam do navegador com fuso ("…Z"); as colunas são sem fuso (UTC)."""
+    from datetime import timezone
+    return v.astimezone(timezone.utc).replace(tzinfo=None) if v.tzinfo else v
+
+
 def _dt(v: Optional[datetime]) -> Optional[str]:
     return v.isoformat() if v else None
 
@@ -610,6 +616,7 @@ async def _appt_out(db: AsyncSession, appts: list) -> list:
 
 @router.get("/appointments")
 async def list_appts(start: datetime, end: datetime, ctx: Ctx = Depends(crm_ctx), db: AsyncSession = Depends(get_db)):
+    start, end = _naive(start), _naive(end)
     if (end - start).days > 62:
         raise HTTPException(status_code=400, detail="Período máximo de 2 meses.")
     appts = (await db.execute(select(CrmAppointment).where(
@@ -731,6 +738,7 @@ async def create_sale(data: SaleIn, ctx: Ctx = Depends(crm_ctx), db: AsyncSessio
 
 @router.get("/sales")
 async def list_sales(start: datetime, end: datetime, status: str = "", ctx: Ctx = Depends(crm_ctx), db: AsyncSession = Depends(get_db)):
+    start, end = _naive(start), _naive(end)
     ctx.require("recepcao", "vet")
     stmt = select(CrmSale).where(CrmSale.clinic_id == ctx.clinic_id, CrmSale.created_at >= start, CrmSale.created_at < end)
     if status:
@@ -793,6 +801,7 @@ class ExpenseIn(BaseModel):
 
 @router.get("/expenses")
 async def list_expenses(start: datetime, end: datetime, ctx: Ctx = Depends(crm_ctx), db: AsyncSession = Depends(get_db)):
+    start, end = _naive(start), _naive(end)
     ctx.require()
     rows = (await db.execute(select(CrmExpense).where(
         CrmExpense.clinic_id == ctx.clinic_id,
