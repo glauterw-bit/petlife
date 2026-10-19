@@ -62,7 +62,7 @@ export default function LandingPage() {
   // O app nativo abre nesta página: sem isto, quem tinha sessão salva ("manter
   // conectado") caía na apresentação e digitava a senha de novo a cada abertura.
   useEffect(() => {
-    if (!isLoading && user) router.replace(isVetUser ? '/vet/dashboard' : '/dashboard')
+    if (!isLoading && user) router.replace(isVetUser ? '/clinica' : '/dashboard')
     // App nativo sem sessão: nada de página de apresentação do site (só em
     // português e longa) — vai direto pra primeira abertura guiada.
     else if (!isLoading && native) router.replace('/start')

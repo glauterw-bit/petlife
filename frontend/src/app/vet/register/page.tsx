@@ -66,7 +66,7 @@ export default function VetRegisterPage() {
       // o guard do /vet/dashboard lê o contexto e devolvia a clínica recém
       // cadastrada pra tela de login do tutor.
       adoptVetSession(res.access_token, res.clinic ?? { clinic_name: form.clinic_name }, form.email)
-      router.push('/vet/dashboard')
+      router.push('/clinica')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('v.vetreg.errGeneric'))
     } finally { setLoading(false) }

@@ -182,6 +182,11 @@ async def _run_migrations():
         f"ALTER TABLE users ADD COLUMN last_seen_at {timestamp_type}",
         "CREATE INDEX IF NOT EXISTS ix_users_last_seen ON users(last_seen_at)",
         "CREATE INDEX IF NOT EXISTS ix_usage_events_event_created ON usage_events(event, created_at)",
+        # PetLife Clínica (CRM): papel da pessoa na equipe
+        "ALTER TABLE clinic_vets ADD COLUMN role VARCHAR(20) DEFAULT 'admin'",
+        "ALTER TABLE vet_clinics ADD COLUMN business_type VARCHAR(20) DEFAULT 'clinica'",
+        "CREATE INDEX IF NOT EXISTS ix_crm_appt_clinic_start ON crm_appointments(clinic_id, starts_at)",
+        "CREATE INDEX IF NOT EXISTS ix_crm_sales_clinic_paid ON crm_sales(clinic_id, paid_at)",
         "CREATE INDEX IF NOT EXISTS ix_usage_events_user_created ON usage_events(user_id, created_at)",
         "CREATE INDEX IF NOT EXISTS ix_reset_req_created ON password_reset_requests(created_at)",
         # Indicação (recompensa dupla) + perfil público do pet

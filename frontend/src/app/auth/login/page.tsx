@@ -49,7 +49,7 @@ function LoginInner() {
   // Sessão salva ainda válida não deve ver o formulário de novo.
   useEffect(() => {
     if (searchParams?.get('session_expired') === '1') return
-    if (!isLoading && user) router.replace(isVetUser ? '/vet/dashboard' : (takePendingInviteRoute() ?? '/dashboard'))
+    if (!isLoading && user) router.replace(isVetUser ? '/clinica' : (takePendingInviteRoute() ?? '/dashboard'))
   }, [isLoading, user, isVetUser, router, searchParams])
 
   async function handleSubmit(e: FormEvent) {

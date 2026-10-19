@@ -26,7 +26,7 @@ export default function StartPage() {
   const [name, setName] = useState('')
 
   useEffect(() => {
-    if (!isLoading && user) router.replace(isVetUser ? '/vet/dashboard' : '/dashboard')
+    if (!isLoading && user) router.replace(isVetUser ? '/clinica' : '/dashboard')
   }, [isLoading, user, isVetUser, router])
 
   useEffect(() => {

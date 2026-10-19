@@ -400,6 +400,7 @@ class VetClinic(Base):
     plan = Column(String(50), default="free")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    business_type = Column(String(20), nullable=True, default="clinica")  # clinica | petshop | ambos
 
     vets = relationship("ClinicVet", back_populates="clinic", cascade="all, delete-orphan")
 
@@ -412,6 +413,8 @@ class ClinicVet(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     crmv = Column(String(50), nullable=True)
     specialty = Column(String(200), nullable=True)
+    # papel no CRM: admin (dono/gestor) | vet | recepcao | banho_tosa
+    role = Column(String(20), nullable=True, default="admin")
 
     clinic = relationship("VetClinic", back_populates="vets")
     user = relationship("User", back_populates="clinic_vets")
@@ -825,4 +828,156 @@ class PetHeatCycle(Base):
     started_at = Column(DateTime, nullable=False)
     ended_at = Column(DateTime, nullable=True)          # NULL = cio em andamento
     notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PetLife Clínica (CRM para clínicas veterinárias e pet shops)
+# Tudo é separado por clinic_id. Cliente/paciente podem estar ligados a um
+# tutor/pet do app PetLife (petlife_user_id / petlife_pet_id) — é a ponte que
+# leva vacinas registradas na clínica para a carteirinha do tutor no app.
+# ══════════════════════════════════════════════════════════════════════════════
+
+class CrmClient(Base):
+    __tablename__ = "crm_clients"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(200), nullable=False)
+    phone = Column(String(30), nullable=True, index=True)
+    email = Column(String(200), nullable=True)
+    document = Column(String(20), nullable=True)          # CPF/CNPJ (opcional)
+    address = Column(String(300), nullable=True)
+    notes = Column(Text, nullable=True)
+    petlife_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CrmPatient(Base):
+    __tablename__ = "crm_patients"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id = Column(Integer, ForeignKey("crm_clients.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(120), nullable=False)
+    species = Column(String(20), nullable=False, default="dog")   # dog | cat | other
+    breed = Column(String(120), nullable=True)
+    sex = Column(String(10), nullable=True)                        # male | female
+    birth_date = Column(DateTime, nullable=True)
+    weight_kg = Column(Float, nullable=True)
+    neutered = Column(Boolean, nullable=True)
+    microchip = Column(String(40), nullable=True)
+    color = Column(String(60), nullable=True)
+    notes = Column(Text, nullable=True)                            # alergias, temperamento…
+    deceased = Column(Boolean, default=False, nullable=False)
+    petlife_pet_id = Column(Integer, ForeignKey("pets.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CrmItem(Base):
+    """Catálogo: serviços (consulta, vacina, banho…) e produtos (com estoque)."""
+    __tablename__ = "crm_items"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind = Column(String(10), nullable=False, default="service")  # service | product
+    category = Column(String(40), nullable=True)                   # consulta, vacina, banho_tosa, medicamento, racao…
+    name = Column(String(200), nullable=False)
+    sku = Column(String(60), nullable=True)
+    price = Column(Float, nullable=False, default=0)
+    cost = Column(Float, nullable=True)
+    stock_qty = Column(Float, nullable=True)                       # só produtos
+    min_stock = Column(Float, nullable=True)
+    unit = Column(String(10), nullable=True, default="un")
+    duration_min = Column(Integer, nullable=True)                  # serviços (agenda)
+    active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CrmStockMove(Base):
+    __tablename__ = "crm_stock_moves"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    item_id = Column(Integer, ForeignKey("crm_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    qty = Column(Float, nullable=False)                            # + entrada / - saída
+    reason = Column(String(30), nullable=False, default="ajuste")  # entrada | venda | ajuste | perda
+    note = Column(String(200), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class CrmAppointment(Base):
+    __tablename__ = "crm_appointments"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id = Column(Integer, ForeignKey("crm_clients.id", ondelete="CASCADE"), nullable=False, index=True)
+    patient_id = Column(Integer, ForeignKey("crm_patients.id", ondelete="CASCADE"), nullable=True, index=True)
+    item_id = Column(Integer, ForeignKey("crm_items.id", ondelete="SET NULL"), nullable=True)
+    staff_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    type = Column(String(20), nullable=False, default="consulta")  # consulta|vacina|retorno|banho|tosa|banho_tosa|cirurgia|exame|outro
+    status = Column(String(20), nullable=False, default="agendado")  # agendado|confirmado|chegou|em_atendimento|concluido|faltou|cancelado
+    starts_at = Column(DateTime, nullable=False, index=True)
+    ends_at = Column(DateTime, nullable=True)
+    price = Column(Float, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CrmRecord(Base):
+    """Prontuário: consulta, vacina, exame, prescrição, banho e tosa, observação."""
+    __tablename__ = "crm_records"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    patient_id = Column(Integer, ForeignKey("crm_patients.id", ondelete="CASCADE"), nullable=False, index=True)
+    appointment_id = Column(Integer, ForeignKey("crm_appointments.id", ondelete="SET NULL"), nullable=True)
+    staff_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    kind = Column(String(20), nullable=False, default="consulta")
+    title = Column(String(200), nullable=False)
+    body = Column(Text, nullable=True)                 # anamnese, exame físico, conduta…
+    weight_kg = Column(Float, nullable=True)
+    temperature_c = Column(Float, nullable=True)
+    vaccine_name = Column(String(120), nullable=True)  # kind == vacina
+    vaccine_lot = Column(String(60), nullable=True)
+    next_due = Column(DateTime, nullable=True)         # próxima dose / retorno
+    petlife_vaccine_id = Column(Integer, ForeignKey("vaccines.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class CrmSale(Base):
+    __tablename__ = "crm_sales"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id = Column(Integer, ForeignKey("crm_clients.id", ondelete="SET NULL"), nullable=True, index=True)
+    patient_id = Column(Integer, ForeignKey("crm_patients.id", ondelete="SET NULL"), nullable=True)
+    appointment_id = Column(Integer, ForeignKey("crm_appointments.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    subtotal = Column(Float, nullable=False, default=0)
+    discount = Column(Float, nullable=False, default=0)
+    total = Column(Float, nullable=False, default=0)
+    payment_method = Column(String(20), nullable=True)   # dinheiro | pix | debito | credito | boleto | fiado
+    status = Column(String(10), nullable=False, default="paga")   # paga | aberta | cancelada
+    due_date = Column(DateTime, nullable=True)           # quando "aberta" (a receber)
+    paid_at = Column(DateTime, nullable=True, index=True)
+    notes = Column(String(300), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class CrmSaleItem(Base):
+    __tablename__ = "crm_sale_items"
+    id = Column(Integer, primary_key=True, index=True)
+    sale_id = Column(Integer, ForeignKey("crm_sales.id", ondelete="CASCADE"), nullable=False, index=True)
+    item_id = Column(Integer, ForeignKey("crm_items.id", ondelete="SET NULL"), nullable=True)
+    description = Column(String(200), nullable=False)
+    qty = Column(Float, nullable=False, default=1)
+    unit_price = Column(Float, nullable=False, default=0)
+    total = Column(Float, nullable=False, default=0)
+
+
+class CrmExpense(Base):
+    __tablename__ = "crm_expenses"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    description = Column(String(200), nullable=False)
+    category = Column(String(40), nullable=True)   # aluguel, salários, fornecedor, impostos…
+    amount = Column(Float, nullable=False)
+    due_date = Column(DateTime, nullable=True)
+    paid_at = Column(DateTime, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

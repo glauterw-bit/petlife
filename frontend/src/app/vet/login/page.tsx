@@ -24,7 +24,7 @@ export default function VetLoginPage() {
     setLoading(true)
     try {
       await vetLogin(email, password)
-      router.push('/vet/dashboard')
+      router.push('/clinica')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('v.vetlogin.invalid'))
     } finally { setLoading(false) }
