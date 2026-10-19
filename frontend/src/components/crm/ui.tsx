@@ -102,3 +102,11 @@ export function Empty({ children }: { children: ReactNode }) {
 export function Badge({ children, cls = '' }: { children: ReactNode; cls?: string }) {
   return <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ${cls}`}>{children}</span>
 }
+
+export const CATEGORY: Record<string, string> = {
+  consulta: 'Consultas', vacina: 'Vacinas', banho_tosa: 'Banho e tosa', exame: 'Exames', cirurgia: 'Cirurgias',
+  medicamento: 'Medicamentos', racao: 'Ração', acessorio: 'Acessórios', higiene: 'Higiene', outros: 'Outros',
+  service: 'Serviços', product: 'Produtos', aluguel: 'Aluguel', salarios: 'Salários', fornecedores: 'Fornecedores',
+  impostos: 'Impostos', energia_agua: 'Energia e água', marketing: 'Marketing', manutencao: 'Manutenção',
+}
+export const catLabel = (c?: string | null) => (c ? CATEGORY[c] ?? c : '—')

@@ -806,7 +806,7 @@ async def list_expenses(start: datetime, end: datetime, ctx: Ctx = Depends(crm_c
     rows = (await db.execute(select(CrmExpense).where(
         CrmExpense.clinic_id == ctx.clinic_id,
         or_(and_(CrmExpense.paid_at >= start, CrmExpense.paid_at < end),
-            and_(CrmExpense.paid_at.is_(None), CrmExpense.due_date < end)),
+            and_(CrmExpense.paid_at.is_(None), or_(CrmExpense.due_date.is_(None), CrmExpense.due_date < end))),
     ).order_by(CrmExpense.created_at.desc()))).scalars()
     return [{"id": e.id, "description": e.description, "category": e.category, "amount": e.amount,
              "due_date": _dt(e.due_date), "paid_at": _dt(e.paid_at)} for e in rows]

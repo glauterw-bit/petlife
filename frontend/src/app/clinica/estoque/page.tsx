@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { crm, type Item } from '@/lib/crmApi'
 import { useCrm, can } from '@/components/crm/CrmShell'
-import { Card, PageHead, Btn, Field, Input, Select, Empty, Badge, brl } from '@/components/crm/ui'
+import { Card, PageHead, Btn, Field, Input, Select, Empty, Badge, brl, catLabel } from '@/components/crm/ui'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/ToastContext'
 
@@ -59,7 +59,7 @@ export default function Estoque() {
               {items.map(i => (
                 <tr key={i.id} className={`border-b border-surface-50 dark:border-surface-700/50 ${!i.active ? 'opacity-50' : ''}`}>
                   <td className="p-3 font-medium text-surface-900 dark:text-white">{i.name}{!i.active && ' (inativo)'}{i.sku ? <span className="text-xs text-surface-400"> · {i.sku}</span> : null}</td>
-                  <td className="p-3 text-surface-500">{i.category ?? '—'}</td>
+                  <td className="p-3 text-surface-500">{catLabel(i.category)}</td>
                   <td className="p-3 text-right tabular-nums">{brl(i.price)}</td>
                   {tab === 'product' ? <>
                     <td className="p-3 text-right tabular-nums text-surface-500">{i.cost != null ? brl(i.cost) : '—'}</td>
@@ -81,7 +81,7 @@ export default function Estoque() {
           <div className="space-y-3">
             <Field label="Nome *"><Input value={edit.name ?? ''} onChange={e => setEdit({ ...edit, name: e.target.value })} /></Field>
             <div className="grid grid-cols-3 gap-3">
-              <Field label="Categoria"><Select value={edit.category ?? ''} onChange={e => setEdit({ ...edit, category: e.target.value || null })}><option value="">—</option>{CATS.map(c => <option key={c} value={c}>{c}</option>)}</Select></Field>
+              <Field label="Categoria"><Select value={edit.category ?? ''} onChange={e => setEdit({ ...edit, category: e.target.value || null })}><option value="">—</option>{CATS.map(c => <option key={c} value={c}>{catLabel(c)}</option>)}</Select></Field>
               <Field label="Preço (R$)"><Input inputMode="decimal" value={edit.price ?? ''} onChange={e => setEdit({ ...edit, price: e.target.value.replace(',', '.') as unknown as number })} /></Field>
               {(edit.kind ?? tab) === 'product'
                 ? <Field label="Custo (R$)"><Input inputMode="decimal" value={edit.cost ?? ''} onChange={e => setEdit({ ...edit, cost: e.target.value.replace(',', '.') as unknown as number })} /></Field>
