@@ -9,15 +9,26 @@ import { pets as petsApi } from '@/lib/api'
 
 const KEY = 'petlife_pet_draft_v1'
 const INVITE_KEY = 'petlife_pending_invite'
+const CLINIC_INVITE_KEY = 'petlife_pending_clinic_invite'
 
 /** Convite de co-tutor aberto sem login: guarda até a pessoa entrar. */
 export function savePendingInvite(token: string) {
   try { localStorage.setItem(INVITE_KEY, token) } catch {}
 }
 
-/** Rota do convite pendente (e limpa), ou null. */
+/** Convite de clínica (PetLife Clínica) aberto sem login: guarda até a pessoa entrar. */
+export function savePendingClinicInvite(token: string) {
+  try { localStorage.setItem(CLINIC_INVITE_KEY, token) } catch {}
+}
+
+/** Rota do convite pendente (e limpa), ou null. O convite da clínica tem a preferência. */
 export function takePendingInviteRoute(): string | null {
   try {
+    const clinic = localStorage.getItem(CLINIC_INVITE_KEY)
+    if (clinic) {
+      localStorage.removeItem(CLINIC_INVITE_KEY)
+      return `/clinica-convite/${encodeURIComponent(clinic)}`
+    }
     const tk = localStorage.getItem(INVITE_KEY)
     if (!tk) return null
     localStorage.removeItem(INVITE_KEY)

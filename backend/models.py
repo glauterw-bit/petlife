@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey,
-    Enum as SAEnum, JSON, or_, select as _select
+    Enum as SAEnum, JSON, or_, select as _select, Index, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -875,6 +875,12 @@ class CrmPatient(Base):
     deceased = Column(Boolean, default=False, nullable=False)
     petlife_pet_id = Column(Integer, ForeignKey("pets.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # alertas e ficha de banho e tosa
+    allergies = Column(String(500), nullable=True)
+    size = Column(String(10), nullable=True)                       # mini|pequeno|medio|grande|gigante
+    coat = Column(String(60), nullable=True)
+    temperament = Column(String(20), nullable=True)                # docil|agitado|medroso|agressivo
+    grooming_notes = Column(String(500), nullable=True)
 
 
 class CrmItem(Base):
@@ -923,6 +929,14 @@ class CrmAppointment(Base):
     price = Column(Float, nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    is_fit_in = Column(Boolean, default=False, nullable=False)    # encaixe
+    confirmed_at = Column(DateTime, nullable=True)
+    checked_in_at = Column(DateTime, nullable=True)
+    started_at = Column(DateTime, nullable=True)
+    ready_at = Column(DateTime, nullable=True)
+    finished_at = Column(DateTime, nullable=True)
+    confirm_sent_at = Column(DateTime, nullable=True)
+    ready_notified_at = Column(DateTime, nullable=True)
 
 
 class CrmRecord(Base):
@@ -943,6 +957,23 @@ class CrmRecord(Base):
     next_due = Column(DateTime, nullable=True)         # próxima dose / retorno
     petlife_vaccine_id = Column(Integer, ForeignKey("vaccines.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    # SOAP e sinais vitais
+    subjective = Column(Text, nullable=True)
+    objective = Column(Text, nullable=True)
+    assessment = Column(Text, nullable=True)
+    plan = Column(Text, nullable=True)
+    heart_rate = Column(Integer, nullable=True)
+    resp_rate = Column(Integer, nullable=True)
+    mucosa = Column(String(40), nullable=True)
+    hydration = Column(String(40), nullable=True)
+    body_score = Column(Integer, nullable=True)        # 1–9
+    performed_at = Column(DateTime, nullable=True)     # nulo = created_at
+    # trava em 24 h: depois disso só adendo ou anulação com motivo
+    voided_at = Column(DateTime, nullable=True)
+    void_reason = Column(String(300), nullable=True)
+    voided_by_user_id = Column(Integer, nullable=True)
+    updated_at = Column(DateTime, nullable=True)
+    reminded_at = Column(DateTime, nullable=True)
 
 
 class CrmSale(Base):
@@ -962,6 +993,7 @@ class CrmSale(Base):
     paid_at = Column(DateTime, nullable=True, index=True)
     notes = Column(String(300), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    cash_session_id = Column(Integer, nullable=True, index=True)
 
 
 class CrmSaleItem(Base):
@@ -973,6 +1005,7 @@ class CrmSaleItem(Base):
     qty = Column(Float, nullable=False, default=1)
     unit_price = Column(Float, nullable=False, default=0)
     total = Column(Float, nullable=False, default=0)
+    staff_user_id = Column(Integer, nullable=True)     # profissional (comissão)
 
 
 class CrmExpense(Base):
@@ -984,4 +1017,100 @@ class CrmExpense(Base):
     amount = Column(Float, nullable=False)
     due_date = Column(DateTime, nullable=True)
     paid_at = Column(DateTime, nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CrmWaitlist(Base):
+    """Lista de espera da agenda."""
+    __tablename__ = "crm_waitlist"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id = Column(Integer, ForeignKey("crm_clients.id", ondelete="CASCADE"), nullable=False, index=True)
+    patient_id = Column(Integer, ForeignKey("crm_patients.id", ondelete="SET NULL"), nullable=True)
+    item_id = Column(Integer, ForeignKey("crm_items.id", ondelete="SET NULL"), nullable=True)
+    staff_user_id = Column(Integer, nullable=True)
+    period = Column(String(10), nullable=False, default="qualquer")   # manha | tarde | qualquer
+    days = Column(String(40), nullable=True)                          # ex. 'seg,qua,sex'
+    notes = Column(String(500), nullable=True)
+    status = Column(String(12), nullable=False, default="aguardando")  # aguardando | agendado | cancelado
+    appointment_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CrmRecordAddendum(Base):
+    __tablename__ = "crm_record_addenda"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    record_id = Column(Integer, ForeignKey("crm_records.id", ondelete="CASCADE"), nullable=False, index=True)
+    staff_user_id = Column(Integer, nullable=True)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CrmRecordTemplate(Base):
+    __tablename__ = "crm_record_templates"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind = Column(String(20), nullable=False, default="consulta")
+    name = Column(String(120), nullable=False)
+    title = Column(String(200), nullable=True)
+    body = Column(Text, nullable=True)
+    subjective = Column(Text, nullable=True)
+    objective = Column(Text, nullable=True)
+    assessment = Column(Text, nullable=True)
+    plan = Column(Text, nullable=True)
+    created_by = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CrmCashSession(Base):
+    """Caixa diário: abertura, sangrias/reforços e fechamento com conferência."""
+    __tablename__ = "crm_cash_sessions"
+    __table_args__ = (Index("ix_crm_cash_sessions_clinic_closed", "clinic_id", "closed_at"),)
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    opened_by = Column(Integer, nullable=True)
+    opened_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    opening_amount = Column(Float, nullable=False, default=0)
+    closed_by = Column(Integer, nullable=True)
+    closed_at = Column(DateTime, nullable=True)
+    counted = Column(JSON, nullable=True)
+    expected = Column(JSON, nullable=True)
+    difference = Column(Float, nullable=True)
+    notes = Column(String(300), nullable=True)
+
+
+class CrmCashMove(Base):
+    __tablename__ = "crm_cash_moves"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    session_id = Column(Integer, ForeignKey("crm_cash_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind = Column(String(10), nullable=False)          # sangria | reforco
+    amount = Column(Float, nullable=False)
+    note = Column(String(200), nullable=True)
+    user_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CrmCommissionRate(Base):
+    __tablename__ = "crm_commission_rates"
+    __table_args__ = (UniqueConstraint("clinic_id", "user_id", "category", name="uq_crm_commission_rate"),)
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, nullable=False)
+    category = Column(String(40), nullable=True)       # nulo = padrão do profissional
+    pct = Column(Float, nullable=False, default=0)
+
+
+class CrmInvite(Base):
+    """Convite por link para o tutor ligar o paciente ao app (consentimento explícito)."""
+    __tablename__ = "crm_invites"
+    id = Column(Integer, primary_key=True, index=True)
+    clinic_id = Column(Integer, ForeignKey("vet_clinics.id", ondelete="CASCADE"), nullable=False, index=True)
+    patient_id = Column(Integer, ForeignKey("crm_patients.id", ondelete="CASCADE"), nullable=False, index=True)
+    code = Column(String(40), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    used_by_user_id = Column(Integer, nullable=True)
+    created_by = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

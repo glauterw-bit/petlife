@@ -44,6 +44,13 @@ const config: Config = {
           900: '#78350f',
           950: '#451a03',
         },
+        bg: 'rgb(var(--crm-bg) / <alpha-value>)',
+        panel: 'rgb(var(--crm-panel) / <alpha-value>)',
+        'panel-2': 'rgb(var(--crm-panel-2) / <alpha-value>)',
+        line: 'rgb(var(--crm-line) / <alpha-value>)',
+        ink: 'rgb(var(--crm-ink) / <alpha-value>)',
+        muted: 'rgb(var(--crm-muted) / <alpha-value>)',
+        brand: 'rgb(var(--crm-brand) / <alpha-value>)',
         surface: {
           50: '#fafaf9',
           100: '#f5f5f4',
@@ -62,7 +69,17 @@ const config: Config = {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['var(--font-display)', 'Inter', 'system-ui', 'sans-serif'],
       },
+      boxShadow: {
+        'crm-card': '0 1px 2px rgb(0 0 0 / .04), 0 0 0 1px rgb(var(--crm-line))',
+        'crm-pop': '0 12px 32px -8px rgb(0 0 0 / .22), 0 0 0 1px rgb(var(--crm-line))',
+        'crm-glow': '0 0 0 4px rgb(var(--crm-ring) / .2)',
+      },
+      fontSize: {
+        '2xs': ['11px', '16px'],
+        kpi: ['28px', { lineHeight: '32px', letterSpacing: '-0.02em' }],
+      },
       animation: {
+        'crm-shimmer': 'crm-shimmer 1.4s infinite',
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.4s ease-out',
         'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
@@ -70,6 +87,7 @@ const config: Config = {
         'flame': 'flame 1.4s ease-in-out infinite',
       },
       keyframes: {
+        'crm-shimmer': { '100%': { transform: 'translateX(100%)' } },
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },

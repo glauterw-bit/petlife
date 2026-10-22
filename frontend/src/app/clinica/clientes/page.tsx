@@ -1,52 +1,148 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { crm, type Client } from '@/lib/crmApi'
-import { Card, PageHead, Btn, Input, Empty, Badge, waLink, SPECIES } from '@/components/crm/ui'
+import { SearchX, Smartphone, UserPlus, Users } from 'lucide-react'
+import { crm, type ClientRow } from '@/lib/crmApi'
+import { useCrmChange } from '@/components/crm/CrmShell'
+import { Badge, Btn, Card, PageHead, brl, fmtDate, fmtPhone } from '@/components/crm/ui'
 import { ClientModal } from '@/components/crm/forms'
+import { DataList, EmptyState, PersonAvatar, PetAvatar, SearchInput, useDebounced, type Column } from '@/components/crm/kit'
+
+const PAGE = 50
+
+function PetChips({ pets }: { pets: ClientRow['patients'] }) {
+  if (!pets.length) return <span className="text-muted">—</span>
+  const shown = pets.slice(0, 3)
+  return (
+    <span className="flex items-center gap-1.5 flex-wrap">
+      {shown.map(p => (
+        <span key={p.id} className="inline-flex items-center gap-1.5 h-7 pl-0.5 pr-2.5 rounded-full bg-panel-2 text-xs font-medium text-ink max-w-[140px]">
+          <PetAvatar name={p.name} species={p.species} size="sm" />
+          <span className="truncate">{p.name}</span>
+        </span>
+      ))}
+      {pets.length > 3 && <span className="text-xs font-semibold text-muted tabular-nums">+{pets.length - 3}</span>}
+    </span>
+  )
+}
 
 export default function Clientes() {
   const router = useRouter()
   const [q, setQ] = useState('')
-  const [list, setList] = useState<Client[] | null>(null)
-  const [open, setOpen] = useState(false)
-  useEffect(() => {
-    const t = setTimeout(() => { crm.clients(q).then(setList).catch(() => setList([])) }, 250)
-    return () => clearTimeout(t)
-  }, [q])
+  const dq = useDebounced(q.trim(), 250)
+  const [rows, setRows] = useState<ClientRow[] | null>(null)
+  const [total, setTotal] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [more, setMore] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [modal, setModal] = useState(false)
+  const req = useRef(0)
+
+  const load = (search: string) => {
+    const id = ++req.current
+    setLoading(true)
+    crm.clientsPage(search, 0, PAGE).then(r => {
+      if (id !== req.current) return
+      setRows(r.items); setTotal(r.total); setError(null)
+    }).catch(e => {
+      if (id !== req.current) return
+      setError(e instanceof Error ? e.message : 'Não foi possível carregar.')
+    }).finally(() => { if (id === req.current) setLoading(false) })
+  }
+  useEffect(() => { load(dq) }, [dq]) // eslint-disable-line react-hooks/exhaustive-deps
+  useCrmChange(['client', 'patient', 'sale'], () => load(dq))
+
+  async function loadMore() {
+    if (!rows || more) return
+    const id = req.current
+    setMore(true)
+    try {
+      const r = await crm.clientsPage(dq, rows.length, PAGE)
+      if (id !== req.current) return
+      setRows(x => {
+        const seen = new Set((x ?? []).map(c => c.id))
+        return [...(x ?? []), ...r.items.filter(c => !seen.has(c.id))]
+      })
+      setTotal(r.total)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível carregar.')
+    } finally { setMore(false) }
+  }
+
+  const open = (c: ClientRow) => router.push(`/clinica/clientes/${c.id}`)
+  const columns: Column<ClientRow>[] = [
+    {
+      key: 'tutor', header: 'Tutor', cell: c => (
+        <span className="flex items-center gap-2.5 min-w-0">
+          <PersonAvatar name={c.name} size="sm" />
+          <span className="min-w-0">
+            <span className="block font-medium text-ink truncate">{c.name}</span>
+            {c.phone && <span className="block text-xs text-muted tabular-nums">{fmtPhone(c.phone)}</span>}
+          </span>
+        </span>
+      ),
+    },
+    { key: 'pets', header: 'Pets', cell: c => <PetChips pets={c.patients} /> },
+    {
+      key: 'open', header: 'Em aberto', align: 'right', cell: c => c.open_balance > 0
+        ? <span className="font-semibold text-red-600 dark:text-red-400">{brl(c.open_balance)}</span>
+        : <span className="text-muted">—</span>,
+    },
+    { key: 'last', header: 'Último atendimento', hideBelow: 'lg', cell: c => <span className={`tabular-nums ${c.last_visit ? '' : 'text-muted'}`}>{c.last_visit ? fmtDate(c.last_visit) : 'Nunca'}</span> },
+    { key: 'app', header: 'App', cell: c => c.petlife_linked ? <Badge tone="good">No app</Badge> : null },
+  ]
+
+  const sub = total == null ? undefined : total === 1 ? '1 cliente' : `${total.toLocaleString('pt-BR')} clientes`
+  const searching = !!dq
+
   return (
     <div>
-      <PageHead title="Clientes e pets" sub={list ? `${list.length} cliente${list.length === 1 ? '' : 's'}` : ''} actions={<Btn onClick={() => setOpen(true)}>+ Novo cliente</Btn>} />
-      <Input placeholder="Buscar por tutor, pet, telefone ou e-mail…" value={q} onChange={e => setQ(e.target.value)} className="mb-4" />
-      <Card className="!p-0 overflow-x-auto">
-        {list && list.length === 0 ? <Empty>Nenhum cliente encontrado.</Empty> : (
-          <table className="w-full text-sm">
-            <thead><tr className="text-left text-xs text-surface-500 dark:text-surface-400 border-b border-surface-100 dark:border-surface-700">
-              <th className="p-3 font-medium">Tutor</th><th className="p-3 font-medium">Pets</th><th className="p-3 font-medium">Contato</th><th className="p-3" />
-            </tr></thead>
-            <tbody>
-              {(list ?? []).map(c => {
-                const wa = waLink(c.phone, `Olá, ${c.name.split(' ')[0]}! 🐾`)
-                return (
-                  <tr key={c.id} className="border-b border-surface-50 dark:border-surface-700/50 hover:bg-surface-50 dark:hover:bg-surface-700/30 cursor-pointer" onClick={() => router.push(`/clinica/clientes/${c.id}`)}>
-                    <td className="p-3 font-semibold text-surface-900 dark:text-white">{c.name} {c.petlife_linked && <Badge cls="bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 ml-1">app</Badge>}</td>
-                    <td className="p-3 text-surface-700 dark:text-surface-200">
-                      {(c.patients ?? []).map(p => (
-                        <Link key={p.id} href={`/clinica/pacientes/${p.id}`} onClick={e => e.stopPropagation()} className="mr-2 hover:underline whitespace-nowrap">{SPECIES[p.species]?.split(' ')[0]} {p.name}</Link>
-                      ))}
-                    </td>
-                    <td className="p-3 text-surface-500 dark:text-surface-400 whitespace-nowrap">{c.phone || c.email || '—'}</td>
-                    <td className="p-3 text-right">{wa && <a href={wa} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-xs font-semibold text-emerald-700">WhatsApp</a>}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
+      <PageHead title="Clientes e pets" sub={searching && total != null ? `${sub} para "${dq}"` : sub}
+        actions={<Btn icon={UserPlus} onClick={() => setModal(true)}>Novo cliente</Btn>} />
+
+      <SearchInput value={q} onChange={setQ} shortcut="/" autoFocus={false} className="h-11 mb-4 [&_input]:text-[15px]"
+        placeholder="Buscar por tutor, pet, telefone ou e-mail" ariaLabel="Buscar clientes" />
+
+      <Card className="!p-2 md:!p-3">
+        <DataList
+          ariaLabel="Clientes"
+          rows={rows}
+          loading={loading}
+          error={error}
+          onRetry={() => load(dq)}
+          columns={columns}
+          rowKey={c => c.id}
+          onRowClick={open}
+          renderMobile={c => (
+            <div className="flex items-center gap-3 min-w-0">
+              <PersonAvatar name={c.name} />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-1.5 font-medium text-ink">
+                  <span className="truncate">{c.name}</span>
+                  {c.petlife_linked && <Smartphone className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" strokeWidth={1.75} aria-label="No app" />}
+                </p>
+                <p className="text-xs text-muted truncate tabular-nums">
+                  {[fmtPhone(c.phone), c.patients.map(p => p.name).join(', ')].filter(Boolean).join(' · ') || 'Sem pets'}
+                </p>
+              </div>
+              {c.open_balance > 0 && <span className="text-xs font-semibold text-red-600 dark:text-red-400 tabular-nums shrink-0">{brl(c.open_balance)}</span>}
+            </div>
+          )}
+          empty={searching
+            ? <EmptyState icon={SearchX} title={`Ninguém encontrado para "${dq}"`} hint="Confira a grafia ou busque pelo telefone." compact />
+            : <EmptyState icon={Users} title="Cadastre o primeiro cliente" hint="Tutor e pet em um só cadastro."
+                action={<Btn icon={UserPlus} onClick={() => setModal(true)}>Novo cliente</Btn>} />}
+          footer={rows && total != null && rows.length < total ? (
+            <div className="flex flex-col items-center gap-1 pb-1">
+              <Btn variant="outline" onClick={loadMore} loading={more}>Carregar mais</Btn>
+              <span className="text-2xs text-muted tabular-nums">Mostrando {rows.length} de {total}</span>
+            </div>
+          ) : undefined}
+        />
       </Card>
-      <ClientModal open={open} onClose={() => setOpen(false)} onSaved={c => router.push(`/clinica/clientes/${c.id}`)} />
+
+      <ClientModal open={modal} onClose={() => setModal(false)} onSaved={c => router.push(`/clinica/clientes/${c.id}`)} />
     </div>
   )
 }

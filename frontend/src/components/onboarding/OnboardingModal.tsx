@@ -46,6 +46,8 @@ export function OnboardingModal({ forceOpen = false }: OnboardingModalProps) {
   useEffect(() => {
     if (forceOpen) { setOpen(true); return }
     if (typeof window === 'undefined') return
+    // No convite da clínica a pessoa veio decidir o consentimento: o tour fica para a próxima tela.
+    if (window.location.pathname.startsWith('/clinica-convite')) return
     if (!localStorage.getItem(STORAGE_KEY)) setOpen(true)
   }, [forceOpen])
 

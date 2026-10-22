@@ -1,117 +1,141 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { ArrowLeftRight, Package, Pencil, Plus, Scissors } from 'lucide-react'
 import { crm, type Item } from '@/lib/crmApi'
-import { useCrm, can } from '@/components/crm/CrmShell'
-import { Card, PageHead, Btn, Field, Input, Select, Empty, Badge, brl, catLabel } from '@/components/crm/ui'
-import { Modal } from '@/components/ui/Modal'
-import { useToast } from '@/components/ui/ToastContext'
+import { can, useCrm } from '@/components/crm/CrmShell'
+import { Badge, Btn, Card, PageHead, brl, catLabel } from '@/components/crm/ui'
+import { Chip, DataList, EmptyState, Meter, SearchInput, Segmented, Switch, useAsync, type Column } from '@/components/crm/kit'
+import { ItemSheet } from '@/components/crm/caixa/ItemSheet'
+import { StockSheet } from '@/components/crm/caixa/StockSheet'
+import { qtyText } from '@/components/crm/caixa/shared'
 
-const CATS = ['consulta', 'vacina', 'banho_tosa', 'exame', 'cirurgia', 'medicamento', 'racao', 'acessorio', 'higiene', 'outros']
+const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const iconBtn = 'h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted hover:text-ink hover:bg-panel-2 transition-colors'
 
 export default function Estoque() {
   const { me } = useCrm()
-  const { error, success } = useToast()
-  const [tab, setTab] = useState<'service' | 'product'>('product')
-  const [items, setItems] = useState<Item[]>([])
-  const [edit, setEdit] = useState<Partial<Item> | null>(null)
-  const [stock, setStock] = useState<Item | null>(null)
-  const [mv, setMv] = useState({ qty: '', reason: 'entrada', note: '' })
   const admin = can(me.user.role)
-  const load = () => crm.items(tab, true).then(setItems).catch(() => {})
-  useEffect(() => { load() }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
+  const canMove = can(me.user.role, 'recepcao')
+  const [tab, setTab] = useState<'product' | 'service'>('product')
+  const [q, setQ] = useState('')
+  const [lowOnly, setLowOnly] = useState(false)
+  const [inactive, setInactive] = useState(false)
+  const [edit, setEdit] = useState<{ item: Item | null } | null>(null)
+  const [stock, setStock] = useState<Item | null>(null)
 
-  async function save() {
-    if (!edit?.name?.trim()) { error('Informe o nome.'); return }
-    try {
-      const body = { ...edit, kind: edit.kind ?? tab, price: Number(edit.price) || 0, cost: edit.cost != null && String(edit.cost) !== '' ? Number(edit.cost) : null,
-        min_stock: edit.min_stock != null && String(edit.min_stock) !== '' ? Number(edit.min_stock) : null,
-        duration_min: edit.duration_min != null && String(edit.duration_min) !== '' ? Number(edit.duration_min) : null, active: edit.active ?? true }
-      if (edit.id) await crm.updateItem(edit.id, body); else await crm.createItem(body)
-      success('Salvo.'); setEdit(null); load()
-    } catch (e) { error(e instanceof Error ? e.message : 'Erro') }
+  const st = useAsync(() => crm.items('', inactive), [inactive])
+  const all = st.data
+  const ofKind = (all ?? []).filter(i => i.kind === tab)
+  const lowCount = (all ?? []).filter(i => i.kind === 'product' && i.active && i.low_stock).length
+  const nq = norm(q.trim())
+  const rows = all
+    ? ofKind.filter(i => (!nq || norm(i.name).includes(nq) || norm(i.sku || '').includes(nq) || norm(catLabel(i.category)).includes(nq))
+        && (!lowOnly || tab !== 'product' || i.low_stock))
+    : null
+
+  const name = (i: Item) => (
+    <span className="inline-flex items-center gap-2 min-w-0">
+      <span className={`font-medium truncate ${i.active ? 'text-ink' : 'text-muted'}`}>{i.name}</span>
+      {!i.active && <Badge>Inativo</Badge>}
+    </span>
+  )
+  const margin = (i: Item) => (i.cost != null && i.price > 0 ? Math.round(((i.price - i.cost) / i.price) * 1000) / 10 : null)
+  const stockCell = (i: Item) => {
+    const v = i.stock_qty ?? 0
+    return (
+      <div className="flex items-center justify-end gap-2.5">
+        <Meter value={Math.max(0, v)} max={Math.max((i.min_stock ?? 0) * 3, v, 1)} danger={i.low_stock} className="w-16 hidden lg:block" />
+        <span className={`tabular-nums whitespace-nowrap ${i.low_stock ? 'font-semibold text-red-600 dark:text-red-400' : 'text-ink'}`}>{qtyText(v)} {i.unit ?? 'un'}</span>
+      </div>
+    )
   }
-  async function move() {
-    if (!stock || !Number(mv.qty)) { error('Informe a quantidade.'); return }
-    try { await crm.moveStock(stock.id, { qty: Number(mv.qty.replace(',', '.')), reason: mv.reason, note: mv.note || undefined }); success('Estoque atualizado.'); setStock(null); load() }
-    catch (e) { error(e instanceof Error ? e.message : 'Erro') }
-  }
-  const lowCount = items.filter(i => i.low_stock && i.active).length
+
+  const productCols: Column<Item>[] = [
+    { key: 'n', header: 'Nome', cell: name },
+    { key: 'sku', header: 'SKU', hideBelow: 'lg', cell: i => <span className="text-muted">{i.sku ?? '—'}</span> },
+    { key: 'c', header: 'Categoria', cell: i => <span className="text-muted">{catLabel(i.category)}</span> },
+    { key: 'p', header: 'Preço', align: 'right', cell: i => brl(i.price) },
+    { key: 'cost', header: 'Custo', align: 'right', hideBelow: 'lg', cell: i => <span className="text-muted">{i.cost != null ? brl(i.cost) : '—'}</span> },
+    { key: 'm', header: 'Margem', align: 'right', hideBelow: 'lg', cell: i => { const m = margin(i); return <span className="text-muted">{m != null ? `${m.toLocaleString('pt-BR')}%` : '—'}</span> } },
+    { key: 's', header: 'Estoque', align: 'right', cell: stockCell },
+  ]
+  const serviceCols: Column<Item>[] = [
+    { key: 'n', header: 'Nome', cell: name },
+    { key: 'c', header: 'Categoria', cell: i => <span className="text-muted">{catLabel(i.category)}</span> },
+    { key: 'p', header: 'Preço', align: 'right', cell: i => brl(i.price) },
+    { key: 'd', header: 'Duração', align: 'right', cell: i => <span className="text-muted">{i.duration_min ? `${i.duration_min} min` : '—'}</span> },
+  ]
 
   return (
     <div>
-      <PageHead title="Serviços e estoque" sub={tab === 'product' && lowCount ? `${lowCount} produto(s) com estoque baixo` : 'Catálogo usado na agenda e no caixa'}
-        actions={admin ? <Btn onClick={() => setEdit({ kind: tab, unit: 'un', active: true })}>+ {tab === 'product' ? 'Produto' : 'Serviço'}</Btn> : undefined} />
-      <div className="flex rounded-xl border border-surface-200 dark:border-surface-600 overflow-hidden w-fit mb-4">
-        {(['product', 'service'] as const).map(k => (
-          <button key={k} onClick={() => setTab(k)} className={`px-4 py-2 text-sm font-semibold ${tab === k ? 'bg-primary-500 text-white' : 'text-surface-600 dark:text-surface-300'}`}>{k === 'product' ? 'Produtos' : 'Serviços'}</button>
-        ))}
-      </div>
-      <Card className="!p-0 overflow-x-auto">
-        {items.length === 0 ? <Empty>Nada cadastrado.</Empty> : (
-          <table className="w-full text-sm">
-            <thead><tr className="text-left text-xs text-surface-500 border-b border-surface-100 dark:border-surface-700">
-              <th className="p-3 font-medium">Nome</th><th className="p-3 font-medium">Categoria</th><th className="p-3 font-medium text-right">Preço</th>
-              {tab === 'product' ? <><th className="p-3 font-medium text-right">Custo</th><th className="p-3 font-medium text-right">Estoque</th></> : <th className="p-3 font-medium text-right">Duração</th>}
-              <th className="p-3" />
-            </tr></thead>
-            <tbody>
-              {items.map(i => (
-                <tr key={i.id} className={`border-b border-surface-50 dark:border-surface-700/50 ${!i.active ? 'opacity-50' : ''}`}>
-                  <td className="p-3 font-medium text-surface-900 dark:text-white">{i.name}{!i.active && ' (inativo)'}{i.sku ? <span className="text-xs text-surface-400"> · {i.sku}</span> : null}</td>
-                  <td className="p-3 text-surface-500">{catLabel(i.category)}</td>
-                  <td className="p-3 text-right tabular-nums">{brl(i.price)}</td>
-                  {tab === 'product' ? <>
-                    <td className="p-3 text-right tabular-nums text-surface-500">{i.cost != null ? brl(i.cost) : '—'}</td>
-                    <td className="p-3 text-right tabular-nums">{i.low_stock ? <Badge cls="bg-red-100 text-red-700">{i.stock_qty ?? 0} {i.unit}</Badge> : `${i.stock_qty ?? 0} ${i.unit ?? ''}`}</td>
-                  </> : <td className="p-3 text-right text-surface-500">{i.duration_min ? `${i.duration_min} min` : '—'}</td>}
-                  <td className="p-3 text-right whitespace-nowrap">
-                    {tab === 'product' && <button className="text-xs font-semibold text-primary-700 mr-3" onClick={() => { setStock(i); setMv({ qty: '', reason: 'entrada', note: '' }) }}>Movimentar</button>}
-                    {admin && <button className="text-xs font-semibold text-surface-600" onClick={() => setEdit(i)}>Editar</button>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <PageHead title="Estoque e serviços"
+        sub={lowCount ? `${lowCount} ${lowCount === 1 ? 'produto' : 'produtos'} com estoque baixo` : 'Catálogo usado na agenda e no caixa'}
+        actions={admin ? <Btn icon={Plus} onClick={() => setEdit({ item: null })}>Novo item</Btn> : undefined} />
+
+      <Card>
+        <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+          <Segmented id="estoque" ariaLabel="Tipo de item" value={tab} onChange={v => setTab(v)}
+            options={[
+              { value: 'product', label: 'Produtos', icon: Package, count: all ? all.filter(i => i.kind === 'product').length : undefined },
+              { value: 'service', label: 'Serviços', icon: Scissors, count: all ? all.filter(i => i.kind === 'service').length : undefined },
+            ]} />
+          <SearchInput value={q} onChange={setQ} shortcut="/" placeholder="Buscar por nome, código ou categoria" className="flex-1" />
+          <div className="flex items-center gap-3 flex-wrap">
+            {tab === 'product' && <Chip active={lowOnly} onClick={() => setLowOnly(v => !v)} count={lowCount}>Só estoque baixo</Chip>}
+            <Switch checked={inactive} onChange={setInactive} label="Mostrar inativos" />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <DataList ariaLabel={tab === 'product' ? 'Produtos' : 'Serviços'} rows={rows} loading={st.loading} error={st.error} onRetry={st.reload}
+            columns={tab === 'product' ? productCols : serviceCols} rowKey={i => i.id}
+            onRowClick={i => setEdit({ item: i })}
+            empty={all && all.length === 0 ? (
+              <EmptyState icon={Package} title="Cadastre seus produtos e serviços"
+                hint="Eles aparecem no caixa e na agenda, com preço e estoque."
+                action={admin ? <Btn icon={Plus} onClick={() => setEdit({ item: null })}>Novo item</Btn> : undefined} />
+            ) : (
+              <EmptyState icon={Package} compact
+                title={lowOnly ? 'Nenhum produto com estoque baixo.' : q ? 'Nada encontrado.' : tab === 'product' ? 'Nenhum produto cadastrado.' : 'Nenhum serviço cadastrado.'} />
+            )}
+            rowActions={i => (
+              <>
+                {i.kind === 'product' && canMove && (
+                  <button type="button" className={iconBtn} onClick={() => setStock(i)} aria-label={`Movimentar estoque de ${i.name}`} title="Movimentar">
+                    <ArrowLeftRight className="w-4 h-4" strokeWidth={1.75} />
+                  </button>
+                )}
+                {admin && (
+                  <button type="button" className={`${iconBtn} hidden md:inline-flex`} onClick={() => setEdit({ item: i })} aria-label={`Editar ${i.name}`} title="Editar">
+                    <Pencil className="w-4 h-4" strokeWidth={1.75} />
+                  </button>
+                )}
+              </>
+            )}
+            renderMobile={i => (
+              <div className="min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  {name(i)}
+                  <span className="text-sm font-semibold tabular-nums text-ink">{brl(i.price)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2 mt-0.5 text-xs">
+                  <span className="text-muted truncate">{catLabel(i.category)}{i.kind === 'service' && i.duration_min ? ` · ${i.duration_min} min` : ''}</span>
+                  {i.kind === 'product' && (
+                    <span className={`tabular-nums ${i.low_stock ? 'font-semibold text-red-600 dark:text-red-400' : 'text-muted'}`}>{qtyText(i.stock_qty ?? 0)} {i.unit ?? 'un'}</span>
+                  )}
+                </div>
+              </div>
+            )} />
+        </div>
       </Card>
 
-      <Modal open={!!edit} onClose={() => setEdit(null)} title={edit?.id ? 'Editar' : tab === 'product' ? 'Novo produto' : 'Novo serviço'} size="lg">
-        {edit && (
-          <div className="space-y-3">
-            <Field label="Nome *"><Input value={edit.name ?? ''} onChange={e => setEdit({ ...edit, name: e.target.value })} /></Field>
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Categoria"><Select value={edit.category ?? ''} onChange={e => setEdit({ ...edit, category: e.target.value || null })}><option value="">—</option>{CATS.map(c => <option key={c} value={c}>{catLabel(c)}</option>)}</Select></Field>
-              <Field label="Preço (R$)"><Input inputMode="decimal" value={edit.price ?? ''} onChange={e => setEdit({ ...edit, price: e.target.value.replace(',', '.') as unknown as number })} /></Field>
-              {(edit.kind ?? tab) === 'product'
-                ? <Field label="Custo (R$)"><Input inputMode="decimal" value={edit.cost ?? ''} onChange={e => setEdit({ ...edit, cost: e.target.value.replace(',', '.') as unknown as number })} /></Field>
-                : <Field label="Duração (min)"><Input inputMode="numeric" value={edit.duration_min ?? ''} onChange={e => setEdit({ ...edit, duration_min: e.target.value as unknown as number })} /></Field>}
-            </div>
-            {(edit.kind ?? tab) === 'product' && (
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="Código / SKU"><Input value={edit.sku ?? ''} onChange={e => setEdit({ ...edit, sku: e.target.value || null })} /></Field>
-                <Field label="Unidade"><Input value={edit.unit ?? 'un'} onChange={e => setEdit({ ...edit, unit: e.target.value })} /></Field>
-                <Field label="Estoque mínimo"><Input inputMode="decimal" value={edit.min_stock ?? ''} onChange={e => setEdit({ ...edit, min_stock: e.target.value as unknown as number })} /></Field>
-              </div>
-            )}
-            {edit.id && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={edit.active ?? true} onChange={e => setEdit({ ...edit, active: e.target.checked })} /> Ativo</label>}
-            <div className="flex justify-end gap-2"><Btn variant="ghost" onClick={() => setEdit(null)}>Cancelar</Btn><Btn onClick={save}>Salvar</Btn></div>
-          </div>
-        )}
-      </Modal>
-      <Modal open={!!stock} onClose={() => setStock(null)} title={`Estoque · ${stock?.name ?? ''}`}>
-        <div className="space-y-3">
-          <p className="text-sm text-surface-500">Estoque atual: <b>{stock?.stock_qty ?? 0} {stock?.unit}</b></p>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Movimento"><Select value={mv.reason} onChange={e => setMv({ ...mv, reason: e.target.value })}>
-              <option value="entrada">Entrada (compra)</option><option value="perda">Perda / vencido</option><option value="ajuste">Ajuste (+ ou −)</option>
-            </Select></Field>
-            <Field label="Quantidade"><Input inputMode="decimal" value={mv.qty} onChange={e => setMv({ ...mv, qty: e.target.value })} placeholder={mv.reason === 'ajuste' ? 'ex.: -2 ou 5' : 'ex.: 10'} /></Field>
-          </div>
-          <Field label="Observação"><Input value={mv.note} onChange={e => setMv({ ...mv, note: e.target.value })} placeholder="Nota fiscal, fornecedor…" /></Field>
-          <div className="flex justify-end gap-2"><Btn variant="ghost" onClick={() => setStock(null)}>Cancelar</Btn><Btn onClick={move}>Confirmar</Btn></div>
-        </div>
-      </Modal>
+      <ItemSheet open={!!edit} item={edit?.item ?? null} defaultKind={tab} onClose={() => setEdit(null)} onSaved={st.reload} />
+      <StockSheet item={stock} onClose={() => setStock(null)} onDone={it => {
+        setStock(null)
+        if (all) st.setData(all.map(x => (x.id === it.id ? it : x)))
+        st.reload()
+      }} />
     </div>
   )
 }

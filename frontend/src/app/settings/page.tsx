@@ -5,7 +5,8 @@ import { useLocale, useT } from '@/contexts/LocaleContext'
 import { LOCALES, LOCALE_FLAG, LOCALE_LABEL } from '@/lib/i18n/types'
 
 import { useState, useEffect, FormEvent } from 'react'
-import { User, Mail, Phone, Lock, Save, Eye, EyeOff, AlertTriangle, Trash2 } from 'lucide-react'
+import { User, Mail, Phone, Lock, Save, Eye, EyeOff, AlertTriangle, Trash2, Building2, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
@@ -208,6 +209,20 @@ export default function SettingsPage() {
             </button>
           </form>
         </div>
+
+        <Link
+          href="/clinicas-com-acesso"
+          className="my-6 flex items-center gap-3 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6 hover:border-surface-200 dark:hover:border-surface-600 transition"
+        >
+          <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5 text-primary-600 dark:text-primary-300" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-semibold text-surface-900 dark:text-white">{t('ac.clinicAccess.title')}</h2>
+            <p className="text-sm text-surface-500 dark:text-surface-400">{t('ac.clinicAccess.sub')}</p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-surface-400 shrink-0" />
+        </Link>
 
         <LanguageSection />
         <ThemeSection />

@@ -210,6 +210,8 @@ export const account: LocaleBundle = {
 
     // Tour de boas-vindas
     'ac.tour.s1title': 'Bem-vindo ao PetLife!',
+    'ac.clinicAccess.title': 'Clínicas com acesso',
+    'ac.clinicAccess.sub': 'Veja e retire o acesso das clínicas aos seus pets.',
     'ac.tour.s1body': 'Cuide da saúde do seu pet com IA, lembretes inteligentes e uma carteirinha digital de verdade.',
     'ac.tour.s2title': 'Cadastra teu pet',
     'ac.tour.s2body': 'Não sabe a raça do vira-lata? Tira uma foto e a IA Vyron identifica em segundos. Já cadastra peso, microchip e dados de saúde.',
@@ -441,6 +443,8 @@ export const account: LocaleBundle = {
 
     // Welcome tour
     'ac.tour.s1title': 'Welcome to PetLife!',
+    'ac.clinicAccess.title': 'Clinics with access',
+    'ac.clinicAccess.sub': 'See and remove clinic access to your pets.',
     'ac.tour.s1body': "Care for your pet's health with AI, smart reminders and a real digital vaccine card.",
     'ac.tour.s2title': 'Add your pet',
     'ac.tour.s2body': "Not sure of your rescue's breed? Take a photo and Vyron AI identifies it in seconds. Log weight, microchip and health data too.",
@@ -672,6 +676,8 @@ export const account: LocaleBundle = {
 
     // Tour de bienvenida
     'ac.tour.s1title': '¡Bienvenido a PetLife!',
+    'ac.clinicAccess.title': 'Clínicas con acceso',
+    'ac.clinicAccess.sub': 'Ve y retira el acceso de las clínicas a tus mascotas.',
     'ac.tour.s1body': 'Cuida la salud de tu mascota con IA, recordatorios inteligentes y una cartilla digital de verdad.',
     'ac.tour.s2title': 'Registra tu mascota',
     'ac.tour.s2body': '¿No sabes la raza de tu mestizo? Toma una foto y Vyron IA la identifica en segundos. También registra peso, microchip y datos de salud.',

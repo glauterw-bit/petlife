@@ -498,3 +498,171 @@ async def revoke_clinic_access(
     access.revoked_at = datetime.utcnow()
     await db.commit()
     return {"message": "Acesso revogado"}
+
+
+# ─── Convite da clínica (PetLife Clínica → app do tutor) ─────────────────────
+# A clínica gera um link para um paciente. O tutor, logado no app, vê o que
+# será compartilhado, escolhe (ou cria) o pet e consente. O acesso pode ser
+# retirado a qualquer momento em Configurações › Clínicas com acesso.
+from pydantic import BaseModel as _BaseModel
+from typing import Optional as _Optional
+import unicodedata as _ud
+from models import CrmInvite, CrmPatient, CrmClient, CrmRecord
+import subscriptions as _subscriptions
+
+CLINIC_INVITE_SHARES = ["Vacinas aplicadas na clínica", "Próximas doses e lembretes"]
+
+
+def _norm_name(s: "str | None") -> str:
+    s = _ud.normalize("NFKD", (s or "").strip().lower())
+    return "".join(ch for ch in s if not _ud.combining(ch))
+
+
+def _species_val(v) -> str:
+    return getattr(v, "value", v) or ""
+
+
+async def _load_clinic_invite(db: AsyncSession, code: str):
+    inv = (await db.execute(select(CrmInvite).where(CrmInvite.code == code))).scalar_one_or_none()
+    if not inv:
+        raise HTTPException(status_code=404, detail="Convite não encontrado.")
+    clinic = await db.get(VetClinic, inv.clinic_id)
+    patient = await db.get(CrmPatient, inv.patient_id)
+    if inv.used_at or inv.expires_at <= datetime.utcnow() or not clinic or clinic.is_active is False or not patient:
+        raise HTTPException(status_code=410, detail="Este convite expirou ou já foi usado.")
+    return inv, clinic, patient
+
+
+async def _clinic_vaccine_records(db: AsyncSession, patient_id: int) -> list:
+    return (await db.execute(select(CrmRecord).where(
+        CrmRecord.patient_id == patient_id, CrmRecord.kind == "vacina", CrmRecord.voided_at.is_(None),
+        CrmRecord.petlife_vaccine_id.is_(None), CrmRecord.vaccine_name.is_not(None),
+    ).order_by(CrmRecord.created_at))).scalars().all()
+
+
+@router.get("/clinic-invite/{code}")
+async def clinic_invite_info(
+    code: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    inv, clinic, patient = await _load_clinic_invite(db, code)
+    pets = (await db.execute(
+        select(Pet).where(pet_accessible_filter(current_user.id), Pet.is_deceased.is_(False)).order_by(Pet.created_at)
+    )).scalars().all()
+    shared = set()
+    if pets:
+        shared = {pid for (pid,) in (await db.execute(select(PetClinicAccess.pet_id).where(
+            PetClinicAccess.clinic_id == clinic.id, PetClinicAccess.revoked_at.is_(None),
+            PetClinicAccess.pet_id.in_([p.id for p in pets])))).all()}
+    target, sp = _norm_name(patient.name), patient.species
+    suggested = None
+    if patient.petlife_pet_id and any(p.id == patient.petlife_pet_id for p in pets):
+        suggested = patient.petlife_pet_id
+    else:
+        for p in pets:
+            if _norm_name(p.name) == target and _species_val(p.species) == sp:
+                suggested = p.id
+                break
+    past = await _clinic_vaccine_records(db, patient.id)
+    return {
+        "clinic": {"id": clinic.id, "name": clinic.name, "city": clinic.city, "state": clinic.state},
+        "patient": {"name": patient.name, "species": patient.species},
+        "expires_at": inv.expires_at.isoformat(),
+        "shares": CLINIC_INVITE_SHARES,
+        "pets": [{"id": p.id, "name": p.name, "species": _species_val(p.species), "already_shared": p.id in shared}
+                 for p in pets],
+        "suggested_pet_id": suggested,
+        "past_vaccines_count": len(past),
+    }
+
+
+class ClinicInviteAccept(_BaseModel):
+    pet_id: _Optional[int] = None
+    create_pet: bool = False
+    import_past_vaccines: bool = True
+
+
+@router.post("/clinic-invite/{code}/accept")
+async def clinic_invite_accept(
+    code: str,
+    data: ClinicInviteAccept,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    inv, clinic, patient = await _load_clinic_invite(db, code)
+    if data.create_pet:
+        if patient.species not in ("dog", "cat"):
+            raise HTTPException(status_code=400, detail="O app aceita só cães e gatos. Escolha um pet que já está no app.")
+        await _subscriptions.check_quota(db, current_user, "pets")
+        pet = Pet(user_id=current_user.id, name=patient.name[:100], species=patient.species,
+                  birth_date=patient.birth_date, weight=patient.weight_kg, color=patient.color,
+                  neutered=bool(patient.neutered), microchip=patient.microchip)
+        db.add(pet)
+        await db.flush()
+    else:
+        if not data.pet_id:
+            raise HTTPException(status_code=400, detail="Escolha o pet ou crie um novo.")
+        pet = (await db.execute(select(Pet).where(Pet.id == data.pet_id, pet_accessible_filter(current_user.id)))).scalar_one_or_none()
+        if not pet:
+            raise HTTPException(status_code=404, detail="Pet não encontrado")
+    if patient.petlife_pet_id and patient.petlife_pet_id != pet.id:
+        raise HTTPException(status_code=409, detail="Este paciente já está ligado a outro pet no app.")
+    other = (await db.execute(select(CrmPatient.id).where(
+        CrmPatient.clinic_id == clinic.id, CrmPatient.petlife_pet_id == pet.id, CrmPatient.id != patient.id))).first()
+    if other:
+        raise HTTPException(status_code=409, detail="Este pet já está ligado a outro cadastro desta clínica.")
+
+    active = (await db.execute(select(PetClinicAccess).where(
+        PetClinicAccess.pet_id == pet.id, PetClinicAccess.clinic_id == clinic.id, PetClinicAccess.revoked_at.is_(None)
+    ))).scalars().first()
+    now = datetime.utcnow()
+    if not active:
+        db.add(PetClinicAccess(pet_id=pet.id, clinic_id=clinic.id, granted_by_user_id=current_user.id, granted_at=now))
+    patient.petlife_pet_id = pet.id
+    client = await db.get(CrmClient, patient.client_id)
+    if client and client.petlife_user_id is None:
+        client.petlife_user_id = current_user.id
+    inv.used_at, inv.used_by_user_id = now, current_user.id
+
+    imported = 0
+    if data.import_past_vaccines:
+        existing = {(_norm_name(v.name), v.date_given.date()) for v in (await db.execute(
+            select(Vaccine).where(Vaccine.pet_id == pet.id))).scalars() if v.date_given}
+        recs = await _clinic_vaccine_records(db, patient.id)
+        staff_ids = {r.staff_user_id for r in recs if r.staff_user_id}
+        staff = {u.id: u.name for u in (await db.execute(select(User).where(User.id.in_(staff_ids or {0})))).scalars()}
+        for r in recs:
+            given = r.performed_at or r.created_at
+            key = (_norm_name(r.vaccine_name), given.date())
+            if key in existing:
+                continue
+            who = staff.get(r.staff_user_id)
+            v = Vaccine(pet_id=pet.id, name=r.vaccine_name, date_given=given, next_due=r.next_due,
+                        lot_number=r.vaccine_lot,
+                        veterinarian=(f"{who} · {clinic.name}" if who else clinic.name)[:200],
+                        notes="Registrada pela clínica no PetLife Clínica")
+            db.add(v)
+            await db.flush()
+            r.petlife_vaccine_id = v.id
+            existing.add(key)
+            imported += 1
+    await db.commit()
+    return {"ok": True, "pet_id": pet.id, "clinic_name": clinic.name, "imported_vaccines": imported}
+
+
+@router.get("/my-clinic-access")
+async def my_clinic_access(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (await db.execute(
+        select(PetClinicAccess, Pet, VetClinic)
+        .join(Pet, Pet.id == PetClinicAccess.pet_id)
+        .join(VetClinic, VetClinic.id == PetClinicAccess.clinic_id)
+        .where(pet_accessible_filter(current_user.id), PetClinicAccess.revoked_at.is_(None))
+        .order_by(PetClinicAccess.granted_at.desc())
+    )).all()
+    return [{"pet_id": pet.id, "pet_name": pet.name, "clinic_id": c.id, "clinic_name": c.name,
+             "clinic_city": c.city, "granted_at": acc.granted_at.isoformat() if acc.granted_at else None}
+            for acc, pet, c in rows]
