@@ -170,6 +170,7 @@ export default function PlansPage() {
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             {t('ac.plans.subtitle')}
           </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('ac.plans.notInsurance')}</p>
         </div>
 
         {/* Status de quem já assina: sem isso, quem acabou de comprar não sabe se deu certo */}
