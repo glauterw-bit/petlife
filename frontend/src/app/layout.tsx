@@ -15,6 +15,7 @@ const inter = Inter({ subsets: ['latin'] })
 const nunito = Nunito({ subsets: ['latin'], weight: ['700', '800'], variable: '--font-display' })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://petlife-frontend-production.up.railway.app'),
   title: 'PetLife — O cuidado que seu pet merece',
   description:
     'Gerencie a saúde do seu pet com tecnologia e carinho. Vacinas, exames, rotinas e muito mais.',
@@ -32,10 +33,13 @@ export const metadata: Metadata = {
     apple: '/icons/icon.svg',
   },
   openGraph: {
-    title: 'PetLife — O cuidado que seu pet merece',
-    description: 'Plataforma completa para cuidar da saúde do seu pet.',
+    title: 'PetLife — Carteirinha de vacinação do pet no celular',
+    description: 'Vacinas, lembretes antes de cada dose e carteirinha para mandar ao hotel, creche ou veterinário. Grátis.',
     type: 'website',
+    images: [{ url: '/og.png', width: 1200, height: 514 }],
   },
+  // Banner "Abrir na App Store" do Safari no iPhone (não aparece dentro do app)
+  other: { 'apple-itunes-app': 'app-id=6768136468' },
 }
 
 export const viewport = {

@@ -64,6 +64,8 @@ async def create_vaccine(
         notes=data.notes,
     )
     db.add(vaccine)
+    from routers.growth import reward_referral_on_activation
+    await reward_referral_on_activation(db, current_user)
     await db.commit()
     await db.refresh(vaccine)
     return vaccine

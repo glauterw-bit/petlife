@@ -20,6 +20,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [petName, setPetName] = useState('')
   const [referralCode, setReferralCode] = useState('')
+  const [codeOpen, setCodeOpen] = useState(false)
   useEffect(() => { setPetName(loadPetDraft()?.name ?? '') }, [])
   const [fromInvite, setFromInvite] = useState(false)
   useEffect(() => { try { setFromInvite(new URLSearchParams(window.location.search).get('convite') === '1') } catch {} }, [])
@@ -109,6 +110,19 @@ export default function RegisterPage() {
           )}
 
           <AppleSignInButton onSuccess={goNext} referralCode={referralCode} />
+          {!referralCode && !codeOpen && (
+            <button type="button" onClick={() => setCodeOpen(true)} className="w-full text-center text-xs text-primary-600 dark:text-primary-400 underline mt-2">
+              {t('ac.register.haveCode')}
+            </button>
+          )}
+          {codeOpen && !referralCode && (
+            <input
+              autoFocus
+              placeholder="PET-XXXXXX"
+              onBlur={e => { const v = e.target.value.trim().toUpperCase(); if (v.length >= 6) setReferralCode(v) }}
+              className="w-full mt-2 px-3 py-2.5 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm text-center tracking-wider"
+            />
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

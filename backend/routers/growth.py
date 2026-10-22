@@ -1,8 +1,9 @@
 """Growth: programa de indicação (recompensa dupla) + perfil público do pet.
 
 Indicação: cada usuário tem um código (ex.: PET-A3F9K2). Quem se cadastra com um
-código ganha 30 dias de PetLife+ — e quem indicou também. Bônus nunca rebaixa
-tier pago ativo: para assinante ativo, apenas estende a expiração.
+código fica ligado a quem indicou; quando cadastra a primeira vacina, os dois
+ganham 30 dias de PetLife+. Pagar só na ativação corta contas de fachada. Bônus
+nunca rebaixa tier pago ativo: para assinante ativo, apenas estende a expiração.
 
 Perfil público: tutor ativa e ganha /p/<slug> — página bonita e segura (só nome,
 espécie, raça, idade, foto, bio e stats agregadas; nunca dados do tutor).
@@ -63,6 +64,14 @@ def grant_bonus(user: User) -> None:
         user.active_product_sku = "referral_bonus"
 
 
+CODE_ENTRY_DAYS = 7  # quem instalou pela loja pode digitar o código depois do cadastro
+
+
+def _can_enter_code(user: User) -> bool:
+    return (not user.referred_by_id and user.created_at is not None
+            and datetime.utcnow() - user.created_at < timedelta(days=CODE_ENTRY_DAYS))
+
+
 @router.get("/referrals/me")
 async def my_referral(
     current_user: User = Depends(get_current_user),
@@ -72,27 +81,67 @@ async def my_referral(
     count_q = await db.execute(
         select(func.count(User.id)).where(User.referred_by_id == current_user.id)
     )
+    active_q = await db.execute(
+        select(func.count(User.id)).where(User.referred_by_id == current_user.id, User.referral_rewarded_at.isnot(None))
+    )
     return {
         "code": code,
         "referred_count": count_q.scalar() or 0,
+        "activated_count": active_q.scalar() or 0,
         "bonus_days": BONUS_DAYS,
         "bonus_tier": BONUS_TIER,
+        "can_enter_code": _can_enter_code(current_user),
     }
 
 
 async def redeem_referral(db: AsyncSession, new_user: User, code: str) -> bool:
-    """Aplica o código no cadastro. Chamado pelo register. Silencioso se inválido."""
+    """Liga o novo usuário a quem indicou. A recompensa vem na primeira vacina."""
     code = (code or "").strip().upper()
     if not code:
         return False
     ref_q = await db.execute(select(User).where(User.referral_code == code))
     referrer = ref_q.scalar_one_or_none()
-    if not referrer or referrer.id == new_user.id:
+    if not referrer or referrer.id == new_user.id or referrer.referred_by_id == new_user.id:
         return False
     new_user.referred_by_id = referrer.id
-    grant_bonus(new_user)
-    grant_bonus(referrer)
     return True
+
+
+async def reward_referral_on_activation(db: AsyncSession, user: User) -> None:
+    """Chamado ao salvar uma vacina: na primeira, os dois ganham o bônus (uma vez)."""
+    if not user.referred_by_id or user.referral_rewarded_at:
+        return
+    referrer = await db.get(User, user.referred_by_id)
+    user.referral_rewarded_at = datetime.utcnow()
+    grant_bonus(user)
+    if referrer:
+        grant_bonus(referrer)
+
+
+class CodeIn(BaseModel):
+    code: str
+
+
+@router.post("/referrals/redeem")
+async def redeem_after_signup(
+    body: CodeIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Para quem baixou pela loja e só depois lembrou do código do amigo."""
+    if not _can_enter_code(current_user):
+        raise HTTPException(status_code=400, detail="O código só pode ser usado nos primeiros 7 dias de conta.")
+    if not await redeem_referral(db, current_user, body.code):
+        raise HTTPException(status_code=404, detail="Código não encontrado. Confira com quem te convidou.")
+    from routers.events import track_event
+    await track_event(db, current_user.id, "referral_code_entered")
+    has_vaccine = await db.execute(
+        select(func.count(Vaccine.id)).join(Pet, Pet.id == Vaccine.pet_id).where(Pet.user_id == current_user.id)
+    )
+    if (has_vaccine.scalar() or 0) > 0:
+        await reward_referral_on_activation(db, current_user)
+    await db.commit()
+    return {"ok": True, "rewarded": bool(current_user.referral_rewarded_at)}
 
 
 # ─── Perfil público do pet ───────────────────────────────────────────────────

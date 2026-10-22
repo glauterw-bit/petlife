@@ -9,13 +9,16 @@ import { useT } from '@/contexts/LocaleContext'
 const APP_URL = 'https://petlife-frontend-production.up.railway.app'
 
 /**
- * Convide & Ganhe — recompensa dupla: quem indica e quem entra ganham
- * 30 dias de PetLife+. Compartilha via WhatsApp/Web Share ou copia o link.
+ * Convide & Ganhe — recompensa dupla: quando o amigo cadastra a primeira
+ * vacina, os dois ganham 30 dias de PetLife+. O link /i/<código> manda iPhone
+ * para a App Store mostrando o código, e o resto para o cadastro web.
  */
 export function ReferralCard() {
   const t = useT()
   const [info, setInfo] = useState<ReferralInfo | null>(null)
   const [copied, setCopied] = useState(false)
+  const [codeIn, setCodeIn] = useState('')
+  const [codeMsg, setCodeMsg] = useState('')
 
   useEffect(() => {
     growth.myReferral().then(setInfo).catch(() => {})
@@ -23,7 +26,7 @@ export function ReferralCard() {
 
   if (!info) return null
 
-  const link = `${APP_URL}/auth/register?ref=${info.code}`
+  const link = `${APP_URL}/i/${info.code}`
   const message = t('g.ref.shareMsg', { days: info.bonus_days, link })
 
   async function copy() {
@@ -35,8 +38,19 @@ export function ReferralCard() {
     } catch {}
   }
 
+  async function redeem() {
+    try {
+      const r = await growth.redeemCode(codeIn)
+      setCodeMsg(r.rewarded ? t('g.ref.codeRewarded', { days: info?.bonus_days ?? 30 }) : t('g.ref.codeOk'))
+      setInfo(i => (i ? { ...i, can_enter_code: false } : i))
+    } catch (e) {
+      setCodeMsg(e instanceof Error ? e.message : t('g.ref.codeErr'))
+    }
+  }
+
   async function share() {
     void hapticLight()
+    void import('@/lib/track').then(m => m.track('share_sent', { meta: 'indicacao' })).catch(() => {})
     const nav = navigator as Navigator & { share?: (d: { text: string }) => Promise<void> }
     if (nav.share) {
       try { await nav.share({ text: message }); return } catch {}
@@ -75,6 +89,24 @@ export function ReferralCard() {
         <Share2 className="w-4 h-4" />
         {t('g.ref.inviteWhatsApp')}
       </button>
+
+      {info.can_enter_code && (
+        <div className="mt-3 pt-3 border-t border-white/20">
+          <p className="text-xs text-emerald-50 mb-2">{t('g.ref.haveCode')}</p>
+          <div className="flex gap-2">
+            <input
+              value={codeIn}
+              onChange={e => setCodeIn(e.target.value.toUpperCase())}
+              placeholder="PET-XXXXXX"
+              className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm text-surface-900 bg-white/90"
+            />
+            <button onClick={redeem} disabled={codeIn.length < 6} className="pressable shrink-0 bg-white/20 hover:bg-white/30 rounded-xl px-3 text-sm font-semibold disabled:opacity-50">
+              {t('g.ref.apply')}
+            </button>
+          </div>
+        </div>
+      )}
+      {codeMsg && <p className="text-xs text-white mt-2">{codeMsg}</p>}
 
       {info.referred_count > 0 && (
         <p className="text-xs text-emerald-100 mt-3 text-center">

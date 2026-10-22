@@ -2027,8 +2027,10 @@ export const support = {
 export interface ReferralInfo {
   code: string
   referred_count: number
+  activated_count?: number
   bonus_days: number
   bonus_tier: string
+  can_enter_code?: boolean
 }
 
 export interface PublicPetProfile {
@@ -2112,6 +2114,14 @@ export const growth = {
   myReferral: async () => {
     const res = await fetch(`${API_URL}/referrals/me`, { headers: getAuthHeaders() })
     return handleResponse<ReferralInfo>(res)
+  },
+  redeemCode: async (code: string) => {
+    const res = await fetch(`${API_URL}/referrals/redeem`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ code }),
+    })
+    return handleResponse<{ ok: boolean; rewarded: boolean }>(res)
   },
   togglePublicProfile: async (petId: number, isPublic: boolean) => {
     const res = await fetch(`${API_URL}/pets/${petId}/public-profile`, {

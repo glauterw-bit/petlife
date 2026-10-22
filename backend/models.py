@@ -85,6 +85,7 @@ class User(Base):
     # ─── Indicação (recompensa dupla) ────────────────────────────────────────
     referral_code = Column(String(12), unique=True, nullable=True, index=True)
     referred_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    referral_rewarded_at = Column(DateTime, nullable=True)  # bônus de indicação pago (1ª vacina)
 
     pets = relationship("Pet", back_populates="owner", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="user", cascade="all, delete-orphan")

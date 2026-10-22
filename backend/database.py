@@ -192,6 +192,9 @@ async def _run_migrations():
         # Indicação (recompensa dupla) + perfil público do pet
         "ALTER TABLE users ADD COLUMN referral_code VARCHAR(12)",
         "ALTER TABLE users ADD COLUMN referred_by_id INTEGER",
+        f"ALTER TABLE users ADD COLUMN referral_rewarded_at {timestamp_type}",
+        # quem foi indicado antes de 23/10/2026 já recebeu o bônus no cadastro
+        "UPDATE users SET referral_rewarded_at = created_at WHERE referred_by_id IS NOT NULL AND referral_rewarded_at IS NULL AND created_at < '2026-10-23'",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_referral_code ON users(referral_code)",
         "CREATE INDEX IF NOT EXISTS ix_support_msgs_user_created ON support_messages(user_id, created_at)",
         "ALTER TABLE usage_events ADD COLUMN platform VARCHAR(10)",
