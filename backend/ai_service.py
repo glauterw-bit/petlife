@@ -10,6 +10,12 @@ def get_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
+async def _create(client: anthropic.Anthropic, **kwargs):
+    """Chama a API fora do event loop: o cliente é síncrono e, chamado direto,
+    travava o servidor inteiro enquanto a IA respondia."""
+    return await asyncio.to_thread(client.messages.create, **kwargs)
+
+
 # Modelo principal — usado nas análises e geração de conteúdo (mais qualidade)
 MODEL = "claude-sonnet-4-6"
 
@@ -71,7 +77,7 @@ IMPORTANTE: Esta análise é apenas orientativa e NÃO substitui uma consulta ve
 
 Responda APENAS com o JSON válido, sem texto adicional."""
 
-    message = client.messages.create(
+    message = await _create(client, 
         model=MODEL,
         max_tokens=2000,
         messages=[{"role": "user", "content": prompt}],
@@ -154,7 +160,7 @@ Crie um guia completo em português (Brasil) com as seguintes seções:
 
 Seja específico, prático e use linguagem acessível para donos de pets."""
 
-    message = client.messages.create(
+    message = await _create(client, 
         model=MODEL,
         max_tokens=3000,
         messages=[{"role": "user", "content": prompt}],
@@ -204,7 +210,7 @@ Forneça a resposta no seguinte formato JSON:
 
 Responda APENAS com o JSON válido, sem texto adicional."""
 
-    message = client.messages.create(
+    message = await _create(client, 
         model=MODEL,
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
@@ -278,7 +284,7 @@ REGRAS:
 
 Apenas a história. Sem título, sem introdução."""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=CHAT_MODEL,
         max_tokens=900,
         messages=[{"role": "user", "content": prompt}],
@@ -303,7 +309,7 @@ Responda APENAS com JSON válido:
   "hashtag_suggestions": ["3-5 hashtags pt-BR sem # — ex: vidadecachorro, gatospetlife"]
 }}"""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=CHAT_MODEL,  # Haiku tem visão e é barato
         max_tokens=400,
         messages=[{
@@ -365,7 +371,7 @@ Detecte padrões clinicamente relevantes (ex: apetite reduzido 5 dias seguidos, 
   "disclaimer": "Padrões observados são orientativos. Diagnóstico médico requer avaliação presencial."
 }}"""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=MODEL,
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
@@ -429,7 +435,7 @@ Com base em medicina veterinária preventiva (predisposições raciais, idade, c
 
 Liste entre 2 e 5 riscos, os mais prováveis primeiro. Se o pet é jovem e saudável, foque em prevenção (vermifugação, vacinas, peso)."""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=MODEL,
         max_tokens=1800,
         messages=[{"role": "user", "content": prompt}],
@@ -466,7 +472,7 @@ Responda APENAS com JSON válido:
   "comfort_message": "Mensagem curta de apoio ao tutor, em 2-3 frases"
 }}"""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=CHAT_MODEL,
         max_tokens=800,
         messages=[{"role": "user", "content": prompt}],
@@ -540,7 +546,7 @@ REGRAS:
 - Adapte a intensidade {intensity}: leve = passos pequenos, alta = passos muito pequenos com mais paciência
 - Para gatos, lembre que técnicas são diferentes de cães"""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=MODEL,
         max_tokens=4000,
         messages=[{"role": "user", "content": prompt}],
@@ -592,7 +598,7 @@ Responda APENAS com JSON válido:
 
 Tom: caloroso, festivo, divertido, em pt-BR. Trate {pet_name} como protagonista querido."""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=CHAT_MODEL,  # Haiku é suficiente, charme não precisa do Sonnet
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
@@ -667,7 +673,7 @@ Responda APENAS com JSON válido:
   "disclaimer": "Avaliação por foto é limitada. Apenas orientativa — exame presencial é obrigatório se há suspeita de dor."
 }"""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=MODEL,
         max_tokens=1200,
         messages=[{
@@ -734,7 +740,7 @@ Responda APENAS com JSON válido:
 
 NUNCA invente o que não está claramente visível. Se imagem ruim, pare em image_quality."""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=MODEL,
         max_tokens=1500,
         messages=[{
@@ -797,7 +803,7 @@ IMPORTANTE:
 - Mantenha linguagem técnica em S/O/A/P
 - owner_friendly_summary deve ser carinhoso e em pt-BR coloquial"""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=MODEL,
         max_tokens=2500,
         messages=[{"role": "user", "content": prompt}],
@@ -853,7 +859,7 @@ Responda APENAS com JSON válido:
 
 NÃO invente. NÃO diagnostique doenças específicas. Se imagem ruim, image_quality:"ruim" + pare."""
 
-    msg = client.messages.create(
+    msg = await _create(client, 
         model=MODEL,  # Sonnet (vision) — Haiku não tem vision atualmente
         max_tokens=1500,
         messages=[{
@@ -907,7 +913,7 @@ REGRAS:
 - Confidence soma ~1.0 nos top 3
 - NÃO inclua texto fora do JSON"""
 
-    message = client.messages.create(
+    message = await _create(client, 
         model=MODEL,  # Sonnet 4.6 tem visão e é melhor que Haiku para identificação visual
         max_tokens=800,
         messages=[{
@@ -1100,7 +1106,7 @@ SAIDA:
 
     messages.append({"role": "user", "content": user_message})
 
-    response = client.messages.create(
+    response = await _create(client, 
         model=CHAT_MODEL,
         max_tokens=1500,
         system=system_prompt,
@@ -1127,7 +1133,7 @@ Varie os tipos: mental (farejar/resolver), física e vínculo tutor-pet.
 Responda APENAS em JSON válido:
 {{"activities": [{{"title": "nome curto e divertido", "emoji": "1 emoji", "how": "como fazer em 2-3 frases", "minutes": 10, "benefit": "benefício em 1 frase", "type": "mental|fisica|vinculo"}}], "tip": "1 dica curta de bem-estar do dia"}}"""
 
-    response = client.messages.create(
+    response = await _create(client, 
         model=CHAT_MODEL,
         max_tokens=900,
         messages=[{"role": "user", "content": prompt}],

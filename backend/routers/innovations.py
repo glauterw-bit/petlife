@@ -13,13 +13,15 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from database import get_db
-from models import Pet, User, PetWeightHistory, BehaviorPlan, BehaviorCheckIn, Vaccine, Exam, Anamnesis, Reminder, UserChallenge, PetBehaviorLog, PetStory, PetShare, PetRelation, PetActivityLog, Notification, WalkSession, pet_accessible_filter, log_pet_activity, notify_pet_collaborators
+from models import Pet, User, PetWeightHistory, BehaviorPlan, BehaviorCheckIn, Vaccine, Exam, Anamnesis, Reminder, UserChallenge, Challenge, ChallengeStatusEnum, PetBehaviorLog, PetStory, PetShare, PetRelation, PetActivityLog, Notification, WalkSession, pet_accessible_filter, log_pet_activity, notify_pet_collaborators
 import secrets as _secrets
 from sqlalchemy import or_
 from database import settings as db_settings
 import os, uuid
 from auth import get_current_user
 import ai_service
+import logging
+logger = logging.getLogger(__name__)
 import subscriptions
 
 _limiter = Limiter(key_func=get_remote_address)
@@ -677,7 +679,8 @@ async def create_behavior_plan(
         msg = str(e).lower()
         if "credit balance" in msg or "insufficient" in msg or "billing" in msg:
             raise HTTPException(status_code=503, detail="Plano indisponível: crédito Anthropic esgotado.")
-        raise HTTPException(status_code=503, detail="Erro ao gerar plano.")
+        logger.exception("behavior plan falhou")
+        raise HTTPException(status_code=503, detail="Não conseguimos gerar o plano agora. Tente de novo em alguns minutos.")
 
     plan = BehaviorPlan(
         pet_id=body.pet_id,
@@ -859,9 +862,9 @@ async def petlife_wrapped(
     reminders_count = rem_q.scalar() or 0
 
     chal_q = await db.execute(
-        select(func.count(), func.sum(UserChallenge.points_earned)).select_from(UserChallenge).where(
+        select(func.count(), func.sum(Challenge.points)).select_from(UserChallenge).join(Challenge, Challenge.id == UserChallenge.challenge_id).where(
             UserChallenge.pet_id == pet_id,
-            UserChallenge.status == "completed",
+            UserChallenge.status == ChallengeStatusEnum.completed,
             extract("year", UserChallenge.completed_at) == target_year,
         )
     )
