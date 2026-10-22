@@ -307,7 +307,7 @@ export const petswalks: LocaleBundle = {
     'pw.editPet.deleteError': 'Não consegui excluir. Tente de novo.',
     'pw.editPet.saved': 'Perfil atualizado',
     'pw.editPet.errSave': 'Não foi possível salvar',
-    'pw.editPet.errWeight': 'Peso inválido',
+    'pw.editPet.errWeight': 'Não entendi o peso. Use kg, por exemplo 4,5 — ou gramas, como 800g',
   },
 
   en: {
@@ -913,6 +913,6 @@ export const petswalks: LocaleBundle = {
     'pw.editPet.deleteError': 'No pude eliminar. Inténtalo de nuevo.',
     'pw.editPet.saved': 'Perfil actualizado',
     'pw.editPet.errSave': 'No se pudo guardar',
-    'pw.editPet.errWeight': 'Peso inválido',
+    'pw.editPet.errWeight': 'Não entendi o peso. Use kg, por exemplo 4,5 — ou gramas, como 800g',
   },
 }

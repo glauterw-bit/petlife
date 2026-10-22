@@ -7,6 +7,7 @@ import { innovations, type WeightHistory } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { useChartTheme, smoothPath, parseRange } from '@/lib/charts'
 import { useT } from '@/contexts/LocaleContext'
+import { parseWeightKg } from '@/lib/weight'
 
 interface WeightChartProps {
   petId: number
@@ -32,8 +33,8 @@ export function WeightChart({ petId }: WeightChartProps) {
   }, [petId])
 
   async function addWeight() {
-    const w = parseFloat(weightInput.replace(',', '.'))
-    if (!w || w <= 0 || w > 200) { error(t('g.wt.errInvalid')); return }
+    const w = parseWeightKg(weightInput)
+    if (w === null) { error(t('g.wt.errInvalid')); return }
     setAdding(true)
     try {
       await innovations.addWeight(petId, w)

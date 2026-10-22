@@ -2455,7 +2455,41 @@ async function nearbyFromDevice(lat: number, lon: number, type: string, radiusKm
       return out.sort((a, b) => (a.distance_km ?? 0) - (b.distance_km ?? 0)).slice(0, 30)
     } catch { /* tenta o próximo espelho */ }
   }
-  throw new Error('mapa indisponível')
+  return nearbyFromPhoton(lat, lon, type, radiusKm)
+}
+
+/** Última reserva: Photon (busca do OpenStreetMap mantida pela Komoot), que
+ * costuma estar de pé quando os espelhos do Overpass caem juntos. */
+async function nearbyFromPhoton(lat: number, lon: number, type: string, radiusKm: number): Promise<NearbyPlace[]> {
+  const [q, tag] = type === 'vet' ? ['veterinario', 'amenity:veterinary'] : ['pet shop', 'shop:pet']
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 12000)
+  try {
+    const res = await fetch(`https://photon.komoot.io/api/?${new URLSearchParams({ q, lat: String(lat), lon: String(lon), limit: '50', osm_tag: tag })}`, { signal: ctrl.signal })
+    if (!res.ok) throw new Error('mapa indisponível')
+    const data = await res.json() as { features?: Array<{ geometry?: { coordinates?: [number, number] }; properties?: Record<string, string> }> }
+    const maxKm = Math.max(radiusKm, 5) * 2
+    const out: NearbyPlace[] = []
+    for (const f of data.features ?? []) {
+      const c = f.geometry?.coordinates
+      if (!c) continue
+      const [lo, la] = c
+      const d = haversineKm(lat, lon, la, lo)
+      if (d > maxKm) continue
+      const pr = f.properties ?? {}
+      out.push({
+        name: pr.name || 'Sem nome',
+        address: [pr.street && `${pr.street}${pr.housenumber ? ', ' + pr.housenumber : ''}`, pr.city].filter(Boolean).join(' · '),
+        distance_km: Math.round(d * 100) / 100,
+        lat: la, lon: lo, type,
+      })
+    }
+    return out.sort((a, b) => (a.distance_km ?? 0) - (b.distance_km ?? 0)).slice(0, 30)
+  } catch {
+    throw new Error('mapa indisponível')
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export interface NearbyPlace {

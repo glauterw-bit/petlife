@@ -107,6 +107,7 @@ export default function CarteirinhaPage() {
     } else {
       navigator.clipboard.writeText(shareUrl)
         .then(() => { alert(t('h.card.linkCopied')); track('carteirinha_share'); trackHappyMoment('carteirinha_share') })
+        .catch(() => { window.prompt(t('h.card.shareTitle', { name: data?.pet.name ?? '' }), shareUrl) })
     }
   }
 

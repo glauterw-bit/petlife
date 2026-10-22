@@ -454,7 +454,7 @@ export const social: LocaleBundle = {
     // ── Gráfico de peso ───────────────────────────────────────────────
     'g.wt.title': 'Peso ao longo do tempo',
     'g.wt.current': 'Atual:',
-    'g.wt.errInvalid': 'Peso inválido',
+    'g.wt.errInvalid': 'Não entendi o peso. Use kg, por exemplo 4,5 — ou gramas, como 800g',
     'g.wt.saved': 'Peso {w} kg registrado!',
     'g.wt.breedRange': 'faixa da raça: {range}',
     'g.wt.inputPh': 'ex: 12.5',
@@ -1390,7 +1390,7 @@ export const social: LocaleBundle = {
     // ── Gráfico de peso ───────────────────────────────────────────────
     'g.wt.title': 'Peso a lo largo del tiempo',
     'g.wt.current': 'Actual:',
-    'g.wt.errInvalid': 'Peso inválido',
+    'g.wt.errInvalid': 'Não entendi o peso. Use kg, por exemplo 4,5 — ou gramas, como 800g',
     'g.wt.saved': '¡Peso {w} kg registrado!',
     'g.wt.breedRange': 'rango de la raza: {range}',
     'g.wt.inputPh': 'ej.: 12.5',

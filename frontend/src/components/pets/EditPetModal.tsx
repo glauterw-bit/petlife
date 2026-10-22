@@ -8,6 +8,7 @@ import { pets as petsApi, breeds as breedsApi, type Pet, type Breed } from '@/li
 import { useToast } from '@/components/ui/ToastContext'
 import { cn, getSpeciesLabel } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
+import { parseWeightKg } from '@/lib/weight'
 
 type Species = 'dog' | 'cat'
 type BreedPick = { id: number; name: string; species: Species }
@@ -81,8 +82,8 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
 
   async function save() {
     if (!form.name.trim()) { error(t('pw.newPet.nameRequired')); return }
-    const weight = form.weight.trim() ? parseFloat(form.weight.replace(',', '.')) : null
-    if (weight !== null && (isNaN(weight) || weight <= 0)) { error(t('pw.editPet.errWeight')); return }
+    const weight = form.weight.trim() ? parseWeightKg(form.weight) : null
+    if (form.weight.trim() && weight === null) { error(t('pw.editPet.errWeight')); return }
     setSaving(true)
     try {
       // Reenviar a raça intacta de um pet com espécie divergente fazia o servidor recusar (400) qualquer edição.

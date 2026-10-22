@@ -226,7 +226,7 @@ async def delete_account(
     """
     # Conta criada com "Entrar com a Apple" não tem senha utilizável: a sessão
     # válida + a frase de confirmação bastam (exigência 5.1.1(v) da Apple).
-    apple_sem_senha = (bool(current_user.apple_sub) or not current_user.has_password) and not data.password
+    apple_sem_senha = not current_user.has_password or (bool(current_user.apple_sub) and not data.password)
     if not apple_sem_senha and not verify_password(data.password, current_user.password_hash):
         raise HTTPException(status_code=400, detail="Senha incorreta")
 

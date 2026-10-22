@@ -231,7 +231,7 @@ function DangerZone() {
       error(t('ac.set.confirmErr', { phrase: DELETE_CONFIRM_PHRASE }))
       return
     }
-    if (!password && !user?.has_apple) {
+    if (!password && !user?.has_apple && user?.has_password !== false) {
       error(t('ac.set.passRequired'))
       return
     }
@@ -254,8 +254,11 @@ function DangerZone() {
         <AlertTriangle className="w-5 h-5" />
         {t('ac.set.dangerTitle')}
       </h2>
-      <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">
+      <p className="text-sm text-surface-500 dark:text-surface-400 mb-2">
         {t('ac.set.dangerDesc')}
+      </p>
+      <p className="text-sm text-surface-600 dark:text-surface-300 mb-4">
+        {t('ac.set.petHint')}
       </p>
 
       {!open ? (
@@ -268,7 +271,7 @@ function DangerZone() {
         </button>
       ) : (
         <div className="space-y-3 bg-red-50/50 dark:bg-red-900/10 rounded-xl p-4 border border-red-200 dark:border-red-700/30">
-          <div>
+          {user?.has_password !== false && <div>
             <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
               {t('ac.set.currentPassLabel')}
               {user?.has_apple && <span className="font-normal text-surface-400"> — {t('ac.set.applePassOptional')}</span>}
@@ -282,7 +285,7 @@ function DangerZone() {
                 className="w-full pl-9 pr-3 py-2.5 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
-          </div>
+          </div>}
           <div>
             <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
               {t('ac.set.confirmTypeLabel')} <code className="bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded text-xs">{DELETE_CONFIRM_PHRASE}</code>
