@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import {
-  Stethoscope, Users, FileText, Clock, Shield, Star, ChevronRight,
+  Stethoscope, Users, FileText, Clock, Shield, ChevronRight,
   PawPrint, CheckCircle, BarChart3, Bell
 } from 'lucide-react'
 import { useT } from '@/contexts/LocaleContext'
@@ -41,12 +41,6 @@ const features = [
 ]
 
 // Nome e clínica são nomes próprios — só o depoimento é traduzido.
-const testimonials = [
-  { name: 'Dr. Carlos Mendes', clinic: 'Clínica VetCare SP', textKey: 'v.vet.t1.text' },
-  { name: 'Dra. Ana Ferreira', clinic: 'Hospital Veterinário Central', textKey: 'v.vet.t2.text' },
-  { name: 'Dr. Ricardo Lima', clinic: 'PetClinic Belo Horizonte', textKey: 'v.vet.t3.text' },
-]
-
 const steps = [
   { icon: '📝', step: '01', titleKey: 'v.vet.s1.title', descKey: 'v.vet.s1.desc' },
   { icon: '👥', step: '02', titleKey: 'v.vet.s2.title', descKey: 'v.vet.s2.desc' },
@@ -114,8 +108,6 @@ export default function VetLandingPage() {
             </div>
             <div className="flex items-center gap-8 mt-10">
               {[
-                { value: '500+', labelKey: 'v.vet.statClinics' },
-                { value: '50k+', labelKey: 'v.vet.statPatients' },
                 { value: '100%', labelKey: 'v.vet.statFree' },
               ].map(s => (
                 <div key={s.labelKey}>
@@ -166,31 +158,6 @@ export default function VetLandingPage() {
                 <div className="text-xs font-bold text-primary-600 mb-1">{s.step}</div>
                 <h3 className="font-bold text-surface-900 dark:text-white mb-2">{t(s.titleKey)}</h3>
                 <p className="text-sm text-surface-600 dark:text-surface-300">{t(s.descKey)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-24 bg-surface-50 dark:bg-surface-900/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-surface-900 dark:text-white mb-4">{t('v.vet.testimonialsTitle')}</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((item, i) => (
-              <div key={i} className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-100 dark:border-surface-700">
-                <div className="flex mb-3">
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <Star key={j} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-surface-700 dark:text-surface-200 text-sm leading-relaxed mb-4 italic">"{t(item.textKey)}"</p>
-                <div>
-                  <div className="font-semibold text-surface-900 dark:text-white">{item.name}</div>
-                  <div className="text-sm text-surface-500 dark:text-surface-400">{item.clinic}</div>
-                </div>
               </div>
             ))}
           </div>

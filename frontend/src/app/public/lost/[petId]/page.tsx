@@ -26,7 +26,7 @@ interface LostData {
 }
 
 /** "Encontrei este pet" — avisa o tutor (push + e-mail) sem expor o telefone dele. */
-function FoundForm({ petId, petName, urgent }: { petId: number; petName: string; urgent: boolean }) {
+function FoundForm({ petId, petName, urgent }: { petId: string; petName: string; urgent: boolean }) {
   const [message, setMessage] = useState('')
   const [contact, setContact] = useState('')
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
@@ -96,7 +96,7 @@ function FoundForm({ petId, petName, urgent }: { petId: number; petName: string;
 
 export default function LostPetPage() {
   const params = useParams()
-  const petId = Number(params.petId)
+  const petId = String(params.petId)
   const [data, setData] = useState<LostData | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)

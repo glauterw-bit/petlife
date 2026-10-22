@@ -26,7 +26,8 @@ export function LostPetCard({ petId, petName }: { petId: number; petName: string
   const [saving, setSaving] = useState(false)
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const lostUrl = `${origin}/public/lost/${petId}`
+  const [publicKey, setPublicKey] = useState<string>(String(petId))
+  const lostUrl = `${origin}/public/lost/${publicKey}`
   const qr = (size: number) =>
     `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(lostUrl)}&bgcolor=ffffff&color=1a1a2e&margin=12`
 
@@ -35,6 +36,7 @@ export function LostPetCard({ petId, petName }: { petId: number; petName: string
       .then(r => (r.ok ? r.json() : null))
       .then(d => {
         if (!d) return
+        if (d.pet?.public_token) setPublicKey(d.pet.public_token)
         setIsLost(!!d.is_lost)
         setLastSeen(d.last_seen || '')
         setReward(d.reward || '')

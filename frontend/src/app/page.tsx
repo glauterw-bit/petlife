@@ -140,9 +140,9 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-6 mt-10">
               {[
-                { label: 'Pets cadastrados', value: '50k+' },
-                { label: 'Vacinas controladas', value: '200k+' },
-                { label: 'Tutores felizes', value: '30k+' },
+                { label: 'pets na conta grátis', value: 'Até 3' },
+                { label: 'antes de cada dose', value: 'Lembrete' },
+                { label: 'para a coleira', value: 'QR' },
               ].map(s => (
                 <div key={s.label}>
                   <div className="text-2xl font-bold text-primary-600">{s.value}</div>

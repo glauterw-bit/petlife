@@ -51,12 +51,10 @@ async def toggle_lost(
 
 
 # Endpoint público (sem auth) — chamado quando alguém escaneia o QR-tag
-async def public_lost_pet(pet_id: int):
+async def public_lost_pet(pet_key: str):
+    import public_links
     async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(Pet).options(selectinload(Pet.breed), selectinload(Pet.owner)).where(Pet.id == pet_id)
-        )
-        pet = result.scalar_one_or_none()
+        pet = await public_links.find_pet(db, pet_key, selectinload(Pet.breed), selectinload(Pet.owner))
         if not pet:
             raise HTTPException(status_code=404, detail="Pet não cadastrado")
 
@@ -68,14 +66,15 @@ async def public_lost_pet(pet_id: int):
                 "breed": pet.breed.name if pet.breed else None,
                 "color": pet.color,
                 "photo": pet.photo,
-                "microchip": pet.microchip,
+                "microchip": public_links.mask_microchip(pet.microchip),
+                "public_token": pet.public_token,
             },
             "is_lost": pet.is_lost,
             "lost_at": pet.lost_at.isoformat() if pet.lost_at else None,
             "last_seen": pet.lost_last_seen,
             "reward": pet.lost_reward,
             "owner_contact": {
-                "name": pet.owner.name,
+                "name": public_links.first_name(pet.owner.name),
                 # Não expõe email completo; só telefone se opt-in
                 "phone": pet.owner.phone,
             } if pet.is_lost else None,
@@ -88,7 +87,7 @@ class FoundReport(BaseModel):
     contact: Optional[str] = Field(None, max_length=120)
 
 
-async def public_found_report(pet_id: int, data: FoundReport) -> dict:
+async def public_found_report(pet_key: str, data: FoundReport) -> dict:
     """Push + e-mail pro tutor. Funciona mesmo se o pet NÃO foi marcado como
     perdido — o normal é alguém achar o pet antes do tutor abrir o app."""
     import asyncio
@@ -96,8 +95,8 @@ async def public_found_report(pet_id: int, data: FoundReport) -> dict:
     from email_service import send_email
 
     async with AsyncSessionLocal() as db:
-        res = await db.execute(select(Pet).options(selectinload(Pet.owner)).where(Pet.id == pet_id))
-        pet = res.scalar_one_or_none()
+        import public_links
+        pet = await public_links.find_pet(db, pet_key, selectinload(Pet.owner))
         if not pet or not pet.owner:
             raise HTTPException(status_code=404, detail="Pet não cadastrado")
         owner = pet.owner

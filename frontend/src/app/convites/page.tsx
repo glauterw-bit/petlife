@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Users, Check, X, Loader2, PawPrint, MailOpen } from 'lucide-react'
+import { trackHappyMoment } from '@/lib/review'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { innovations, type InviteEntry } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
@@ -53,7 +54,7 @@ function InvitesContent() {
     if (token && logged) {
       innovations.acceptInvite(token)
         .then(r => {
-          success(t('g.inv.accepted', { name: r.pet_name }))
+          success(t('g.inv.accepted', { name: r.pet_name })); trackHappyMoment('cotutor_aceito')
           load()
           router.replace('/convites')
         })
@@ -65,7 +66,7 @@ function InvitesContent() {
     setProcessing(token)
     try {
       const r = await innovations.acceptInvite(token)
-      success(t('g.inv.accepted', { name: r.pet_name }))
+      success(t('g.inv.accepted', { name: r.pet_name })); trackHappyMoment('cotutor_aceito')
       await load()
     } catch (e: unknown) {
       error(e instanceof Error ? e.message : t('g.misc.errorShort'))

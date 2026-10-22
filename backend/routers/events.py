@@ -66,6 +66,20 @@ ALLOWED = {
     "store_invite_shown",  # convite de avaliação na App Store (usuários ativos)
     "store_invite_cta",    # tocou em "avaliar na App Store"
     "store_invite_later",  # dispensou o convite
+    "momentos_view",       # abriu a tela de momentos
+    "public_view",         # abriu uma página pública (carteirinha, pet perdido, retrospectiva)
+    "public_cta_click",    # tocou num botão de baixar/usar nessas páginas
+    "android_tester_cta",  # tocou no convite do teste Android
+    "review_prompt_called",    # o app pediu as estrelas nativas (cada chamada)
+    "rate_settings_cta",       # tocou em "Avaliar na App Store" no Perfil
+    "paywall_sheet_shown",     # folha de planos na 1ª carteirinha exportada
+    "paywall_plan_selected",   # escolheu um plano na folha
+    "purchase_started",        # iniciou uma compra
+    "purchase_ok",             # compra concluída
+    "cotutor_prompt_shown",    # "quem mais cuida do pet?" após o 1º pet
+    "cotutor_prompt_cta",      # convidou pelo WhatsApp nesse momento
+    "referral_code_entered",   # digitou um código de indicação
+    "share_sent",              # compartilhou algo (meta = superfície)
 }
 
 
@@ -74,6 +88,7 @@ ANON_ALLOWED = {
     "page_view", "ui_error", "client_error", "api_error",
     "start_shown", "start_step", "start_pet_done", "register_view", "login_view",
     "apple_signin_start", "apple_signin_error", "forgot_requested", "password_reset_done",
+    "public_view", "public_cta_click", "android_tester_cta",
 }
 
 

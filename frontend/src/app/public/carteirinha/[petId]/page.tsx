@@ -62,7 +62,7 @@ const statusConfig = {
 
 export default function PublicCarteirinhaPage() {
   const params = useParams()
-  const petId = Number(params.petId)
+  const petId = String(params.petId)
   const [data, setData] = useState<CardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)

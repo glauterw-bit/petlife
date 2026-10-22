@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
 import enum
+import secrets
 
 
 class SpeciesEnum(str, enum.Enum):
@@ -233,6 +234,8 @@ class Pet(Base):
     # Perfil público compartilhável (petlife.app/p/<slug>) — opt-in do tutor
     is_public = Column(Boolean, default=False, nullable=False)
     public_slug = Column(String(80), unique=True, nullable=True, index=True)
+    # Código das URLs públicas (carteirinha, pet perdido, retrospectiva)
+    public_token = Column(String(16), unique=True, nullable=True, index=True, default=lambda: secrets.token_urlsafe(9))
 
     owner = relationship("User", back_populates="pets")
     breed = relationship("Breed", back_populates="pets")

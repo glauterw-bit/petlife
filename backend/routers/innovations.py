@@ -913,6 +913,7 @@ async def petlife_wrapped(
         wrapped["pet_id"] = pet.id
         wrapped["year"] = target_year
         wrapped["raw_stats"] = year_data
+        wrapped["public_token"] = pet.public_token or str(pet.id)
         return wrapped
     except Exception as e:
         msg = str(e).lower()
@@ -934,6 +935,7 @@ async def petlife_wrapped(
             "narrative": f"{pet.name} teve um ano cheio de cuidados! Tudo registrado no PetLife.",
             "share_text": f"O ano de {pet.name} em {target_year} no PetLife 🐾",
             "raw_stats": year_data,
+            "public_token": pet.public_token or str(pet.id),
         }
 
 

@@ -1326,6 +1326,7 @@ export interface BehaviorPlanDetail extends BehaviorPlanSummary {
 }
 
 export interface PetLifeWrapped {
+  public_token?: string
   pet_id: number
   pet_name: string
   year: number

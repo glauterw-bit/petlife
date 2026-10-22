@@ -3,7 +3,7 @@
 Estratégia (decidida com o tutor):
   - Cobrança: Apple IAP only (iOS). Asaas/web pode ser adicionado depois.
   - 3 tiers: free / plus (PetLife+) / pro (PetLife Pro).
-  - Trial de 30 dias nos planos mensais (configurado como introductory offer na ASC).
+  - Trial de 7 dias nos planos mensais (configurado como introductory offer na ASC).
 
 Quotas que importam (as features de IA são as caras — chamadas Claude):
   - pets:        nº de pets cadastrados (limite "ao vivo", não mensal)
@@ -50,7 +50,7 @@ PRODUCTS: list[dict] = [
         "name": "PetLife+ Mensal",
         "price_brl": 14.90,
         "cadence": "monthly",
-        "has_trial": True,   # 30 dias grátis
+        "has_trial": True,   # 7 dias grátis (introductory offer ONE_WEEK na ASC)
     },
     {
         "sku": "plus_annual",
@@ -68,7 +68,7 @@ PRODUCTS: list[dict] = [
         "name": "PetLife Pro Mensal",
         "price_brl": 29.90,
         "cadence": "monthly",
-        "has_trial": True,   # 30 dias grátis
+        "has_trial": True,   # 7 dias grátis (introductory offer ONE_WEEK na ASC)
     },
     {
         "sku": "pro_annual",

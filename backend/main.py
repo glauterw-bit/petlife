@@ -162,17 +162,18 @@ app.include_router(admin_live.router)
 app.include_router(crm.router)
 
 
-@app.get("/public/lost/{pet_id}", tags=["Público"])
-async def public_lost_pet_endpoint(pet_id: int):
-    """QR-tag físico na coleira aponta pra essa URL."""
-    return await lost_pet.public_lost_pet(pet_id)
+@app.get("/public/lost/{pet_key}", tags=["Público"])
+@limiter.limit("60/minute")
+async def public_lost_pet_endpoint(request: Request, pet_key: str):
+    """QR-tag físico na coleira aponta pra essa URL (código novo ou id antigo)."""
+    return await lost_pet.public_lost_pet(pet_key)
 
 
-@app.post("/public/lost/{pet_id}/found", tags=["Público"])
+@app.post("/public/lost/{pet_key}/found", tags=["Público"])
 @limiter.limit("5/hour")
-async def public_found_endpoint(request: Request, pet_id: int, data: lost_pet.FoundReport):
+async def public_found_endpoint(request: Request, pet_key: str, data: lost_pet.FoundReport):
     """Quem escaneou o QR avisa o tutor (push + e-mail) sem ver o telefone dele."""
-    return await lost_pet.public_found_report(pet_id, data)
+    return await lost_pet.public_found_report(pet_key, data)
 
 
 @app.get("/", tags=["Status"])
@@ -185,8 +186,9 @@ async def root():
     }
 
 
-@app.get("/public/wrapped/{pet_id}", tags=["Público"])
-async def public_wrapped(pet_id: int, year: Optional[int] = None):
+@app.get("/public/wrapped/{pet_key}", tags=["Público"])
+@limiter.limit("60/minute")
+async def public_wrapped(request: Request, pet_key: str, year: Optional[int] = None):
     """Retrospectiva anual pública — sem login.
 
     A tela do Wrapped compartilhava /wrapped/{id}, que bate num endpoint
@@ -208,10 +210,11 @@ async def public_wrapped(pet_id: int, year: Optional[int] = None):
     from fastapi import HTTPException
     ano = year or datetime.utcnow().year
     async with AsyncSessionLocal() as db:
-        q = await db.execute(sel(Pet).options(selectinload(Pet.breed)).where(Pet.id == pet_id))
-        pet = q.scalar_one_or_none()
+        import public_links
+        pet = await public_links.find_pet(db, pet_key, selectinload(Pet.breed))
         if not pet:
             raise HTTPException(status_code=404, detail="Pet não encontrado")
+        pet_id = pet.id
 
         async def conta(modelo, campo_data, filtro_pet=True):
             cond = [extract("year", campo_data) == ano]
@@ -247,20 +250,17 @@ async def public_wrapped(pet_id: int, year: Optional[int] = None):
     }
 
 
-@app.get("/public/carteirinha/{pet_id}", tags=["Público"])
-async def public_vaccination_card(pet_id: int):
+@app.get("/public/carteirinha/{pet_key}", tags=["Público"])
+@limiter.limit("60/minute")
+async def public_vaccination_card(request: Request, pet_key: str):
     from database import AsyncSessionLocal
     from models import Pet, User as UserModel
     from sqlalchemy.orm import selectinload
     from datetime import datetime
 
     async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(Pet)
-            .options(selectinload(Pet.breed), selectinload(Pet.vaccines), selectinload(Pet.owner))
-            .where(Pet.id == pet_id)
-        )
-        pet = result.scalar_one_or_none()
+        import public_links
+        pet = await public_links.find_pet(db, pet_key, selectinload(Pet.breed), selectinload(Pet.vaccines), selectinload(Pet.owner))
         if not pet:
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Pet não encontrado")
@@ -278,11 +278,13 @@ async def public_vaccination_card(pet_id: int):
                 "color": pet.color,
                 "gender": pet.gender,
                 "neutered": pet.neutered,
-                "microchip": pet.microchip,
+                "microchip": public_links.mask_microchip(pet.microchip),
                 "photo": pet.photo,
+                "public_token": pet.public_token,
             },
             "owner": {
-                "name": pet.owner.name,
+                # só o primeiro nome: a carteirinha circula entre hotéis, creches e grupos
+                "name": public_links.first_name(pet.owner.name),
             },
             "vaccines": [
                 {
@@ -292,7 +294,6 @@ async def public_vaccination_card(pet_id: int):
                     "next_due": v.next_due.isoformat() if v.next_due else None,
                     "lot_number": v.lot_number,
                     "veterinarian": v.veterinarian,
-                    "notes": v.notes,
                 }
                 for v in vaccines_sorted
             ],

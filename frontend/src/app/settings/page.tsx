@@ -12,6 +12,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { auth } from '@/lib/api'
 import { setUser } from '@/lib/auth'
 import { useToast } from '@/components/ui/ToastContext'
+import { openReviewPage } from '@/lib/review'
+import { track } from '@/lib/track'
 
 /** Frase de confirmação exigida pelo backend — não traduzir. */
 const DELETE_CONFIRM_PHRASE = 'APAGAR MINHA CONTA'
@@ -209,6 +211,7 @@ export default function SettingsPage() {
 
         <LanguageSection />
         <ThemeSection />
+        <RateSection />
 
         <DangerZone />
       </div>
@@ -343,6 +346,23 @@ function LanguageSection() {
           </button>
         ))}
       </div>
+    </div>
+  )
+}
+
+/** Botão fixo de avaliação: iniciado pela pessoa, sem perguntar antes se gostou. */
+function RateSection() {
+  const t = useT()
+  return (
+    <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
+      <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-1">{t('ac.set.rateTitle')}</h2>
+      <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">{t('ac.set.rateDesc')}</p>
+      <button
+        onClick={() => { track('rate_settings_cta'); openReviewPage() }}
+        className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-primary-50 text-primary-700 hover:bg-primary-100 dark:bg-primary-900/30 dark:text-primary-300"
+      >
+        ⭐ {t('ac.set.rateBtn')}
+      </button>
     </div>
   )
 }

@@ -18,6 +18,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 interface CardData {
   pet: {
     id: number
+    public_token?: string
     name: string
     species: string
     breed: string | null
@@ -67,7 +68,7 @@ export default function CarteirinhaPage() {
   const [loading, setLoading] = useState(true)
 
   const petId = Number(params.petId)
-  const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/public/carteirinha/${petId}`
+  const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/public/carteirinha/${data?.pet.public_token ?? petId}`
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(publicUrl)}&bgcolor=ffffff&color=1a1a2e&margin=10`
 
   useEffect(() => {
@@ -98,7 +99,7 @@ export default function CarteirinhaPage() {
   function handleShare() {
     // Compartilhamos o link público (acessível sem login), não a página privada.
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const shareUrl = `${origin}/public/carteirinha/${petId}`
+    const shareUrl = `${origin}/public/carteirinha/${data?.pet.public_token ?? petId}`
     const text = t('h.card.shareText', { name: data?.pet.name ?? '', url: shareUrl })
     if (navigator.share) {
       navigator.share({ title: t('h.card.shareTitle', { name: data?.pet.name ?? '' }), text, url: shareUrl })
@@ -113,7 +114,7 @@ export default function CarteirinhaPage() {
 
   function shareWhatsApp() {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const shareUrl = `${origin}/public/carteirinha/${petId}`
+    const shareUrl = `${origin}/public/carteirinha/${data?.pet.public_token ?? petId}`
     const text = encodeURIComponent(t('h.card.shareWhatsAppText', { name: data?.pet.name ?? '', url: shareUrl }))
     window.open(`https://wa.me/?text=${text}`, '_blank')
     track('carteirinha_whatsapp')
@@ -124,7 +125,7 @@ export default function CarteirinhaPage() {
   // banho e tosa e veterinário pedem a carteirinha. Mensagem pronta por destino.
   function sendTo(dest: 'hotel' | 'groomer' | 'vet') {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const shareUrl = `${origin}/public/carteirinha/${petId}`
+    const shareUrl = `${origin}/public/carteirinha/${data?.pet.public_token ?? petId}`
     const text = encodeURIComponent(t(`h.card.sendText.${dest}`, { name: data?.pet.name ?? '', url: shareUrl }))
     window.open(`https://wa.me/?text=${text}`, '_blank')
     track(`carteirinha_send_${dest}`)

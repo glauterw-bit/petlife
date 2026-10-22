@@ -217,6 +217,7 @@ class PetResponse(BaseModel):
     breed: Optional[BreedResponse] = None
     is_public: bool = False
     public_slug: Optional[str] = None
+    public_token: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

@@ -246,6 +246,7 @@ async def get_vaccination_card(
             "neutered": pet_full.neutered,
             "microchip": pet_full.microchip,
             "photo": pet_full.photo,
+            "public_token": pet_full.public_token or str(pet_full.id),
         },
         "owner": {
             "name": current_user.name,

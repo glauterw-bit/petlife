@@ -24,7 +24,7 @@ interface Wrapped {
  */
 export default function PublicWrappedPage() {
   const params = useParams()
-  const petId = Number(params.petId)
+  const petId = String(params.petId)
   const [data, setData] = useState<Wrapped | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 

@@ -20,7 +20,7 @@ const APP_ID = '6768136468'
 // Momentos de valor entregue — o pedido de nota vem mais cedo depois deles
 const STRONG_MOMENTS = new Set([
   'vacina_cadastrada', 'vacina_scan', 'pdf_export', 'carteirinha_whatsapp',
-  'carteirinha_share', 'carteirinha_print', 'protection',
+  'carteirinha_share', 'carteirinha_print', 'protection', 'cotutor_aceito',
 ])
 
 interface ReviewState {
@@ -128,7 +128,7 @@ export function trackHappyMoment(source: string): void {
     // pequeno delay pra não atropelar a animação de sucesso da tela
     setTimeout(() => {
       void ask()
-      void import('@/lib/track').then(m => m.track('rate_prompt_native', { meta: source })).catch(() => {})
+      void import('@/lib/track').then(m => { m.track('rate_prompt_native', { meta: source }); m.track('review_prompt_called', { meta: source }) }).catch(() => {})
     }, 1200)
     return
   }

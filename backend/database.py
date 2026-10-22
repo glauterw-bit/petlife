@@ -202,6 +202,10 @@ async def _run_migrations():
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_pets_public_slug ON pets(public_slug)",
         # Cio (pet_heat_cycles é criada por create_all)
         "CREATE INDEX IF NOT EXISTS ix_pet_heat_cycles_pet_started ON pet_heat_cycles(pet_id, started_at)",
+        # Link público com código aleatório (antes dava para ver qualquer pet trocando o número)
+        "ALTER TABLE pets ADD COLUMN public_token VARCHAR(16)",
+        "UPDATE pets SET public_token = substr(md5(random()::text || id::text || clock_timestamp()::text), 1, 12) WHERE public_token IS NULL",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_pets_public_token ON pets(public_token)",
         # Sign in with Apple
         "ALTER TABLE users ADD COLUMN apple_sub VARCHAR(128)",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_apple_sub ON users(apple_sub)",

@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Download, PawPrint } from 'lucide-react'
+import { track } from '@/lib/track'
 
 const APP_STORE_BASE = 'https://apps.apple.com/br/app/petlife-sa%C3%BAde-do-pet/id6768136468'
 
@@ -13,9 +15,26 @@ const APP_STORE_BASE = 'https://apps.apple.com/br/app/petlife-sa%C3%BAde-do-pet/
  * forma de saber qual traz instalação.
  */
 export function appStoreUrl(campanha?: string): string {
-  return campanha
-    ? `${APP_STORE_BASE}?ct=${encodeURIComponent(campanha)}&mt=8`
-    : APP_STORE_BASE
+  if (!campanha) return APP_STORE_BASE
+  // `pt` (provider token) é o que faz o `ct` aparecer no App Analytics.
+  const pt = process.env.NEXT_PUBLIC_ASC_PROVIDER_TOKEN
+  return `${APP_STORE_BASE}?${pt ? `pt=${encodeURIComponent(pt)}&` : ''}ct=${encodeURIComponent(campanha)}&mt=8`
+}
+
+/** Link do Google Play, com a origem no referrer. Vazio até o app sair do teste fechado. */
+export function playStoreUrl(campanha?: string): string | null {
+  if (process.env.NEXT_PUBLIC_PLAY_LIVE !== '1') return null
+  const base = 'https://play.google.com/store/apps/details?id=app.petlife'
+  return campanha ? `${base}&referrer=${encodeURIComponent(`utm_source=${campanha}`)}` : base
+}
+
+type Os = 'ios' | 'android' | 'other'
+function detectOs(): Os {
+  if (typeof navigator === 'undefined') return 'other'
+  const ua = navigator.userAgent
+  if (/android/i.test(ua)) return 'android'
+  if (/iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && 'ontouchend' in document)) return 'ios'
+  return 'other'
 }
 
 /** @deprecated use appStoreUrl(campanha) — sem campanha não dá pra medir. */
@@ -28,8 +47,10 @@ export const APP_STORE_URL = APP_STORE_BASE
  * manda no WhatsApp pro hotel/creche, e a página de pet perdido roda em grupo
  * de bairro. Quem recebe precisa ter como baixar — sem isso o loop vaza inteiro.
  *
- * Sem link do Google Play de propósito: o app ainda não está publicado lá.
- * O "usar no navegador" é o caminho pra quem está no Android.
+ * Cada sistema vê o botão que funciona para ele: iPhone vê a App Store;
+ * Android vê o Google Play quando o app sair do teste fechado
+ * (NEXT_PUBLIC_PLAY_LIVE=1) e, até lá, o convite para o teste
+ * (NEXT_PUBLIC_PLAY_TEST_URL) e o "usar no navegador".
  */
 export function DownloadCta({
   headline,
@@ -43,6 +64,19 @@ export function DownloadCta({
   campanha?: string
   className?: string
 }) {
+  const [os, setOs] = useState<Os>('other')
+  useEffect(() => {
+    setOs(detectOs())
+    track('public_view', { meta: campanha || 'publico' })
+  }, [campanha])
+
+  const play = playStoreUrl(campanha)
+  const playTest = process.env.NEXT_PUBLIC_PLAY_TEST_URL
+  const showApple = os !== 'android'
+  const showPlay = os !== 'ios' && !!play
+  const showPlayTest = os === 'android' && !play && !!playTest
+  const click = (destino: string) => track('public_cta_click', { meta: `${campanha || 'publico'}:${destino}` })
+
   return (
     <div
       className={`bg-white dark:bg-surface-800 rounded-3xl shadow-lg border border-surface-100 dark:border-surface-700 p-5 text-center print:hidden ${className}`}
@@ -58,20 +92,46 @@ export function DownloadCta({
       {sub && <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">{sub}</p>}
 
       <div className="flex flex-col gap-2 mt-4">
-        <a
-          href={appStoreUrl(campanha)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center justify-center gap-2 bg-surface-900 dark:bg-white text-white dark:text-surface-900 px-5 py-3 rounded-2xl text-sm font-semibold hover:opacity-90 transition"
-        >
-          <Download className="w-4 h-4" /> Baixar na App Store
-        </a>
+        {showApple && (
+          <a
+            href={appStoreUrl(campanha)}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => click('app_store')}
+            className="inline-flex items-center justify-center gap-2 bg-surface-900 dark:bg-white text-white dark:text-surface-900 px-5 py-3 rounded-2xl text-sm font-semibold hover:opacity-90 transition"
+          >
+            <Download className="w-4 h-4" /> Baixar na App Store
+          </a>
+        )}
+        {showPlay && play && (
+          <a
+            href={play}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => click('google_play')}
+            className="inline-flex items-center justify-center gap-2 bg-surface-900 dark:bg-white text-white dark:text-surface-900 px-5 py-3 rounded-2xl text-sm font-semibold hover:opacity-90 transition"
+          >
+            <Download className="w-4 h-4" /> Baixar no Google Play
+          </a>
+        )}
         <Link
           href="/auth/register"
+          onClick={() => click('navegador')}
           className="inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-white px-5 py-3 rounded-2xl text-sm font-semibold transition"
         >
           <PawPrint className="w-4 h-4" /> Usar no navegador (grátis)
         </Link>
+        {showPlayTest && (
+          <a
+            href={playTest}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => track('android_tester_cta', { meta: campanha || 'publico' })}
+            className="text-xs text-primary-600 dark:text-primary-400 underline mt-1"
+          >
+            O app para Android está em teste. Quer testar antes de todo mundo?
+          </a>
+        )}
       </div>
 
       <p className="text-[11px] text-surface-400 mt-3">Grátis · Sem anúncios · LGPD</p>
