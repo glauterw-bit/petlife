@@ -26,6 +26,11 @@ export interface PageHeaderProps {
   large?: boolean
   /** Sino de notificações à direita (padrão true). */
   showBell?: boolean
+  /**
+   * Não desenha o título grande (a tela já tem um herói com o nome, ex.: a
+   * ficha do pet). O título compacto da barra só aparece depois de rolar.
+   */
+  hideLargeTitle?: boolean
   className?: string
 }
 
@@ -36,6 +41,7 @@ export function PageHeader({
   actions,
   large = true,
   showBell = true,
+  hideLargeTitle = false,
   className,
 }: PageHeaderProps) {
   const t = useT()
@@ -49,18 +55,24 @@ export function PageHeader({
     return registerHeader()
   }, [registerHeader])
 
+  // Com hideLargeTitle o compacto se comporta como se houvesse título grande:
+  // escondido no topo, aparece ao rolar (o herói da tela faz o papel do título).
+  const revealOnScroll = large || hideLargeTitle
   const { scrollY } = useScroll()
   const glass = useTransform(scrollY, [0, 8], [0, 1])
-  const compactOpacity = useTransform(scrollY, large ? [28, 60] : [0, 1], large ? [0, 1] : [1, 1])
-  const compactY = useTransform(scrollY, [28, 60], [6, 0])
+  // Sem título grande, o nome está no herói, mais abaixo: o compacto entra mais tarde.
+  const reveal: [number, number] = hideLargeTitle ? [120, 160] : [28, 60]
+  const compactOpacity = useTransform(scrollY, revealOnScroll ? reveal : [0, 1], revealOnScroll ? [0, 1] : [1, 1])
+  const compactY = useTransform(scrollY, reveal, [6, 0])
   const largeOpacity = useTransform(scrollY, [0, 44], [1, 0])
-  const largeScale = useTransform(scrollY, [-80, 0], [1.06, 1])
+  // Puxar para baixo cresce no máximo 4% (mais que isso parece zoom quebrado)
+  const largeScale = useTransform(scrollY, [-80, 0], [1.04, 1], { clamp: true })
 
   // Com "reduzir movimento": troca seca, sem interpolar.
-  const [scrolled, setScrolled] = useState({ glass: false, compact: !large })
+  const [scrolled, setScrolled] = useState({ glass: false, compact: !revealOnScroll })
   useMotionValueEvent(scrollY, 'change', v => {
     if (!reduced) return
-    const next = { glass: v > 8, compact: !large || v > 44 }
+    const next = { glass: v > 8, compact: !revealOnScroll || v > (hideLargeTitle ? 140 : 44) }
     setScrolled(prev => (prev.glass === next.glass && prev.compact === next.compact ? prev : next))
   })
 
@@ -92,7 +104,7 @@ export function PageHeader({
         {/* fundo de vidro que aparece ao rolar */}
         <motion.div
           aria-hidden
-          className="absolute inset-0 bg-surface-50/80 dark:bg-surface-950/80 backdrop-blur-xl backdrop-saturate-150 border-b border-surface-200/70 dark:border-surface-800/80"
+          className="absolute inset-0 bg-surface-50/[0.92] dark:bg-surface-950/[0.92] backdrop-blur-xl backdrop-saturate-150 border-b border-surface-200/70 dark:border-surface-800/80"
           style={reduced ? { opacity: scrolled.glass ? 1 : 0 } : { opacity: glass }}
         />
         <div className="relative flex items-center gap-1 h-[52px]">
@@ -114,9 +126,9 @@ export function PageHeader({
             style={
               reduced
                 ? { opacity: scrolled.compact ? 1 : 0 }
-                : { opacity: compactOpacity, y: large ? compactY : 0 }
+                : { opacity: compactOpacity, y: revealOnScroll ? compactY : 0 }
             }
-            aria-hidden={large}
+            aria-hidden={revealOnScroll}
           >
             <span className="block truncate text-[17px] font-semibold text-surface-900 dark:text-white">{title}</span>
           </motion.div>
@@ -127,10 +139,14 @@ export function PageHeader({
         </div>
       </header>
 
-      {large ? (
+      {large && !hideLargeTitle ? (
         <motion.div
-          className="mb-4 mt-1 origin-left"
-          style={reduced ? { opacity: scrolled.compact ? 0 : 1 } : { opacity: largeOpacity, scale: largeScale }}
+          className="mb-4 mt-1"
+          style={
+            reduced
+              ? { opacity: scrolled.compact ? 0 : 1 }
+              : { opacity: largeOpacity, scale: largeScale, transformOrigin: 'left bottom' }
+          }
         >
           <h1 className="text-[28px] leading-[1.15] font-display font-extrabold tracking-tight text-surface-900 dark:text-white">
             {title}

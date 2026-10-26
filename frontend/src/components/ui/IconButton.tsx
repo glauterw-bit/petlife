@@ -3,13 +3,21 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { hapticLight } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 
+/**
+ * Botão só de ícone.
+ *
+ * No cabeçalho (PageHeader `actions`), use SEMPRE `variant="header"` — todos
+ * os botões da barra com o mesmo fundo neutro, 44×44. `header-primary`
+ * (verde cheio) é só para a AÇÃO PRINCIPAL da tela, no máximo um por tela;
+ * verde em tudo faz nada se destacar.
+ */
 export type IconButtonProps = {
   icon: LucideIcon
   /** Vira aria-label (botão só com ícone precisa de nome acessível). */
   label: string
-  variant?: 'ghost' | 'soft' | 'solid' | 'glass'
+  variant?: 'ghost' | 'soft' | 'solid' | 'glass' | 'header' | 'header-primary'
   size?: 44 | 48
   badge?: number
 } & ButtonHTMLAttributes<HTMLButtonElement>
@@ -20,6 +28,10 @@ const VARIANTS = {
   solid: 'bg-primary-700 text-white hover:bg-primary-800 dark:bg-primary-500 dark:text-surface-950 dark:hover:bg-primary-400',
   glass:
     'bg-white/80 text-surface-700 border border-surface-200/80 shadow-sm backdrop-blur-xl hover:bg-white dark:bg-surface-900/80 dark:text-surface-200 dark:border-surface-700/80 dark:hover:bg-surface-800',
+  header:
+    'bg-surface-100 text-surface-800 hover:bg-surface-200 dark:bg-surface-800 dark:text-surface-100 dark:hover:bg-surface-700',
+  'header-primary':
+    'bg-primary-700 text-white hover:bg-primary-800 dark:bg-primary-500 dark:text-surface-950 dark:hover:bg-primary-400',
 }
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
@@ -33,13 +45,15 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       aria-label={label}
       title={rest.title ?? label}
       onClick={e => {
-        void hapticLight()
+        haptic('tap')
         onClick?.(e)
       }}
       className={cn(
-        'pressable relative inline-flex items-center justify-center rounded-xl shrink-0 transition-colors',
+        'pressable relative inline-flex items-center justify-center shrink-0 transition-colors',
+        // cn() não resolve conflito de classes: o raio sai daqui, uma vez só.
+        variant === 'header' || variant === 'header-primary' || /\brounded-full\b/.test(className ?? '') ? 'rounded-full' : 'rounded-xl',
         'disabled:opacity-50 disabled:pointer-events-none',
-        size === 48 ? 'w-12 h-12' : 'w-11 h-11',
+        size === 48 && variant !== 'header' && variant !== 'header-primary' ? 'w-12 h-12' : 'w-11 h-11',
         VARIANTS[variant],
         className,
       )}

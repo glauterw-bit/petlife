@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useRef, useState, FormEvent } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Edit2, Camera, PawPrint, Heart, Route, Stethoscope, Sparkles, Plus, AlertTriangle, CheckCircle,
   AlertCircle, Info, Syringe, IdCard, Share2, Ellipsis, History, Image as ImageIcon, GitFork,
-  Utensils, Activity, Scissors, GraduationCap, Microscope, Dog, ClipboardList, Dna, Pill, Bug, type LucideIcon,
+  Utensils, Activity, Scissors, GraduationCap, Microscope, Dog, ClipboardList, Dna, Pill, Bug, ChevronDown, ChevronRight, type LucideIcon,
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { VaccineTimeline } from '@/components/health/VaccineTimeline'
@@ -47,7 +47,7 @@ import { useT } from '@/contexts/LocaleContext'
 import { useCached, invalidate } from '@/lib/cache'
 import type { CareItem, CareKind, PetCareSummary } from '@/lib/care'
 import { variants, spring } from '@/lib/motion'
-import { hapticSuccess, hapticError } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { IconButton } from '@/components/ui/IconButton'
 import { Button } from '@/components/ui/Button'
@@ -73,6 +73,16 @@ function readTabFromUrl(): Tab | null {
   if (raw === 'history') return 'anamnesis' // link antigo: o histórico de anamneses vive na aba Anamnese
   return (TABS as string[]).includes(raw) ? (raw as Tab) : null
 }
+
+/** Cor + palavra da prioridade (nunca só cor). Contraste AA nos dois temas. */
+const URGENCY_TONE: Record<'alta' | 'media' | 'baixa', { chip: string; dot: string }> = {
+  alta: { chip: 'bg-red-50 text-red-800 dark:bg-red-500/15 dark:text-red-200', dot: 'bg-red-600 dark:bg-red-400' },
+  media: { chip: 'bg-amber-50 text-amber-900 dark:bg-amber-500/15 dark:text-amber-200', dot: 'bg-amber-500 dark:bg-amber-400' },
+  baixa: { chip: 'bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200', dot: 'bg-emerald-600 dark:bg-emerald-400' },
+}
+
+const URGENCY_RANK = { alta: 0, media: 1, baixa: 2 } as const
+const SUGGESTIONS_PREVIEW = 3
 
 const INPUT =
   'w-full px-4 py-3 bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl text-[15px] text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-primary-500'
@@ -115,6 +125,9 @@ export default function PetProfilePage() {
   const [fixingSpecies, setFixingSpecies] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [lostHighlight, setLostHighlight] = useState(0)
+  // 3ª camada da visão geral ("Mais sobre {nome}"): fechada por padrão
+  const [extraOpen, setExtraOpen] = useState(false)
+  const [allSuggestions, setAllSuggestions] = useState(false)
   // incrementa a cada edição do perfil — cards que dependem de espécie/sexo recarregam
   const [profileVersion, setProfileVersion] = useState(0)
   const photoInput = useRef<HTMLInputElement>(null)
@@ -170,7 +183,7 @@ export default function PetProfilePage() {
     try {
       const r = await routinesApi.generate(petId)
       setRoutines([r])
-      void hapticSuccess()
+      haptic('saved')
       success(t('pw.pet.routineGenerated'))
     } catch { showError(t('pw.pet.routineError')) }
     finally { setGeneratingRoutine(false) }
@@ -194,7 +207,7 @@ export default function PetProfilePage() {
       const result = await anamnesisApi.create({ pet_id: petId, ...anamForm })
       setAnamnesisHistory(prev => [result, ...prev])
       if (result.ai_analysis) setAnamAnalysis(result.ai_analysis)
-      void hapticSuccess()
+      haptic('saved')
       success(t('pw.pet.anamSaved'))
       setAnamForm({ symptoms: '', duration: '', behavior_changes: '', appetite: '', water_intake: '', medications: '', notes: '' })
     } catch { showError(t('pw.pet.anamError')) }
@@ -211,7 +224,7 @@ export default function PetProfilePage() {
       invalidate(`pet:${petId}:timeline`)
       success(t('pw.pet.vaccineDeleted'))
     } catch {
-      void hapticError()
+      haptic('error')
       showError(t('pw.editPet.deleteError'))
     }
   }
@@ -224,7 +237,7 @@ export default function PetProfilePage() {
       setExams(prev => prev.filter(e => e.id !== eid))
       success(t('pw.pet.examDeleted'))
     } catch {
-      void hapticError()
+      haptic('error')
       showError(t('pw.editPet.deleteError'))
     }
   }
@@ -248,10 +261,10 @@ export default function PetProfilePage() {
       petQ.mutate(prev => (prev ? { ...prev, photo_url: r.photo_url } : prev!))
       invalidate('pets')
       void shell?.refreshPets()
-      void hapticSuccess()
+      haptic('saved')
       success(t('pw.pet.photoUpdated'))
     } catch (err) {
-      void hapticError()
+      haptic('error')
       const m = err instanceof Error && err.message && !/fetch|network|load failed/i.test(err.message) ? err.message : ''
       showError(m ? `${t('pw.pet.photoError')} ${m}` : t('pw.pet.photoError'))
     } finally {
@@ -274,12 +287,19 @@ export default function PetProfilePage() {
 
   function goToLost() {
     setTab('overview')
-    // espera a aba renderizar antes de rolar
-    window.setTimeout(() => {
-      document.getElementById('lost-pet')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      setLostHighlight(n => n + 1)
-    }, 80)
+    // o cartão de pet perdido mora em "Mais sobre": abre e só então rola
+    setExtraOpen(true)
+    setLostHighlight(n => n + 1)
   }
+
+  // ao pedir "pet perdido" pela folha de ações: espera a 3ª camada montar e rola até o cartão
+  useEffect(() => {
+    if (lostHighlight === 0) return
+    const id = window.setTimeout(() => {
+      document.getElementById('lost-pet')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 160)
+    return () => window.clearTimeout(id)
+  }, [lostHighlight])
 
   function onAction(a: PetAction) {
     if (!pet) return
@@ -344,11 +364,22 @@ export default function PetProfilePage() {
 
   const subtitle = [pet.breed?.name, pet.birth_date ? formatAge(pet.birth_date) : null].filter(Boolean).join(' · ')
 
-  const facts = [
+  // prioridade alta primeiro; mostra 3 e o resto sob demanda
+  const rankedSuggestions = (suggestions?.suggestions ?? [])
+    .map((s, idx) => {
+      const u: 'alta' | 'media' | 'baixa' = s.urgency === 'alta' || s.urgency === 'media' ? s.urgency : 'baixa'
+      return { s, u, idx }
+    })
+    .sort((a, b) => URGENCY_RANK[a.u] - URGENCY_RANK[b.u] || a.idx - b.idx)
+  const visibleSuggestions = allSuggestions ? rankedSuggestions : rankedSuggestions.slice(0, SUGGESTIONS_PREVIEW)
+
+  const profileFacts: { label: string; value: string; mono?: boolean }[] = [
+    { label: t('pet.breed'), value: pet.breed?.name ?? '—' },
     { label: t('pw.pet.age'), value: pet.birth_date ? formatAge(pet.birth_date) : '—' },
     { label: t('pw.pet.weight'), value: pet.weight ? `${Number(pet.weight).toLocaleString(localeTag())} kg` : '—' },
     { label: t('pet.gender'), value: pet.gender === 'male' ? t('pet.male') : pet.gender === 'female' ? t('pet.female') : '—' },
     { label: t('pet.neutered'), value: pet.neutered ? t('common.yes') : pet.neutered === false ? t('common.no') : '—' },
+    ...(pet.microchip ? [{ label: t('pet.microchip'), value: pet.microchip, mono: true }] : []),
   ]
 
   return (
@@ -357,7 +388,8 @@ export default function PetProfilePage() {
         title={pet.name}
         back="/pets"
         large={false}
-        actions={<IconButton icon={Edit2} label={t('petx.edit')} onClick={() => setEditOpen(true)} />}
+        hideLargeTitle
+        actions={<IconButton icon={Edit2} variant="header" label={t('petx.edit')} onClick={() => setEditOpen(true)} />}
       />
 
       <BedtimeStoryModal petId={petId} petName={pet.name} open={storyOpen} onClose={() => setStoryOpen(false)} />
@@ -445,7 +477,23 @@ export default function PetProfilePage() {
           <h2 id="pet-hero-name" className="mt-3 text-[26px] leading-tight font-display font-extrabold tracking-tight text-surface-900 dark:text-white">
             {pet.name}
           </h2>
-          {subtitle && <p className="mt-0.5 text-[15px] text-surface-600 dark:text-surface-400">{subtitle}</p>}
+          {(subtitle || !pet.breed) && (
+            <div className="mt-0.5 flex flex-wrap items-center justify-center gap-x-2 text-[15px] text-surface-600 dark:text-surface-400">
+              {subtitle && <span>{subtitle}</span>}
+              {subtitle && !pet.breed && <span aria-hidden>·</span>}
+              {!pet.breed && (
+                // sem raça: convite curto em vez de um cartão vazio "Raça não informada"
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(true)}
+                  className="pressable inline-flex items-center gap-1 min-h-[44px] -my-2.5 px-1 font-semibold text-primary-700 dark:text-primary-300"
+                >
+                  <Plus className="w-4 h-4" aria-hidden />
+                  {t('pet2.addBreed', { name: pet.name })}
+                </button>
+              )}
+            </div>
+          )}
           {uploadingPhoto && <p role="status" className="mt-1 text-xs text-surface-600 dark:text-surface-400">{t('petx.photoUploading')}</p>}
         </div>
 
@@ -470,18 +518,8 @@ export default function PetProfilePage() {
         {summary && <NextAction summary={summary} petId={petId} onProtection={k => setProtKind(k)} />}
       </motion.section>
 
-      {/* Dados resumidos */}
-      <dl className="grid grid-cols-4 gap-2 mb-3">
-        {facts.map(f => (
-          <div key={f.label} className="rounded-2xl bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 px-2 py-2.5 text-center min-w-0">
-            <dt className="text-xs text-surface-500 dark:text-surface-400 truncate">{f.label}</dt>
-            <dd className="mt-0.5 text-sm font-semibold text-surface-900 dark:text-surface-100 truncate">{f.value}</dd>
-          </div>
-        ))}
-      </dl>
-
       {/* Ações principais */}
-      <div className="grid grid-cols-4 gap-2 mb-5">
+      <div className="grid grid-cols-4 gap-2 mb-4">
         <ActionTile icon={Syringe} label={t('petx.act.vaccines')} href={`/health/vaccines?pet=${petId}`} />
         <ActionTile icon={IdCard} label={t('petx.act.wallet')} href={`/health/vaccines/carteirinha/${petId}`} />
         <ActionTile icon={Share2} label={t('petx.act.share')} onClick={() => setShareOpen(true)} />
@@ -489,7 +527,7 @@ export default function PetProfilePage() {
       </div>
 
       {/* Abas */}
-      <div className="mb-5 -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="mb-4 -mx-4 px-4 md:mx-0 md:px-0">
         <Tabs
           items={tabs}
           value={tab}
@@ -506,105 +544,149 @@ export default function PetProfilePage() {
           {pet.bio && (
             <p className="text-[15px] text-surface-700 dark:text-surface-300 italic leading-relaxed">{pet.bio}</p>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <h3 className="font-display font-bold text-surface-900 dark:text-white mb-3">{t('pw.pet.breedData')}</h3>
-              {pet.breed ? (
-                <div className="space-y-2.5">
-                  <BreedRow label={t('pet.breed')} value={pet.breed.name} />
-                  {pet.breed.size && <BreedRow label={t('pw.breed.size')} value={getSizeLabel(pet.breed.size)} />}
-                  {pet.breed.energy_level && <BreedRow label={t('pw.breed.energy')} value={getEnergyLabel(pet.breed.energy_level)} />}
-                  {pet.breed.life_expectancy_min && (
-                    <BreedRow
-                      label={t('pw.breed.lifeExpectancy')}
-                      value={`${pet.breed.life_expectancy_min}–${pet.breed.life_expectancy_max} ${t('pw.breed.years')}`}
-                    />
-                  )}
-                  {pet.breed.temperament && pet.breed.temperament.length > 0 && (
-                    <div>
-                      <div className="text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pw.breed.temperament')}</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {pet.breed.temperament.map((temp, i) => (
-                          <span key={i} className="chip chip-success">{temp}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {pet.breed.description && (
-                    <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">{pet.breed.description}</p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-surface-600 dark:text-surface-400">{t('pw.pet.noBreed')}</p>
-              )}
-            </Card>
-            <Card>
-              <h3 className="font-display font-bold text-surface-900 dark:text-white mb-3">{t('pw.pet.healthSummary')}</h3>
-              <div className="space-y-2.5">
-                <BreedRow label={t('pw.pet.totalVaccines')} value={String(vaccines.length)} spread />
-                <BreedRow label={t('pw.pet.totalExams')} value={String(exams.length)} spread />
-                <BreedRow label={t('pw.pet.anamnesesCount')} value={String(anamnesisHistory.length)} spread />
-                <BreedRow label={t('pw.pet.routinesCount')} value={String(routines.length)} spread />
-                {pet.microchip && <BreedRow label={t('pet.microchip')} value={pet.microchip} spread mono />}
-              </div>
-            </Card>
-          </div>
 
-          <HealthForecast pet={pet} />
-          <WeightChart petId={petId} />
-          <RecapCard petId={petId} />
-          <div
-            id="lost-pet"
-            key={lostHighlight}
-            className={cn('scroll-mt-24 rounded-2xl', lostHighlight > 0 && 'motion-safe:animate-[pulse_0.9s_ease-out_1] ring-2 ring-primary-500/60')}
-          >
-            <LostPetCard petId={petId} petName={pet.name} petPhoto={pet.photo_url} />
-          </div>
-          <EnrichmentCard petId={petId} petName={pet.name} />
-          <ExpensesCard petId={petId} />
-          <SeniorProtocolCard petId={petId} />
-
-          {/* Sugestões baseadas em fase de vida + vacinas já aplicadas */}
+          {/* Cuidados recomendados pela fase de vida + vacinas já aplicadas */}
           {suggestions && suggestions.suggestions.length > 0 && (
-            <Card className="bg-gradient-to-br from-primary-50 via-white to-emerald-50 dark:from-surface-800 dark:via-surface-900 dark:to-surface-900 border-primary-200 dark:border-surface-800">
-              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-10 h-10 bg-primary-700 dark:bg-primary-500 rounded-xl flex items-center justify-center text-white dark:text-surface-950">
-                    <Dna className="w-5 h-5" aria-hidden />
-                  </span>
-                  <div>
-                    <h3 className="font-display font-bold text-surface-900 dark:text-white">{t('pw.pet.suggestedPlan')}</h3>
-                    <p className="text-xs text-surface-600 dark:text-surface-400">
-                      {t('pw.pet.phase')}: <span className="font-semibold text-primary-800 dark:text-primary-300">{suggestions.phase_label}</span>
-                      {suggestions.age_months !== null && ` · ${t('pw.pet.months', { count: suggestions.age_months })}`}
-                    </p>
-                  </div>
+            <Card padding="none" className="overflow-hidden">
+              <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                <span className="w-10 h-10 shrink-0 bg-primary-50 dark:bg-primary-500/15 rounded-xl flex items-center justify-center text-primary-700 dark:text-primary-300">
+                  <Dna className="w-5 h-5" aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="font-display font-bold text-surface-900 dark:text-white">{t('pw.pet.suggestedPlan')}</h3>
+                  <p className="text-[13px] text-surface-600 dark:text-surface-300">
+                    {t('pw.pet.phase')}: <span className="font-semibold text-surface-800 dark:text-surface-100">{suggestions.phase_label}</span>
+                    {suggestions.age_months !== null && ` · ${t('pw.pet.months', { count: suggestions.age_months })}`}
+                  </p>
                 </div>
-                <span className="text-xs text-surface-600 dark:text-surface-400">{t('pw.pet.basedOn')}</span>
               </div>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {suggestions.suggestions.map((s, i) => {
-                  const tone =
-                    s.urgency === 'alta'
-                      ? 'border-red-200 bg-red-50/40 dark:border-red-500/25 dark:bg-red-500/10'
-                      : s.urgency === 'media'
-                        ? 'border-amber-200 bg-amber-50/40 dark:border-amber-500/25 dark:bg-amber-500/10'
-                        : 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-500/25 dark:bg-emerald-500/10'
-                  const dot = s.urgency === 'alta' ? 'bg-red-500' : s.urgency === 'media' ? 'bg-amber-500' : 'bg-emerald-500'
+              <ul className="divide-y divide-surface-100 dark:divide-surface-800 border-t border-surface-100 dark:border-surface-800">
+                {visibleSuggestions.map(({ s, u }, i) => {
                   return (
-                    <div key={i} className={cn('rounded-xl border p-3', tone)}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={cn('w-2 h-2 rounded-full shrink-0', dot)} aria-hidden />
-                        <span className="font-semibold text-sm text-surface-900 dark:text-white">{s.title}</span>
+                    <li key={i} className="px-4 py-2.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="font-semibold text-[15px] text-surface-900 dark:text-white">{s.title}</span>
+                        <span className={cn('shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold', URGENCY_TONE[u].chip)}>
+                          <span className={cn('w-2 h-2 rounded-full', URGENCY_TONE[u].dot)} aria-hidden />
+                          {t(`pet2.urg.${u}`)}
+                        </span>
                       </div>
-                      <p className="text-xs text-surface-700 dark:text-surface-300 leading-relaxed">{s.description}</p>
-                    </div>
+                      <p className="mt-1 text-[13px] text-surface-600 dark:text-surface-300 leading-relaxed">{s.description}</p>
+                    </li>
                   )
                 })}
-              </div>
-              <p className="text-xs text-surface-600 dark:text-surface-400 mt-3 italic">{t('pw.pet.suggestionsDisclaimer')}</p>
+              </ul>
+              {rankedSuggestions.length > SUGGESTIONS_PREVIEW && (
+                <button
+                  type="button"
+                  aria-expanded={allSuggestions}
+                  onClick={() => setAllSuggestions(v => !v)}
+                  className="pressable-row w-full min-h-[44px] px-4 py-2.5 border-t border-surface-100 dark:border-surface-800 text-left text-sm font-semibold text-primary-700 dark:text-primary-300"
+                >
+                  {allSuggestions ? t('pet2.seeFewer') : t('pet2.seeAll', { n: rankedSuggestions.length })}
+                </button>
+              )}
+              <p className="px-4 py-3 text-xs text-surface-600 dark:text-surface-400 bg-surface-50 dark:bg-surface-900/60 border-t border-surface-100 dark:border-surface-800">
+                {t('pw.pet.basedOn')}
+              </p>
             </Card>
           )}
+
+          <WeightChart petId={petId} />
+
+          <Card href={`/health/vaccines/carteirinha/${petId}`} padding="none" className="pressable-card flex items-center gap-3 px-4 py-3 min-h-[64px]">
+            <span className="w-10 h-10 shrink-0 rounded-xl bg-primary-50 dark:bg-primary-500/15 flex items-center justify-center text-primary-700 dark:text-primary-300">
+              <IdCard className="w-5 h-5" aria-hidden />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block font-semibold text-[15px] text-surface-900 dark:text-white">{t('pet2.walletLink')}</span>
+              <span className="block text-[13px] text-surface-600 dark:text-surface-300 truncate">{t('pet2.walletLinkSub')}</span>
+            </span>
+            <ChevronRight className="w-5 h-5 text-surface-400 dark:text-surface-500 shrink-0" aria-hidden />
+          </Card>
+
+          {/* 3ª camada: o que é bom ter, mas não é o motivo de abrir a ficha */}
+          <button
+            type="button"
+            aria-expanded={extraOpen}
+            aria-controls="pet-more"
+            onClick={() => {
+              haptic('toggle')
+              setExtraOpen(v => !v)
+            }}
+            className="pressable-row w-full flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-2xl border border-surface-200/70 dark:border-surface-800 bg-white dark:bg-surface-900 text-left"
+          >
+            <span className="flex-1 min-w-0">
+              <span className="block font-semibold text-[15px] text-surface-900 dark:text-white">{t('pet2.more', { name: pet.name })}</span>
+              {!extraOpen && <span className="block text-[13px] text-surface-600 dark:text-surface-300 truncate">{t('pet2.moreHint')}</span>}
+            </span>
+            <ChevronDown
+              className={cn('w-5 h-5 shrink-0 text-surface-500 dark:text-surface-400 transition-transform duration-200', extraOpen && 'rotate-180')}
+              aria-hidden
+            />
+          </button>
+
+          <AnimatePresence initial={false}>
+            {extraOpen && (
+              <motion.div
+                id="pet-more"
+                key="pet-more"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0, transition: spring.soft }}
+                exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                className="space-y-4"
+              >
+                <HealthForecast pet={pet} />
+                <RecapCard petId={petId} />
+                <EnrichmentCard petId={petId} petName={pet.name} />
+                <ExpensesCard petId={petId} />
+                <SeniorProtocolCard petId={petId} />
+                <div
+                  id="lost-pet"
+                  key={lostHighlight}
+                  className={cn('scroll-mt-24 rounded-2xl', lostHighlight > 0 && 'motion-safe:animate-[pulse_0.9s_ease-out_1] ring-2 ring-primary-500/60')}
+                >
+                  <LostPetCard petId={petId} petName={pet.name} petPhoto={pet.photo_url} />
+                </div>
+
+                <Card>
+                  <h3 className="font-display font-bold text-surface-900 dark:text-white mb-3">{t('pet2.profile')}</h3>
+                  <div className="space-y-2.5">
+                    {profileFacts.map(f => (
+                      <BreedRow key={f.label} label={f.label} value={f.value} spread mono={f.mono} />
+                    ))}
+                  </div>
+                  {pet.breed && (
+                    <div className="mt-4 pt-4 border-t border-surface-100 dark:border-surface-800 space-y-2.5">
+                      <h4 className="text-sm font-semibold text-surface-800 dark:text-surface-100">{t('pw.pet.breedData')}</h4>
+                      {pet.breed.size && <BreedRow label={t('pw.breed.size')} value={getSizeLabel(pet.breed.size)} spread />}
+                      {pet.breed.energy_level && <BreedRow label={t('pw.breed.energy')} value={getEnergyLabel(pet.breed.energy_level)} spread />}
+                      {pet.breed.life_expectancy_min && (
+                        <BreedRow
+                          label={t('pw.breed.lifeExpectancy')}
+                          value={`${pet.breed.life_expectancy_min}–${pet.breed.life_expectancy_max} ${t('pw.breed.years')}`}
+                          spread
+                        />
+                      )}
+                      {pet.breed.temperament && pet.breed.temperament.length > 0 && (
+                        <div>
+                          <div className="text-sm text-surface-600 dark:text-surface-300 mb-1.5">{t('pw.breed.temperament')}</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {pet.breed.temperament.map((temp, i) => (
+                              <span key={i} className="chip chip-success">{temp}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {pet.breed.description && (
+                        <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">{pet.breed.description}</p>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 

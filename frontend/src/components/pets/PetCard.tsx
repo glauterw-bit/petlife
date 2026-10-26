@@ -34,7 +34,7 @@ export function PetCard({ pet, summary, className }: PetCardProps) {
       href={`/pets/${pet.id}`}
       interactive
       padding="none"
-      className={cn('flex items-center gap-4 p-4 min-h-[96px]', className)}
+      className={cn('pressable-card flex items-center gap-4 p-4 min-h-[96px]', className)}
       aria-label={t('petx.list.open', { name: pet.name })}
     >
       <PetAvatar pet={pet} size={64} ring={summary?.worst ?? null} />

@@ -7,6 +7,9 @@
     --primary: #10b981;
     --accent: #f59e0b;
     --surface: #f5f5f4;
+    /* Altura da barra inferior (sem a área segura). Usada por .pb-nav e
+       .bottom-nav e pelo lançador do Vyron. */
+    --bottom-nav-h: 4.5rem;
   }
 
   * {
@@ -153,8 +156,8 @@
   /* Folga do rodapé: barra de navegação (4.5rem) + o botão flutuante do
      Vyron, que fica logo acima dela. Sem contar o Vyron, ele cobria o último
      card e botões como "Cadastrar" no fim da página. */
-  .pb-nav { padding-bottom: calc(8.5rem + env(safe-area-inset-bottom)); }
-  .bottom-nav { bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+  .pb-nav { padding-bottom: calc(var(--bottom-nav-h) + 76px + env(safe-area-inset-bottom)); }
+  .bottom-nav { bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom)); }
   /* Avoid being hidden behind iOS keyboard */
   .pb-keyboard { padding-bottom: env(keyboard-inset-height, 0px); }
   .bottom-keyboard { bottom: env(keyboard-inset-height, 0px); }
@@ -216,17 +219,36 @@
 .animate-sheet-up {
   animation: sheetUp 0.28s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
-/* Feedback tátil de toque em cards/botões */
+/* Feedback de toque em 3 intensidades:
+   .pressable       botões e ícones — afunda 4%
+   .pressable-card  cartões inteiros tocáveis — afunda 1,5% (cartão grande
+                    afundando 4% parece "pulo")
+   .pressable-row   linhas de lista — só escurece o fundo, sem escala */
 .pressable {
-  transition: transform 0.14s ease, box-shadow 0.14s ease;
+  transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.14s ease;
 }
 .pressable:active {
   transform: scale(0.96);
 }
+.pressable-card {
+  transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.14s ease;
+}
+.pressable-card:active {
+  transform: scale(0.985);
+}
+.pressable-row {
+  transition: background-color 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.pressable-row:active {
+  background: rgb(0 0 0 / 0.04);
+}
+.dark .pressable-row:active {
+  background: rgb(255 255 255 / 0.05);
+}
 @media (prefers-reduced-motion: reduce) {
   .reveal, .animate-sheet-up { animation: none !important; }
   .skeleton { animation: none !important; background-image: none !important; }
-  .pressable:active { transform: none; }
+  .pressable:active, .pressable-card:active { transform: none; }
 }
 /* "Reduzir movimento" do sistema: nenhuma animação de entrada, deslize ou pulso.
    Só o indicador de carregamento continua girando (senão parece travado). */

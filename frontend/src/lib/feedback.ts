@@ -2,10 +2,28 @@
  * Feedback module — haptics + confetti.
  * Gracefully degrades on web (no haptics if not Capacitor, no vibrate).
  * Respects prefers-reduced-motion for confetti.
+ *
+ * REGRA DO CONFETE: só em marcos — primeiro pet, primeira vacina, carteirinha
+ * completa, desafio concluído. Registro de rotina (dose, vermífugo, pesagem,
+ * check-in) usa o check de sucesso + haptic('saved'), nunca confete.
+ *
+ * Prefira haptic(evento) às funções por intensidade: o mapa abaixo mantém o
+ * app coerente (a mesma ação vibra igual em toda tela).
  */
 import { Capacitor } from '@capacitor/core'
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics'
-import confetti from 'canvas-confetti'
+import type confettiType from 'canvas-confetti'
+
+type Confetti = typeof confettiType
+let _confetti: Promise<Confetti> | null = null
+/** canvas-confetti sob demanda — não pesa no carregamento das telas. */
+function loadConfetti(): Promise<Confetti> {
+  if (!_confetti) {
+    _confetti = import('canvas-confetti').then(m => (m.default ?? m) as unknown as Confetti)
+    _confetti.catch(() => { _confetti = null })
+  }
+  return _confetti
+}
 
 function isNative() {
   return Capacitor.isNativePlatform()
@@ -79,6 +97,59 @@ export function hapticTap() {
   return hapticLight()
 }
 
+// ── Mapa de vibração por evento ───────────────────────
+
+export type HapticEvent =
+  | 'tab'
+  | 'tap'
+  | 'toggle'
+  | 'threshold'
+  | 'saved'
+  | 'milestone'
+  | 'warning'
+  | 'error'
+  | 'destructive'
+
+let _lastHaptic = 0
+
+/**
+ * Vibração por tipo de evento:
+ * - tab, toggle → seleção (a mais sutil)
+ * - tap, threshold (ex.: puxar para atualizar passou do ponto) → leve
+ * - saved, milestone → sucesso
+ * - warning → aviso · error → erro
+ * - destructive (excluir, sair) → médio
+ * Chamadas a menos de 60 ms da anterior são ignoradas (evita "metralhadora").
+ */
+export function haptic(e: HapticEvent): void {
+  const now = Date.now()
+  if (now - _lastHaptic < 60) return
+  _lastHaptic = now
+  switch (e) {
+    case 'tab':
+    case 'toggle':
+      void hapticSelect()
+      return
+    case 'tap':
+    case 'threshold':
+      void hapticLight()
+      return
+    case 'saved':
+    case 'milestone':
+      void hapticSuccess()
+      return
+    case 'warning':
+      void hapticWarning()
+      return
+    case 'error':
+      void hapticError()
+      return
+    case 'destructive':
+      void hapticMedium()
+      return
+  }
+}
+
 // ── Confetti ──────────────────────────────────────────
 
 const PETLIFE_COLORS = ['#10b981', '#34d399', '#f59e0b', '#fbbf24', '#a7f3d0']
@@ -88,53 +159,61 @@ export function celebrate(intensity: 'small' | 'medium' | 'large' = 'medium') {
   if (prefersReducedMotion()) return
   void hapticSuccess()
   const count = intensity === 'large' ? 200 : intensity === 'medium' ? 100 : 50
-  confetti({
-    particleCount: count,
-    spread: 90,
-    origin: { y: 0.6 },
-    colors: PETLIFE_COLORS,
-  })
+  void loadConfetti().then(confetti => {
+    confetti({
+      particleCount: count,
+      spread: 90,
+      origin: { y: 0.6 },
+      colors: PETLIFE_COLORS,
+    })
+  }).catch(() => {})
 }
 
 /** Side-cannon style — for screen-edge celebrations */
 export function celebrateFromSides() {
   if (prefersReducedMotion()) return
   void hapticSuccess()
-  const end = Date.now() + 800
-  const frame = () => {
-    confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: PETLIFE_COLORS })
-    confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: PETLIFE_COLORS })
-    if (Date.now() < end) requestAnimationFrame(frame)
-  }
-  frame()
+  void loadConfetti().then(confetti => {
+    const end = Date.now() + 800
+    const frame = () => {
+      confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: PETLIFE_COLORS })
+      confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: PETLIFE_COLORS })
+      if (Date.now() < end) requestAnimationFrame(frame)
+    }
+    frame()
+  }).catch(() => {})
 }
 
 /** Paw-print emoji confetti for pet-related moments */
 export function celebratePets() {
   if (prefersReducedMotion()) return
   void hapticSuccess()
-  const scalar = 2.5
-  const paw = confetti.shapeFromText({ text: '🐾', scalar })
-  confetti({
-    particleCount: 30,
-    spread: 80,
-    origin: { y: 0.6 },
-    shapes: [paw],
-    scalar,
-  })
+  void loadConfetti().then(confetti => {
+    const scalar = 2.5
+    const paw = confetti.shapeFromText({ text: '🐾', scalar })
+    confetti({
+      particleCount: 30,
+      spread: 80,
+      origin: { y: 0.6 },
+      shapes: [paw],
+      scalar,
+    })
+  }).catch(() => {})
 }
 
 /** Trophy + stars — gamification badge unlock */
 export function celebrateBadge() {
   if (prefersReducedMotion()) return
   void hapticSuccess()
-  const trophy = confetti.shapeFromText({ text: '🏆', scalar: 2.2 })
-  const star = confetti.shapeFromText({ text: '⭐', scalar: 1.8 })
-  confetti({
-    particleCount: 25,
-    spread: 100,
-    origin: { y: 0.55 },
-    shapes: [trophy, star],
-    scalar: 2,
-  })
+  void loadConfetti().then(confetti => {
+    const trophy = confetti.shapeFromText({ text: '🏆', scalar: 2.2 })
+    const star = confetti.shapeFromText({ text: '⭐', scalar: 1.8 })
+    confetti({
+      particleCount: 25,
+      spread: 100,
+      origin: { y: 0.55 },
+      shapes: [trophy, star],
+      scalar: 2,
+    })
+  }).catch(() => {})
 }

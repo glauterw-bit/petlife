@@ -5,13 +5,17 @@
  * do pet. Cor + texto acessível (aria-label) — nunca só cor. Os arcos se
  * desenham ao aparecer; `pulseKind` faz um arco "crescer" quando um registro
  * acabou de ser feito (com vibração de sucesso).
+ *
+ * `showLegend` mostra abaixo do anel o que cada arco significa (bolinha +
+ * nome + estado por extenso). Sem `onSegmentClick`, tocar no centro alterna
+ * a legenda — exceto quando o anel está dentro de um link (o toque navega).
  */
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
 import { usePrefersReducedMotion, spring } from '@/lib/motion'
-import { hapticSuccess } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 import type { CareKind, CareState, PetCareSummary } from '@/lib/care'
 import { PetAvatar } from './PetAvatar'
 import { careStateLabel } from './StatusBadge'
@@ -29,7 +33,15 @@ const KIND_LABEL: Record<CareKind, string> = {
   antipulgas: 'ui.care.antipulgas',
 }
 
-const GAP_DEG = 6
+const DOT: Record<CareState, string> = {
+  ok: 'bg-emerald-500',
+  soon: 'bg-amber-500',
+  overdue: 'bg-red-500',
+  never: 'border-2 border-dashed border-surface-400 dark:border-surface-500',
+}
+
+/** Espaço entre os arcos — 10° deixa claro que são 3 coisas, não uma barra. */
+const GAP_DEG = 10
 
 function polar(cx: number, cy: number, r: number, deg: number) {
   const rad = ((deg - 90) * Math.PI) / 180
@@ -63,6 +75,7 @@ export function ProtectionRing({
   animate = true,
   onSegmentClick,
   pulseKind,
+  showLegend = false,
   children,
 }: {
   summary: PetCareSummary
@@ -70,6 +83,8 @@ export function ProtectionRing({
   animate?: boolean
   onSegmentClick?: (kind: CareKind) => void
   pulseKind?: CareKind
+  /** Legenda abaixo do anel (estado inicial; tocar no centro alterna). */
+  showLegend?: boolean
   children?: ReactNode
 }) {
   const t = useT()
@@ -84,9 +99,41 @@ export function ProtectionRing({
   useEffect(() => {
     if (!pulseKind) return
     setNonce(n => n + 1)
-    void hapticSuccess()
+    haptic('saved')
   }, [pulseKind])
 
+  const [legend, setLegend] = useState(showLegend)
+  useEffect(() => setLegend(showLegend), [showLegend])
+  const canToggle = !onSegmentClick
+  // Dentro de um link o toque navega; só fora dele o centro vira botão.
+  const centerRef = useRef<HTMLDivElement>(null)
+  const [inLink, setInLink] = useState(true)
+  useEffect(() => {
+    setInLink(!!centerRef.current?.closest('a'))
+  }, [])
+  const centerIsButton = canToggle && !inLink
+
+  function onCenterClick(e: MouseEvent<HTMLDivElement>) {
+    if (!canToggle) return
+    const target = e.target as HTMLElement
+    // Botão dentro do centro (ex.: câmera da foto) ou anel dentro de link: não é nosso toque.
+    const interactive = target.closest('button, a, input, label, [role="button"]')
+    if (interactive && interactive !== e.currentTarget) return
+    if (e.currentTarget.closest('a')) return
+    haptic('toggle')
+    setLegend(v => !v)
+  }
+
+  function onCenterKey(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.target !== e.currentTarget) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      haptic('toggle')
+      setLegend(v => !v)
+    }
+  }
+
+  const legendId = `ring-legend-${summary.pet.id}`
   const parts = summary.items.map(i => `${t(KIND_LABEL[i.kind])}: ${careStateLabel(t, i.state, i.daysLeft).toLowerCase()}`)
   const aria = t('ui.care.ringAria', { name: summary.pet.name, summary: parts.join('; ') })
 
@@ -97,7 +144,7 @@ export function ProtectionRing({
     }
   }
 
-  return (
+  const ringEl = (
     <div
       role={onSegmentClick ? 'group' : 'img'}
       aria-label={aria}
@@ -157,9 +204,49 @@ export function ProtectionRing({
           )
         })}
       </svg>
-      <div className={cn('relative')} style={{ width: inner, height: inner }}>
+      <div
+        ref={centerRef}
+        className={cn('relative rounded-full', centerIsButton && 'cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary-500')}
+        style={{ width: inner, height: inner }}
+        onClick={canToggle ? onCenterClick : undefined}
+        onKeyDown={centerIsButton ? onCenterKey : undefined}
+        role={centerIsButton ? 'button' : undefined}
+        tabIndex={centerIsButton ? 0 : undefined}
+        aria-label={centerIsButton ? t('ui2.ring.legendToggle') : undefined}
+        aria-expanded={centerIsButton ? legend : undefined}
+        aria-controls={centerIsButton && legend ? legendId : undefined}
+      >
         {children ?? <PetAvatar pet={summary.pet} size={inner} priority />}
       </div>
+    </div>
+  )
+
+  if (!canToggle && !legend) return ringEl
+
+  return (
+    <div className="inline-flex flex-col items-center shrink-0">
+      {ringEl}
+      <AnimatePresence initial={false}>
+        {legend && (
+          <motion.ul
+            id={legendId}
+            key="legend"
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, y: -4 }}
+            transition={{ duration: 0.18 }}
+            className="mt-3 space-y-1"
+          >
+            {summary.items.map(item => (
+              <li key={item.kind} className="flex items-center gap-2 text-[12px] leading-tight whitespace-nowrap">
+                <span aria-hidden className={cn('w-2.5 h-2.5 rounded-full shrink-0', DOT[item.state])} />
+                <span className="font-semibold text-surface-800 dark:text-surface-100">{t(KIND_LABEL[item.kind])}</span>
+                <span className="text-surface-600 dark:text-surface-300">{careStateLabel(t, item.state, item.daysLeft)}</span>
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

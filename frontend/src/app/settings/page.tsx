@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import {
   User, Mail, Phone, Lock, KeyRound, Building2, ChevronRight, Check, Sun, Moon, BellRing,
-  LifeBuoy, Star, LogOut, Trash2, Languages, Save,
+  LifeBuoy, Star, LogOut, Trash2, Languages, Save, Settings as SettingsIcon,
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useLocale, useT } from '@/contexts/LocaleContext'
@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 import { hapticSuccess, hapticError, hapticLight, hapticSelect } from '@/lib/feedback'
 import { getPushPermission, requestPushPermission } from '@/lib/push'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { openAppSettings } from '@/components/ui/PushPrimer'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Sheet } from '@/components/ui/Sheet'
@@ -45,7 +46,7 @@ function Group({ title, children, footer, id }: { title: string; children: React
         <Card padding="none" className="overflow-hidden divide-y divide-surface-200/70 dark:divide-surface-800">
           {children}
         </Card>
-        {footer && <div className="px-1 mt-2 text-[13px] leading-snug text-surface-500 dark:text-surface-400">{footer}</div>}
+        {footer && <div className="px-1 mt-2 text-[13px] leading-snug text-surface-600 dark:text-surface-300">{footer}</div>}
       </section>
     </StaggerItem>
   )
@@ -392,6 +393,11 @@ function NotificationsGroup() {
   const t = useT()
   const [perm, setPerm] = useState<PushState | null>(null)
   const [asking, setAsking] = useState(false)
+  const [native, setNative] = useState(false)
+  useEffect(() => {
+    const w = window as typeof window & { Capacitor?: { isNativePlatform?: () => boolean } }
+    setNative(!!w.Capacitor?.isNativePlatform?.())
+  }, [])
 
   const refresh = useCallback(() => {
     void getPushPermission().then(setPerm).catch(() => setPerm('unsupported'))
@@ -424,8 +430,16 @@ function NotificationsGroup() {
     )
   }
 
+  // Negado: o iOS não deixa pedir de novo. Mesmo texto e mesmo botão do
+  // PushPrimer da fundação ("Abrir Ajustes" no app nativo + caminho por extenso,
+  // porque o esquema app-settings: ainda precisa ser confirmado no aparelho).
   const footer =
-    perm === 'denied' ? t('ui.push.denied') : perm === 'unsupported' ? t('acct.set.pushUnsupported') : t('acct.set.pushHint')
+    perm === 'denied' ? (
+      <>
+        <span className="block">{t('ui2.push.deniedShort')}</span>
+        <span className="block mt-1">{t('ui2.push.settingsPath')}</span>
+      </>
+    ) : perm === 'unsupported' ? t('acct.set.pushUnsupported') : t('acct.set.pushHint')
 
   return (
     <Group title={t('acct.set.groupNotif')} id="set-notif" footer={footer}>
@@ -435,7 +449,7 @@ function NotificationsGroup() {
         value={
           perm === 'granted' ? (
             <span className="chip chip-success"><Check className="w-3.5 h-3.5" aria-hidden />{t('acct.set.pushOn')}</span>
-          ) : perm === 'prompt' ? undefined : (
+          ) : perm === 'prompt' || (perm === 'denied' && native) ? undefined : (
             <span className="chip chip-neutral">{t('acct.set.pushOff')}</span>
           )
         }
@@ -443,6 +457,10 @@ function NotificationsGroup() {
           perm === 'prompt' ? (
             <Button size="sm" variant="soft" loading={asking} onClick={enable}>
               {t('ui.push.enable')}
+            </Button>
+          ) : perm === 'denied' && native ? (
+            <Button size="sm" variant="secondary" leftIcon={SettingsIcon} onClick={openAppSettings} className="min-h-[44px]">
+              {t('ui2.push.openSettings')}
             </Button>
           ) : undefined
         }

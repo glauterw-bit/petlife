@@ -8,7 +8,7 @@ from __future__ import annotations
 import io
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -139,9 +139,31 @@ def _build_pdf(pet: Pet, vaccines, exams, weights, anamneses, tutor_name: str) -
     return buf.getvalue()
 
 
+_MONTHS = {
+    "pt-BR": ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+              "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"],
+    "en": ["January", "February", "March", "April", "May", "June",
+           "July", "August", "September", "October", "November", "December"],
+    "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+           "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+}
+
+
+def _month_label(month: int, year: int, locale: str) -> str:
+    """'Outubro de 2026' · 'October 2026' · 'octubre de 2026'."""
+    names = _MONTHS.get(locale, _MONTHS["pt-BR"])
+    name = names[month - 1]
+    if locale == "en":
+        return f"{name} {year}"
+    if locale == "es":
+        return f"{name} de {year}"
+    return f"{name.capitalize()} de {year}"
+
+
 @router.get("/{pet_id}/monthly-recap")
 async def monthly_recap(
     pet_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -186,12 +208,12 @@ async def monthly_recap(
 
     from routers.events import track_event
     await track_event(db, current_user.id, "recap_view")
-    MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
-             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    import health_protocols_i18n
+    locale = health_protocols_i18n.locale_from_header(request.headers.get("accept-language"))
     return {
         "pet_id": pet_id,
         "pet_name": pet.name,
-        "month_label": f"{MESES[now.month - 1].capitalize()} de {now.year}",
+        "month_label": _month_label(now.month, now.year, locale),
         "walks": int(n_walks or 0),
         "distance_km": round((dist_m or 0) / 1000, 1),
         "active_minutes": int((dur_s or 0) // 60),

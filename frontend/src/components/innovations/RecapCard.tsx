@@ -11,8 +11,26 @@ import { requestSoftUpsell } from '@/lib/softUpsell'
 import { useT } from '@/contexts/LocaleContext'
 import { localeTag } from '@/lib/utils'
 
-function brl(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+/**
+ * Valor de gasto: R$ só no pt-BR. Em en/es mostramos o número com 2 casas,
+ * sem símbolo — não sabemos em que moeda o tutor registrou.
+ */
+export function formatMoney(v: number, decimals = 2) {
+  const tag = localeTag()
+  const opts = { minimumFractionDigits: decimals, maximumFractionDigits: decimals }
+  if (tag === 'pt-BR') return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', ...opts })
+  return v.toLocaleString(tag, opts)
+}
+
+/** "Outubro de 2026" no idioma do aparelho — o resumo é sempre do mês corrente. */
+function currentMonthLabel() {
+  let s: string
+  try {
+    s = new Date().toLocaleDateString(localeTag(), { month: 'long', year: 'numeric' })
+  } catch {
+    s = new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+  }
+  return s.charAt(0).toLocaleUpperCase(localeTag()) + s.slice(1)
 }
 
 /**
@@ -25,10 +43,11 @@ export function RecapCard({ petId }: { petId: number }) {
   const [data, setData] = useState<MonthlyRecap | null>(null)
 
   useEffect(() => {
-    recap.monthly(petId).then(d => {
-      setData(d)
-      if (d && (d.walks > 0 || d.stories > 0 || d.vaccines > 0 || d.expenses_total > 0)) requestSoftUpsell('recap')
-    }).catch(() => {})
+    let alive = true
+    // Só carrega. O convite de plano NÃO sai aqui: abrir a ficha não é um
+    // momento de valor — compartilhar o resumo é (ver share()).
+    recap.monthly(petId).then(d => { if (alive) setData(d) }).catch(() => {})
+    return () => { alive = false }
   }, [petId])
 
   if (!data) return null
@@ -46,15 +65,18 @@ export function RecapCard({ petId }: { petId: number }) {
     try {
       const ok = await shareCardImage(
         {
-          title: t('g.rec.heading', { month: data.month_label.split(' ')[0], name: data.pet_name }),
+          title: t('pet2.rec.shareTitle', { month: currentMonthLabel(), name: data.pet_name }),
           subtitle: t('g.rec.shareSubtitle'),
           stats,
         },
-        t('g.rec.shareText', { month: data.month_label, name: data.pet_name }),
+        t('pet2.rec.shareText', { month: currentMonthLabel(), name: data.pet_name }),
       )
       if (ok) {
         trackHappyMoment('recap_share')
         track('recap_share')
+        // depois de um momento de valor concluído; os freios do SoftUpsell
+        // (frequência, plano ativo, iOS) continuam valendo
+        requestSoftUpsell('recap')
       }
     } catch {}
   }
@@ -64,7 +86,7 @@ export function RecapCard({ petId }: { petId: number }) {
     data.active_minutes > 0 && { Icon: Clock, label: t('g.rec.activeMin'), value: String(data.active_minutes) },
     data.stories > 0 && { Icon: Camera, label: t('g.rec.moments'), value: String(data.stories) },
     data.vaccines > 0 && { Icon: Syringe, label: t('g.rec.vaccines'), value: String(data.vaccines) },
-    data.expenses_total > 0 && { Icon: Wallet, label: t('g.rec.spent'), value: brl(data.expenses_total) },
+    data.expenses_total > 0 && { Icon: Wallet, label: t('g.rec.spent'), value: formatMoney(data.expenses_total) },
   ].filter(Boolean) as Array<{ Icon: typeof Footprints; label: string; value: string }>
 
   return (
@@ -73,20 +95,20 @@ export function RecapCard({ petId }: { petId: number }) {
       <div className="absolute -right-2 top-10 w-14 h-14 rounded-full bg-white/10" aria-hidden />
       <div className="flex items-center justify-between mb-3 relative">
         <div>
-          <p className="text-[11px] uppercase tracking-widest font-bold text-primary-100">{t('g.rec.title')}</p>
-          <h3 className="font-extrabold text-lg leading-tight">{t('g.rec.heading', { month: data.month_label, name: data.pet_name })}</h3>
+          <p className="text-[11px] uppercase tracking-widest font-bold text-primary-100">{t('pet2.rec.title')}</p>
+          <h3 className="font-extrabold text-lg leading-tight">{currentMonthLabel()}</h3>
         </div>
         <button
           onClick={share}
           className="pressable flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur text-white text-xs font-bold px-3 min-h-[44px] rounded-xl"
         >
-          <Share2 className="w-3.5 h-3.5" /> {t('g.misc.share')}
+          <Share2 className="w-3.5 h-3.5" aria-hidden /> {t('g.misc.share')}
         </button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 relative">
         {stats.map(({ Icon, label, value }, i) => (
           <div key={label} className="reveal bg-white/15 backdrop-blur rounded-xl p-2.5" style={{ ['--i' as string]: i }}>
-            <Icon className="w-4 h-4 text-primary-100 mb-1" />
+            <Icon className="w-4 h-4 text-primary-100 mb-1" aria-hidden />
             <div className="font-bold text-sm tabular-nums leading-tight">{value}</div>
             <div className="text-[11px] text-primary-100">{label}</div>
           </div>

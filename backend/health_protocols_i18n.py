@@ -12,7 +12,7 @@ da letra confundiria o tutor e o veterinário dele.
 
   cão, polivalente : BR "V8/V10"   · US "DHPP/DA2PP"  · ES "polivalente"
   gato, polivalente: BR "V3/V4/V5" · US "FVRCP"       · ES "trivalente felina"
-  raiva            : BR anual (lei) · US 1–3 anos (lei estadual) · ES anual/bienal
+  raiva            : BR anual · US 1–3 anos (lei estadual) · ES anual/bienal
 
 Cobertura é garantida por teste: `test_protocol_coverage()` falha se algum
 texto emitido não tiver tradução. Não substitui orientação veterinária.
@@ -76,9 +76,9 @@ TRANSLATIONS: Dict[Tuple[str, str], Dict[str, Tuple[str, str]]] = {
         "en": ("DHPP vaccine (2nd and 3rd doses)", "Boosters every 21-28 days until 16 weeks of age."),
         "es": ("Vacuna polivalente (2ª y 3ª dosis)", "Refuerzos cada 21-28 días hasta cumplir 16 semanas."),
     },
-    ("Vacina Antirrábica", "A partir dos 4 meses de idade. Obrigatória por lei."): {
-        "en": ("Rabies vaccine", "From 12-16 weeks of age. Required by law in most states."),
-        "es": ("Vacuna antirrábica", "A partir de los 3-4 meses. Obligatoria por ley en la mayoría de los países."),
+    ("Vacina Antirrábica", "A partir dos 4 meses de idade. Exigida para viajar e em muitas cidades; o Ministério da Saúde faz campanhas de vacinação."): {
+        "en": ("Rabies vaccine", "From 12-16 weeks of age. Required for travel and in many places; check your local rules."),
+        "es": ("Vacuna antirrábica", "A partir de los 3-4 meses. Exigida para viajar y en muchos lugares; consulta la normativa local."),
     },
     ("Vermífugo", "Vermifugar a cada 15 dias até 3 meses, depois mensal até 6 meses."): {
         "en": ("Deworming", "Every 2 weeks until 3 months of age, then monthly until 6 months."),
@@ -100,9 +100,9 @@ TRANSLATIONS: Dict[Tuple[str, str], Dict[str, Tuple[str, str]]] = {
         "en": ("Quarterly deworming", "Give a dewormer every 3 months."),
         "es": ("Desparasitación trimestral", "Aplicar desparasitante cada 3 meses."),
     },
-    ("Antipulgas e carrapatos", "Aplicar produto mensal (Bravecto, NexGard, etc.) de acordo com peso."): {
-        "en": ("Flea and tick prevention", "Apply a monthly product (Bravecto, NexGard, etc.) according to weight."),
-        "es": ("Antipulgas y garrapatas", "Aplicar producto mensual (Bravecto, NexGard, etc.) según el peso."),
+    ("Antipulgas e carrapatos", "Aplicar antipulgas e carrapaticida no intervalo indicado na bula do produto."): {
+        "en": ("Flea and tick prevention", "Apply flea and tick protection at the interval on the product label."),
+        "es": ("Antipulgas y garrapatas", "Aplicar antipulgas y garrapaticida en el intervalo indicado en el prospecto del producto."),
     },
     ("Check-up anual", "Consulta veterinária anual com exames de sangue básicos."): {
         "en": ("Annual check-up", "Yearly vet visit with basic bloodwork."),
@@ -133,25 +133,25 @@ TRANSLATIONS: Dict[Tuple[str, str], Dict[str, Tuple[str, str]]] = {
         "en": ("FVRCP vaccine (1st dose)", "First dose of the core feline vaccine — from 8 weeks of age."),
         "es": ("Vacuna trivalente felina (1ª dosis)", "Primera dosis de la vacuna múltiple felina — a partir de las 8 semanas."),
     },
-    ("Vacina V3/V4/V5 (2ª dose)", "Reforço 21-28 dias após a primeira dose."): {
-        "en": ("FVRCP vaccine (2nd dose)", "Booster 21-28 days after the first dose."),
-        "es": ("Vacuna trivalente felina (2ª dosis)", "Refuerzo 21-28 días después de la primera dosis."),
+    ("Vacina V3/V4/V5 (doses seguintes)", "Série de vacinas a cada 3-4 semanas até 16 semanas de idade ou mais (geralmente 3 doses). Confirme com o veterinário."): {
+        "en": ("FVRCP vaccine (following doses)", "A series every 3-4 weeks until 16 weeks of age or older (usually 3 doses). Confirm with your vet."),
+        "es": ("Vacuna trivalente felina (dosis siguientes)", "Serie de vacunas cada 3-4 semanas hasta las 16 semanas de edad o más (normalmente 3 dosis). Confírmalo con el veterinario."),
     },
     ("Vacina Antirrábica", "Aplicar a partir dos 4 meses; reforço anual."): {
         "en": ("Rabies vaccine", "From 12-16 weeks of age; boosters every 1-3 years per state law."),
         "es": ("Vacuna antirrábica", "Aplicar a partir de los 3-4 meses; refuerzo anual o bienal."),
     },
-    ("Vacina FeLV (Leucemia Felina)", "Recomendada principalmente para gatos com acesso à rua."): {
-        "en": ("FeLV vaccine (Feline Leukemia)", "Recommended mainly for cats with outdoor access."),
-        "es": ("Vacuna FeLV (Leucemia Felina)", "Recomendada sobre todo para gatos con acceso al exterior."),
+    ("Vacina FeLV (Leucemia Felina)", "Considerada essencial para gatos com menos de 1 ano (WSAVA 2024). Para adultos com acesso à rua ou que convivem com gatos que saem, converse com o veterinário sobre vacina e teste."): {
+        "en": ("FeLV vaccine (Feline Leukemia)", "Considered core for cats under 1 year (WSAVA 2024). For adults that go outdoors or live with cats that do, talk to your vet about the vaccine and testing."),
+        "es": ("Vacuna FeLV (leucemia felina)", "Considerada esencial para gatos menores de 1 año (WSAVA 2024). Para adultos con acceso al exterior o que conviven con gatos que salen, consulta con el veterinario sobre la vacuna y la prueba."),
     },
     ("Vermífugo", "A cada 15 dias até 3 meses; depois mensal até 6 meses."): {
         "en": ("Deworming", "Every 2 weeks until 3 months; then monthly until 6 months."),
         "es": ("Desparasitación", "Cada 15 días hasta los 3 meses; luego mensual hasta los 6 meses."),
     },
-    ("Castração", "Recomendada entre 6-8 meses para machos e fêmeas."): {
-        "en": ("Spay/neuter", "Recommended between 6-8 months for both males and females."),
-        "es": ("Castración", "Recomendada entre los 6-8 meses tanto en machos como en hembras."),
+    ("Castração", "Converse com o veterinário sobre a idade ideal."): {
+        "en": ("Spay/neuter", "Talk to your vet about the right age."),
+        "es": ("Castración", "Consulta con el veterinario la edad ideal."),
     },
     ("Reforço anual V3/V4/V5", "Revacinar polivalente felina anualmente."): {
         "en": ("Annual FVRCP booster", "Revaccinate with the core feline vaccine yearly."),
@@ -161,9 +161,9 @@ TRANSLATIONS: Dict[Tuple[str, str], Dict[str, Tuple[str, str]]] = {
         "en": ("Quarterly deworming", "Every 3 months for outdoor cats; every 6 months for indoor cats."),
         "es": ("Desparasitación trimestral", "Cada 3 meses en gatos con acceso al exterior; cada 6 meses en los de interior."),
     },
-    ("Antipulgas e carrapatos", "Aplicar mensal — produtos específicos para gatos (NUNCA usar de cão)."): {
-        "en": ("Flea and tick prevention", "Apply monthly — cat-specific products only (NEVER use dog products)."),
-        "es": ("Antipulgas y garrapatas", "Aplicar mensualmente — productos específicos para gatos (NUNCA usar los de perro)."),
+    ("Antipulgas e carrapatos", "Aplicar no intervalo indicado na bula, só com produto para gatos (nunca use produto de cão)."): {
+        "en": ("Flea and tick prevention", "Apply at the interval on the label, using cat products only (never use dog products)."),
+        "es": ("Antipulgas y garrapatas", "Aplicar en el intervalo del prospecto, solo con productos para gatos (nunca uses los de perro)."),
     },
     ("Check-up anual", "Consulta + exames básicos uma vez ao ano."): {
         "en": ("Annual check-up", "Vet visit plus basic tests once a year."),

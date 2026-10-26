@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useId, useRef, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { motion, LayoutGroup } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { hapticSelect } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 import { spring } from '@/lib/motion'
 
 export function Tabs<T extends string>({
@@ -29,18 +29,61 @@ export function Tabs<T extends string>({
   const listRef = useRef<HTMLDivElement>(null)
   const pill = variant === 'pill'
 
-  // Mantém a aba ativa visível quando a lista rola
+  // Degradê nas bordas só do lado em que ainda há abas escondidas — sinal
+  // de "tem mais para o lado" sem cortar a primeira/última aba à toa.
+  const [edges, setEdges] = useState({ left: false, right: false })
   useEffect(() => {
     if (!scrollable) return
-    const el = listRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')
-    el?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
+    const el = listRef.current
+    if (!el) return
+    const update = () => {
+      const left = el.scrollLeft > 1
+      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+      setEdges(prev => (prev.left === left && prev.right === right ? prev : { left, right }))
+    }
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null
+    ro?.observe(el)
+    return () => {
+      el.removeEventListener('scroll', update)
+      ro?.disconnect()
+    }
+  }, [scrollable, items.length])
+
+  // Mantém a aba ativa visível quando a lista rola. Equivale a
+  // scrollIntoView({ inline: 'nearest' }) só no eixo horizontal da lista —
+  // scrollIntoView também rola a PÁGINA quando as abas estão fora da tela.
+  const firstRun = useRef(true)
+  useEffect(() => {
+    if (!scrollable) return
+    const list = listRef.current
+    const el = list?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!list || !el) return
+    const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const lr = list.getBoundingClientRect()
+    const er = el.getBoundingClientRect()
+    const pad = 16
+    let delta = 0
+    if (er.left < lr.left + pad) delta = er.left - lr.left - pad
+    else if (er.right > lr.right - pad) delta = er.right - lr.right + pad
+    if (delta !== 0) {
+      list.scrollTo({ left: list.scrollLeft + delta, behavior: firstRun.current || reduced ? 'auto' : 'smooth' })
+    }
+    firstRun.current = false
   }, [value, scrollable])
 
   function select(id: T) {
     if (id === value) return
-    void hapticSelect()
+    haptic('tab')
     onChange(id)
   }
+
+  const FADE = 16
+  const mask =
+    scrollable && (edges.left || edges.right)
+      ? `linear-gradient(to right, ${edges.left ? 'transparent' : '#000'} 0, #000 ${FADE}px, #000 calc(100% - ${FADE}px), ${edges.right ? 'transparent' : '#000'} 100%)`
+      : undefined
 
   function onKey(e: KeyboardEvent<HTMLDivElement>) {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
@@ -58,6 +101,7 @@ export function Tabs<T extends string>({
         aria-label={ariaLabel}
         onKeyDown={onKey}
         data-scroll-x={scrollable ? '' : undefined}
+        style={mask ? { WebkitMaskImage: mask, maskImage: mask } : undefined}
         className={cn(
           'flex gap-1',
           pill ? 'p-1 rounded-2xl bg-surface-100 dark:bg-surface-900 border border-surface-200/60 dark:border-surface-800' : 'border-b border-surface-200 dark:border-surface-800',

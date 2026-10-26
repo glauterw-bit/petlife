@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { PawPrint, MessageCircle, ChevronRight, CheckCircle2, Circle } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
@@ -12,10 +13,13 @@ import {
   walks as walksApi,
   reminders as remindersApi,
   heatCycles as heatCyclesApi,
-  protections as protectionsApi,
   support as supportApi,
+  type HeatUpcoming,
 } from '@/lib/api'
 import { useCached, invalidate } from '@/lib/cache'
+import { useProtectionsQuery } from '@/lib/queries'
+import { useFirstVisit } from '@/lib/motion'
+import { useShell } from '@/components/layout/shell'
 import { buildCareSummaries, overallState, type CareKind } from '@/lib/care'
 import { formatDate } from '@/lib/utils'
 import { syncHealthNotifications } from '@/lib/notifications'
@@ -27,7 +31,7 @@ import { SkeletonHero, SkeletonRow } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Section } from '@/components/ui/Section'
 import { Card } from '@/components/ui/Card'
-import { Stagger, StaggerItem } from '@/components/ui/Motion'
+import { StaggerItem } from '@/components/ui/Motion'
 import { useRingCelebrate } from '@/components/ui/ProtectionRing'
 import { DailyCheckin } from '@/components/health/DailyCheckin'
 import { ProtectionCard, type ProtectionCardHandle } from '@/components/health/ProtectionCard'
@@ -38,6 +42,8 @@ import { AttentionList } from '@/components/home/AttentionList'
 import { PushCard } from '@/components/home/PushCard'
 import { QuickActions } from '@/components/home/QuickActions'
 
+const REST_STAGGER = { hidden: {}, show: { transition: { staggerChildren: 0.05, delayChildren: 0.34 } } }
+
 export default function DashboardPage() {
   const { user } = useAuth()
   const t = useT()
@@ -45,7 +51,8 @@ export default function DashboardPage() {
 
   const petsQ = useCached('pets', () => petsApi.list())
   const vaxQ = useCached('vaccines', () => vaccinesApi.list())
-  const protQ = useCached('protections', () => protectionsApi.summary())
+  // 'protections' guarda sempre a resposta inteira ({ pets }) — ver lib/queries.
+  const protQ = useProtectionsQuery()
   const remQ = useCached('reminders:upcoming', () => remindersApi.getUpcoming(7))
 
   const pets = useMemo(() => petsQ.data ?? [], [petsQ.data])
@@ -65,6 +72,15 @@ export default function DashboardPage() {
   const protRef = useRef<ProtectionCardHandle>(null)
   const ring = useRingCelebrate()
   const [pulsePet, setPulsePet] = useState<number | null>(null)
+  const shell = useShell()
+  // Entrada em 4 tempos só na 1ª visita da sessão; depois a tela fica parada.
+  const firstVisit = useFirstVisit('home')
+  // Sequência de check-in do pet do topo — vem do selo de sequência que o
+  // cartão já carrega (sem chamada nova). Só decide o aviso diário.
+  const [streaks, setStreaks] = useState<Record<number, number>>({})
+  const onStreak = useCallback((petId: number, n: number) => {
+    setStreaks(prev => (prev[petId] === n ? prev : { ...prev, [petId]: n }))
+  }, [])
 
   useEffect(() => {
     supportApi.unread().then(r => setSupUnread(r.unread)).catch(() => {})
@@ -72,25 +88,43 @@ export default function DashboardPage() {
   }, [])
 
   // Avisos: registra o push só se já permitido e agenda os locais — sem pedir
-  // permissão a frio (o pedido vem com contexto, pelo PushPrimer).
-  const synced = useRef(false)
+  // permissão a frio (o pedido vem com contexto, pelo PushPrimer). Reagenda
+  // quando a sequência de check-in chega (idempotente: cancela e recria).
+  const heats = useRef<HeatUpcoming[] | null>(null)
+  const pushInit = useRef(false)
   const vaxSettled = vaxQ.data !== undefined || !!vaxQ.error
   const remSettled = remQ.data !== undefined || !!remQ.error
+  const protSettled = protQ.data !== undefined || !!protQ.error
+  const topPetId = summaries[0]?.pet.id
+  const topStreak = topPetId != null ? streaks[topPetId] : undefined
   useEffect(() => {
-    if (synced.current || !petsQ.data || !vaxSettled || !remSettled) return
-    synced.current = true
-    void initPush()
-    const hasAny = vaxQ.data ? vaxQ.data.length > 0 : true
-    void Promise.allSettled([vaccinesApi.getUpcoming(30), heatCyclesApi.upcoming()]).then(([up, heats]) =>
-      syncHealthNotifications(
-        up.status === 'fulfilled' ? up.value : [],
+    if (!petsQ.data || !vaxSettled || !remSettled || !protSettled) return
+    if (!pushInit.current) {
+      pushInit.current = true
+      void initPush()
+    }
+    let alive = true
+    const heatsP = heats.current
+      ? Promise.resolve(heats.current)
+      : heatCyclesApi.upcoming().catch(() => [] as HeatUpcoming[])
+    void heatsP.then(h => {
+      heats.current = h
+      if (!alive) return
+      const all = vaxQ.data ?? []
+      void syncHealthNotifications(
+        all,
         remQ.data ?? [],
         petsQ.data ?? [],
-        hasAny,
-        heats.status === 'fulfilled' ? heats.value : [],
-      ),
-    )
-  }, [petsQ.data, vaxSettled, remSettled, vaxQ.data, remQ.data])
+        vaxQ.data ? all.length > 0 : true,
+        h,
+        undefined,
+        protQ.data?.pets ?? [],
+        topStreak,
+        topPetId,
+      )
+    })
+    return () => { alive = false }
+  }, [petsQ.data, vaxSettled, remSettled, protSettled, vaxQ.data, remQ.data, protQ.data, topStreak, topPetId])
 
   const onRefresh = useCallback(async () => {
     invalidate('vaccines')
@@ -104,6 +138,12 @@ export default function DashboardPage() {
     protRef.current?.openRegister(petId, kind)
   }, [])
 
+  const onPhotoChanged = useCallback(() => {
+    invalidate('pets')
+    void petsQ.refresh()
+    void shell?.refreshPets()
+  }, [petsQ, shell])
+
   const onProtectionSaved = useCallback(
     (petId: number, kind: CareKind) => {
       setPulsePet(petId)
@@ -114,10 +154,12 @@ export default function DashboardPage() {
 
   const loading = petsQ.loading || (pets.length > 0 && (vaxQ.loading || protQ.loading))
 
-  // Subtítulo honesto: nunca "Tudo em dia" com pendência.
+  // Subtítulo honesto (nunca "Tudo em dia" com pendência) e só com 2+ pets:
+  // com 1 pet, o cartão já diz tudo.
   const subtitle = (() => {
     if (loading) return undefined
     if (pets.length === 0) return t('home.sub.noPets')
+    if (pets.length < 2) return undefined
     if (overall === 'overdue') {
       const late = summaries.filter(s => s.worst === 'overdue')
       return late.length === 1 ? t('home.sub.overduePet', { name: late[0].pet.name }) : t('home.sub.overdueMany', { n: late.length })
@@ -161,7 +203,7 @@ export default function DashboardPage() {
             {supUnread > 0 && (
               <Link
                 href="/suporte"
-                className="pressable flex items-center gap-3 mb-4 rounded-2xl border tone-brand-bg p-3 min-h-[56px]"
+                className="pressable-card flex items-center gap-3 mb-4 rounded-2xl border tone-brand-bg p-3 min-h-[56px]"
               >
                 <span className="w-10 h-10 rounded-xl bg-white text-primary-700 dark:bg-surface-900 dark:text-primary-300 flex items-center justify-center shrink-0">
                   <MessageCircle className="w-5 h-5" aria-hidden />
@@ -177,9 +219,17 @@ export default function DashboardPage() {
               </Link>
             )}
 
-            <HomeHero summaries={summaries} pulse={pulse} onRegister={onRegister} />
+            <HomeHero
+              summaries={summaries}
+              pulse={pulse}
+              onRegister={onRegister}
+              choreo={firstVisit}
+              onStreak={onStreak}
+              onPhotoChanged={onPhotoChanged}
+            />
 
-            <Stagger gap={0.05}>
+            {/* O resto da tela chega depois do cartão — e só na 1ª visita. */}
+            <motion.div initial={firstVisit ? 'hidden' : false} animate="show" variants={REST_STAGGER}>
               <StaggerItem>
                 <AttentionList summaries={summaries} vaccines={vaccines} exclude={exclude} onRegister={onRegister} />
               </StaggerItem>
@@ -198,9 +248,6 @@ export default function DashboardPage() {
                 </StaggerItem>
               )}
 
-              <StaggerItem>
-                <ProtectionCard ref={protRef} pets={pets} onSaved={onProtectionSaved} />
-              </StaggerItem>
 
               <StaggerItem>
                 <Section title={t('home.rem.title')} className="mb-5">
@@ -245,10 +292,14 @@ export default function DashboardPage() {
                   <QuickActions petId={top.pet.id} />
                 </StaggerItem>
               )}
-            </Stagger>
+            </motion.div>
           </>
         )}
       </PullToRefresh>
+
+      {/* Só a folha de registro: abre pelas linhas Vermífugo/Antipulgas do cartão
+          do pet (onRegister). O bloco visível repetia o que o cartão já mostra. */}
+      {pets.length > 0 && <ProtectionCard ref={protRef} pets={pets} onSaved={onProtectionSaved} showCard={false} />}
 
       {/* Anúncio único do canal de suporte (1x por aparelho) */}
       <SupportAnnouncement />

@@ -2,14 +2,17 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Trophy, Star, Medal, Target, ChevronDown, Sparkles, Users } from 'lucide-react'
+import { Trophy, Star, Medal, Target, ChevronDown, Sparkles, Users, Play, Syringe, Check } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import {
   ChallengeCard, categoryOf, difficultyOf, CATEGORY_ORDER, CATEGORY_ICONS, type CategoryId,
 } from '@/components/gamification/ChallengeCard'
-import { gamification, type Challenge, type UserChallenge, type LeaderboardEntry, type UserPoints } from '@/lib/api'
+import { gamification, vaccines as vaccinesApi, type Challenge, type UserChallenge, type LeaderboardEntry, type UserPoints, type Vaccine } from '@/lib/api'
+import { challengeSlug, useChallengeText } from '@/components/gamification/challengeText'
+import { useCached } from '@/lib/cache'
+import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/ToastContext'
-import { celebrate, hapticLight, hapticSuccess, hapticError } from '@/lib/feedback'
+import { celebrate, haptic } from '@/lib/feedback'
 import { getBadgeColor, localeTag, cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -31,7 +34,11 @@ const DIFF_RANK: Record<string, number> = { easy: 0, medium: 1, hard: 2, legenda
 
 export default function ChallengesPage() {
   const t = useT()
+  const text = useChallengeText()
   const { success, error } = useToast()
+  // Mesma chave/formato de app/health/vaccines e pets/useCareData (lista inteira).
+  const vaccinesQ = useCached<Vaccine[]>('vaccines', () => vaccinesApi.list())
+  const hasVaccine = (vaccinesQ.data?.length ?? 0) > 0
   const [challenges, setChallenges] = useState<Challenge[]>([])
   const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null)
@@ -62,7 +69,7 @@ export default function ChallengesPage() {
 
   // Ranking é opt-in: só busca quando a pessoa abre.
   async function toggleRanking() {
-    void hapticLight()
+    haptic('tap')
     const next = !rankingOpen
     setRankingOpen(next)
     if (next && leaderboard === null) {
@@ -74,14 +81,14 @@ export default function ChallengesPage() {
   }
 
   async function handleStart(challengeId: number) {
-    void hapticLight()
+    haptic('tap')
     setActionLoading(challengeId)
     try {
       const uc = await gamification.startChallenge(challengeId)
       setUserChallenges(prev => [...prev.filter(u => u.challenge_id !== uc.challenge_id), uc])
       success(t('g.gam.started'))
     } catch (err: unknown) {
-      void hapticError()
+      haptic('error')
       error(err instanceof Error ? err.message : t('g.gam.errStart'))
     } finally { setActionLoading(null) }
   }
@@ -95,12 +102,12 @@ export default function ChallengesPage() {
       const uc = await gamification.completeChallenge(mine.challenge_id)
       setUserChallenges(prev => prev.map(u => u.id === uc.id ? uc : u))
       gamification.getUserPoints().then(setPoints).catch(() => {})
-      // marco real (concluído na API): vibração + confete pequeno
-      void hapticSuccess()
+      // Concluir desafio é marco (confirmado pela API): vibração de marco + confete pequeno.
+      haptic('milestone')
       celebrate('small')
       success(t('g.gam.completed'))
     } catch (err: unknown) {
-      void hapticError()
+      haptic('error')
       error(err instanceof Error ? err.message : t('g.gam.errComplete'))
     } finally { setActionLoading(null) }
   }
@@ -111,6 +118,11 @@ export default function ChallengesPage() {
     return m
   }, [userChallenges])
 
+  /** "Primeira vacina registrada" não faz sentido para quem já registrou vacina
+   *  (a não ser que já apareça como concluído — aí fica como conquista). */
+  const isRedundant = (c: Challenge) =>
+    hasVaccine && challengeSlug(c.title) === 'firstVaccine' && ucByChallenge.get(c.id)?.status !== 'completed'
+
   const activeUC = userChallenges.filter(uc => uc.status === 'in_progress')
   const completedCount = userChallenges.filter(uc => uc.status === 'completed').length
 
@@ -118,7 +130,7 @@ export default function ChallengesPage() {
   const suggestions = useMemo(() => {
     const open = challenges.filter(c => {
       const st = ucByChallenge.get(c.id)?.status
-      return st !== 'in_progress' && st !== 'completed'
+      return st !== 'in_progress' && st !== 'completed' && !isRedundant(c)
     })
     return [...open]
       .sort((a, b) => {
@@ -130,16 +142,21 @@ export default function ChallengesPage() {
         return da - db
       })
       .slice(0, 3)
-  }, [challenges, ucByChallenge])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [challenges, ucByChallenge, hasVaccine])
 
   const groups = useMemo(() => {
     const m = new Map<CategoryId, Challenge[]>()
     challenges.forEach(c => {
+      if (isRedundant(c)) return
       const k = categoryOf(c)
       m.set(k, [...(m.get(k) ?? []), c])
     })
     return CATEGORY_ORDER.filter(k => m.has(k)).map(k => ({ id: k, items: m.get(k)! }))
-  }, [challenges])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [challenges, ucByChallenge, hasVaccine])
+
+  const visibleCount = groups.reduce((n, g) => n + g.items.length, 0)
 
   // O backend sobe de nível a cada 100 pontos (POINTS_PER_LEVEL).
   const perLevel = points?.points_per_level ?? 100
@@ -165,22 +182,15 @@ export default function ChallengesPage() {
       <div className="max-w-3xl mx-auto">
         <PageHeader title={t('g.gam.title')} subtitle={t('g.gam.subtitle')} />
 
-        {/* Evento com prazo: pontos em dobro num desafio */}
+        {/* Evento com prazo: cartão neutro + uma ação clara (participar / ver vacinas) */}
         {event?.active && (
-          <div className="rounded-2xl p-5 mb-6 text-white bg-gradient-to-br from-primary-700 to-emerald-700 shadow-card">
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/85">{t('g.gam.eventTag')}</p>
-            <h2 className="font-display text-lg font-bold mt-1 flex items-center gap-2">
-              <Trophy className="w-5 h-5 shrink-0" aria-hidden />
-              {t('g.gam.eventTitle')}
-            </h2>
-            <p className="text-sm text-white/90 mt-1.5 leading-snug">
-              {t('g.gam.eventBody', {
-                challenge: event.challenge_title ?? '',
-                points: event.points ?? 0,
-                date: event.ends_at ? new Date(event.ends_at + 'Z').toLocaleDateString(localeTag(), { day: '2-digit', month: '2-digit' }) : '',
-              })}
-            </p>
-          </div>
+          <EventCard
+            event={event}
+            userChallenge={event.challenge_id ? ucByChallenge.get(event.challenge_id) : undefined}
+            challengeTitle={text.titleOf(event.challenge_title)}
+            busy={!!event.challenge_id && actionLoading === event.challenge_id}
+            onJoin={() => { if (event.challenge_id) void handleStart(event.challenge_id) }}
+          />
         )}
 
         {loading ? (
@@ -265,10 +275,10 @@ export default function ChallengesPage() {
 
                 <Section
                   id="all-challenges"
-                  title={t('wk.ch.allTitle', { n: challenges.length })}
+                  title={t('wk.ch.allTitle', { n: visibleCount })}
                   action={{
                     label: showAll ? t('wk.ch.collapse') : t('wk.ch.seeAll'),
-                    onClick: () => { void hapticLight(); setShowAll(v => !v) },
+                    onClick: () => { haptic('tap'); setShowAll(v => !v) },
                   }}
                 >
                   {showAll ? (
@@ -388,5 +398,58 @@ export default function ChallengesPage() {
         )}
       </div>
     </DashboardLayout>
+  )
+}
+
+type EventInfo = Awaited<ReturnType<typeof gamification.getEvent>>
+
+function EventCard({ event, userChallenge, challengeTitle, busy, onJoin }: {
+  event: EventInfo
+  userChallenge?: UserChallenge
+  challengeTitle: string
+  busy: boolean
+  onJoin: () => void
+}) {
+  const t = useT()
+  const date = event.ends_at
+    ? new Date(event.ends_at + (/[zZ]|[+-]\d\d:?\d\d$/.test(event.ends_at) ? '' : 'Z'))
+        .toLocaleDateString(localeTag(), { day: '2-digit', month: '2-digit' })
+    : ''
+  const status = userChallenge?.status
+  return (
+    <Card className="mb-6" padding="md">
+      <div className="flex items-start gap-3">
+        <span className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 flex items-center justify-center shrink-0">
+          <Trophy className="w-5 h-5" aria-hidden />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+            {date ? t('wk2.event.tagUntil', { date }) : t('wk2.event.tag')}
+          </p>
+          <h2 className="font-display text-base font-bold text-surface-900 dark:text-white leading-tight mt-0.5">
+            {t('wk2.event.title')}
+          </h2>
+          <p className="text-sm text-surface-600 dark:text-surface-300 mt-1 leading-snug">
+            {t('wk2.event.body', { challenge: challengeTitle, points: event.points ?? 0 })}
+          </p>
+        </div>
+      </div>
+      <div className="mt-3">
+        {status === 'completed' ? (
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300 min-h-[44px]">
+            <Check className="w-4 h-4" strokeWidth={2.6} aria-hidden />
+            {t('wk.ch.done')}
+          </p>
+        ) : status === 'in_progress' ? (
+          <Button href="/health/vaccines" variant="soft" fullWidth leftIcon={Syringe}>
+            {t('wk2.event.openVaccines')}
+          </Button>
+        ) : (
+          <Button onClick={onJoin} loading={busy} fullWidth leftIcon={Play}>
+            {t('wk2.event.join')}
+          </Button>
+        )}
+      </div>
+    </Card>
   )
 }

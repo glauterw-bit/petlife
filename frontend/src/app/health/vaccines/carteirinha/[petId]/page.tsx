@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Plane, Plus, Send } from 'lucide-react'
+import { Plane, Plus } from 'lucide-react'
 import { petExport } from '@/lib/api'
-import { formatAge, formatDate, cn, localeTag } from '@/lib/utils'
+import { formatAge, formatDate, formatServerDateTime, cn, localeTag } from '@/lib/utils'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
 import { trackHappyMoment } from '@/lib/review'
@@ -19,7 +19,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import {
   WalletPass, carteirinhaPublicUrl, carteirinhaVaccines, rabiesInfo, type CarteirinhaData,
 } from '@/components/health/WalletPass'
-import { SendToSheet } from '@/components/health/SendToSheet'
+import { SendFlashIcon, SendToSheet, useSendFlash } from '@/components/health/SendToSheet'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
@@ -68,6 +68,7 @@ export default function CarteirinhaPage() {
   const q = useCached<CarteirinhaData>(Number.isFinite(petId) ? `carteirinha:${petId}` : null, () => fetchCarteirinha(petId))
   const [sendOpen, setSendOpen] = useState(false)
   const [flyKey, setFlyKey] = useState(0)
+  const sendFlash = useSendFlash()
 
   const data = q.data
   const status = q.error instanceof LoadError ? q.error.status : q.error ? 0 : null
@@ -99,8 +100,11 @@ export default function CarteirinhaPage() {
       showBell={false}
       actions={
         data ? (
-          <Button size="sm" leftIcon={Send} onClick={() => setSendOpen(true)} aria-label={t('wallet.sendAria')}>
-            {t('wallet.send')}
+          <Button size="sm" onClick={() => setSendOpen(true)} aria-label={t('wallet.sendAria')}>
+            <span className="inline-flex items-center gap-1.5">
+              <SendFlashIcon sent={sendFlash.sent} />
+              {t('wallet.send')}
+            </span>
           </Button>
         ) : undefined
       }
@@ -184,7 +188,7 @@ export default function CarteirinhaPage() {
                 size="sm"
                 variant={rabies.kind === 'expired' ? 'primary' : 'soft'}
                 leftIcon={Plus}
-                href={`/health/vaccines?pet=${pet.id}&add=1&name=${encodeURIComponent('Antirrábica')}`}
+                href={`/health/vaccines?pet=${pet.id}&add=1&name=${encodeURIComponent(t('h2.qs.rabies'))}`}
               >
                 {t('wallet.registerDose')}
               </Button>
@@ -221,7 +225,7 @@ export default function CarteirinhaPage() {
               ))}
             </tbody>
           </table>
-          <p className="mt-3 text-xs">{t('wallet.footer', { date: formatDate(data.generated_at.slice(0, 10)) })}</p>
+          <p className="mt-3 text-xs">{t('wallet.footer', { date: formatServerDateTime(data.generated_at) })}</p>
         </section>
       </div>
 
@@ -234,6 +238,7 @@ export default function CarteirinhaPage() {
         onPrint={handlePrint}
         onSent={() => {
           setFlyKey(k => k + 1)
+          sendFlash.flash()
           success(t('wallet.sent'))
         }}
       />

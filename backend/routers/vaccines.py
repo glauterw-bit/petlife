@@ -2,7 +2,7 @@ import os
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
@@ -74,6 +74,7 @@ async def create_vaccine(
 @router.post("/scan-card")
 async def scan_vaccine_card(
     pet_id: int,
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -112,8 +113,10 @@ async def scan_vaccine_card(
 
     b64 = base64.b64encode(contents).decode("ascii")
     pet_info = {"species": pet.species.value if hasattr(pet.species, "value") else pet.species}
+    import health_protocols_i18n
+    locale = health_protocols_i18n.locale_from_header(request.headers.get("accept-language"))
     try:
-        return await ai_service.read_vaccine_card(b64, media_type, pet_info)
+        return await ai_service.read_vaccine_card(b64, media_type, pet_info, locale=locale)
     except Exception as e:
         msg = str(e).lower()
         if "credit balance" in msg or "insufficient" in msg or "billing" in msg:

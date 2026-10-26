@@ -10,6 +10,9 @@ import { useT } from '@/contexts/LocaleContext'
 
 /**
  * Anúncio único do canal de suporte — "graças aos feedbacks de vocês".
+ * Texto honesto: dúvidas de uso têm resposta automática (identificada como
+ * tal) a qualquer hora; o que precisa de pessoa vai para a equipe. Sem
+ * prometer prazo nem "gente, não robô".
  *
  * Mostra 1x por aparelho e coordena com o FeedbackModal via sessionStorage
  * (nunca dois modais na mesma sessão). O botão de feedback reabre o
@@ -61,7 +64,7 @@ export function SupportAnnouncement() {
     <Sheet
       open={open}
       onClose={dismiss}
-      ariaLabel={t('g.an.title')}
+      ariaLabel={t('home2.an.title')}
       footer={
         <div className="flex flex-col gap-2">
           <Button fullWidth size="lg" onClick={goSupport} data-autofocus>
@@ -80,8 +83,8 @@ export function SupportAnnouncement() {
         <span className="w-16 h-16 mx-auto rounded-3xl bg-primary-50 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300 flex items-center justify-center mb-3">
           <MessageCircleHeart className="w-8 h-8" aria-hidden />
         </span>
-        <h2 className="font-display text-xl font-bold text-surface-900 dark:text-white mb-1.5">{t('g.an.title')}</h2>
-        <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">{t('g.an.body')}</p>
+        <h2 className="font-display text-xl font-bold text-surface-900 dark:text-white mb-1.5">{t('home2.an.title')}</h2>
+        <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">{t('home2.an.body')}</p>
       </div>
     </Sheet>
   )

@@ -129,7 +129,7 @@ export function sortByUrgency(vaccines: Vaccine[]): Vaccine[] {
   })
 }
 
-const RABIES = ['antirrab', 'antirab', 'raiva', 'rabies', 'rabica']
+const RABIES = ['antirrab', 'antirab', 'raiva', 'rabies', 'rabica', 'rabia']
 
 /** A dose mais recente de antirrábica do pet, ou null. */
 export function findRabies(vaccines: Vaccine[], petId: number): Vaccine | null {
@@ -227,4 +227,41 @@ export function buildCareSummaries(
 export function overallState(s: PetCareSummary[]): CareState {
   if (!s.length) return 'never'
   return worstOf(s.map(x => x.worst))
+}
+
+// ── Intervalos e idade ────────────────────────────────────────────────────
+
+/**
+ * Opções de intervalo (em dias) oferecidas no registro de antiparasitário.
+ * São OPÇÕES, não recomendação: cada produto tem o seu intervalo. A UI sempre
+ * mostra "siga o intervalo da bula" junto destas opções.
+ */
+export const PROTECTION_INTERVALS = {
+  vermifugo: [15, 30, 60, 90, 180],
+  antipulgas: [30, 35, 60, 84, 90, 240],
+} as const
+
+/** Idade em semanas completas a partir de 'YYYY-MM-DD' (ou ISO). null sem data válida ou no futuro. */
+export function ageInWeeks(birth_date?: string | null): number | null {
+  if (!birth_date) return null
+  const b = parseDay(birth_date)
+  const t = b.getTime()
+  if (!Number.isFinite(t)) return null
+  const days = Math.round((today().getTime() - t) / 86_400_000)
+  if (days < 0) return null
+  return Math.floor(days / 7)
+}
+
+/**
+ * Prazo padrão da próxima dose ao registrar uma vacina.
+ *
+ * WSAVA 2024 (Guidelines for the Vaccination of Dogs and Cats): a série de
+ * filhote é repetida a cada 2 a 4 semanas até 16 semanas de idade ou mais.
+ * Por isso, abaixo de 16 semanas sugerimos 21 dias; depois, 365 dias (o
+ * tutor/vet pode ajustar — é sugestão, não prescrição).
+ */
+export function vaccineNextDueDays(birth_date?: string | null): { days: number; puppy: boolean } {
+  const w = ageInWeeks(birth_date)
+  if (w != null && w < 16) return { days: 21, puppy: true }
+  return { days: 365, puppy: false }
 }

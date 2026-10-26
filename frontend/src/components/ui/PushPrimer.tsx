@@ -2,14 +2,18 @@
 
 /**
  * Pedido de notificação COM contexto — aparece logo depois da 1ª vacina
- * registrada (nunca a frio). A antecedência citada no texto ("na véspera e no
- * dia") é exatamente a que lib/notifications.ts agenda.
+ * registrada (nunca a frio). A antecedência citada no texto ("7 dias antes e
+ * no dia") é a que o servidor manda e a que lib/notifications.ts agenda.
+ *
+ * Negado: não dá para pedir de novo pelo app (o iOS não deixa). Oferece
+ * "Abrir Ajustes" (esquema app-settings: no app nativo) e mantém o caminho
+ * por extenso, caso o esquema não abra a tela certa no aparelho.
  */
 import { useEffect, useState } from 'react'
-import { BellRing, BellOff } from 'lucide-react'
+import { BellRing, BellOff, Settings } from 'lucide-react'
 import { useT } from '@/contexts/LocaleContext'
 import { getPushPermission, requestPushPermission } from '@/lib/push'
-import { hapticSuccess } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 import { Sheet } from './Sheet'
 import { Button } from './Button'
 
@@ -22,6 +26,20 @@ export function pushPrimerSeen(): boolean {
   } catch {
     return false
   }
+}
+
+function isNativeApp(): boolean {
+  if (typeof window === 'undefined') return false
+  const w = window as typeof window & { Capacitor?: { isNativePlatform?: () => boolean } }
+  return !!w.Capacitor?.isNativePlatform?.()
+}
+
+/** Abre os Ajustes do app no iOS. Fora do app nativo não faz nada. */
+export function openAppSettings(): void {
+  if (!isNativeApp()) return
+  try {
+    window.location.href = 'app-settings:'
+  } catch {}
 }
 
 function markSeen() {
@@ -66,7 +84,7 @@ export function PushPrimer({
     const ok = await requestPushPermission()
     setBusy(false)
     if (ok) {
-      void hapticSuccess()
+      haptic('saved')
       onClose()
     } else {
       setPerm(await getPushPermission())
@@ -74,6 +92,8 @@ export function PushPrimer({
   }
 
   const denied = perm === 'denied'
+  const [native, setNative] = useState(false)
+  useEffect(() => setNative(isNativeApp()), [])
   const body = vaccineName
     ? t('ui.push.body', { pet: petName, vaccine: vaccineName })
     : t('ui.push.bodyNoVaccine', { pet: petName })
@@ -85,9 +105,16 @@ export function PushPrimer({
       ariaLabel={t('ui.push.title')}
       footer={
         denied ? (
-          <Button fullWidth size="lg" variant="secondary" onClick={onClose}>
-            {t('ui.push.gotIt')}
-          </Button>
+          <div className="flex flex-col gap-2">
+            {native && (
+              <Button fullWidth size="lg" variant="secondary" leftIcon={Settings} onClick={openAppSettings} data-autofocus>
+                {t('ui2.push.openSettings')}
+              </Button>
+            )}
+            <Button fullWidth variant={native ? 'ghost' : 'secondary'} size={native ? undefined : 'lg'} onClick={onClose}>
+              {t('ui.push.gotIt')}
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
             <Button fullWidth size="lg" leftIcon={BellRing} loading={busy} onClick={enable} data-autofocus>
@@ -105,7 +132,10 @@ export function PushPrimer({
           {denied ? <BellOff className="w-7 h-7" aria-hidden /> : <BellRing className="w-7 h-7" aria-hidden />}
         </span>
         <h2 className="font-display text-xl font-extrabold text-surface-900 dark:text-white leading-snug">{t('ui.push.title')}</h2>
-        <p className="mt-2 text-[15px] text-surface-600 dark:text-surface-300 max-w-xs">{denied ? t('ui.push.denied') : body}</p>
+        <p className="mt-2 text-[15px] text-surface-600 dark:text-surface-300 max-w-xs">{denied ? t('ui2.push.deniedShort') : body}</p>
+        {denied && (
+          <p className="mt-2 text-[13px] text-surface-600 dark:text-surface-300 max-w-xs">{t('ui2.push.settingsPath')}</p>
+        )}
       </div>
     </Sheet>
   )

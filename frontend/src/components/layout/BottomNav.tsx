@@ -12,21 +12,23 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
-import { hapticLight, hapticSelect } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 import { spring } from '@/lib/motion'
 import { Sheet } from '@/components/ui/Sheet'
+import { TAB_ROOTS } from './shell'
 
 /**
- * Navegação mobile: 4 abas principais + "Mais" (folha com o resto).
+ * Navegação mobile: 4 abas principais (hrefs = TAB_ROOTS de ./shell) + "Mais" (folha com o resto).
  * Vive no TutorShell (montada uma vez), então a pílula da aba ativa desliza
  * de uma aba para outra em vez de reaparecer.
  */
+const [HOME, PETS, WALKS, HEALTH] = TAB_ROOTS
 const TABS: { href: string; labelKey: string; Icon: LucideIcon; match: (p: string) => boolean }[] = [
-  { href: '/dashboard', labelKey: 'nav.home', Icon: Home, match: p => p === '/dashboard' },
-  { href: '/pets', labelKey: 'nav.pets', Icon: PawPrint, match: p => p.startsWith('/pets') },
-  { href: '/walks', labelKey: 'nav.walks', Icon: Footprints, match: p => p.startsWith('/walks') },
+  { href: HOME, labelKey: 'nav.home', Icon: Home, match: p => p === '/dashboard' },
+  { href: PETS, labelKey: 'nav.pets', Icon: PawPrint, match: p => p.startsWith('/pets') },
+  { href: WALKS, labelKey: 'nav.walks', Icon: Footprints, match: p => p.startsWith('/walks') },
   {
-    href: '/health/vaccines',
+    href: HEALTH,
     labelKey: 'nav.health',
     Icon: ShieldCheck,
     match: p => p.startsWith('/health') && !p.startsWith('/health/exams'),
@@ -77,7 +79,7 @@ export function BottomNav() {
               <li key={href}>
                 <Link
                   href={href}
-                  onClick={() => void hapticLight()}
+                  onClick={() => haptic('tap')}
                   aria-current={active ? 'page' : undefined}
                   className="pressable flex flex-col items-center gap-1.5 py-1.5 rounded-2xl min-h-[44px]"
                 >
@@ -103,7 +105,7 @@ export function BottomNav() {
 
       <nav
         aria-label={t('nav.mainAria')}
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/80 dark:bg-surface-950/80 backdrop-blur-xl backdrop-saturate-150 border-t border-surface-200/80 dark:border-surface-800 pb-[env(safe-area-inset-bottom)]"
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/[0.92] dark:bg-surface-950/[0.92] backdrop-blur-xl backdrop-saturate-150 border-t border-surface-200/80 dark:border-surface-800 pb-[env(safe-area-inset-bottom)]"
       >
         <ul className="grid grid-cols-5">
           {TABS.map(({ href, labelKey, Icon }) => {
@@ -115,7 +117,7 @@ export function BottomNav() {
                   aria-current={active ? 'page' : undefined}
                   onClick={() => {
                     if (active) return
-                    void hapticSelect()
+                    haptic('tab')
                     setPendingHref(href)
                   }}
                   className={cn(
@@ -145,7 +147,7 @@ export function BottomNav() {
             <button
               type="button"
               onClick={() => {
-                void hapticLight()
+                haptic('tab')
                 setMoreOpen(v => !v)
               }}
               aria-expanded={moreOpen}

@@ -96,8 +96,8 @@ export default function RegisterPage() {
 
   return (
     <AuthFrame
-      title={petName ? t('ac.register.titlePet', { name: petName }) : t('ac.register.title')}
-      subtitle={t('ac.register.subtitle')}
+      title={t('ac.register.title')}
+      subtitle={petName ? t('ac2.register.withPet', { name: petName }) : t('ac.register.subtitle')}
       top={
         fromInvite ? (
           <div className="mt-4">

@@ -43,7 +43,7 @@ export default function PetsPage() {
         title={t('petx.list.title')}
         subtitle={subtitle}
         actions={
-          <IconButton icon={Plus} label={t('petx.list.add')} variant="solid" onClick={() => router.push('/pets/new')} />
+          <IconButton icon={Plus} label={t('petx.list.add')} variant="header-primary" onClick={() => router.push('/pets/new')} />
         }
       />
 
@@ -89,7 +89,7 @@ export default function PetsPage() {
             <StaggerItem as="li">
               <Link
                 href="/pets/new"
-                className="pressable flex items-center justify-center gap-3 min-h-[96px] h-full rounded-2xl border-2 border-dashed border-primary-300 dark:border-primary-500/40 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
+                className="pressable-card flex items-center justify-center gap-3 min-h-[96px] h-full rounded-2xl border-2 border-dashed border-primary-300 dark:border-primary-500/40 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
               >
                 <span className="w-10 h-10 rounded-full bg-primary-50 dark:bg-primary-500/15 flex items-center justify-center">
                   <Plus className="w-5 h-5" aria-hidden />

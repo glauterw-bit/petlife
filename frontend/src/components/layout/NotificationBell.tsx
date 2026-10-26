@@ -123,7 +123,7 @@ export function NotificationBell({ variant = 'fixed' }: { variant?: 'fixed' | 'i
   return (
     <>
       {variant === 'inline' ? (
-        <IconButton icon={Bell} label={label} variant="glass" badge={unread} onClick={openSheet} />
+        <IconButton icon={Bell} label={label} variant="header" badge={unread} onClick={openSheet} />
       ) : (
         <div
           className="fixed z-40 md:top-4 md:right-5"
@@ -132,7 +132,7 @@ export function NotificationBell({ variant = 'fixed' }: { variant?: 'fixed' | 'i
             right: 'max(0.75rem, env(safe-area-inset-right))',
           }}
         >
-          <IconButton icon={Bell} label={label} variant="glass" badge={unread} onClick={openSheet} />
+          <IconButton icon={Bell} label={label} variant="glass" badge={unread} onClick={openSheet} className="rounded-full" />
         </div>
       )}
 

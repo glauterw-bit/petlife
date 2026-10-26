@@ -43,6 +43,35 @@ export function formatDate(dateStr?: string | null, fmt?: string): string {
   }
 }
 
+/** 'YYYY-MM-DD' na data LOCAL do aparelho (não UTC — depois das 21h no Brasil o UTC já é amanhã). */
+export function todayLocalISO(): string {
+  return new Date().toLocaleDateString('en-CA')
+}
+
+/** Soma `n` dias (pode ser negativo) a 'YYYY-MM-DD' em data local; devolve 'YYYY-MM-DD'. */
+export function plusDaysISO(iso: string, n: number): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '')
+  const base = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date()
+  base.setDate(base.getDate() + n)
+  return base.toLocaleDateString('en-CA')
+}
+
+/**
+ * Data/hora vinda do servidor. ISO sem fuso é tratado como UTC (o backend grava
+ * em UTC sem 'Z'); converte para o fuso local e formata com formatDate.
+ */
+export function formatServerDateTime(iso?: string | null, fmt?: string): string {
+  if (!iso) return '—'
+  const hasTime = /T\d{2}:\d{2}/.test(iso)
+  if (!hasTime) return formatDate(iso, fmt)
+  const hasZone = /(Z|[+-]\d{2}:?\d{2})$/i.test(iso)
+  const d = new Date(hasZone ? iso : iso + 'Z')
+  if (!Number.isFinite(d.getTime())) return '—'
+  const pad = (x: number) => String(x).padStart(2, '0')
+  const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  return formatDate(local, fmt)
+}
+
 export function formatAge(birthDate?: string | null): string {
   if (!birthDate) return '—'
   try {

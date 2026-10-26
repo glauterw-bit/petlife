@@ -20,9 +20,16 @@ from database import settings as db_settings
 import os, uuid
 from auth import get_current_user
 import ai_service
+import health_protocols_i18n
 import logging
 logger = logging.getLogger(__name__)
 import subscriptions
+
+
+def _req_locale(request: Request) -> str:
+    """Idioma do aparelho (Accept-Language) para os textos de IA do tutor."""
+    return health_protocols_i18n.locale_from_header(request.headers.get("accept-language"))
+
 
 _limiter = Limiter(key_func=get_remote_address)
 
@@ -79,7 +86,7 @@ async def bedtime_story(
     }
 
     try:
-        result = await ai_service.generate_bedtime_story(pet_info, mood=body.mood)
+        result = await ai_service.generate_bedtime_story(pet_info, mood=body.mood, locale=_req_locale(request))
         await subscriptions.consume_quota(db, current_user, "ai_analysis")
         return result
     except Exception as e:
@@ -125,7 +132,7 @@ async def pain_assessment(
     }
     b64 = base64.b64encode(contents).decode("ascii")
     try:
-        r = await ai_service.assess_pet_pain(b64, media_type, pet_info)
+        r = await ai_service.assess_pet_pain(b64, media_type, pet_info, locale=_req_locale(request))
         await subscriptions.consume_quota(db, current_user, "ai_analysis")
         r["pet_name"] = pet.name
         r["species"] = pet_info["species"]
@@ -170,7 +177,7 @@ async def stool_analysis(
     }
     b64 = base64.b64encode(contents).decode("ascii")
     try:
-        r = await ai_service.analyze_stool_from_image(b64, media_type, pet_info)
+        r = await ai_service.analyze_stool_from_image(b64, media_type, pet_info, locale=_req_locale(request))
         await subscriptions.consume_quota(db, current_user, "ai_analysis")
         r["pet_name"] = pet.name
         return r
@@ -582,7 +589,7 @@ async def get_health_forecast(
     }
 
     try:
-        result = await ai_service.generate_health_forecast(pet_info, signals)
+        result = await ai_service.generate_health_forecast(pet_info, signals, locale=_req_locale(request))
         await subscriptions.consume_quota(db, current_user, "ai_analysis")
         result["pet_id"] = pet_id
         result["pet_name"] = pet.name
@@ -623,7 +630,7 @@ async def get_enrichment(
         "age": _calculate_age(pet.birth_date),
     }
     try:
-        result = await ai_service.generate_enrichment_activities(pet_info)
+        result = await ai_service.generate_enrichment_activities(pet_info, locale=_req_locale(request))
         await subscriptions.consume_quota(db, current_user, "ai_analysis")
         from routers.events import track_event
         await track_event(db, current_user.id, "enrichment")
@@ -674,6 +681,7 @@ async def create_behavior_plan(
             issue_type=body.issue_type,
             intensity=body.intensity,
             context=body.context or "",
+            locale=_req_locale(request),
         )
     except Exception as e:
         msg = str(e).lower()
@@ -908,7 +916,7 @@ async def petlife_wrapped(
     }
 
     try:
-        wrapped = await ai_service.generate_petlife_wrapped(pet_info, year_data)
+        wrapped = await ai_service.generate_petlife_wrapped(pet_info, year_data, locale=_req_locale(request))
         wrapped["pet_name"] = pet.name
         wrapped["pet_id"] = pet.id
         wrapped["year"] = target_year
@@ -1062,7 +1070,7 @@ async def analyze_behavior(
     } for l in logs]
 
     try:
-        result = await ai_service.analyze_behavior_patterns(pet_info, logs_data)
+        result = await ai_service.analyze_behavior_patterns(pet_info, logs_data, locale=_req_locale(request))
         result["logs_count"] = len(logs)
         return result
     except Exception as e:
@@ -1171,6 +1179,7 @@ class MemorialRequest(BaseModel):
 
 @router.post("/pets/{pet_id}/memorial")
 async def set_memorial(
+    request: Request,
     pet_id: int,
     body: MemorialRequest,
     current_user: User = Depends(get_current_user),
@@ -1191,7 +1200,7 @@ async def set_memorial(
     age_str = f"{pet_info['age']} anos" if pet_info["age"] else ""
 
     try:
-        memorial = await ai_service.generate_memorial_text({**pet_info, "age": age_str}, body.owner_message or "")
+        memorial = await ai_service.generate_memorial_text({**pet_info, "age": age_str}, body.owner_message or "", locale=_req_locale(request))
     except Exception:
         memorial = {
             "memorial_text": f"Em memória de {pet.name}. Para sempre em nossos corações.",
@@ -1294,7 +1303,7 @@ async def add_story(
     try:
         pet_info = {"name": pet.name, "species": pet.species.value if hasattr(pet.species, "value") else pet.species}
         b64 = base64.b64encode(contents).decode("ascii")
-        cap = await ai_service.generate_story_caption(b64, "image/jpeg", pet_info)
+        cap = await ai_service.generate_story_caption(b64, "image/jpeg", pet_info, locale=_req_locale(request))
         ai_caption = cap.get("caption")
         ai_emotion = cap.get("emotion")
     except Exception:
@@ -1959,7 +1968,7 @@ async def snapshot_triage(
 
     b64 = base64.b64encode(contents).decode("ascii")
     try:
-        result = await ai_service.snapshot_triage_from_image(b64, media_type, pet_info)
+        result = await ai_service.snapshot_triage_from_image(b64, media_type, pet_info, locale=_req_locale(request))
         await subscriptions.consume_quota(db, current_user, "ai_analysis")
         result["pet_name"] = pet.name
         return result

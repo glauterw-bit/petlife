@@ -8,13 +8,14 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { walks, type WalkListItem, type WalkStats, type WalkBadge, type WalkBadgesResponse } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
-import { formatDistance, formatDuration, formatPace } from '@/lib/walk-utils'
+import { formatDistance, formatDuration } from '@/lib/walk-utils'
+import { paceClock } from '@/components/walks/pace'
 import { flushFinishQueue, getFinishQueue } from '@/lib/walk-persistence'
 import { useT } from '@/contexts/LocaleContext'
 import { localeTag, cn } from '@/lib/utils'
 import { useCached, invalidate } from '@/lib/cache'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { IconButton } from '@/components/ui/IconButton'
+import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Section } from '@/components/ui/Section'
 import { Sheet } from '@/components/ui/Sheet'
@@ -23,8 +24,7 @@ import { PetAvatar } from '@/components/ui/PetAvatar'
 import { PullToRefresh } from '@/components/ui/PullToRefresh'
 import { Stagger, StaggerItem } from '@/components/ui/Motion'
 import { Skeleton, SkeletonRow } from '@/components/ui/Skeleton'
-import { useRouter } from 'next/navigation'
-import { hapticLight } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 
 /** Ícone lucide por conquista (a API manda emoji; aqui é interface, então vira ícone). */
 const BADGE_ICONS: Record<string, LucideIcon> = {
@@ -71,7 +71,6 @@ function nextBadge(badges: WalkBadge[]): WalkBadge | null {
 
 export default function WalksPage() {
   const t = useT()
-  const router = useRouter()
   const { error, success } = useToast()
   const [allOpen, setAllOpen] = useState(false)
 
@@ -130,16 +129,21 @@ export default function WalksPage() {
         <PageHeader
           title={t('walk.title')}
           subtitle={subtitle}
-          actions={
-            <IconButton
-              icon={Play}
-              label={t('walk.start')}
-              variant="solid"
-              onClick={() => router.push('/walks/active')}
-              className="[&_svg]:fill-current"
-            />
-          }
         />
+
+        {/* Ação principal da tela: texto claro, largura total, 48 px.
+            Sem passeios, quem convida é o estado vazio (evita dois botões iguais). */}
+        {(loading || items.length > 0) && (
+          <Button
+            href="/walks/active"
+            size="md"
+            fullWidth
+            leftIcon={Play}
+            className="min-h-[48px] mb-5 [&_svg]:fill-current"
+          >
+            {t('wk2.start')}
+          </Button>
+        )}
 
         <PullToRefresh onRefresh={refreshAll}>
           {loading ? (
@@ -177,7 +181,7 @@ export default function WalksPage() {
               {badges.length > 0 && (
                 <Section
                   title={next ? t('wk.badge.nextTitle') : t('pw.walks.achievements')}
-                  action={{ label: t('wk.badge.seeAll'), onClick: () => { void hapticLight(); setAllOpen(true) } }}
+                  action={{ label: t('wk.badge.seeAll'), onClick: () => { haptic('tap'); setAllOpen(true) } }}
                 >
                   {next ? (
                     <NextBadgeCard badge={next} earned={earnedCount} total={badges.length} />
@@ -331,6 +335,7 @@ function WalkCard({ walk }: { walk: WalkListItem }) {
   const dateStr = date.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short', year: 'numeric' })
   const timeStr = date.toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' })
   // humor do pet é conteúdo (reação), então o emoji fica
+  const pace = paceClock(walk.avg_pace_seconds_per_km)
   const moodEmoji = walk.mood === 'happy' ? '😊' : walk.mood === 'tired' ? '😴' : walk.mood === 'normal' ? '🙂' : null
 
   return (
@@ -352,7 +357,7 @@ function WalkCard({ walk }: { walk: WalkListItem }) {
       <div className="grid grid-cols-3 gap-2 text-center">
         <Metric value={formatDistance(walk.distance_meters)} label={t('walk.distance')} />
         <Metric value={formatDuration(walk.duration_seconds)} label={t('walk.time')} />
-        <Metric value={walk.avg_pace_seconds_per_km ? formatPace(walk.avg_pace_seconds_per_km).replace('/km', '') : '—'} label={t('walk.pace')} />
+        <Metric value={pace ? t('wk2.pace', { pace }) : '—'} label={t('walk.pace')} />
       </div>
       {(walk.kudos_count > 0 || walk.is_shared) && (
         <div className="mt-3 pt-3 border-t border-surface-100 dark:border-surface-800 flex items-center gap-3 text-xs text-surface-600 dark:text-surface-400">

@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { Flame } from 'lucide-react'
 import { celebrate } from '@/components/ui/CelebrationOverlay'
 import { innovations, type Pet, type CareStreak } from '@/lib/api'
-import { useCountUp, usePrefersReducedMotion } from '@/lib/motion'
+import { usePrefersReducedMotion } from '@/lib/motion'
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber'
 import { useT } from '@/contexts/LocaleContext'
 
 /**
@@ -17,9 +18,12 @@ export function StreakFlame({
   pet,
   refreshKey,
   variant = 'card',
+  onLoaded,
 }: {
   pet: Pet
   refreshKey?: number
+  /** Recebe a sequência atual quando ela chega (o Início usa para decidir o aviso diário, sem outra chamada). */
+  onLoaded?: (petId: number, streak: number) => void
   /** 'chip' = selo pequeno (Início): só aparece com 2+ dias e sem contagem regressiva. */
   variant?: 'card' | 'chip'
 }) {
@@ -31,13 +35,17 @@ export function StreakFlame({
   useEffect(() => {
     let alive = true
     innovations.careStreak(pet.id)
-      .then(d => { if (alive) setData(d) })
+      .then(d => {
+        if (!alive) return
+        setData(d)
+        onLoaded?.(pet.id, d?.current_streak ?? 0)
+      })
       .catch(() => {})
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
+    // onLoaded fica fora das dependências: trocar a função não pede nova chamada.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pet.id, refreshKey])
-
-  const animatedStreak = useCountUp(data?.current_streak ?? 0, { durationMs: 800, startWhen: !!data })
 
   // Marco real (7/30/100 dias seguidos) — celebra 1x por marco e por pet.
   useEffect(() => {
@@ -116,7 +124,7 @@ export function StreakFlame({
           />
           {lit && (
             <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-extrabold text-orange-600 dark:text-orange-400 tabular-nums">
-              {Math.round(animatedStreak)}
+              <AnimatedNumber value={data.current_streak} />
             </span>
           )}
         </div>

@@ -28,7 +28,7 @@ import { PetAvatar } from '@/components/ui/PetAvatar'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Stagger, StaggerItem } from '@/components/ui/Motion'
 import { useConfirm } from '@/components/ui/Confirm'
-import { hapticLight, hapticSelect, hapticSuccess } from '@/lib/feedback'
+import { haptic, hapticLight, hapticSelect } from '@/lib/feedback'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
 import { track } from '@/lib/track'
@@ -116,11 +116,12 @@ export default function MomentosPage() {
     try {
       const s = await innovations.addStory(petId, file, caption.trim() || undefined)
       const pet = petList.find(p => p.id === petId)!
+      const isFirst = momentos.length === 0
       setMomentos(prev => [{ ...s, pet }, ...prev])
       setSheetOpen(false)
       pickFile(null); setCaption('')
-      void hapticSuccess()
-      celebrateBadge()
+      // Confete só no primeiro momento (marco); os do dia a dia ficam com a vibração.
+      if (isFirst) { haptic('milestone'); celebrateBadge() } else haptic('saved')
       trackHappyMoment('momento_publicado')
       success(t('g.mo.published'))
     } catch (e) {
@@ -184,13 +185,16 @@ export default function MomentosPage() {
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-700 via-primary-700 to-emerald-700 p-5 text-white mb-6 shadow-card">
         <Camera className="absolute -right-5 -top-5 w-36 h-36 opacity-10" aria-hidden strokeWidth={1.5} />
         <div className="relative flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2 bg-white/15 rounded-2xl px-4 py-2.5">
-            <Flame className={cn('w-6 h-6', dias > 0 ? 'text-amber-300' : 'text-white/60')} aria-hidden />
-            <div>
-              <div className="text-2xl font-extrabold leading-none tabular-nums">{dias}</div>
-              <div className="text-[11px] text-white/85">{t('g.mo.streakLabel')}</div>
+          {/* Sequência só aparece quando existe: "0 dias seguidos" é cobrança, não informação. */}
+          {dias > 0 && (
+            <div className="flex items-center gap-2 bg-white/15 rounded-2xl px-4 py-2.5">
+              <Flame className="w-6 h-6 text-amber-300" aria-hidden />
+              <div>
+                <div className="text-2xl font-extrabold leading-none tabular-nums">{dias}</div>
+                <div className="text-[11px] text-white/90">{t('g.mo.streakLabel')}</div>
+              </div>
             </div>
-          </div>
+          )}
           <div className="flex-1 min-w-[180px]">
             <p className="font-bold text-lg leading-snug">
               {hojeFeito ? t('g.mo.doneToday') : dias > 0 ? t('g.mo.keepStreak', { n: dias }) : t('g.mo.startToday')}
@@ -212,12 +216,11 @@ export default function MomentosPage() {
       {petList.length === 0 ? (
         <EmptyState icon={PawPrint} title={t('g.mo.noPets')} ctaLabel={t('g.rt.registerPet')} ctaHref="/pets/new" />
       ) : momentos.length === 0 ? (
+        // O botão "Foto do dia" já está no topo: aqui só explica, sem repetir a ação.
         <EmptyState
           icon={Camera}
           title={t('g.mo.emptyTitle')}
-          text={t('g.mo.emptyText')}
-          ctaLabel={t('g.mo.cta')}
-          onCta={openSheet}
+          text={t('wk2.mo.emptyText')}
         />
       ) : (
         <Stagger className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -2,14 +2,21 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { X, Send, ChevronDown, Check, Dog, Cat, PawPrint } from 'lucide-react'
 import { VyronAvatar } from './VyronAvatar'
 import { ai, billing, type Pet } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
-import { hapticLight } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 import { spring, dur, easeOut } from '@/lib/motion'
+
+/**
+ * Regra do lançador: nada do Vyron fica parado por cima do conteúdo. O botão
+ * sai da frente ao rolar para baixo, e qualquer balão/dica que venha a ser
+ * mostrado junto dele some sozinho em no máximo BUBBLE_MAX_MS.
+ */
+export const BUBBLE_MAX_MS = 6000
 
 /** Telas onde o botão do Vyron atrapalha (formulários longos, passeio ativo, suporte humano). */
 const HIDDEN_ROUTES = ['/suporte', '/pets/new', '/walks/active', '/settings', '/plans']
@@ -33,28 +40,38 @@ function useKeyboardOpen(): boolean {
   return open
 }
 
-/** true enquanto o usuário rola para baixo (o botão encolhe e sai da frente). */
-function useScrollingDown(): boolean {
-  const [down, setDown] = useState(false)
+/**
+ * true enquanto o usuário rola para baixo: o lançador sai da frente do
+ * conteúdo. Volta ao rolar para cima ou depois de 1,2 s parado.
+ */
+function useLauncherTucked(): boolean {
+  const [tucked, setTucked] = useState(false)
   useEffect(() => {
     let last = window.scrollY
     let ticking = false
+    let idle: ReturnType<typeof setTimeout> | undefined
     const onScroll = () => {
       if (ticking) return
       ticking = true
       requestAnimationFrame(() => {
         const y = window.scrollY
-        if (Math.abs(y - last) > 6) {
-          setDown(y > last && y > 40)
+        const dy = y - last
+        if (Math.abs(dy) > 6) {
+          setTucked(dy > 0 && y > 40)
           last = y
         }
+        clearTimeout(idle)
+        idle = setTimeout(() => setTucked(false), 1200)
         ticking = false
       })
     }
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      clearTimeout(idle)
+    }
   }, [])
-  return down
+  return tucked
 }
 
 interface Message {
@@ -84,7 +101,8 @@ export function AIChatWidget({ pets, hidden = false }: AIChatWidgetProps) {
   const t = useT()
   const pathname = usePathname() ?? ''
   const keyboardOpen = useKeyboardOpen()
-  const scrollingDown = useScrollingDown()
+  const tucked = useLauncherTucked()
+  const reduced = useReducedMotion()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -200,13 +218,22 @@ export function AIChatWidget({ pets, hidden = false }: AIChatWidgetProps) {
           <motion.button
             key="vyron-fab"
             type="button"
-            onClick={() => { void hapticLight(); setOpen(true) }}
+            onClick={() => { haptic('tap'); setOpen(true) }}
             aria-label={t('shell.assistant')}
-            style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{ opacity: scrollingDown ? 0.9 : 1, scale: scrollingDown ? 0.85 : 1 }}
-            exit={{ opacity: 0, scale: 0.6, transition: { duration: dur.fast } }}
-            whileTap={{ scale: 0.92 }}
+            // Rolando para baixo: sai da frente (sem foco/toque enquanto escondido).
+            tabIndex={tucked ? -1 : undefined}
+            aria-hidden={tucked || undefined}
+            style={{ right: 'max(1rem, env(safe-area-inset-right))', pointerEvents: tucked ? 'none' : undefined }}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
+            animate={
+              tucked
+                ? reduced
+                  ? { opacity: 0, transition: { duration: dur.fast } }
+                  : { opacity: 0, y: 24, scale: 1, transition: { duration: dur.fast, ease: easeOut as unknown as [number, number, number, number] } }
+                : { opacity: 1, y: 0, scale: 1 }
+            }
+            exit={{ opacity: 0, scale: reduced ? 1 : 0.6, transition: { duration: dur.fast } }}
+            whileTap={reduced ? undefined : { scale: 0.92 }}
             transition={spring.pop}
             className="fixed bottom-nav md:bottom-6 z-40 w-[52px] h-[52px] rounded-full flex items-center justify-center bg-white dark:bg-surface-800 border border-primary-200 dark:border-primary-500/30 shadow-float origin-bottom-right"
           >

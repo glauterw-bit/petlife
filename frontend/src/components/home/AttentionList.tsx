@@ -7,7 +7,6 @@ import { Section } from '@/components/ui/Section'
 import { Button } from '@/components/ui/Button'
 import { PetAvatar } from '@/components/ui/PetAvatar'
 import { StatusBadge, careStateLabel } from '@/components/ui/StatusBadge'
-import { StaggerItem, Stagger } from '@/components/ui/Motion'
 import { vaccineAddHref } from '@/components/pets/PetHero'
 
 interface Row {
@@ -94,12 +93,12 @@ export function AttentionList({
 
   return (
     <Section title={t('home.att.title')} action={{ label: t('home.att.seeAll'), href: '/health/vaccines' }} className="mb-5">
-      <Stagger as="ul" className="space-y-2">
+      <ul className="space-y-2">
         {visible.map(r => {
           const pet = byId.get(r.petId)
           if (!pet) return null
           return (
-            <StaggerItem as="li" key={r.key}>
+            <li key={r.key}>
               <div className={`rounded-2xl border p-3 ${r.state === 'overdue' ? 'tone-danger-bg' : 'tone-warning-bg'}`}>
                 <div className="flex items-center gap-3">
                   <PetAvatar pet={pet} size={36} />
@@ -134,10 +133,10 @@ export function AttentionList({
                   )}
                 </div>
               </div>
-            </StaggerItem>
+            </li>
           )
         })}
-      </Stagger>
+      </ul>
     </Section>
   )
 }

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Syringe, CreditCard, Footprints, Scale, Trophy, type LucideIcon } from 'lucide-react'
 import { useT } from '@/contexts/LocaleContext'
-import { hapticLight } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 import { Card } from '@/components/ui/Card'
 import { ReferralCard } from '@/components/growth/ReferralCard'
 import { vaccineAddHref } from '@/components/pets/PetHero'
@@ -24,7 +24,7 @@ export function QuickActions({ petId }: { petId: number }) {
           <Link
             key={label}
             href={href}
-            onClick={() => void hapticLight()}
+            onClick={() => haptic('tap')}
             className="pressable flex flex-col items-center gap-1.5 rounded-2xl py-2 min-h-[72px] text-center hover:bg-surface-100 dark:hover:bg-surface-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
             <span className="w-12 h-12 rounded-2xl bg-surface-100 text-primary-700 dark:bg-surface-800 dark:text-primary-300 flex items-center justify-center">

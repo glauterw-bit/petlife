@@ -6,12 +6,21 @@ import { protections as protectionsApi } from '@/lib/api'
 import { Sheet } from '@/components/ui/Sheet'
 import { Button } from '@/components/ui/Button'
 import { useT } from '@/contexts/LocaleContext'
-import { hapticError, hapticSelect } from '@/lib/feedback'
-import { cn } from '@/lib/utils'
+import { haptic } from '@/lib/feedback'
+import { PROTECTION_INTERVALS } from '@/lib/care'
+import { cn, localeTag, todayLocalISO, plusDaysISO } from '@/lib/utils'
 
-const INTERVALS: Record<'vermifugo' | 'antipulgas', number[]> = {
-  vermifugo: [30, 60, 90, 180],
-  antipulgas: [30, 60, 90],
+/** Opção padrão quando o pet ainda não tem intervalo salvo (só uma sugestão de partida; a bula manda). */
+const DEFAULT_INTERVAL: Record<'vermifugo' | 'antipulgas', number> = { vermifugo: 90, antipulgas: 30 }
+
+function formatDay(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const date = new Date(y, (m || 1) - 1, d || 1)
+  try {
+    return date.toLocaleDateString(localeTag(), { day: 'numeric', month: 'long', year: 'numeric' })
+  } catch {
+    return date.toLocaleDateString()
+  }
 }
 
 /** Registro rápido de vermífugo/antipulgas direto da ficha (usa a mesma API do card de proteção). */
@@ -33,7 +42,7 @@ export function ProtectionSheet({
   onSaved: () => void
 }) {
   const t = useT()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayLocalISO()
   const [product, setProduct] = useState('')
   const [appliedOn, setAppliedOn] = useState(today)
   const [interval, setIntervalDays] = useState(30)
@@ -43,14 +52,14 @@ export function ProtectionSheet({
   useEffect(() => {
     if (!open) return
     setProduct(defaultProduct ?? '')
-    setAppliedOn(new Date().toISOString().slice(0, 10))
-    const opts = INTERVALS[kind]
-    setIntervalDays(defaultInterval && defaultInterval > 0 ? defaultInterval : opts[0])
+    setAppliedOn(todayLocalISO())
+    setIntervalDays(defaultInterval && defaultInterval > 0 ? defaultInterval : DEFAULT_INTERVAL[kind])
     setErr(null)
   }, [open, kind, defaultInterval, defaultProduct])
 
   const kindLabel = t(kind === 'vermifugo' ? 'ui.care.vermifugo' : 'ui.care.antipulgas')
-  const options = Array.from(new Set([...INTERVALS[kind], interval])).sort((a, b) => a - b)
+  const options = Array.from(new Set<number>([...PROTECTION_INTERVALS[kind], interval])).sort((a, b) => a - b)
+  const nextOn = appliedOn ? plusDaysISO(appliedOn, interval) : null
 
   async function save() {
     if (saving) return
@@ -64,10 +73,11 @@ export function ProtectionSheet({
         // meio-dia evita o fuso jogar a data para o dia anterior
         applied_at: `${appliedOn}T12:00:00`,
       })
+      haptic('saved')
       onSaved()
       onClose()
     } catch {
-      void hapticError()
+      haptic('error')
       setErr(t('petx.prot.error'))
     } finally {
       setSaving(false)
@@ -121,7 +131,7 @@ export function ProtectionSheet({
                 type="button"
                 aria-pressed={interval === d}
                 onClick={() => {
-                  void hapticSelect()
+                  haptic('toggle')
                   setIntervalDays(d)
                 }}
                 className={cn(
@@ -135,6 +145,12 @@ export function ProtectionSheet({
               </button>
             ))}
           </div>
+          <p className="mt-2 text-[13px] text-surface-600 dark:text-surface-300">{t('pet2.prot.label')}</p>
+          {nextOn && (
+            <p className="mt-1 text-[13px] font-medium text-surface-800 dark:text-surface-100" aria-live="polite">
+              {t('pet2.prot.next', { date: formatDay(nextOn) })}
+            </p>
+          )}
         </fieldset>
         {err && (
           <p role="alert" className="text-sm text-red-700 dark:text-red-300">

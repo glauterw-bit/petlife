@@ -163,6 +163,7 @@ async def pet_health_suggestions(
 @router.get("/{breed_id}/care-guide")
 async def get_breed_care_guide(
     breed_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -191,5 +192,7 @@ async def get_breed_care_guide(
         "gender": None,
     }
 
-    guide = await ai_service.generate_care_guide(breed_info, pet_info)
+    import health_protocols_i18n
+    locale = health_protocols_i18n.locale_from_header(request.headers.get("accept-language"))
+    guide = await ai_service.generate_care_guide(breed_info, pet_info, locale=locale)
     return {"breed_id": breed_id, "breed_name": breed.name, "care_guide": guide}

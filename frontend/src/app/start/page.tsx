@@ -11,7 +11,7 @@ import { savePetDraft, loadPetDraft } from '@/lib/petDraft'
 import { track } from '@/lib/track'
 import { hapticLight } from '@/lib/feedback'
 import { Button } from '@/components/ui/Button'
-import { spring, dur, easeOut } from '@/lib/motion'
+import { spring, dur, easeOut, usePrefersReducedMotion } from '@/lib/motion'
 
 /**
  * Primeira abertura do app nativo: o pet vem antes da conta.
@@ -23,6 +23,7 @@ import { spring, dur, easeOut } from '@/lib/motion'
  */
 export default function StartPage() {
   const t = useT()
+  const reduced = usePrefersReducedMotion()
   const router = useRouter()
   const { user, isLoading, isVetUser } = useAuth()
   const [step, setStep] = useState(0)
@@ -62,7 +63,7 @@ export default function StartPage() {
             type="button"
             onClick={() => { void hapticLight(); setStep(s => s - 1) }}
             aria-label={t('nav.back')}
-            className="pressable inline-flex items-center justify-center w-11 h-11 -ml-2 rounded-xl text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800"
+            className="pressable inline-flex items-center justify-center w-11 h-11 -ml-2 rounded-xl text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
             <ChevronLeft className="w-6 h-6" aria-hidden />
           </button>
@@ -79,10 +80,10 @@ export default function StartPage() {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={step}
-            initial={{ opacity: 0, x: 14 }}
+            initial={{ opacity: 0, x: reduced ? 0 : 14 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -14 }}
-            transition={{ duration: dur.base, ease: easeOut }}
+            exit={{ opacity: 0, x: reduced ? 0 : -14 }}
+            transition={{ duration: reduced ? 0.12 : dur.base, ease: easeOut }}
           >
             {step === 0 && (
               <>
@@ -116,7 +117,7 @@ export default function StartPage() {
                 <h1 className="font-display text-2xl font-extrabold text-surface-900 dark:text-white mb-1.5 mt-7">
                   <label htmlFor="start-pet-name">{t('st.nameTitle')}</label>
                 </h1>
-                <p className="text-sm text-surface-600 dark:text-surface-400 mb-4">{t('st.nameHint')}</p>
+                <p className="text-sm text-surface-600 dark:text-surface-300 mb-4">{t('st.nameHint')}</p>
                 <input
                   id="start-pet-name"
                   autoFocus
@@ -146,7 +147,7 @@ export default function StartPage() {
                       onClick={() => choose(sp)}
                       onPointerEnter={() => setHoverSpecies(sp)}
                       onFocus={() => setHoverSpecies(sp)}
-                      className="pressable flex flex-col items-center gap-2.5 py-6 rounded-2xl bg-white dark:bg-surface-900 border-2 border-surface-200 dark:border-surface-700 hover:border-primary-500 focus-visible:border-primary-500 transition-colors"
+                      className="pressable flex flex-col items-center gap-2.5 py-6 rounded-2xl bg-white dark:bg-surface-900 border-2 border-surface-200 dark:border-surface-700 hover:border-primary-500 focus-visible:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-surface-950 transition-colors"
                     >
                       <span className="w-14 h-14 rounded-full bg-primary-100 dark:bg-primary-500/15 flex items-center justify-center">
                         <Icon className="w-8 h-8 text-primary-700 dark:text-primary-300" aria-hidden strokeWidth={1.8} />
@@ -169,7 +170,7 @@ export default function StartPage() {
             </Button>
             <Link
               href="/auth/login"
-              className="flex items-center justify-center min-h-[44px] text-sm font-semibold text-primary-700 dark:text-primary-300"
+              className="flex items-center justify-center min-h-[44px] rounded-xl text-sm font-semibold text-primary-700 dark:text-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             >
               {t('st.hasAccount')}
             </Link>

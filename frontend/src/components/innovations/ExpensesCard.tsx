@@ -9,6 +9,7 @@ import { expenses, type PetExpense, type ExpenseSummary } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { useChartTheme } from '@/lib/charts'
 import { useT } from '@/contexts/LocaleContext'
+import { formatMoney } from './RecapCard'
 
 const CATEGORIES: { value: string; labelKey: string; icon: LucideIcon }[] = [
   { value: 'alimentacao', labelKey: 'g.exp.cat.food', icon: Drumstick },
@@ -19,9 +20,8 @@ const CATEGORIES: { value: string; labelKey: string; icon: LucideIcon }[] = [
   { value: 'outros', labelKey: 'g.exp.cat.other', icon: Package },
 ]
 
-function brl(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
+// R$ só no pt-BR; em en/es, número sem símbolo (a moeda do tutor é desconhecida)
+const brl = (v: number) => formatMoney(v)
 
 export function ExpensesCard({ petId }: { petId: number }) {
   const t = useT()
@@ -106,7 +106,7 @@ export function ExpensesCard({ petId }: { petId: number }) {
           </div>
           <div className="flex gap-2">
             <input
-              type="text" inputMode="decimal" aria-label={t('petx.exp.amountLabel')} placeholder={t('g.exp.amountPh')} value={form.amount}
+              type="text" inputMode="decimal" aria-label={t('petx.exp.amountLabel')} placeholder={formatMoney(0)} value={form.amount}
               onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
               className="w-28 px-3 min-h-[44px] text-[15px] bg-white border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -128,7 +128,7 @@ export function ExpensesCard({ petId }: { petId: number }) {
         <div className="flex items-end gap-2 h-20 mb-1">
           {summary.months.map(m => (
             <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
-              <span className="text-[11px] text-surface-500 dark:text-surface-400 tabular-nums">{m.total > 0 ? brl(m.total).replace(/,\d+$/, '') : ''}</span>
+              <span className="text-[11px] text-surface-500 dark:text-surface-400 tabular-nums">{m.total > 0 ? formatMoney(m.total, 0) : ''}</span>
               <div
                 className="w-full max-w-[34px] rounded-t-md transition-all"
                 style={{ height: `${Math.max((m.total / maxMonth) * 56, m.total > 0 ? 4 : 1)}px`, background: palette[0], opacity: 0.85 }}

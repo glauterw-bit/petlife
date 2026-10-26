@@ -16,8 +16,9 @@ import { PetAvatar } from '@/components/ui/PetAvatar'
 import { Skeleton, SkeletonRow } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/ToastContext'
-import { hapticMedium, hapticSuccess, hapticSelect } from '@/lib/feedback'
-import { haversineMeters, formatDistance, formatDuration, formatPace, shouldAcceptPoint } from '@/lib/walk-utils'
+import { hapticMedium, hapticSuccess, hapticSelect, celebrate } from '@/lib/feedback'
+import { haversineMeters, formatDistance, formatDuration, shouldAcceptPoint } from '@/lib/walk-utils'
+import { paceClock } from '@/components/walks/pace'
 import { saveActiveWalk, clearActiveWalk, enqueueFinish } from '@/lib/walk-persistence'
 import { trackHappyMoment } from '@/lib/review'
 import { useT } from '@/contexts/LocaleContext'
@@ -251,6 +252,8 @@ export default function ActiveWalkPage() {
       void hapticSuccess()
       success(t('pw.active.savedToast', { distance: formatDistance(distance), duration: formatDuration(duration) }))
       trackHappyMoment('walk')
+      // Confete só no PRIMEIRO passeio do tutor (marco). Os seguintes ficam com a vibração.
+      walks.stats().then(st => { if (st.total_walks === 1) celebrate('medium') }).catch(() => {})
       router.push(`/walks/${finished.id}`)
     } catch (e) {
       // Sem internet / erro de rede: enfileira pra reenviar depois — NÃO perde o passeio
@@ -396,9 +399,9 @@ export default function ActiveWalkPage() {
             </div>
             <div>
               <div className="text-3xl md:text-4xl font-bold text-surface-900 dark:text-white tabular-nums">
-                {distance > 0 && duration > 0 ? formatPace(duration / (distance / 1000)).replace('/km', '') : '—'}
+                {(distance > 0 && duration > 0 && paceClock(duration / (distance / 1000))) || '—'}
               </div>
-              <div className="text-xs text-surface-500 dark:text-surface-400 mt-1">{t('pw.active.pacePerKm')}</div>
+              <div className="text-xs text-surface-500 dark:text-surface-400 mt-1">{t('wk2.paceLabel')}</div>
             </div>
           </div>
 

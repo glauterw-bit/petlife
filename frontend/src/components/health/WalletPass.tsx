@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useAnimationControls } from 'framer-motion'
 import { AlertCircle, CheckCircle2, CircleDashed, Clock, PawPrint, RotateCw, ShieldAlert, ShieldCheck, ShieldQuestion, type LucideIcon } from 'lucide-react'
 import { useT } from '@/contexts/LocaleContext'
-import { formatAge, formatDate, cn } from '@/lib/utils'
+import { formatAge, formatDate, formatServerDateTime, cn } from '@/lib/utils'
 import { daysUntil, findRabies, latestDoses, sortByUrgency, vaccineState, SOON_DAYS } from '@/lib/care'
 import { spring, usePrefersReducedMotion, dur, easeOut } from '@/lib/motion'
 import { PetAvatar } from '@/components/ui/PetAvatar'
@@ -232,7 +232,7 @@ function Front({ data }: { data: CarteirinhaData }) {
       </div>
 
       <p className="mt-4 pt-3 border-t border-white/15 text-xs text-white/85">
-        {t('wallet.footer', { date: formatDate(data.generated_at.slice(0, 10)) })}
+        {t('wallet.footer', { date: formatServerDateTime(data.generated_at) })}
       </p>
     </div>
   )

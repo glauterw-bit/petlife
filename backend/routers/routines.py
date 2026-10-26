@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -10,6 +10,7 @@ from schemas import WalkRoutineCreate, WalkRoutineUpdate, WalkRoutineResponse, W
 from auth import get_current_user
 from models import User
 import ai_service
+import health_protocols_i18n
 
 router = APIRouter(prefix="/routines", tags=["Rotinas de Passeio"])
 
@@ -31,6 +32,7 @@ def _calculate_age(birth_date) -> str:
 @router.post("/generate", response_model=WalkRoutineResponse, status_code=status.HTTP_201_CREATED)
 async def generate_walk_routine(
     request: WalkRoutineGenerateRequest,
+    http_request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -67,7 +69,8 @@ async def generate_walk_routine(
         }
 
     try:
-        routine_data = await ai_service.generate_walk_routine(pet_info, breed_info)
+        locale = health_protocols_i18n.locale_from_header(http_request.headers.get("accept-language"))
+        routine_data = await ai_service.generate_walk_routine(pet_info, breed_info, locale=locale)
         times = routine_data.get("time_slots") or ["08:00", "17:00"]
         # A IA às vezes devolve string em vez de lista; normalizamos aqui pra
         # não estourar no cliente.

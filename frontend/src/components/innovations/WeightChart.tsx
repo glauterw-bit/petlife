@@ -8,11 +8,37 @@ import { useToast } from '@/components/ui/ToastContext'
 import { useChartTheme, smoothPath, parseRange } from '@/lib/charts'
 import { useT } from '@/contexts/LocaleContext'
 import { parseWeightKg } from '@/lib/weight'
-import { hapticSuccess, hapticError } from '@/lib/feedback'
+import { haptic, hapticError } from '@/lib/feedback'
 import { invalidate } from '@/lib/cache'
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber'
 
 interface WeightChartProps {
   petId: number
+}
+
+/**
+ * Aviso de peso calculado no app (o texto do servidor é ignorado: vinha só em
+ * PT, opinava sobre dieta e disparava com pesagens do mesmo dia).
+ * Regra: a mais antiga e a mais recente pesagem precisam estar a pelo menos
+ * 14 dias uma da outra e a variação ser de pelo menos 8%. O texto é neutro —
+ * sugere comentar na consulta, sem diagnóstico.
+ */
+const ALERT_MIN_DAYS = 14
+const ALERT_MIN_PCT = 8
+
+function weightAlert(entries: { weight_kg: number; measured_at: string }[]): { dir: 'up' | 'down'; since: string } | null {
+  if (entries.length < 2) return null
+  const sorted = [...entries]
+    .map(e => ({ ...e, ts: new Date(e.measured_at).getTime() }))
+    .filter(e => Number.isFinite(e.ts) && e.weight_kg > 0)
+    .sort((a, b) => a.ts - b.ts)
+  if (sorted.length < 2) return null
+  const first = sorted[0]
+  const last = sorted[sorted.length - 1]
+  if ((last.ts - first.ts) / 86_400_000 < ALERT_MIN_DAYS) return null
+  const pct = ((last.weight_kg - first.weight_kg) / first.weight_kg) * 100
+  if (Math.abs(pct) < ALERT_MIN_PCT) return null
+  return { dir: pct > 0 ? 'up' : 'down', since: first.measured_at }
 }
 
 // Coordenadas do plot (viewBox fixo → escala proporcional, sem distorcer os pontos)
@@ -42,7 +68,7 @@ export function WeightChart({ petId }: WeightChartProps) {
       await innovations.addWeight(petId, w)
       setData(await innovations.weightHistory(petId))
       setWeightInput('')
-      void hapticSuccess()
+      haptic('saved')
       invalidate(`pet:${petId}`)
       invalidate('pets')
       success(t('g.wt.saved', { w }))
@@ -79,12 +105,13 @@ export function WeightChart({ petId }: WeightChartProps) {
   const trendPct = entries.length >= 2 && entries[0].weight_kg ? (trend / entries[0].weight_kg) * 100 : 0
   const TrendIcon = Math.abs(trend) < 0.05 ? Minus : trend > 0 ? TrendingUp : TrendingDown
   const nf = (v: number, d = 1) => v.toLocaleString(localeTag(), { minimumFractionDigits: 0, maximumFractionDigits: d })
-  const fixDecimals = (msg: string) => localeTag().startsWith('en') ? msg : msg.replace(/(\d)\.(\d)/g, '$1,$2')
+  const fmtLongDate = (s: string) => new Date(s).toLocaleDateString(localeTag(), { day: 'numeric', month: 'long', year: 'numeric' })
+  const weightNote = weightAlert(entries)
   const fmtDate = (s: string) => new Date(s).toLocaleDateString(localeTag(), { day: '2-digit', month: 'short' })
 
   return (
-    <div className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200/70 dark:border-surface-800 p-5">
-      <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
+    <div className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200/70 dark:border-surface-800 p-4">
+      <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
         <div>
           <h3 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
             <Scale className="w-4 h-4 text-primary-500" /> {t('g.wt.title')}
@@ -92,18 +119,15 @@ export function WeightChart({ petId }: WeightChartProps) {
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {data.current_weight != null && (
               <span className="text-sm text-surface-500 dark:text-surface-400">
-                {t('g.wt.current')} <strong className="text-surface-900 dark:text-white tabular-nums">{nf(data.current_weight)}&nbsp;kg</strong>
+                {t('g.wt.current')}{' '}
+                <strong className="text-surface-900 dark:text-white">
+                  <AnimatedNumber value={Number(data.current_weight)} decimals={Number.isInteger(Number(data.current_weight)) ? 0 : 1} suffix={'\u00a0kg'} />
+                </strong>
               </span>
             )}
             {entries.length >= 2 && (
-              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full tabular-nums ${
-                Math.abs(trend) < 0.05
-                  ? 'bg-surface-100 text-surface-500 dark:bg-surface-700 dark:text-surface-300'
-                  : trend > 0
-                    ? 'bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                    : 'bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-              }`}>
-                <TrendIcon className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full tabular-nums bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-200">
+                <TrendIcon className="w-3 h-3" aria-hidden />
                 {trend > 0 ? '+' : ''}{nf(trend)}&nbsp;kg
                 {Math.abs(trendPct) >= 1 && <span className="opacity-80">({trendPct > 0 ? '+' : ''}{trendPct.toFixed(0)}%)</span>}
               </span>
@@ -127,14 +151,10 @@ export function WeightChart({ petId }: WeightChartProps) {
         </div>
       </div>
 
-      {data.alert && (
-        <div className={`flex items-center gap-2 rounded-xl p-3 mb-3 text-sm ${
-          data.alert.severity === 'alta'
-            ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-            : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-        }`}>
-          {data.alert.type === 'ganho' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-          <span>{fixDecimals(data.alert.message)}</span>
+      {weightNote && (
+        <div role="note" className="flex items-start gap-2 rounded-xl p-3 mb-3 text-sm bg-surface-100 text-surface-800 dark:bg-surface-800 dark:text-surface-100">
+          {weightNote.dir === 'up' ? <TrendingUp className="w-4 h-4 mt-0.5 shrink-0" aria-hidden /> : <TrendingDown className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />}
+          <span>{t(weightNote.dir === 'up' ? 'pet2.wt.up' : 'pet2.wt.down', { date: fmtLongDate(weightNote.since) })}</span>
         </div>
       )}
 
@@ -219,7 +239,7 @@ export function WeightChart({ petId }: WeightChartProps) {
 
           <div className="mt-3 max-h-32 overflow-y-auto space-y-1">
             {[...entries].reverse().slice(0, 6).map(e => (
-              <div key={e.id} className="flex items-center justify-between text-xs text-surface-600 dark:text-surface-300 py-1 border-b border-surface-100 dark:border-surface-700 last:border-0">
+              <div key={e.id} className="flex items-center justify-between text-xs text-surface-600 dark:text-surface-300 py-1 border-b border-surface-100 dark:border-surface-800 last:border-0">
                 <span>{new Date(e.measured_at).toLocaleDateString(localeTag())}</span>
                 <span className="font-semibold text-surface-900 dark:text-white tabular-nums">{nf(e.weight_kg)} kg</span>
               </div>

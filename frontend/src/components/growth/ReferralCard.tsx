@@ -79,7 +79,7 @@ export function ReferralCard({ variant = 'full' }: { variant?: 'full' | 'compact
       <div className="absolute top-0 right-0 text-[80px] opacity-15 rotate-12 select-none pointer-events-none" aria-hidden>🎁</div>
       <div className="flex items-center gap-2 mb-1.5">
         <Gift className="w-5 h-5" />
-        <span className="font-semibold">{t('g.ref.title')}</span>
+        <span className="font-semibold">{t('ac2.ref.title')}</span>
       </div>
       <p className="text-sm text-emerald-50 mb-4 leading-snug">
         {t('g.ref.subA')} <strong>{t('g.ref.subB', { days: info.bonus_days })}</strong> {t('g.ref.subC')}

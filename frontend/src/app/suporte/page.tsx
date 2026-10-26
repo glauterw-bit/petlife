@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MessageCircleHeart, Send, Loader2 } from 'lucide-react'
+import { MessageCircleHeart, Send, Loader2, Bot, UserRound } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -12,19 +12,24 @@ import { support, type SupportMsg } from '@/lib/api'
 import { track } from '@/lib/track'
 import { hapticSuccess, hapticError } from '@/lib/feedback'
 import { useT } from '@/contexts/LocaleContext'
+import { localeTag } from '@/lib/utils'
 
 /**
- * Fale com o suporte — conversa direta com o time (o Glauter) dentro do app.
- * Poll leve enquanto a tela está aberta; resposta do admin também chega
- * por e-mail, então ninguém fica esperando de olho na tela.
+ * Fale com o suporte. Dúvidas de uso recebem resposta automática na hora
+ * (identificada como tal, sender 'assistant'); pagamento, saúde urgente,
+ * reclamação e jurídico vão para o criador do app (sender 'admin').
+ * Sem promessa de prazo. Poll leve enquanto a tela está aberta; a resposta
+ * também chega por e-mail.
  */
 
 const POLL_MS = 15000
 
+/** Data/hora da mensagem no fuso e no idioma do aparelho (o servidor grava em UTC sem 'Z'). */
 function fmtTime(iso: string): string {
   try {
-    const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
-    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    const d = new Date(/(Z|[+-]\d{2}:?\d{2})$/i.test(iso) ? iso : iso + 'Z')
+    if (!Number.isFinite(d.getTime())) return ''
+    return d.toLocaleString(localeTag(), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
   } catch { return '' }
 }
 
@@ -73,7 +78,7 @@ export default function SuportePage() {
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto flex flex-col" style={{ minHeight: 'calc(100dvh - 6rem - env(safe-area-inset-top) - env(safe-area-inset-bottom))' }}>
-        <PageHeader title={t('g.sup.title')} subtitle={t('g.sup.subtitle')} />
+        <PageHeader title={t('ac2.sup.title')} subtitle={t('ac2.sup.subtitle')} />
 
         <div className="flex-1 space-y-3 pb-4" role="log" aria-live="polite" aria-busy={loading}>
           {loading ? (
@@ -82,7 +87,24 @@ export default function SuportePage() {
               <SkeletonRow />
             </div>
           ) : msgs.length === 0 ? (
-            <EmptyState icon={MessageCircleHeart} title={t('g.sup.emptyTitle')} text={t('g.sup.emptyBody')} />
+            <>
+              <EmptyState icon={MessageCircleHeart} title={t('ac2.sup.emptyTitle')} text={t('ac2.sup.emptyBody')} />
+              {/* Como funciona: transparência sobre quem responde (assistente x pessoa) */}
+              <ul className="mx-auto max-w-sm rounded-2xl border border-surface-200/70 dark:border-surface-800 bg-white dark:bg-surface-900 divide-y divide-surface-200/70 dark:divide-surface-800">
+                <li className="flex items-start gap-3 p-3.5">
+                  <span className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-500/15 flex items-center justify-center shrink-0">
+                    <Bot className="w-[18px] h-[18px] text-primary-700 dark:text-primary-300" aria-hidden />
+                  </span>
+                  <p className="text-[14px] leading-snug text-surface-700 dark:text-surface-200 pt-0.5">{t('ac2.sup.howBot')}</p>
+                </li>
+                <li className="flex items-start gap-3 p-3.5">
+                  <span className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/15 flex items-center justify-center shrink-0">
+                    <UserRound className="w-[18px] h-[18px] text-amber-700 dark:text-amber-300" aria-hidden />
+                  </span>
+                  <p className="text-[14px] leading-snug text-surface-700 dark:text-surface-200 pt-0.5">{t('ac2.sup.howHuman')}</p>
+                </li>
+              </ul>
+            </>
           ) : null}
           {msgs.map(m => {
             const mine = m.sender === 'user'
@@ -101,12 +123,12 @@ export default function SuportePage() {
                 }`}>
                   {m.sender === 'admin' && (
                     <div className="text-[11px] font-semibold text-primary-700 dark:text-primary-300 mb-0.5">
-                      {t('g.sup.adminName')}
+                      {t('ac2.sup.adminName')}
                     </div>
                   )}
                   {m.sender === 'assistant' && (
                     <div className="text-[11px] font-semibold text-primary-700 dark:text-primary-300 mb-0.5">
-                      {t('g.sup.botName')}
+                      {t('ac2.sup.botName')}
                     </div>
                   )}
                   {m.body}
@@ -125,7 +147,7 @@ export default function SuportePage() {
             <p role="alert" className="text-xs text-red-700 dark:text-red-300 mb-1.5">{t('acct.sup.sendFailed')}</p>
           )}
           <div className="flex gap-2 items-end">
-            <label htmlFor="support-text" className="sr-only">{t('g.sup.placeholder')}</label>
+            <label htmlFor="support-text" className="sr-only">{t('ac2.sup.placeholder')}</label>
             <textarea
               id="support-text"
               value={text}
@@ -133,14 +155,14 @@ export default function SuportePage() {
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send() } }}
               rows={2}
               maxLength={4000}
-              placeholder={t('g.sup.placeholder')}
+              placeholder={t('ac2.sup.placeholder')}
               className="flex-1 px-3.5 py-2.5 rounded-2xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 text-[15px] text-surface-900 dark:text-white placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
             />
             <button
               type="button"
               onClick={send}
               disabled={!text.trim() || sending}
-              aria-label={t('g.sup.send')}
+              aria-label={t('ac2.sup.send')}
               className="pressable w-12 h-12 shrink-0 inline-flex items-center justify-center rounded-2xl bg-primary-700 text-white hover:bg-primary-800 dark:bg-primary-500 dark:text-surface-950 dark:hover:bg-primary-400 transition-colors disabled:opacity-40"
             >
               {sending
@@ -148,7 +170,9 @@ export default function SuportePage() {
                 : <Send className="w-5 h-5" aria-hidden />}
             </button>
           </div>
-          <p className="text-[11px] text-center text-surface-500 dark:text-surface-400 mt-1.5">{t('g.sup.hint')}</p>
+          {msgs.length > 0 && (
+            <p className="text-[12px] leading-snug text-center text-surface-600 dark:text-surface-300 mt-1.5 px-2">{t('ac2.sup.hint')}</p>
+          )}
         </div>
       </div>
     </DashboardLayout>

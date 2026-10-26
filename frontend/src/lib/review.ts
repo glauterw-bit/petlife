@@ -52,11 +52,15 @@ function isAndroid(): boolean {
   return w.Capacitor?.getPlatform?.() === 'android'
 }
 
-/** Página de avaliação da loja certa para a plataforma. */
+/**
+ * Página de avaliação da loja certa para a plataforma.
+ * Sem país no caminho: a App Store abre a loja do país da conta do usuário
+ * (com /br, quem tinha conta de outro país caía numa loja onde não pode avaliar).
+ */
 export function reviewUrl(): string {
   return isAndroid()
     ? `https://play.google.com/store/apps/details?id=app.petlife&showAllReviews=true`
-    : `https://apps.apple.com/br/app/id${APP_ID}?action=write-review`
+    : `https://apps.apple.com/app/id${APP_ID}?action=write-review`
 }
 
 async function ask(): Promise<void> {

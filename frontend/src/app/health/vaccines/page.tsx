@@ -29,7 +29,7 @@ import { useT } from '@/contexts/LocaleContext'
 import { trackHappyMoment } from '@/lib/review'
 import { useCached, invalidate } from '@/lib/cache'
 import { latestDoses, normalizeVaccineName, vaccineState } from '@/lib/care'
-import { celebrate, hapticError, hapticSuccess } from '@/lib/feedback'
+import { celebrate, haptic } from '@/lib/feedback'
 import { getPushPermission } from '@/lib/push'
 import { spring, usePrefersReducedMotion } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -55,7 +55,7 @@ const COMMON_VACCINES: Record<string, Array<{ name: string; annual: boolean }>> 
   dog: [
     { name: 'V10 (Polivalente)', annual: true },
     { name: 'Antirrábica', annual: true },
-    { name: 'Gripe Canina', annual: true },
+    { name: 'Gripe canina', annual: true },
     { name: 'Giárdia', annual: true },
     { name: 'Vermífugo', annual: false },
     { name: 'Antipulgas', annual: false },
@@ -63,7 +63,7 @@ const COMMON_VACCINES: Record<string, Array<{ name: string; annual: boolean }>> 
   cat: [
     { name: 'V4 (Quádrupla felina)', annual: true },
     { name: 'Antirrábica', annual: true },
-    { name: 'Leucemia Felina (FeLV)', annual: true },
+    { name: 'Leucemia felina (FeLV)', annual: true },
     { name: 'Vermífugo', annual: false },
     { name: 'Antipulgas', annual: false },
   ],
@@ -258,9 +258,14 @@ function VaccinesPageInner() {
     .sort((a, b) => petRank(a.id) - petRank(b.id))
   const bannerVisible = !!banner && !vaccineList.some(v => v.pet_id === banner.id)
 
-  /** Depois de registrar: marco real da 1ª vacina + pedido de aviso com contexto. */
+  /**
+   * Depois de registrar: o registro de rotina fica só no check + haptic('saved').
+   * Confete apenas no marco real — a PRIMEIRA vacina do tutor — seguido do
+   * pedido de aviso com contexto.
+   */
   async function afterCreate(before: number, petName: string, vaccineName?: string) {
     if (before > 0) return
+    haptic('milestone')
     celebrate('small')
     if (pushPrimerSeen()) return
     try {
@@ -306,7 +311,7 @@ function VaccinesPageInner() {
       if (docFile) await vaccinesApi.uploadDocument(v.id, docFile).catch(() => {})
       vaccinesQ.mutate(prev => [v, ...(prev ?? [])])
       syncAfterChange(petId)
-      void hapticSuccess()
+      haptic('saved')
       // Ação central do app — é aqui que o tutor resolve o problema dele.
       trackHappyMoment('vacina_cadastrada')
       // Reforço de uma dose atrasada/vencendo: a antiga desliza para "Doses anteriores".
@@ -314,7 +319,7 @@ function VaccinesPageInner() {
       finishWithSuccess(t('care.saved'))
       void afterCreate(before, selectedPet?.name ?? '', v.name)
     } catch (err: unknown) {
-      void hapticError()
+      haptic('error')
       error(err instanceof Error ? err.message : t('h.vaccines.createError'))
     } finally { setSubmitting(false) }
   }
@@ -371,12 +376,12 @@ function VaccinesPageInner() {
         })
         criadas.push(created)
       }
-      void hapticSuccess()
+      haptic('saved')
       trackHappyMoment('vacina_scan')
       finishWithSuccess(criadas.length === 1 ? t('care.saved') : t('care.savedMany', { n: criadas.length }))
       void afterCreate(before, selectedPet?.name ?? '', criadas[0]?.name)
     } catch (err: unknown) {
-      void hapticError()
+      haptic('error')
       error(err instanceof Error ? err.message : t('h.vaccines.createError'))
     } finally {
       if (criadas.length) {
@@ -469,8 +474,8 @@ function VaccinesPageInner() {
         subtitle={t('care.subtitle')}
         actions={
           <>
-            <IconButton icon={Camera} label={t('care.scanAria')} variant="glass" onClick={() => openSheet({ mode: 'scan' })} disabled={!ready || !petList.length} />
-            <IconButton icon={Plus} label={t('care.addAria')} variant="solid" onClick={() => openSheet()} disabled={!ready || !petList.length} />
+            <IconButton icon={Camera} label={t('care.scanAria')} variant="header" onClick={() => openSheet({ mode: 'scan' })} disabled={!ready || !petList.length} />
+            <IconButton icon={Plus} label={t('care.addAria')} variant="header-primary" onClick={() => openSheet()} disabled={!ready || !petList.length} />
           </>
         }
       />
@@ -554,16 +559,17 @@ function VaccinesPageInner() {
                     href={`/health/vaccines/carteirinha/${p.id}`}
                     aria-label={t('care.cardTitle', { pet: p.name })}
                     className={cn(
-                      'pressable snap-start flex items-center gap-3 rounded-2xl p-3 pr-2 text-white bg-gradient-to-br from-primary-700 to-primary-900 shadow-card',
-                      cardPets.length > 1 ? 'shrink-0 w-[78%] max-w-[300px]' : 'w-full',
+                      'pressable-card snap-start flex items-center gap-3 rounded-2xl p-3.5 pr-2 text-white bg-gradient-to-br from-primary-700 to-primary-900 shadow-card',
+                      cardPets.length > 1 ? 'shrink-0 w-[82%] max-w-[320px]' : 'w-full',
                     )}
                   >
-                    <span className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                    <span className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0 self-start">
                       <CreditCard className="w-5 h-5" aria-hidden />
                     </span>
+                    {/* Nome e subtítulo quebram linha — nunca "Ca… En…" no carrossel */}
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-semibold truncate">{t('care.cardTitle', { pet: p.name })}</span>
-                      <span className="block text-xs text-white/85 truncate">{t('care.cardText')}</span>
+                      <span className="block text-[15px] font-semibold leading-snug break-words">{t('care.cardTitle', { pet: p.name })}</span>
+                      <span className="mt-0.5 block text-[13px] leading-snug text-white/85">{t('care.cardText')}</span>
                     </span>
                     <ChevronRight className="w-5 h-5 text-white/85 shrink-0" aria-hidden />
                   </Link>
@@ -589,7 +595,7 @@ function VaccinesPageInner() {
 
       {quickStartPet && (
         <VaccineQuickStart
-          pet={{ id: quickStartPet.id, name: quickStartPet.name, species: String(quickStartPet.species) }}
+          pet={{ id: quickStartPet.id, name: quickStartPet.name, species: String(quickStartPet.species), birth_date: quickStartPet.birth_date }}
           onCreated={v => vaccinesQ.mutate(prev => [v, ...(prev ?? [])])}
           onDone={created => {
             syncAfterChange(quickStartPet.id)

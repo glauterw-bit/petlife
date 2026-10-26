@@ -14,8 +14,9 @@ import { PaceChart } from '@/components/walks/PaceChart'
 import { track } from '@/lib/track'
 import { walks, type Walk } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
-import { celebrate, hapticMedium, hapticError, hapticLight, hapticSuccess, hapticSelect } from '@/lib/feedback'
-import { formatDistance, formatDuration, formatPace, generateShareCard as generateRouteCard } from '@/lib/walk-utils'
+import { haptic, hapticMedium, hapticError, hapticLight, hapticSuccess, hapticSelect } from '@/lib/feedback'
+import { formatDistance, formatDuration, generateShareCard as generateRouteCard } from '@/lib/walk-utils'
+import { paceClock } from '@/components/walks/pace'
 import { generateShareCard, shareCardImage, type CardSpec } from '@/lib/shareCard'
 import { trackHappyMoment } from '@/lib/review'
 import { useT } from '@/contexts/LocaleContext'
@@ -115,7 +116,7 @@ export default function WalkDetailPage() {
       stats: [
         { label: t('walk.distance'), value: formatDistance(walk.distance_meters) },
         { label: t('walk.time'), value: formatDuration(walk.duration_seconds) },
-        { label: t('walk.pace'), value: formatPace(walk.avg_pace_seconds_per_km) },
+        { label: t('walk.pace'), value: paceClock(walk.avg_pace_seconds_per_km) ? t('wk2.pace', { pace: paceClock(walk.avg_pace_seconds_per_km)! }) : '—' },
         { label: t('wk.report.mood'), value: moodLabel ?? '—' },
       ],
     }
@@ -259,7 +260,8 @@ export default function WalkDetailPage() {
     void hapticMedium()
     setShareSheetOpen(false)
 
-    const finishOk = () => { void markShared(); void hapticSuccess(); celebrate('small'); success(instruction ?? t('pw.detail.shared')) }
+    // Compartilhar é rotina: vibração de "salvo", sem confete (confete só em marcos).
+    const finishOk = () => { void markShared(); haptic('saved'); success(instruction ?? t('pw.detail.shared')) }
     const finishErr = (e: unknown) => {
       if (isAbort(e)) return
       void hapticError()
@@ -414,7 +416,7 @@ export default function WalkDetailPage() {
             <dl className="mt-4 grid grid-cols-2 gap-2.5">
               <ReportStat icon={Route} label={t('walk.distance')} value={formatDistance(walk.distance_meters)} />
               <ReportStat icon={Timer} label={t('walk.time')} value={formatDuration(walk.duration_seconds)} />
-              <ReportStat icon={Gauge} label={t('walk.pace')} value={formatPace(walk.avg_pace_seconds_per_km)} />
+              <ReportStat icon={Gauge} label={t('walk.pace')} value={paceClock(walk.avg_pace_seconds_per_km) ? t('wk2.pace', { pace: paceClock(walk.avg_pace_seconds_per_km)! }) : '—'} />
               <ReportStat icon={PawPrint} label={t('wk.report.mood')} value={moodLabel ?? '—'} />
             </dl>
 

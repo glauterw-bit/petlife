@@ -60,7 +60,7 @@ export function OnboardingChecklist({
       key: 'photo',
       done: !!pet.photo_url,
       label: pet.name ? t('onb.step.photo', { name: pet.name }) : t('g.onb.photoNoName'),
-      desc: t('onb.step.photoDesc'),
+      desc: t(pet.gender === 'male' ? 'home2.photoDesc.m' : pet.gender === 'female' ? 'home2.photoDesc.f' : 'home2.photoDesc.n'),
       href: `/pets/${pet.id}`,
       icon: <Camera className="w-4 h-4" />,
     },
@@ -119,7 +119,7 @@ export function OnboardingChecklist({
           aria-label={t('onb.dismiss')}
           className="tap-target min-w-[44px] min-h-[44px] -mt-2 -mr-2 rounded-lg text-surface-500 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-white/60 dark:hover:bg-surface-700/60 flex items-center justify-center shrink-0"
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden />
         </button>
       </div>
 
@@ -157,7 +157,7 @@ export function OnboardingChecklist({
                   {step.label}
                 </div>
                 {!step.done && (
-                  <div className="text-xs text-surface-500 dark:text-surface-400 leading-snug">{step.desc}</div>
+                  <div className="text-xs text-surface-600 dark:text-surface-300 leading-snug">{step.desc}</div>
                 )}
               </div>
               {!step.done && step.href && (
@@ -179,7 +179,7 @@ export function OnboardingChecklist({
             <Link
               key={step.key}
               href={step.href}
-              className={`group pressable ${base} bg-white/70 dark:bg-surface-900/60 hover:bg-white dark:hover:bg-surface-900 min-h-[44px] transition`}
+              className={`group pressable-row ${base} bg-white/70 dark:bg-surface-900/60 hover:bg-white dark:hover:bg-surface-900 min-h-[44px]`}
             >
               {inner}
             </Link>

@@ -27,7 +27,9 @@ function easeOutExpo(t: number): number {
 
 /**
  * Anima um número de 0 (ou `from`) até `to`. Retorna o valor corrente.
- * Usado em peso, distância, score, kcal — nunca aparecem prontos.
+ *
+ * @deprecated Re-renderiza o componente a cada quadro. Use
+ * `<AnimatedNumber>` (components/ui/AnimatedNumber), que escreve direto no DOM.
  */
 export function useCountUp(
   to: number,
@@ -134,6 +136,37 @@ export const variants = {
   scaleIn: { hidden: { opacity: 0, scale: 0.94 }, show: { opacity: 1, scale: 1 } },
   stagger: (gap = 0.05) => ({ hidden: {}, show: { transition: { staggerChildren: gap } } }),
   sheet: { hidden: { y: '100%' }, show: { y: 0 }, exit: { y: '100%' } },
+}
+
+/**
+ * Coreografia de entrada do Início em 4 tempos: cabeçalho → cartões de pet
+ * (escalonados) → lista → ação principal por último. Use só na primeira
+ * visita da sessão (useFirstVisit), senão a tela "dança" a cada volta.
+ */
+export const homeChoreo = {
+  container: { hidden: {}, show: { transition: { staggerChildren: 0.06, delayChildren: 0.02 } } },
+  item: { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: spring.soft } },
+  cta: { hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0, transition: { ...spring.soft, delay: 0.28 } } },
+}
+
+/**
+ * True só na primeira vez que a chave é vista nesta sessão (sessionStorage
+ * 'pl_seen_<key>'). Decide uma vez por montagem; sem storage, devolve false
+ * (melhor não animar do que animar sempre).
+ */
+export function useFirstVisit(key: string): boolean {
+  const [first] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      const k = `pl_seen_${key}`
+      if (sessionStorage.getItem(k)) return false
+      sessionStorage.setItem(k, '1')
+      return true
+    } catch {
+      return false
+    }
+  })
+  return first
 }
 
 // ── Direção da navegação (transição de tela) ─────────────────────────────

@@ -13,14 +13,14 @@ import { Stagger, StaggerItem } from '@/components/ui/Motion'
 import { fieldClasses } from '@/components/auth/AuthUI'
 import { hapticSuccess, hapticError } from '@/lib/feedback'
 import { spring } from '@/lib/motion'
-import { cn } from '@/lib/utils'
+import { cn, localeTag } from '@/lib/utils'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useToast } from '@/components/ui/ToastContext'
 import { billing, type BillingCatalog, type BillingMe, type PlanTier } from '@/lib/api'
-import { initIap, purchaseProduct, restorePurchases } from '@/lib/iap'
+import { APPLE_PRODUCT_IDS, initIap, purchaseProduct, restorePurchases } from '@/lib/iap'
 import { track } from '@/lib/track'
 import { ReferralCard } from '@/components/growth/ReferralCard'
-import { useT } from '@/contexts/LocaleContext'
+import { useLocale, useT } from '@/contexts/LocaleContext'
 
 type Cadence = 'monthly' | 'annual'
 
@@ -63,13 +63,53 @@ const FEATURES: Record<PlanTier, string[]> = {
   ],
 }
 
+/** Preço do catálogo do servidor (sempre em reais), formatado no idioma do app. */
 function brl(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  try {
+    const tag = localeTag()
+    // Fora do pt-BR mostra o código (BRL), nunca "R$": em en-US o Intl escreveria "R$149.00".
+    return v.toLocaleString(tag, { style: 'currency', currency: 'BRL', currencyDisplay: tag === 'pt-BR' ? 'symbol' : 'code', maximumFractionDigits: v === 0 ? 0 : 2 })
+  } catch {
+    return `R$ ${v.toFixed(2)}`
+  }
+}
+
+/**
+ * Preço da App Store para o produto, na moeda e no formato da conta Apple do
+ * tutor (um iPhone no México vê pesos, não reais). É o preço que a Apple vai
+ * cobrar, então no app nativo ele tem prioridade sobre o valor fixo do catálogo.
+ */
+type StorePrice = { label: string; micros: number; currency: string }
+
+function readStorePrices(): Record<string, StorePrice> {
+  const out: Record<string, StorePrice> = {}
+  try {
+    const w = window as typeof window & { CdvPurchase?: any }
+    const cp = w.CdvPurchase
+    if (!cp?.store) return out
+    for (const id of APPLE_PRODUCT_IDS) {
+      const pr = cp.store.get(id, cp.Platform?.APPLE_APPSTORE)?.pricing
+      if (pr && typeof pr.price === 'string' && pr.price) {
+        out[id] = { label: pr.price, micros: Number(pr.priceMicros) || 0, currency: String(pr.currency || '') }
+      }
+    }
+  } catch {}
+  return out
+}
+
+function fmtMoney(amount: number, currency: string, maxDigits?: number): string | null {
+  try {
+    return amount.toLocaleString(localeTag(), { style: 'currency', currency, ...(maxDigits != null ? { minimumFractionDigits: maxDigits, maximumFractionDigits: maxDigits } : {}) })
+  } catch {
+    return null
+  }
 }
 
 export default function PlansPage() {
   const { success, error } = useToast()
   const t = useT()
+  const { locale } = useLocale()
+  const [storePrices, setStorePrices] = useState<Record<string, StorePrice>>({})
   const [catalog, setCatalog] = useState<BillingCatalog | null>(null)
   const [me, setMe] = useState<BillingMe | null>(null)
   const [cadence, setCadence] = useState<Cadence>('annual')
@@ -119,7 +159,18 @@ export default function PlansPage() {
         if (userActionRef.current) error(err instanceof Error ? err.message : t('ac.plans.errConfirm'))
       }
     })
-      .then((ok) => setCanBuy(ok))
+      .then((ok) => {
+        setCanBuy(ok)
+        if (!ok) return
+        // Os produtos da loja chegam logo depois do initialize; relê algumas vezes.
+        const load = () => setStorePrices(prev => {
+          const next = readStorePrices()
+          return Object.keys(next).length ? next : prev
+        })
+        load()
+        setTimeout(load, 1500)
+        setTimeout(load, 4000)
+      })
       .catch(() => setCanBuy(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -186,6 +237,21 @@ export default function PlansPage() {
   // O teste grátis é uma oferta da App Store: no checkout web não existe.
   const showTrial = cadence === 'monthly' && monthlyTrial && (canBuy || plat === 'ios')
   const webProduct = catalog?.products.find(p => p.sku === webSku)
+  // Na web o checkout é em reais (Asaas). Para quem usa o app em inglês ou
+  // espanhol, avisar a moeda evita a surpresa no pagamento.
+  const showBrlNote = plat === 'web' && locale !== 'pt-BR'
+  const storeCurrency = Object.values(storePrices)[0]?.currency || ''
+
+  /** Preço exibido: o da App Store quando disponível, senão o do catálogo. */
+  function priceOf(product: { apple_product_id: string; price_brl: number }) {
+    const sp = storePrices[product.apple_product_id]
+    if (sp) {
+      const monthly = sp.micros > 0 && sp.currency ? fmtMoney(sp.micros / 1e6 / 12, sp.currency) : null
+      return { full: sp.label, perMonthOfYear: monthly }
+    }
+    return { full: brl(product.price_brl), perMonthOfYear: brl(product.price_brl / 12) }
+  }
+  const zeroPrice = (storeCurrency && fmtMoney(0, storeCurrency, 0)) || brl(0)
 
   return (
     <DashboardLayout>
@@ -203,13 +269,17 @@ export default function PlansPage() {
             <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
               {t('ac.plans.statusActive', {
                 plan: t(TIER_META[currentTier].nameKey),
-                date: new Date(me.premium_expires_at + (me.premium_expires_at.endsWith('Z') ? '' : 'Z')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                date: new Date(me.premium_expires_at + (me.premium_expires_at.endsWith('Z') ? '' : 'Z')).toLocaleDateString(localeTag(), { day: '2-digit', month: '2-digit', year: 'numeric' }),
               })}
             </p>
             <p className="text-xs text-emerald-800 dark:text-emerald-300 mt-1 leading-relaxed">
               {t('ac.plans.statusTrialHint')}
             </p>
           </Card>
+        )}
+
+        {showBrlNote && (
+          <p className="text-[13px] text-surface-600 dark:text-surface-300 mb-4 text-center">{t('ac2.plans.brlNote')}</p>
         )}
 
         {/* Uso atual */}
@@ -299,21 +369,21 @@ export default function PlansPage() {
 
                     <div className="mb-4 min-h-[56px]">
                       {isFree ? (
-                        <p className="text-[28px] font-display font-extrabold text-surface-900 dark:text-white">R$ 0</p>
+                        <p className="text-[28px] font-display font-extrabold text-surface-900 dark:text-white tabular-nums">{zeroPrice}</p>
                       ) : product ? (
                         <>
                           <p className="text-[28px] font-display font-extrabold text-surface-900 dark:text-white leading-tight">
-                            {brl(product.price_brl)}
+                            {priceOf(product).full}
                             <span className="text-sm font-medium text-surface-500 dark:text-surface-400">/{cadence === 'monthly' ? t('ac.plans.perMonth') : t('ac.plans.perYear')}</span>
                           </p>
-                          {cadence === 'annual' && (
+                          {cadence === 'annual' && priceOf(product).perMonthOfYear && (
                             <p className="text-xs font-semibold text-primary-700 dark:text-primary-300 mt-0.5">
-                              {t('ac.plans.annualEquiv', { v: brl(product.price_brl / 12) })}
+                              {t('ac.plans.annualEquiv', { v: priceOf(product).perMonthOfYear ?? '' })}
                             </p>
                           )}
                           {product.has_trial && canBuy && (
                             <p className="text-[12px] text-surface-500 dark:text-surface-400 mt-1 leading-snug">
-                              {t('ac.plans.trialNote', { price: brl(product.price_brl) })}
+                              {t('ac.plans.trialNote', { price: priceOf(product).full })}
                             </p>
                           )}
                         </>

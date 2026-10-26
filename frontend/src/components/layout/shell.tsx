@@ -26,6 +26,17 @@ export const TUTOR_PREFIXES = [
   '/settings',
 ]
 
+/**
+ * Raízes das 4 abas da barra inferior (mesma lista do BottomNav). Trocar
+ * entre elas é troca de aba (só fade); o resto é tela empilhada (deslize).
+ */
+export const TAB_ROOTS = ['/dashboard', '/pets', '/walks', '/health/vaccines'] as const
+
+/** True quando a rota é exatamente uma raiz de aba. */
+export function isTabRoot(pathname: string): boolean {
+  return (TAB_ROOTS as readonly string[]).includes(pathname)
+}
+
 /** Rotas que ficam FORA do shell, mesmo que um prefixo futuro case com elas. */
 const EXCLUDED = ['/clinica', '/admin', '/vet', '/public', '/p', '/i', '/wrapped', '/auth', '/start']
 

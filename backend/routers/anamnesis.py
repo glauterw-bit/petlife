@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -11,6 +11,7 @@ from schemas import AnamnesisCreate, AnamnesisResponse
 from auth import get_current_user
 from models import User
 import ai_service
+import health_protocols_i18n
 
 router = APIRouter(prefix="/anamnesis", tags=["Anamnese"])
 
@@ -30,6 +31,7 @@ def _calculate_age(birth_date) -> str:
 @router.post("", response_model=AnamnesisResponse, status_code=status.HTTP_201_CREATED)
 async def create_anamnesis(
     data: AnamnesisCreate,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -82,7 +84,8 @@ async def create_anamnesis(
     }
 
     try:
-        analysis_result = await ai_service.analyze_pet_anamnesis(pet_info, anamnesis_data)
+        locale = health_protocols_i18n.locale_from_header(request.headers.get("accept-language"))
+        analysis_result = await ai_service.analyze_pet_anamnesis(pet_info, anamnesis_data, locale=locale)
         anamnesis.ai_analysis = json.dumps(analysis_result, ensure_ascii=False)
     except Exception as e:
         anamnesis.ai_analysis = json.dumps({

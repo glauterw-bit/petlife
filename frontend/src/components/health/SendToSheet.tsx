@@ -5,20 +5,89 @@
  * tosa, veterinário, outro), vê a prévia da mensagem e envia pelo WhatsApp,
  * pela folha de compartilhar do sistema, em PDF ou impresso. A mensagem
  * sempre leva o link público, que se mantém atualizado.
+ *
+ * Confirmação do envio: a folha fecha e o ícone do botão "Enviar" da tela
+ * vira um check por 1,2 s (SendFlashIcon + useSendFlash), com haptic('saved').
  */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  ChevronLeft, ChevronRight, FileText, Hotel, MessageCircle, Printer, Scissors, Send, Share2, Stethoscope,
+  Check, ChevronLeft, ChevronRight, FileText, Hotel, MessageCircle, Printer, Scissors, Send, Share2, Stethoscope,
   type LucideIcon,
 } from 'lucide-react'
 import { useT } from '@/contexts/LocaleContext'
 import { Sheet } from '@/components/ui/Sheet'
 import { Button } from '@/components/ui/Button'
-import { hapticSuccess } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 import { track } from '@/lib/track'
 import { trackHappyMoment } from '@/lib/review'
-import { dur, easeOut } from '@/lib/motion'
+import { dur, easeOut, spring, usePrefersReducedMotion } from '@/lib/motion'
+import { cn } from '@/lib/utils'
+
+/** Tempo que o check fica no lugar do ícone de enviar. */
+const SENT_FLASH_MS = 1200
+
+/**
+ * Liga o check por 1,2 s. Se o envio levou o tutor para fora do app
+ * (WhatsApp, folha do sistema), espera ele voltar para a tela — senão o
+ * check aconteceria sem ninguém ver.
+ */
+export function useSendFlash(): { sent: boolean; flash: () => void } {
+  const [sent, setSent] = useState(false)
+  const timer = useRef<number | null>(null)
+  const pending = useRef<(() => void) | null>(null)
+
+  useEffect(() => () => {
+    if (timer.current) window.clearTimeout(timer.current)
+    if (pending.current) document.removeEventListener('visibilitychange', pending.current)
+  }, [])
+
+  const flash = useCallback(() => {
+    const start = () => {
+      if (timer.current) window.clearTimeout(timer.current)
+      setSent(true)
+      timer.current = window.setTimeout(() => setSent(false), SENT_FLASH_MS)
+    }
+    if (typeof document !== 'undefined' && document.hidden) {
+      if (pending.current) document.removeEventListener('visibilitychange', pending.current)
+      const onVisible = () => {
+        if (document.hidden) return
+        document.removeEventListener('visibilitychange', onVisible)
+        pending.current = null
+        start()
+      }
+      pending.current = onVisible
+      document.addEventListener('visibilitychange', onVisible)
+      return
+    }
+    start()
+  }, [])
+
+  return { sent, flash }
+}
+
+/** Ícone Send que troca por Check com um "pop" (só a troca, com reduced motion). */
+export function SendFlashIcon({ sent, className }: { sent: boolean; className?: string }) {
+  const reduced = usePrefersReducedMotion()
+  const enter = reduced ? { opacity: 1 } : { opacity: 0, scale: 0.4 }
+  const exit = reduced ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, scale: 0.6 }
+  return (
+    <span className={cn('relative inline-flex w-4 h-4 shrink-0', className)} aria-hidden>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={sent ? 'check' : 'send'}
+          initial={enter}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={exit}
+          transition={reduced ? { duration: 0 } : spring.pop}
+          className="absolute inset-0 inline-flex"
+        >
+          {sent ? <Check className="w-full h-full" strokeWidth={2.75} /> : <Send className="w-full h-full" />}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  )
+}
 
 export type SendDest = 'hotel' | 'groomer' | 'vet' | 'other'
 
@@ -71,7 +140,7 @@ export function SendToSheet({
 
   function done(channel: 'whatsapp' | 'share' | 'pdf') {
     if (!dest) return
-    void hapticSuccess()
+    haptic('saved')
     onSent?.(dest, channel)
     onClose()
   }

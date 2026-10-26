@@ -12,6 +12,36 @@
 import { push as pushApi } from './api'
 
 const REGISTERED_KEY = 'petlife_push_token'
+/** '1' quando o servidor confirmou o token deste aparelho (push remoto ativo). */
+const ACTIVE_KEY = 'petlife_push_registered'
+
+function markActive(on: boolean) {
+  try {
+    if (on) localStorage.setItem(ACTIVE_KEY, '1')
+    else localStorage.removeItem(ACTIVE_KEY)
+  } catch {}
+}
+
+/**
+ * true quando o token deste aparelho foi registrado com sucesso no servidor —
+ * então o servidor manda os avisos de vacina (7, 0 e -3 dias) e o aviso local
+ * equivalente não deve ser agendado (senão chega duplicado).
+ */
+export function isRemotePushActive(): boolean {
+  try {
+    // Sem sessão (logout), o servidor não manda nada para este aparelho.
+    if (!localStorage.getItem('petlife_token')) return false
+    return localStorage.getItem(ACTIVE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+/** Chamar no logout: o token deixa de valer para este usuário. */
+export function clearRemotePushState(): void {
+  markActive(false)
+  try { localStorage.removeItem(REGISTERED_KEY) } catch {}
+}
 
 function isNativeIos(): boolean {
   if (typeof window === 'undefined') return false
@@ -43,7 +73,10 @@ export async function initPush(opts?: { ask?: boolean }): Promise<void> {
     if (ask && (permissao === 'prompt' || permissao === 'prompt-with-rationale')) {
       permissao = (await PushNotifications.requestPermissions()).receive
     }
-    if (permissao !== 'granted') return
+    if (permissao !== 'granted') {
+      markActive(false)
+      return
+    }
 
     if (!listenersAdded) {
       listenersAdded = true
@@ -52,18 +85,24 @@ export async function initPush(opts?: { ask?: boolean }): Promise<void> {
         if (!token) return
         // Token do APNs muda (reinstalação, restauração de backup); só reenvia
         // quando muda de fato.
-        try { if (localStorage.getItem(REGISTERED_KEY) === token) return } catch {}
+        try {
+          if (localStorage.getItem(REGISTERED_KEY) === token && isRemotePushActive()) return
+        } catch {}
         try {
           await pushApi.register(token)
           try { localStorage.setItem(REGISTERED_KEY, token) } catch {}
-        } catch {}
+          markActive(true)
+        } catch {
+          markActive(false)
+        }
       })
-      PushNotifications.addListener('registrationError', () => {})
+      PushNotifications.addListener('registrationError', () => markActive(false))
     }
 
     await PushNotifications.register()
   } catch {
     // plugin ausente no build ou permissão negada — segue sem push
+    markActive(false)
   }
 }
 
@@ -111,6 +150,7 @@ export async function requestPushPermission(): Promise<boolean> {
       }
       ok = p.display === 'granted'
       if (ok) await initPush({ ask: true })
+      else markActive(false)
     } else if ('Notification' in window) {
       const r = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission
       ok = r === 'granted'

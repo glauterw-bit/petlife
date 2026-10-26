@@ -3,12 +3,13 @@
 import { forwardRef, useCallback, useImperativeHandle, useState } from 'react'
 import { Shield, Pill, Bug, Check, ChevronRight, type LucideIcon } from 'lucide-react'
 import { protections, type ProtectionPetSummary, type ProtectionKindStatus, type Pet } from '@/lib/api'
-import { hapticLight, hapticSuccess, hapticError } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 import { trackHappyMoment } from '@/lib/review'
 import { useT } from '@/contexts/LocaleContext'
-import { useCached, invalidate } from '@/lib/cache'
-import { daysUntil, type CareState } from '@/lib/care'
-import { cn } from '@/lib/utils'
+import { invalidate } from '@/lib/cache'
+import { useProtectionsQuery } from '@/lib/queries'
+import { daysUntil, PROTECTION_INTERVALS, type CareState } from '@/lib/care'
+import { cn, localeTag, plusDaysISO, todayLocalISO } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Sheet } from '@/components/ui/Sheet'
@@ -19,7 +20,8 @@ import { careStateLabel } from '@/components/ui/StatusBadge'
 /**
  * Proteção em dia — vermífugo e antipulgas por pet.
  *
- * Vacina é evento anual; antiparasitário vence a cada 30–90 dias. Este card
+ * Vacina é evento anual; antiparasitário se repete no intervalo da bula
+ * (de semanas a meses, conforme o produto). Este card
  * é o motor de retorno legítimo do app: cada registro arma o próximo aviso.
  * Usa o mesmo cache 'protections' do Início (lib/cache), então registrar aqui
  * atualiza o Anel de proteção na hora.
@@ -32,9 +34,18 @@ export interface ProtectionCardHandle {
   openRegister(petId: number, kind: ProtectionKind): void
 }
 
-const KIND_META: Record<ProtectionKind, { Icon: LucideIcon; labelKey: string; intervals: number[]; fallbackInterval: number }> = {
-  vermifugo: { Icon: Pill, labelKey: 'h.prot.vermifugo', intervals: [30, 60, 90, 180], fallbackInterval: 90 },
-  antipulgas: { Icon: Bug, labelKey: 'h.prot.antipulgas', intervals: [30, 60, 90], fallbackInterval: 30 },
+// Intervalos: opções de PROTECTION_INTERVALS (não são recomendação — a folha
+// sempre lembra de seguir a bula do produto escolhido).
+const KIND_META: Record<ProtectionKind, { Icon: LucideIcon; labelKey: string; intervals: readonly number[]; fallbackInterval: number }> = {
+  vermifugo: { Icon: Pill, labelKey: 'h.prot.vermifugo', intervals: PROTECTION_INTERVALS.vermifugo, fallbackInterval: 90 },
+  antipulgas: { Icon: Bug, labelKey: 'h.prot.antipulgas', intervals: PROTECTION_INTERVALS.antipulgas, fallbackInterval: 30 },
+}
+
+/** As opções da lista + o intervalo já salvo pelo tutor, se for outro. */
+function intervalOptions(kind: ProtectionKind, current: number): number[] {
+  const base = [...KIND_META[kind].intervals]
+  if (current > 0 && !base.includes(current)) base.push(current)
+  return base.sort((a, b) => a - b)
 }
 
 const KINDS: ProtectionKind[] = ['vermifugo', 'antipulgas']
@@ -64,12 +75,6 @@ interface SheetState {
   pickPet: boolean
 }
 
-function localToday(): string {
-  const d = new Date()
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
-
 export const ProtectionCard = forwardRef<
   ProtectionCardHandle,
   {
@@ -81,13 +86,13 @@ export const ProtectionCard = forwardRef<
   }
 >(function ProtectionCard({ pets, onSaved, showCard = true }, ref) {
   const t = useT()
-  const { data, refresh } = useCached('protections', () => protections.summary())
+  const { data, refresh } = useProtectionsQuery()
   const summary: ProtectionPetSummary[] = data?.pets ?? []
 
   const [sheet, setSheet] = useState<SheetState | null>(null)
   const [product, setProduct] = useState('')
   const [interval, setIntervalDays] = useState(30)
-  const today = localToday()
+  const today = todayLocalISO()
   const [appliedOn, setAppliedOn] = useState(today)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(false)
@@ -99,11 +104,11 @@ export const ProtectionCard = forwardRef<
 
   const open = useCallback(
     (petId: number, kind: ProtectionKind, pickPet = false) => {
-      void hapticLight()
+      haptic('tap')
       const k = statusOf(petId, kind)
       setProduct(k?.product ?? '')
       setIntervalDays(k?.interval_days ?? KIND_META[kind].fallbackInterval)
-      setAppliedOn(localToday())
+      setAppliedOn(todayLocalISO())
       setError(false)
       setSheet({ petId, kind, pickPet })
     },
@@ -132,7 +137,7 @@ export const ProtectionCard = forwardRef<
         // meio-dia evita o fuso jogar a data pro dia anterior
         applied_at: `${appliedOn}T12:00:00`,
       })
-      void hapticSuccess()
+      haptic('saved')
       trackHappyMoment('protection')
       const saved = sheet
       setSheet(null)
@@ -140,7 +145,7 @@ export const ProtectionCard = forwardRef<
       await refresh()
       onSaved?.(saved.petId, saved.kind)
     } catch {
-      void hapticError()
+      haptic('error')
       setError(true)
     } finally {
       setSaving(false)
@@ -150,9 +155,8 @@ export const ProtectionCard = forwardRef<
   const sheetPet = sheet ? pets.find(p => p.id === sheet.petId) : undefined
   const meta = sheet ? KIND_META[sheet.kind] : null
   const nextDate = (() => {
-    const d = new Date(`${appliedOn}T12:00:00`)
-    d.setDate(d.getDate() + interval)
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    const [y, m, d] = plusDaysISO(appliedOn, interval).split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString(localeTag(), { day: '2-digit', month: '2-digit' })
   })()
 
   const known = summary.filter(s => pets.some(p => p.id === s.pet_id))
@@ -290,15 +294,15 @@ export const ProtectionCard = forwardRef<
 
             <div>
               <span className="block text-xs font-semibold text-surface-700 dark:text-surface-200 mb-1.5">{t('h.prot.interval')}</span>
-              <div className="flex gap-2" role="group" aria-label={t('h.prot.interval')}>
-                {meta.intervals.map(d => (
+              <div className="grid grid-cols-3 gap-2" role="group" aria-label={t('h.prot.interval')}>
+                {intervalOptions(sheet.kind, interval).map(d => (
                   <button
                     key={d}
                     type="button"
-                    onClick={() => { setIntervalDays(d); void hapticLight() }}
+                    onClick={() => { setIntervalDays(d); haptic('toggle') }}
                     aria-pressed={interval === d}
                     className={cn(
-                      'pressable flex-1 min-h-[44px] rounded-xl border text-sm font-medium transition-colors',
+                      'pressable min-h-[44px] rounded-xl border text-sm font-medium tabular-nums transition-colors',
                       interval === d
                         ? 'border-primary-600 bg-primary-50 text-primary-800 dark:border-primary-400 dark:bg-primary-500/15 dark:text-primary-200'
                         : 'border-surface-200 text-surface-700 hover:bg-surface-50 dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-800',
@@ -308,6 +312,7 @@ export const ProtectionCard = forwardRef<
                   </button>
                 ))}
               </div>
+              <p className="mt-2 text-xs text-surface-600 dark:text-surface-400">{t('h2.prot.label')}</p>
             </div>
 
             {error && (

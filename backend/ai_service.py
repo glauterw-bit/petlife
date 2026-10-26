@@ -23,7 +23,26 @@ MODEL = "claude-sonnet-4-6"
 CHAT_MODEL = "claude-haiku-4-5-20251001"
 
 
-async def analyze_pet_anamnesis(pet_info: dict, anamnesis_data: dict) -> dict:
+# Idioma de saída das funções do TUTOR. Vai como prompt de sistema; o app manda
+# o idioma do aparelho em Accept-Language e o router passa adiante.
+OUTPUT_LANG = {
+    "pt-BR": "Escreva todos os textos em português do Brasil.",
+    "en": (
+        "Write every text field in English (US). Keep JSON keys unchanged. "
+        "This overrides any mention of Portuguese or pt-BR in the request."
+    ),
+    "es": (
+        "Escribe todos los textos en español neutro de Latinoamérica. No cambies las claves del JSON. "
+        "Esto prevalece sobre cualquier mención a portugués o pt-BR en la solicitud."
+    ),
+}
+
+
+def _output_lang(locale: Optional[str]) -> str:
+    return OUTPUT_LANG.get(locale or "pt-BR", OUTPUT_LANG["pt-BR"])
+
+
+async def analyze_pet_anamnesis(pet_info: dict, anamnesis_data: dict, locale: str = "pt-BR") -> dict:
     """
     Analisa a anamnese de um pet e retorna análise com nível de urgência e recomendações.
     """
@@ -77,7 +96,8 @@ IMPORTANTE: Esta análise é apenas orientativa e NÃO substitui uma consulta ve
 
 Responda APENAS com o JSON válido, sem texto adicional."""
 
-    message = await _create(client, 
+    message = await _create(client,
+        system=_output_lang(locale),
         model=MODEL,
         max_tokens=2000,
         messages=[{"role": "user", "content": prompt}],
@@ -108,7 +128,7 @@ Responda APENAS com o JSON válido, sem texto adicional."""
     return analysis
 
 
-async def generate_care_guide(breed_info: dict, pet_info: dict) -> str:
+async def generate_care_guide(breed_info: dict, pet_info: dict, locale: str = "pt-BR") -> str:
     """
     Gera um guia de cuidados personalizado para a raça e características do pet.
     """
@@ -160,7 +180,8 @@ Crie um guia completo em português (Brasil) com as seguintes seções:
 
 Seja específico, prático e use linguagem acessível para donos de pets."""
 
-    message = await _create(client, 
+    message = await _create(client,
+        system=_output_lang(locale),
         model=MODEL,
         max_tokens=3000,
         messages=[{"role": "user", "content": prompt}],
@@ -169,7 +190,7 @@ Seja específico, prático e use linguagem acessível para donos de pets."""
     return message.content[0].text
 
 
-async def generate_walk_routine(pet_info: dict, breed_info: dict) -> dict:
+async def generate_walk_routine(pet_info: dict, breed_info: dict, locale: str = "pt-BR") -> dict:
     """
     Gera uma rotina de caminhada estruturada baseada nas características do pet.
     """
@@ -210,7 +231,8 @@ Forneça a resposta no seguinte formato JSON:
 
 Responda APENAS com o JSON válido, sem texto adicional."""
 
-    message = await _create(client, 
+    message = await _create(client,
+        system=_output_lang(locale),
         model=MODEL,
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
@@ -249,7 +271,7 @@ Responda APENAS com o JSON válido, sem texto adicional."""
     return routine
 
 
-async def generate_bedtime_story(pet_info: dict, mood: str = "carinhoso") -> dict:
+async def generate_bedtime_story(pet_info: dict, mood: str = "carinhoso", locale: str = "pt-BR") -> dict:
     """História de 2 min de boa-noite personalizada — Toby tutor leu a noite toda."""
     client = get_client()
 
@@ -284,7 +306,8 @@ REGRAS:
 
 Apenas a história. Sem título, sem introdução."""
 
-    msg = await _create(client, 
+    msg = await _create(client,
+        system=_output_lang(locale),
         model=CHAT_MODEL,
         max_tokens=900,
         messages=[{"role": "user", "content": prompt}],
@@ -293,7 +316,7 @@ Apenas a história. Sem título, sem introdução."""
     return {"story": text, "pet_name": pet_name, "mood": mood}
 
 
-async def generate_story_caption(image_b64: str, image_media_type: str, pet_info: dict) -> dict:
+async def generate_story_caption(image_b64: str, image_media_type: str, pet_info: dict, locale: str = "pt-BR") -> dict:
     """Gera caption tipo Instagram pra foto do pet + detecta emoção visível."""
     client = get_client()
     pet_name = pet_info.get("name", "pet")
@@ -309,7 +332,8 @@ Responda APENAS com JSON válido:
   "hashtag_suggestions": ["3-5 hashtags pt-BR sem # — ex: vidadecachorro, gatospetlife"]
 }}"""
 
-    msg = await _create(client, 
+    msg = await _create(client,
+        system=_output_lang(locale),
         model=CHAT_MODEL,  # Haiku tem visão e é barato
         max_tokens=400,
         messages=[{
@@ -331,7 +355,7 @@ Responda APENAS com JSON válido:
         return {"caption": f"{pet_name} aproveitando o dia!", "emotion": "alegre", "emoji_suggestions": ["🐾"], "hashtag_suggestions": []}
 
 
-async def analyze_behavior_patterns(pet_info: dict, logs: list[dict]) -> dict:
+async def analyze_behavior_patterns(pet_info: dict, logs: list[dict], locale: str = "pt-BR") -> dict:
     """Analisa N dias de behavior logs e detecta padrões + alerta sinais clínicos."""
     if not logs:
         return {"summary": "Sem dados suficientes ainda. Registre pelo menos 7 dias.", "patterns": [], "alerts": []}
@@ -371,7 +395,8 @@ Detecte padrões clinicamente relevantes (ex: apetite reduzido 5 dias seguidos, 
   "disclaimer": "Padrões observados são orientativos. Diagnóstico médico requer avaliação presencial."
 }}"""
 
-    msg = await _create(client, 
+    msg = await _create(client,
+        system=_output_lang(locale),
         model=MODEL,
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
@@ -387,7 +412,7 @@ Detecte padrões clinicamente relevantes (ex: apetite reduzido 5 dias seguidos, 
         return {"summary": "Análise indisponível.", "patterns": [], "alerts": []}
 
 
-async def generate_health_forecast(pet_info: dict, signals: dict) -> dict:
+async def generate_health_forecast(pet_info: dict, signals: dict, locale: str = "pt-BR") -> dict:
     """Previsão preventiva de saúde 6-12 meses baseada em raça, idade, peso e
     histórico. NÃO é diagnóstico — é orientação preventiva pra antecipar cuidados."""
     client = get_client()
@@ -435,7 +460,8 @@ Com base em medicina veterinária preventiva (predisposições raciais, idade, c
 
 Liste entre 2 e 5 riscos, os mais prováveis primeiro. Se o pet é jovem e saudável, foque em prevenção (vermifugação, vacinas, peso)."""
 
-    msg = await _create(client, 
+    msg = await _create(client,
+        system=_output_lang(locale),
         model=MODEL,
         max_tokens=1800,
         messages=[{"role": "user", "content": prompt}],
@@ -451,7 +477,7 @@ Liste entre 2 e 5 riscos, os mais prováveis primeiro. Se o pet é jovem e saud�
         return {"summary": "Previsão indisponível no momento.", "overall_risk": "baixo", "risks": [], "checkups_recommended": []}
 
 
-async def generate_memorial_text(pet_info: dict, owner_message: str = "") -> dict:
+async def generate_memorial_text(pet_info: dict, owner_message: str = "", locale: str = "pt-BR") -> dict:
     """Gera texto carinhoso pra memorial — feature sensível, tom respeitoso."""
     client = get_client()
     pet_name = pet_info.get("name", "amigo")
@@ -472,7 +498,8 @@ Responda APENAS com JSON válido:
   "comfort_message": "Mensagem curta de apoio ao tutor, em 2-3 frases"
 }}"""
 
-    msg = await _create(client, 
+    msg = await _create(client,
+        system=_output_lang(locale),
         model=CHAT_MODEL,
         max_tokens=800,
         messages=[{"role": "user", "content": prompt}],
@@ -488,7 +515,7 @@ Responda APENAS com JSON válido:
         return {"memorial_text": f"Em memória de {pet_name}, sempre presente em nossos corações.", "epitaph": f"Em memória de {pet_name}", "comfort_message": ""}
 
 
-async def generate_behavior_plan(pet_info: dict, issue_type: str, intensity: str, context: str = "") -> dict:
+async def generate_behavior_plan(pet_info: dict, issue_type: str, intensity: str, context: str = "", locale: str = "pt-BR") -> dict:
     """Gera plano comportamental 6 semanas em pt-BR, baseado em etologia veterinária."""
     client = get_client()
     species = "cão" if pet_info.get("species") == "dog" else "gato"
@@ -546,7 +573,8 @@ REGRAS:
 - Adapte a intensidade {intensity}: leve = passos pequenos, alta = passos muito pequenos com mais paciência
 - Para gatos, lembre que técnicas são diferentes de cães"""
 
-    msg = await _create(client, 
+    msg = await _create(client,
+        system=_output_lang(locale),
         model=MODEL,
         max_tokens=4000,
         messages=[{"role": "user", "content": prompt}],
@@ -562,7 +590,7 @@ REGRAS:
         return {"summary": "Erro ao gerar plano.", "weeks": []}
 
 
-async def generate_petlife_wrapped(pet_info: dict, year_data: dict) -> dict:
+async def generate_petlife_wrapped(pet_info: dict, year_data: dict, locale: str = "pt-BR") -> dict:
     """Recap anual estilo Spotify Wrapped — historia narrativa do ano do pet."""
     client = get_client()
     pet_name = pet_info.get("name", "Pet")
@@ -598,7 +626,8 @@ Responda APENAS com JSON válido:
 
 Tom: caloroso, festivo, divertido, em pt-BR. Trate {pet_name} como protagonista querido."""
 
-    msg = await _create(client, 
+    msg = await _create(client,
+        system=_output_lang(locale),
         model=CHAT_MODEL,  # Haiku é suficiente, charme não precisa do Sonnet
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
@@ -614,7 +643,7 @@ Tom: caloroso, festivo, divertido, em pt-BR. Trate {pet_name} como protagonista 
         return {"title": f"O ano de {pet_name}", "highlights": [], "narrative": "Wrapped indisponível agora."}
 
 
-async def assess_pet_pain(image_b64: str, image_media_type: str, pet_info: dict) -> dict:
+async def assess_pet_pain(image_b64: str, image_media_type: str, pet_info: dict, locale: str = "pt-BR") -> dict:
     """Avaliação de dor por foto facial. Para gatos usa Feline Grimace Scale
     (FGS): 5 unidades de ação (orelhas, órbitas, focinho, bigodes, cabeça).
     Para cães usa Glasgow Composite Measure Pain Scale (canine, adaptado pra foto).
@@ -673,7 +702,8 @@ Responda APENAS com JSON válido:
   "disclaimer": "Avaliação por foto é limitada. Apenas orientativa — exame presencial é obrigatório se há suspeita de dor."
 }"""
 
-    msg = await _create(client, 
+    msg = await _create(client,
+        system=_output_lang(locale),
         model=MODEL,
         max_tokens=1200,
         messages=[{
@@ -702,7 +732,7 @@ Responda APENAS com JSON válido:
         }
 
 
-async def analyze_stool_from_image(image_b64: str, image_media_type: str, pet_info: dict) -> dict:
+async def analyze_stool_from_image(image_b64: str, image_media_type: str, pet_info: dict, locale: str = "pt-BR") -> dict:
     """Análise de fezes por foto — Bristol-equivalent veterinário (1-7),
     cor, consistência, sinais de alerta visíveis (sangue, muco, parasitas
     macroscópicos).
@@ -740,7 +770,8 @@ Responda APENAS com JSON válido:
 
 NUNCA invente o que não está claramente visível. Se imagem ruim, pare em image_quality."""
 
-    msg = await _create(client, 
+    msg = await _create(client,
+        system=_output_lang(locale),
         model=MODEL,
         max_tokens=1500,
         messages=[{
@@ -819,7 +850,7 @@ IMPORTANTE:
         return {"subjective": "", "objective": "", "assessment": "", "plan": {}, "owner_friendly_summary": ""}
 
 
-async def snapshot_triage_from_image(image_b64: str, image_media_type: str, pet_info: dict) -> dict:
+async def snapshot_triage_from_image(image_b64: str, image_media_type: str, pet_info: dict, locale: str = "pt-BR") -> dict:
     """Análise rápida (5s) de saúde com foto — BCS, olhos, dental, sinais visíveis.
     NÃO substitui consulta vet — só triagem orientativa.
     """
@@ -859,7 +890,8 @@ Responda APENAS com JSON válido:
 
 NÃO invente. NÃO diagnostique doenças específicas. Se imagem ruim, image_quality:"ruim" + pare."""
 
-    msg = await _create(client, 
+    msg = await _create(client,
+        system=_output_lang(locale),
         model=MODEL,  # Sonnet (vision) — Haiku não tem vision atualmente
         max_tokens=1500,
         messages=[{
@@ -1116,7 +1148,7 @@ SAIDA:
     return response.content[0].text
 
 
-async def generate_enrichment_activities(pet_info: dict) -> dict:
+async def generate_enrichment_activities(pet_info: dict, locale: str = "pt-BR") -> dict:
     """Bem-estar mental: 3 atividades de enriquecimento do dia, personalizadas
     por espécie/raça/idade/energia. Tendência 2026: saúde mental do pet."""
     client = get_client()
@@ -1133,7 +1165,8 @@ Varie os tipos: mental (farejar/resolver), física e vínculo tutor-pet.
 Responda APENAS em JSON válido:
 {{"activities": [{{"title": "nome curto e divertido", "emoji": "1 emoji", "how": "como fazer em 2-3 frases", "minutes": 10, "benefit": "benefício em 1 frase", "type": "mental|fisica|vinculo"}}], "tip": "1 dica curta de bem-estar do dia"}}"""
 
-    response = await _create(client, 
+    response = await _create(client,
+        system=_output_lang(locale),
         model=CHAT_MODEL,
         max_tokens=900,
         messages=[{"role": "user", "content": prompt}],
@@ -1197,6 +1230,7 @@ REGRAS:
     msg = await asyncio.to_thread(client.messages.create,
         **dict(
         model=MODEL,
+        system=_output_lang(locale),
         max_tokens=2000,
         messages=[{
             "role": "user",

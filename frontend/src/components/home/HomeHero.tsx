@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { CareKind, PetCareSummary } from '@/lib/care'
-import { variants, spring } from '@/lib/motion'
-import { hapticSelect } from '@/lib/feedback'
+import { homeChoreo } from '@/lib/motion'
+import { haptic } from '@/lib/feedback'
 import { useT } from '@/contexts/LocaleContext'
 import { cn } from '@/lib/utils'
 import { PetHero } from '@/components/pets/PetHero'
@@ -12,12 +12,22 @@ import { PetHero } from '@/components/pets/PetHero'
 /**
  * Herói do Início: um slide por pet (o pior primeiro), em carrossel com
  * scroll-snap. Cada slide traz o Anel de proteção e uma única próxima ação.
+ *
+ * `choreo` (só na 1ª visita da sessão): entrada em 4 tempos — a saudação já
+ * está no cabeçalho, o cartão sobe 8 px, os arcos se desenham e o botão chega
+ * por último. Nas visitas seguintes nada anima (nem os arcos).
  */
 export function HomeHero({
   summaries,
   pulse,
   onRegister,
+  choreo = false,
+  onStreak,
+  onPhotoChanged,
 }: {
+  choreo?: boolean
+  onStreak?: (petId: number, streak: number) => void
+  onPhotoChanged?: () => void
   summaries: PetCareSummary[]
   /** Arco que acabou de ser registrado — o anel daquele pet "cresce". */
   pulse?: { petId: number; kind: CareKind } | null
@@ -40,7 +50,7 @@ export function HomeHero({
           if (!e.isIntersecting) continue
           const idx = Number((e.target as HTMLElement).dataset.idx)
           setActive(prev => {
-            if (prev !== idx && !first.current) void hapticSelect()
+            if (prev !== idx && !first.current) haptic('toggle')
             return idx
           })
         }
@@ -59,13 +69,22 @@ export function HomeHero({
     root.scrollTo({ left: el.offsetLeft - root.offsetLeft - 16, behavior: 'smooth' })
   }
 
+  const heroProps = (s: PetCareSummary) => ({
+    summary: s,
+    pulseKind: pulse?.petId === s.pet.id ? pulse.kind : undefined,
+    onRegister,
+    animateRing: choreo,
+    choreo,
+    onStreak,
+    onPhotoChanged,
+  })
+
   return (
     <motion.section
       aria-label={t('home.hero.carouselAria')}
-      initial="hidden"
+      initial={choreo ? 'hidden' : false}
       animate="show"
-      variants={variants.scaleIn}
-      transition={spring.snappy}
+      variants={homeChoreo.container}
       className="mb-5"
     >
       {multi ? (
@@ -75,21 +94,24 @@ export function HomeHero({
           className="no-scrollbar -mx-4 px-4 flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-4 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-visible"
         >
           {summaries.map((s, i) => (
-            <div
+            <motion.div
               key={s.pet.id}
+              variants={homeChoreo.item}
               ref={el => { slides.current[i] = el }}
               data-idx={i}
               className="snap-start shrink-0 basis-[88%] md:basis-auto"
               aria-roledescription="slide"
               aria-label={`${i + 1} / ${summaries.length}: ${s.pet.name}`}
             >
-              <PetHero summary={s} pulseKind={pulse?.petId === s.pet.id ? pulse.kind : undefined} onRegister={onRegister} />
-            </div>
+              <PetHero {...heroProps(s)} />
+            </motion.div>
           ))}
         </div>
       ) : (
         summaries[0] && (
-          <PetHero summary={summaries[0]} pulseKind={pulse?.petId === summaries[0].pet.id ? pulse.kind : undefined} onRegister={onRegister} />
+          <motion.div variants={homeChoreo.item}>
+            <PetHero {...heroProps(summaries[0])} />
+          </motion.div>
         )
       )}
 
@@ -104,10 +126,11 @@ export function HomeHero({
               aria-current={i === active ? 'true' : undefined}
               className="min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
+              {/* Só transform e cor animam (scaleX), nunca a largura. */}
               <span
                 className={cn(
-                  'block h-2 rounded-full transition-all duration-200',
-                  i === active ? 'w-5 bg-primary-700 dark:bg-primary-300' : 'w-2 bg-surface-300 dark:bg-surface-600',
+                  'block w-2 h-2 rounded-full transition-[transform,background-color] duration-200 ease-out motion-reduce:transition-none',
+                  i === active ? 'scale-x-[2.5] bg-primary-700 dark:bg-primary-300' : 'scale-x-100 bg-surface-300 dark:bg-surface-600',
                 )}
               />
             </button>

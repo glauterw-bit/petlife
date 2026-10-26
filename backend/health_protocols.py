@@ -79,7 +79,7 @@ def suggested_health_plan(species: str, birth_date, has_vaccines: List[str]) -> 
                 if age_months is None or age_months >= 3:
                     suggestions.append({
                         "title": "Vacina Antirrábica",
-                        "description": "A partir dos 4 meses de idade. Obrigatória por lei.",
+                        "description": "A partir dos 4 meses de idade. Exigida para viajar e em muitas cidades; o Ministério da Saúde faz campanhas de vacinação.",
                         "category": "vacina",
                         "urgency": "alta",
                     })
@@ -116,7 +116,7 @@ def suggested_health_plan(species: str, birth_date, has_vaccines: List[str]) -> 
             })
             suggestions.append({
                 "title": "Antipulgas e carrapatos",
-                "description": "Aplicar produto mensal (Bravecto, NexGard, etc.) de acordo com peso.",
+                "description": "Aplicar antipulgas e carrapaticida no intervalo indicado na bula do produto.",
                 "category": "parasitas",
                 "urgency": "media",
             })
@@ -167,8 +167,8 @@ def suggested_health_plan(species: str, birth_date, has_vaccines: List[str]) -> 
                     "urgency": "alta",
                 })
                 suggestions.append({
-                    "title": "Vacina V3/V4/V5 (2ª dose)",
-                    "description": "Reforço 21-28 dias após a primeira dose.",
+                    "title": "Vacina V3/V4/V5 (doses seguintes)",
+                    "description": "Série de vacinas a cada 3-4 semanas até 16 semanas de idade ou mais (geralmente 3 doses). Confirme com o veterinário.",
                     "category": "vacina",
                     "urgency": "alta",
                 })
@@ -183,7 +183,7 @@ def suggested_health_plan(species: str, birth_date, has_vaccines: List[str]) -> 
             if "felv" not in has_lower and "leucemia" not in has_lower:
                 suggestions.append({
                     "title": "Vacina FeLV (Leucemia Felina)",
-                    "description": "Recomendada principalmente para gatos com acesso à rua.",
+                    "description": "Considerada essencial para gatos com menos de 1 ano (WSAVA 2024). Para adultos com acesso à rua ou que convivem com gatos que saem, converse com o veterinário sobre vacina e teste.",
                     "category": "vacina",
                     "urgency": "media",
                 })
@@ -195,7 +195,7 @@ def suggested_health_plan(species: str, birth_date, has_vaccines: List[str]) -> 
             })
             suggestions.append({
                 "title": "Castração",
-                "description": "Recomendada entre 6-8 meses para machos e fêmeas.",
+                "description": "Converse com o veterinário sobre a idade ideal.",
                 "category": "consulta",
                 "urgency": "media",
             })
@@ -220,7 +220,7 @@ def suggested_health_plan(species: str, birth_date, has_vaccines: List[str]) -> 
             })
             suggestions.append({
                 "title": "Antipulgas e carrapatos",
-                "description": "Aplicar mensal — produtos específicos para gatos (NUNCA usar de cão).",
+                "description": "Aplicar no intervalo indicado na bula, só com produto para gatos (nunca use produto de cão).",
                 "category": "parasitas",
                 "urgency": "media",
             })

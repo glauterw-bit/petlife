@@ -9,7 +9,8 @@
  *   'pets'                  lista de pets do tutor (o shell mantém)
  *   'vaccines'              todas as vacinas
  *   'vaccines:pet:<id>'     vacinas de um pet
- *   'protections'           protections.summary()
+ *   'protections'           resposta inteira de protections.summary() ({ pets }) — nunca .pets
+ *                           (leia com useProtectionsQuery() de lib/queries.ts)
  *   'pet:<id>'              ficha de um pet
  *   'walks'                 lista de passeios
  *   'walks:stats'           estatísticas de passeio

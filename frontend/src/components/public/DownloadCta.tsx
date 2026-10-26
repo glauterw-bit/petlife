@@ -7,7 +7,9 @@ import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
 import { buttonClasses } from '@/components/ui/Button'
 
-const APP_STORE_BASE = 'https://apps.apple.com/br/app/petlife-sa%C3%BAde-do-pet/id6768136468'
+// Sem país no caminho: a Apple abre a loja do país de quem toca. Com /br, quem
+// está fora do Brasil caía na loja brasileira (ou numa página de "indisponível").
+const APP_STORE_BASE = 'https://apps.apple.com/app/id6768136468'
 
 /**
  * Link da App Store com rastreio de campanha.

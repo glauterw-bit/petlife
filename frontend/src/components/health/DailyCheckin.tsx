@@ -2,19 +2,34 @@
 
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check } from 'lucide-react'
+import { Check, PawPrint } from 'lucide-react'
 import { innovations, type Pet } from '@/lib/api'
-import { hapticLight, hapticSuccess, hapticError } from '@/lib/feedback'
+import { haptic } from '@/lib/feedback'
 import { useT } from '@/contexts/LocaleContext'
 import { spring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
-// O emoji aqui é conteúdo (a reação de humor), não ícone de interface.
-const MOODS: { value: 'feliz' | 'neutro' | 'apatico'; emoji: string; labelKey: string }[] = [
-  { value: 'feliz', emoji: '😺', labelKey: 'h.checkin.moodGreat' },
-  { value: 'neutro', emoji: '😐', labelKey: 'h.checkin.moodOk' },
-  { value: 'apatico', emoji: '😔', labelKey: 'h.checkin.moodLow' },
+type Mood = 'feliz' | 'neutro' | 'apatico'
+
+// O emoji aqui é conteúdo (a reação de humor), não ícone de interface — e
+// segue a espécie: cão 🐶, gato 🐱; outra espécie usa a pata (sem emoji).
+const MOOD_EMOJI: Record<'dog' | 'cat', Record<Mood, string>> = {
+  dog: { feliz: '🐶', neutro: '😐', apatico: '😔' },
+  cat: { feliz: '🐱', neutro: '😐', apatico: '😿' },
+}
+const MOODS: { value: Mood; labelKey: string }[] = [
+  { value: 'feliz', labelKey: 'h.checkin.moodGreat' },
+  { value: 'neutro', labelKey: 'h.checkin.moodOk' },
+  { value: 'apatico', labelKey: 'h.checkin.moodLow' },
 ]
+
+function MoodGlyph({ species, mood, className }: { species: Pet['species']; mood: Mood; className?: string }) {
+  if (species === 'dog' || species === 'cat') {
+    return <span className={cn('text-xl leading-none', className)} aria-hidden>{MOOD_EMOJI[species][mood]}</span>
+  }
+  if (mood === 'feliz') return <PawPrint className={cn('w-5 h-5 text-primary-700 dark:text-primary-300', className)} aria-hidden />
+  return <span className={cn('text-xl leading-none', className)} aria-hidden>{mood === 'neutro' ? '😐' : '😔'}</span>
+}
 
 /**
  * Check-in diário 1 toque: como o pet está hoje. Compacto — uma linha de
@@ -25,17 +40,17 @@ export function DailyCheckin({ pet, onDone }: { pet: Pet; onDone?: () => void })
   const [done, setDone] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
 
-  async function pick(mood: 'feliz' | 'neutro' | 'apatico') {
+  async function pick(mood: Mood) {
     if (saving || done) return
     setSaving(mood)
-    void hapticLight()
+    haptic('tap')
     try {
       await innovations.addBehaviorLog(pet.id, { mood })
       setDone(mood)
-      void hapticSuccess()
+      haptic('saved')
       onDone?.()
     } catch {
-      void hapticError()
+      haptic('error')
     } finally {
       setSaving(null)
     }
@@ -60,17 +75,18 @@ export function DailyCheckin({ pet, onDone }: { pet: Pet; onDone?: () => void })
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-surface-900 dark:text-white">{t('home.checkin.done')}</div>
-              <div className="text-xs text-surface-600 dark:text-surface-400 truncate">
-                {picked.emoji} {t(picked.labelKey)} · {pet.name}
+              <div className="flex items-center gap-1.5 text-xs text-surface-600 dark:text-surface-400 min-w-0">
+                <MoodGlyph species={pet.species} mood={picked.value} className="text-base" />
+                <span className="truncate">{t(picked.labelKey)} · {pet.name}</span>
               </div>
             </div>
           </motion.div>
         ) : (
           <motion.div key="ask" exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
-            <div className="text-sm font-semibold text-surface-800 dark:text-surface-100 mb-2">
-              {t('h.checkin.question', { name: pet.name })}
+            <div id={`checkin-q-${pet.id}`} className="text-sm font-semibold text-surface-800 dark:text-surface-100 mb-2">
+              {t('home2.checkin.q', { name: pet.name })}
             </div>
-            <div className="grid grid-cols-3 gap-2" role="group" aria-label={t('h.checkin.question', { name: pet.name })}>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`checkin-q-${pet.id}`}>
               {MOODS.map(m => (
                 <button
                   key={m.value}
@@ -79,15 +95,15 @@ export function DailyCheckin({ pet, onDone }: { pet: Pet; onDone?: () => void })
                   disabled={!!saving}
                   aria-busy={saving === m.value || undefined}
                   className={cn(
-                    'pressable flex items-center justify-center gap-1.5 min-h-[44px] rounded-xl border transition-colors',
+                    'pressable flex-[1_1_auto] flex items-center justify-center gap-1.5 min-h-[44px] px-2.5 py-2 rounded-xl border transition-colors',
                     saving === m.value
                       ? 'border-primary-600 bg-primary-50 dark:border-primary-400 dark:bg-primary-500/15'
                       : 'border-surface-200 hover:bg-surface-50 dark:border-surface-700 dark:hover:bg-surface-800',
                     saving && saving !== m.value && 'opacity-40',
                   )}
                 >
-                  <span className="text-xl leading-none" aria-hidden>{m.emoji}</span>
-                  <span className="text-xs font-medium text-surface-700 dark:text-surface-200">{t(m.labelKey)}</span>
+                  <MoodGlyph species={pet.species} mood={m.value} />
+                  <span className="text-sm font-medium whitespace-nowrap text-surface-700 dark:text-surface-200">{t(m.labelKey)}</span>
                 </button>
               ))}
             </div>

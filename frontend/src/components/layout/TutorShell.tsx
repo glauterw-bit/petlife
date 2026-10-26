@@ -19,6 +19,7 @@ import { useT } from '@/contexts/LocaleContext'
 import { pets as petsApi, type Pet } from '@/lib/api'
 import { trackAppOpenOnce } from '@/lib/track'
 import { useCached, clearCache } from '@/lib/cache'
+import { clearRemotePushState } from '@/lib/push'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ShellSkeleton } from '@/components/ui/Skeleton'
 import { CelebrationOverlay, celebrate } from '@/components/ui/CelebrationOverlay'
@@ -65,7 +66,11 @@ function TutorShellInner({ children }: { children: ReactNode }) {
   // shell desmonta no login/logout (rotas /auth ficam fora dele).
   const userId = user?.id ?? null
   useLayoutEffect(() => {
-    if (cacheOwner !== undefined && cacheOwner !== userId) clearCache()
+    if (cacheOwner !== undefined && cacheOwner !== userId) {
+      clearCache()
+      // O token de push estava registrado para a conta anterior: registra de novo.
+      clearRemotePushState()
+    }
     cacheOwner = userId
   }, [userId])
 
@@ -161,6 +166,8 @@ function TutorShellInner({ children }: { children: ReactNode }) {
       <MotionConfig reducedMotion="user">
         <div className="flex min-h-screen bg-surface-50 dark:bg-surface-950 w-full max-w-full overflow-x-clip">
           <Sidebar pets={pets} activePetId={activePetId} onPetChange={p => setActivePetId(p.id)} />
+          {/* pb-nav: barra inferior + 76 px do lançador do Vyron + área segura,
+              para o último conteúdo nunca ficar embaixo dos dois. */}
           <main className="flex-1 min-w-0 md:ml-64 min-h-screen pb-nav md:pb-0 overflow-x-clip">
             <div className="w-full max-w-7xl mx-auto px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] pb-4 md:p-8">
               {!hasHeader && <MobileBackBar />}

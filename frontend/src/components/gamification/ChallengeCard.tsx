@@ -1,13 +1,14 @@
 'use client'
 
 import {
-  Play, Check, Clock, Star, Stethoscope, Footprints, Salad, Scissors, GraduationCap, Handshake, ShieldCheck, PawPrint,
+  Play, Check, Clock, Star, Syringe, Footprints, Salad, Scissors, GraduationCap, Users, ShieldCheck, Camera, Trophy,
   Loader2, type LucideIcon,
 } from 'lucide-react'
 import { type Challenge, type UserChallenge } from '@/lib/api'
 import { formatDate, cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
 import { buttonClasses } from '@/components/ui/Button'
+import { useChallengeText } from './challengeText'
 
 interface ChallengeCardProps {
   challenge: Challenge
@@ -37,16 +38,17 @@ const CATEGORY_ALIASES: Record<string, CategoryId> = {
 
 export const CATEGORY_ORDER: CategoryId[] = ['health', 'walks', 'safety', 'nutrition', 'grooming', 'training', 'profile', 'social', 'other']
 
+/** Um ícone por categoria, para o tutor reconhecer o tipo de desafio sem ler. */
 export const CATEGORY_ICONS: Record<CategoryId, LucideIcon> = {
-  health: Stethoscope,
+  health: Syringe,
   walks: Footprints,
   nutrition: Salad,
   grooming: Scissors,
   training: GraduationCap,
-  social: Handshake,
+  social: Users,
   safety: ShieldCheck,
-  profile: PawPrint,
-  other: Star,
+  profile: Camera,
+  other: Trophy,
 }
 
 export function categoryOf(c: Challenge): CategoryId {
@@ -74,6 +76,8 @@ export function difficultyOf(c: Challenge): Diff | null {
 
 export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, loading }: ChallengeCardProps) {
   const t = useT()
+  const text = useChallengeText()
+  const title = text.title(challenge)
   const cat = categoryOf(challenge)
   const Icon = CATEGORY_ICONS[cat]
   const diff = difficultyOf(challenge)
@@ -105,8 +109,8 @@ export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, l
           {isCompleted ? <Check className="w-5 h-5" strokeWidth={2.6} aria-hidden /> : <Icon className="w-5 h-5" aria-hidden />}
         </span>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-surface-900 dark:text-white leading-tight">{challenge.title}</h3>
-          <p className="text-sm text-surface-600 dark:text-surface-400 mt-0.5 line-clamp-2">{challenge.description}</p>
+          <h3 className="font-semibold text-surface-900 dark:text-white leading-tight">{title}</h3>
+          <p className="text-sm text-surface-600 dark:text-surface-400 mt-0.5 line-clamp-2">{text.desc(challenge)}</p>
         </div>
       </div>
 
@@ -151,7 +155,7 @@ export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, l
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={progress}
-            aria-label={challenge.title}
+            aria-label={title}
           >
             <div className="bg-primary-600 dark:bg-primary-400 h-2 rounded-full transition-[width] duration-500" style={{ width: `${progress}%` }} />
           </div>
