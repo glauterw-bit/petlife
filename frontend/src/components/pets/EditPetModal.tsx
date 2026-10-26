@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Loader2, AlertTriangle, X } from 'lucide-react'
+import { Search, Loader2, AlertTriangle, X, Dog, Cat } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { pets as petsApi, breeds as breedsApi, type Pet, type Breed } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { cn, getSpeciesLabel } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
 import { parseWeightKg } from '@/lib/weight'
+import { Button } from '@/components/ui/Button'
+import { hapticSuccess, hapticWarning, hapticError } from '@/lib/feedback'
+import { invalidate } from '@/lib/cache'
+import { useShell } from '@/components/layout/shell'
 
 type Species = 'dog' | 'cat'
 type BreedPick = { id: number; name: string; species: Species }
@@ -20,7 +24,7 @@ interface Props {
   onSaved: (pet: Pet) => void
 }
 
-const inputCls = 'w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800'
+const inputCls = 'w-full px-4 min-h-[44px] py-2.5 border border-surface-200 dark:border-surface-600 rounded-xl text-[15px] text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-900'
 const labelCls = 'block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5'
 
 function formFromPet(pet: Pet) {
@@ -44,6 +48,7 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
   const [deleting, setDeleting] = useState(false)
   useEffect(() => { if (!open) setConfirmDelete(false) }, [open])
   const { success, error } = useToast()
+  const shell = useShell()
   const [form, setForm] = useState(() => formFromPet(pet))
   const [breed, setBreed] = useState<BreedPick | null>(null)
   const [breedQuery, setBreedQuery] = useState('')
@@ -100,10 +105,12 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
         microchip: form.microchip.trim() || null,
         bio: form.bio.trim() || null,
       })
+      void hapticSuccess()
       success(t('pw.editPet.saved'))
       onSaved(updated)
       onClose()
     } catch (e: unknown) {
+      void hapticError()
       error(e instanceof Error ? e.message : t('pw.editPet.errSave'))
     } finally { setSaving(false) }
   }
@@ -113,10 +120,13 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
     setDeleting(true)
     try {
       await petsApi.delete(pet.id)
+      invalidate('pets')
+      void shell?.refreshPets()
       success(t('pw.editPet.deleted', { name: pet.name }))
       onClose()
       router.push('/pets')
     } catch (e: unknown) {
+      void hapticError()
       error(e instanceof Error ? e.message : t('pw.editPet.deleteError'))
     } finally {
       setDeleting(false)
@@ -127,28 +137,28 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
     <Modal open={open} onClose={onClose} title={t('pw.editPet.title', { name: pet.name })} size="lg">
       <div className="space-y-4">
         <div>
-          <label className={labelCls}>{t('pw.editPet.name')} *</label>
-          <input type="text" value={form.name} maxLength={100}
+          <label htmlFor="ep-name" className={labelCls}>{t('pw.editPet.name')} *</label>
+          <input id="ep-name" type="text" value={form.name} maxLength={100}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={inputCls} />
         </div>
 
         <div>
-          <label className={labelCls}>{t('pw.editPet.species')}</label>
+          <span className={labelCls}>{t('pw.editPet.species')}</span>
           <div className="grid grid-cols-2 gap-2">
             {(['dog', 'cat'] as Species[]).map(s => (
-              <button key={s} type="button" onClick={() => pickSpecies(s)}
+              <button key={s} type="button" aria-pressed={form.species === s} onClick={() => pickSpecies(s)}
                 className={cn(
-                  'pressable flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-semibold transition',
+                  'pressable flex items-center justify-center gap-2 min-h-[48px] rounded-xl border text-sm font-semibold transition',
                   form.species === s
-                    ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-400 text-primary-700 dark:text-primary-300'
+                    ? 'bg-primary-50 dark:bg-primary-500/15 border-primary-500 text-primary-800 dark:text-primary-200'
                     : 'border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-300'
                 )}>
-                <span className="text-xl" aria-hidden>{s === 'dog' ? '🐕' : '🐈'}</span> {t(s === 'dog' ? 'pet.dog' : 'pet.cat')}
+                {s === 'dog' ? <Dog className="w-5 h-5" aria-hidden /> : <Cat className="w-5 h-5" aria-hidden />} {t(s === 'dog' ? 'pet.dog' : 'pet.cat')}
               </button>
             ))}
           </div>
           {speciesChanged && (
-            <div className="mt-2 flex gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+            <div className="mt-2 flex gap-2 text-xs text-amber-800 dark:text-amber-200 border tone-warning-bg rounded-xl p-3">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
               <div className="space-y-1">
                 <p>{t('pw.editPet.speciesChanged', { species: getSpeciesLabel(form.species) })}</p>
@@ -159,28 +169,28 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
         </div>
 
         <div className="relative">
-          <label className={labelCls}>{t('pet.breed')}</label>
+          <label htmlFor="ep-breed" className={labelCls}>{t('pet.breed')}</label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-            <input type="text" value={breedQuery} placeholder={t('pw.editPet.breedPh')}
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500 dark:text-surface-400 pointer-events-none" aria-hidden />
+            <input id="ep-breed" type="text" value={breedQuery} placeholder={t('pw.editPet.breedPh')}
               onChange={e => { setBreedQuery(e.target.value); if (breed && e.target.value !== breed.name) setBreed(null) }}
               className={`${inputCls} pl-9 pr-10`} />
             {searching
               ? <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-500 animate-spin" />
               : breedQuery && (
                 <button type="button" onClick={() => { setBreed(null); setBreedQuery('') }} aria-label={t('pw.editPet.clearBreed')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-surface-400 hover:text-surface-600">
-                  <X className="w-4 h-4" />
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200">
+                  <X className="w-4 h-4" aria-hidden />
                 </button>
               )}
           </div>
           {options.length > 0 && (
-            <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl shadow-lg overflow-hidden">
+            <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl shadow-float overflow-hidden">
               {options.map(b => (
                 <button key={b.id} type="button"
                   onClick={() => { setBreed({ id: b.id, name: b.name, species: b.species }); setBreedQuery(b.name); setOptions([]) }}
-                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-primary-50 dark:hover:bg-surface-700 flex items-center gap-2 transition">
-                  <span aria-hidden>{b.species === 'dog' ? '🐕' : '🐈'}</span>
+                  className="w-full px-4 min-h-[44px] text-left text-[15px] hover:bg-primary-50 dark:hover:bg-surface-800 flex items-center gap-2 transition">
+                  {b.species === 'dog' ? <Dog className="w-4 h-4 text-surface-500" aria-hidden /> : <Cat className="w-4 h-4 text-surface-500" aria-hidden />}
                   <span className="font-medium text-surface-900 dark:text-white">{b.name}</span>
                 </button>
               ))}
@@ -190,77 +200,65 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={labelCls}>{t('pet.gender')}</label>
-            <select value={form.gender} onChange={e => setForm(f => ({ ...f, gender: e.target.value as '' | 'male' | 'female' }))} className={inputCls}>
+            <label htmlFor="ep-gender" className={labelCls}>{t('pet.gender')}</label>
+            <select id="ep-gender" value={form.gender} onChange={e => setForm(f => ({ ...f, gender: e.target.value as '' | 'male' | 'female' }))} className={inputCls}>
               <option value="">{t('pw.editPet.genderUnset')}</option>
-              <option value="female">♀ {t('pet.female')}</option>
-              <option value="male">♂ {t('pet.male')}</option>
+              <option value="female">{t('pet.female')}</option>
+              <option value="male">{t('pet.male')}</option>
             </select>
           </div>
           <div>
-            <label className={labelCls}>{t('pw.editPet.birth')}</label>
-            <input type="date" value={form.birth_date} max={new Date().toISOString().split('T')[0]}
+            <label htmlFor="ep-birth" className={labelCls}>{t('pw.editPet.birth')}</label>
+            <input id="ep-birth" type="date" value={form.birth_date} max={new Date().toISOString().split('T')[0]}
               onChange={e => setForm(f => ({ ...f, birth_date: e.target.value }))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>{t('pw.editPet.weight')}</label>
-            <input type="text" inputMode="decimal" value={form.weight}
+            <label htmlFor="ep-weight" className={labelCls}>{t('pw.editPet.weight')}</label>
+            <input id="ep-weight" type="text" inputMode="decimal" value={form.weight}
               onChange={e => setForm(f => ({ ...f, weight: e.target.value }))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>{t('pw.editPet.color')}</label>
-            <input type="text" value={form.color} maxLength={100}
+            <label htmlFor="ep-color" className={labelCls}>{t('pw.editPet.color')}</label>
+            <input id="ep-color" type="text" value={form.color} maxLength={100}
               onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className={inputCls} />
           </div>
         </div>
 
-        <label className="flex items-center gap-3 text-sm text-surface-700 dark:text-surface-200 cursor-pointer">
+        <label className="flex items-center gap-3 min-h-[44px] text-[15px] text-surface-800 dark:text-surface-200 cursor-pointer">
           <input type="checkbox" checked={form.neutered} onChange={e => setForm(f => ({ ...f, neutered: e.target.checked }))}
             className="w-5 h-5 rounded border-surface-300 text-primary-500 focus:ring-primary-500" />
           {t('pet.neutered')}
         </label>
 
         <div>
-          <label className={labelCls}>{t('pw.editPet.microchip')}</label>
-          <input type="text" value={form.microchip} maxLength={50}
+          <label htmlFor="ep-chip" className={labelCls}>{t('pw.editPet.microchip')}</label>
+          <input id="ep-chip" type="text" value={form.microchip} maxLength={50}
             onChange={e => setForm(f => ({ ...f, microchip: e.target.value }))} className={inputCls} />
         </div>
 
         <div>
-          <label className={labelCls}>{t('pw.editPet.bio')}</label>
-          <textarea rows={3} value={form.bio}
+          <label htmlFor="ep-bio" className={labelCls}>{t('pw.editPet.bio')}</label>
+          <textarea id="ep-bio" rows={3} value={form.bio}
             onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} className={inputCls} />
         </div>
 
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose}
-            className="flex-1 py-3 rounded-xl border border-surface-200 dark:border-surface-700 text-sm font-semibold text-surface-700 dark:text-surface-200">
-            {t('common.cancel')}
-          </button>
-          <button type="button" onClick={save} disabled={saving}
-            className="flex-1 py-3 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2">
-            {saving && <Loader2 className="w-4 h-4 animate-spin" />} {t('common.save')}
-          </button>
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button onClick={save} loading={saving}>{t('common.save')}</Button>
         </div>
 
         {/* Excluir o pet (ex.: cadastro duplicado) — pede confirmação */}
-        <div className="pt-3 border-t border-surface-100 dark:border-surface-700">
+        <div className="pt-3 border-t border-surface-100 dark:border-surface-800">
           {!confirmDelete ? (
-            <button type="button" onClick={() => setConfirmDelete(true)} className="text-sm font-medium text-red-500 hover:text-red-600">
+            <button type="button" onClick={() => { void hapticWarning(); setConfirmDelete(true) }} className="min-h-[44px] text-sm font-semibold text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200">
               {t('pw.editPet.delete', { name: pet.name })}
             </button>
           ) : (
-            <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+            <div className="rounded-xl border tone-danger-bg p-3">
               <p className="text-sm text-red-800 dark:text-red-200">{t('pw.editPet.deleteConfirm', { name: pet.name })}</p>
-              <div className="flex gap-2 mt-3">
-                <button type="button" onClick={() => setConfirmDelete(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-sm font-semibold text-surface-700 dark:text-surface-200">
-                  {t('common.cancel')}
-                </button>
-                <button type="button" onClick={removePet} disabled={deleting}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2">
-                  {deleting && <Loader2 className="w-4 h-4 animate-spin" />} {t('pw.editPet.deleteYes')}
-                </button>
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <Button variant="secondary" onClick={() => setConfirmDelete(false)}>{t('common.cancel')}</Button>
+                <Button variant="danger" loading={deleting} onClick={removePet}>{t('pw.editPet.deleteYes')}</Button>
               </div>
             </div>
           )}

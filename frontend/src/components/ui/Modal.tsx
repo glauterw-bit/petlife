@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
+import { DialogFrame } from './Sheet'
 
 interface ModalProps {
   open: boolean
@@ -14,74 +15,56 @@ interface ModalProps {
   className?: string
 }
 
+const SIZE_CLASSES = {
+  sm: 'sm:max-w-sm',
+  md: 'sm:max-w-md',
+  lg: 'sm:max-w-lg',
+  xl: 'sm:max-w-2xl',
+}
+
+/**
+ * Diálogo genérico. No celular se comporta como folha de baixo (entra de
+ * baixo, alça, arraste para fechar, saída animada); no desktop, centralizado.
+ * Portal no body, role=dialog, foco preso. z-70: acima da BottomNav (z-50).
+ */
 export function Modal({ open, onClose, title, children, size = 'md', className }: ModalProps) {
   const t = useT()
+  const id = useId()
+  const titleId = title ? `${id}-title` : undefined
 
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [open])
+  const closeBtn = (
+    <button
+      type="button"
+      onClick={onClose}
+      aria-label={t('common.close')}
+      className="pressable w-11 h-11 shrink-0 rounded-full flex items-center justify-center text-surface-500 hover:text-surface-700 hover:bg-surface-100 dark:text-surface-400 dark:hover:text-surface-200 dark:hover:bg-surface-700 transition-colors"
+    >
+      <X className="w-5 h-5" aria-hidden />
+    </button>
+  )
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    if (open) document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [open, onClose])
-
-  if (!open) return null
-
-  const sizeClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-2xl',
-  }
+  const header = title ? (
+    <div className="flex items-center justify-between gap-3 pl-4 pr-2 sm:pl-6 sm:pr-3 pb-2 sm:py-3 border-b border-surface-100 dark:border-surface-800">
+      <h2 id={titleId} className="text-lg font-bold font-display text-surface-900 dark:text-white min-w-0 truncate">
+        {title}
+      </h2>
+      {closeBtn}
+    </div>
+  ) : (
+    <div className="absolute top-1.5 right-1.5 z-10">{closeBtn}</div>
+  )
 
   return (
-    // z-[60]: acima da BottomNav (z-50). Elas empatavam e, como a nav é
-    // renderizada depois no DOM, ela ficava POR CIMA — os botões de ação no
-    // rodapé do modal (Salvar/Cancelar) não recebiam o toque no celular.
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
-        onClick={onClose}
-      />
-      <div
-        className={cn(
-          'relative bg-white dark:bg-surface-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full animate-slide-up overflow-hidden flex flex-col',
-          'max-h-[calc(100dvh-env(safe-area-inset-top))] sm:max-h-[min(85dvh,720px)]',
-          'pb-[env(safe-area-inset-bottom)] sm:pb-0',
-          sizeClasses[size],
-          className
-        )}
-      >
-        {title && (
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-surface-200 dark:border-surface-700 shrink-0">
-            <h2 className="text-lg font-semibold text-surface-900 dark:text-white">{title}</h2>
-            <button
-              onClick={onClose}
-              aria-label={t('common.close')}
-              className="tap-target -mr-1.5 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 transition-colors flex items-center justify-center"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-        {!title && (
-          <button
-            onClick={onClose}
-            aria-label={t('common.close')}
-            className="tap-target absolute top-2 right-2 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 transition-colors z-10 flex items-center justify-center"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 pb-keyboard">{children}</div>
-      </div>
-    </div>
+    <DialogFrame
+      open={open}
+      onClose={onClose}
+      header={header}
+      labelledBy={titleId}
+      ariaLabel={title}
+      panelClassName={cn(SIZE_CLASSES[size], className)}
+      bodyClassName="p-4 sm:p-6 pb-keyboard"
+    >
+      {children}
+    </DialogFrame>
   )
 }

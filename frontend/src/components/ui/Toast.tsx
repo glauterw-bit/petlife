@@ -126,7 +126,7 @@ export function Toast({ toast, onRemove }: ToastProps) {
         <button
           onClick={() => { toast.action!.onClick(); dismiss() }}
           className={cn(
-            'text-xs font-semibold px-2.5 py-1 rounded-lg transition shrink-0',
+            'text-xs font-semibold px-3 min-h-[36px] -my-1.5 rounded-lg transition shrink-0',
             actionStyles[toast.type],
           )}
         >
@@ -136,9 +136,9 @@ export function Toast({ toast, onRemove }: ToastProps) {
       <button
         onClick={dismiss}
         aria-label={t('common.close')}
-        className="text-surface-400 hover:text-surface-600 dark:text-surface-500 dark:hover:text-surface-300 transition-colors shrink-0"
+        className="-my-2.5 -mr-3 w-11 h-11 flex items-center justify-center rounded-full text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors shrink-0"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden />
       </button>
     </div>
   )

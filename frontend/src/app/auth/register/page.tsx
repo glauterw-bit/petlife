@@ -1,14 +1,18 @@
 'use client'
 
 import { useState, useEffect, FormEvent } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, PawPrint, Mail, Lock, User, AlertCircle, Gift } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Mail, Lock, User, Gift, Ticket, X, PawPrint, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
 import { auth } from '@/lib/api'
 import { AppleSignInButton } from '@/components/auth/AppleSignInButton'
 import { consumePetDraft, loadPetDraft } from '@/lib/petDraft'
+import { hapticError, hapticSuccess, hapticLight } from '@/lib/feedback'
+import { Button } from '@/components/ui/Button'
+import { AuthFrame, AuthField, PasswordField, Notice, TextLink, fieldClasses } from '@/components/auth/AuthUI'
+import { spring, dur, easeOut } from '@/lib/motion'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -21,6 +25,7 @@ export default function RegisterPage() {
   const [petName, setPetName] = useState('')
   const [referralCode, setReferralCode] = useState('')
   const [codeOpen, setCodeOpen] = useState(false)
+  const [codeDraft, setCodeDraft] = useState('')
   useEffect(() => { setPetName(loadPetDraft()?.name ?? '') }, [])
   const [fromInvite, setFromInvite] = useState(false)
   useEffect(() => { try { setFromInvite(new URLSearchParams(window.location.search).get('convite') === '1') } catch {} }, [])
@@ -33,7 +38,6 @@ export default function RegisterPage() {
       if (ref) setReferralCode(ref.toUpperCase())
     } catch {}
   }, [])
-  const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -44,6 +48,7 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
     if (form.password.length < 6) {
+      void hapticError()
       setError(t('ac.err.passMin6'))
       return
     }
@@ -61,6 +66,7 @@ export default function RegisterPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t('ac.register.errGeneric')
       // Mensagens mais amigáveis para erros comuns
+      void hapticError()
       if (msg.toLowerCase().includes('já cadastrado') || msg.toLowerCase().includes('already')) {
         setError(t('ac.register.errEmailTaken'))
       } else if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('network')) {
@@ -74,144 +80,170 @@ export default function RegisterPage() {
   }
 
 
+  function applyCode() {
+    const v = codeDraft.trim().toUpperCase()
+    if (v.length < 4) return
+    setReferralCode(v)
+    setCodeOpen(false)
+    void hapticSuccess()
+  }
+
+  function removeCode() {
+    void hapticLight()
+    setReferralCode('')
+    setCodeDraft('')
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-slide-up">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex flex-col items-center gap-3">
-            <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200">
-              <PawPrint className="w-9 h-9 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-surface-900 dark:text-white">PetLife</span>
-          </Link>
-          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">{petName ? t('ac.register.titlePet', { name: petName }) : t('ac.register.title')}</h1>
-          {fromInvite && (
-            <div className="mt-3 inline-flex items-center gap-2 bg-primary-50 border border-primary-200 text-primary-800 rounded-xl px-4 py-2 text-sm font-medium">
-              {t('ac.register.inviteBanner')}
-            </div>
-          )}
-          {referralCode && (
-            <div className="mt-3 inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-2 text-sm font-medium animate-slide-up">
-              <Gift className="w-4 h-4 shrink-0" />
-              {t('ac.register.referralApplied')}
-            </div>
-          )}
-          <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">{t('ac.register.subtitle')}</p>
-        </div>
-
-        {/* Card */}
-        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 p-6 sm:p-8">
-          {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-6 text-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              {error}
-            </div>
-          )}
-
-          <AppleSignInButton onSuccess={goNext} referralCode={referralCode} />
-          {!referralCode && !codeOpen && (
-            <button type="button" onClick={() => setCodeOpen(true)} className="w-full text-center text-xs text-primary-600 dark:text-primary-400 underline mt-2">
-              {t('ac.register.haveCode')}
-            </button>
-          )}
-          {codeOpen && !referralCode && (
-            <input
-              autoFocus
-              placeholder="PET-XXXXXX"
-              onBlur={e => { const v = e.target.value.trim().toUpperCase(); if (v.length >= 6) setReferralCode(v) }}
-              className="w-full mt-2 px-3 py-2.5 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm text-center tracking-wider"
-            />
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.name')}</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-                <input
-                  type="text"
-                  required
-                  value={form.name}
-                  onChange={set('name')}
-                  placeholder={t('ac.field.namePlaceholder')}
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.email')}</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-                <input
-                  type="email"
-                  name="email"
-                  autoComplete="username"
-                  required
-                  value={form.email}
-                  onChange={set('email')}
-                  placeholder={t('ac.field.emailPlaceholder')}
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                />
-              </div>
-            </div>
-
-
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.password')}</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  value={form.password}
-                  onChange={set('password')}
-                  minLength={6}
-                  placeholder={t('ac.register.passHint')}
-                  className="w-full pl-10 pr-12 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
-                >
-                  {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="pressable w-full bg-primary-500 text-white font-semibold py-3.5 rounded-xl hover:bg-primary-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-primary-200 flex items-center justify-center gap-2 mt-2"
-            >
-              {loading ? (
-                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <PawPrint className="w-5 h-5" />
-              )}
-              {loading ? t('ac.register.submitting') : t('ac.register.submit')}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-surface-500 dark:text-surface-400">
-              {t('ac.register.hasAccount')}{' '}
-              <Link href="/auth/login" className="text-primary-600 font-semibold hover:underline">
-                {t('ac.register.signin')}
-              </Link>
-            </p>
+    <AuthFrame
+      title={petName ? t('ac.register.titlePet', { name: petName }) : t('ac.register.title')}
+      subtitle={t('ac.register.subtitle')}
+      top={
+        fromInvite ? (
+          <div className="mt-4">
+            <Notice tone="info" icon={Users} className="text-left">{t('ac.register.inviteBanner')}</Notice>
           </div>
-        </div>
-
-        <p className="text-center text-xs text-surface-400 mt-6">
-          {t('ac.register.terms')}
+        ) : null
+      }
+      footer={
+        <p className="text-center text-xs text-surface-500 dark:text-surface-400 mt-5 px-4 leading-relaxed">
+          {t('acct.reg.termsPrefix')}{' '}
+          <a href="/privacy" className="inline-block py-3 font-semibold underline underline-offset-2 text-surface-600 dark:text-surface-300">
+            {t('acct.reg.termsLink')}
+          </a>
         </p>
+      }
+    >
+      {error && <Notice tone="danger" className="mb-5">{error}</Notice>}
+
+      <AppleSignInButton onSuccess={goNext} referralCode={referralCode} />
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <AuthField
+          id="reg-name"
+          label={t('ac.field.name')}
+          icon={User}
+          type="text"
+          name="name"
+          autoComplete="name"
+          autoCapitalize="words"
+          required
+          value={form.name}
+          onChange={set('name')}
+          placeholder={t('ac.field.namePlaceholder')}
+        />
+        <AuthField
+          id="reg-email"
+          label={t('ac.field.email')}
+          icon={Mail}
+          type="email"
+          name="email"
+          autoComplete="username"
+          inputMode="email"
+          autoCapitalize="none"
+          required
+          value={form.email}
+          onChange={set('email')}
+          placeholder={t('ac.field.emailPlaceholder')}
+        />
+        <PasswordField
+          id="reg-password"
+          label={t('ac.field.password')}
+          icon={Lock}
+          name="password"
+          autoComplete="new-password"
+          required
+          minLength={6}
+          value={form.password}
+          onChange={set('password')}
+          placeholder="••••••••"
+          hint={t('ac.register.passHint')}
+        />
+
+        <Button type="submit" size="lg" fullWidth loading={loading} leftIcon={PawPrint} className="!mt-5">
+          {loading ? t('ac.register.submitting') : t('ac.register.submit')}
+        </Button>
+      </form>
+
+      {/* Código de convite: abaixo do botão principal, sem competir com ele */}
+      <div className="mt-3">
+        <AnimatePresence initial={false} mode="wait">
+          {referralCode ? (
+            <motion.div
+              key="applied"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={spring.pop}
+            >
+              <Notice tone="success" icon={Gift}>
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <p className="font-semibold">{t('acct.reg.codeApplied', { code: referralCode })}</p>
+                    <p className="mt-0.5">{t('acct.reg.codeRule')}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeCode}
+                    aria-label={t('acct.reg.codeRemove')}
+                    className="-mr-2 -mt-2 w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl text-emerald-800 hover:bg-emerald-100 dark:text-emerald-200 dark:hover:bg-emerald-500/15"
+                  >
+                    <X className="w-4 h-4" aria-hidden />
+                  </button>
+                </div>
+              </Notice>
+            </motion.div>
+          ) : codeOpen ? (
+            <motion.div
+              key="form"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: dur.base, ease: easeOut }}
+              className="overflow-hidden"
+            >
+              <label htmlFor="reg-code" className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-1.5 pt-1">
+                {t('acct.reg.codeLabel')}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="reg-code"
+                  autoFocus
+                  value={codeDraft}
+                  onChange={e => setCodeDraft(e.target.value.toUpperCase())}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyCode() } }}
+                  placeholder="PET-XXXXXX"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  maxLength={20}
+                  className={`${fieldClasses} px-4 tracking-wider font-mono uppercase`}
+                />
+                <Button variant="soft" onClick={applyCode} disabled={codeDraft.trim().length < 4}>
+                  {t('acct.reg.codeApply')}
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.button
+              key="link"
+              type="button"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { void hapticLight(); setCodeOpen(true) }}
+              className="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-xl text-sm font-semibold text-primary-700 hover:bg-primary-50 dark:text-primary-300 dark:hover:bg-primary-500/10"
+            >
+              <Ticket className="w-4 h-4" aria-hidden />
+              {t('ac.register.haveCode')}
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+
+      <div className="mt-4 pt-3 border-t border-surface-200/70 dark:border-surface-800 text-center text-sm text-surface-600 dark:text-surface-400">
+        {t('ac.register.hasAccount')}{' '}
+        <TextLink href="/auth/login">{t('ac.register.signin')}</TextLink>
+      </div>
+    </AuthFrame>
   )
 }

@@ -4,22 +4,29 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { Geolocation } from '@capacitor/geolocation'
-import { Play, Pause, Square, Camera, MapPin } from 'lucide-react'
+import { Play, Pause, Square, Camera, MapPin, Check, PawPrint } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { walks, pets as petsApi, type Pet, type RoutePoint } from '@/lib/api'
+import { useCached, invalidate } from '@/lib/cache'
+import { useConfirm } from '@/components/ui/Confirm'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { PetAvatar } from '@/components/ui/PetAvatar'
+import { Skeleton, SkeletonRow } from '@/components/ui/Skeleton'
+import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/ToastContext'
-import { hapticMedium, hapticHeavy, hapticSuccess } from '@/lib/feedback'
+import { hapticMedium, hapticSuccess, hapticSelect } from '@/lib/feedback'
 import { haversineMeters, formatDistance, formatDuration, formatPace, shouldAcceptPoint } from '@/lib/walk-utils'
 import { saveActiveWalk, clearActiveWalk, enqueueFinish } from '@/lib/walk-persistence'
 import { trackHappyMoment } from '@/lib/review'
-import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { useT } from '@/contexts/LocaleContext'
 
 const MapLoading = () => {
   const t = useT()
   return (
-    <div className="rounded-2xl border border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800 animate-pulse flex items-center justify-center" style={{ height: 300 }}>
-      <span className="text-sm text-surface-400">{t('pw.map.loading')}</span>
+    <div className="rounded-2xl border border-surface-200 dark:border-surface-800 bg-surface-100 dark:bg-surface-900 flex items-center justify-center" style={{ height: 300 }}>
+      <span className="text-sm text-surface-500 dark:text-surface-400">{t('pw.map.loading')}</span>
     </div>
   )
 }
@@ -35,12 +42,19 @@ export default function ActiveWalkPage() {
   const t = useT()
   const router = useRouter()
   const { success, error } = useToast()
+  const confirm = useConfirm()
 
   const [phase, setPhase] = useState<Phase>('choose-pet')
-  const [pets, setPets] = useState<Pet[]>([])
+  // Mesma chave do shell: a lista de pets aparece na hora.
+  const petsQ = useCached<Pet[]>('pets', () => petsApi.list())
+  const pets = petsQ.data ?? []
+  const petsLoading = petsQ.loading
   const [selectedPetId, setSelectedPetId] = useState<number | null>(null)
   const [walkId, setWalkId] = useState<number | null>(null)
-  const [petsLoading, setPetsLoading] = useState(true)
+  // O callback do GPS é criado uma vez só; sem a ref ele lia a fase antiga
+  // ('choose-pet') para sempre e descartava todos os pontos da rota.
+  const phaseRef = useRef<Phase>('choose-pet')
+  useEffect(() => { phaseRef.current = phase }, [phase])
 
   const [routePoints, setRoutePoints] = useState<RoutePoint[]>([])
   const [currentPos, setCurrentPos] = useState<{ lat: number; lng: number } | null>(null)
@@ -55,29 +69,39 @@ export default function ActiveWalkPage() {
   const photoInputRef = useRef<HTMLInputElement>(null)
   const [photos, setPhotos] = useState<File[]>([])
 
-  // Load pets
   useEffect(() => {
-    petsApi.list()
-      .then(setPets)
-      .catch(() => error(t('pw.active.loadPetsError')))
-      .finally(() => setPetsLoading(false))
-  }, [error])
+    if (petsQ.error && !petsQ.data) error(t('pw.active.loadPetsError'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [petsQ.error])
+
+  // Um pet só: já vem escolhido.
+  useEffect(() => {
+    if (pets.length === 1 && selectedPetId == null) setSelectedPetId(pets[0].id)
+  }, [pets, selectedPetId])
 
   // Resume active walk if exists
   useEffect(() => {
+    let alive = true
     walks.getActive()
-      .then(active => {
-        if (active) {
-          // Já tem um passeio ativo — pergunta se quer continuar
-          if (confirm(t('pw.active.resumeConfirm', { name: active.pet_name ?? '' }))) {
-            setWalkId(active.id)
-            setSelectedPetId(active.pet_id)
-            setStartTs(new Date(active.started_at).getTime())
-            setPhase('tracking')
-          }
-        }
+      .then(async active => {
+        if (!active || !alive) return
+        // Já tem um passeio ativo — pergunta se quer continuar
+        const ok = await confirm({
+          title: t('pw.active.resumeConfirm', { name: active.pet_name ?? '' }),
+          confirmLabel: t('pw.active.resume'),
+        })
+        if (!ok || !alive) return
+        setWalkId(active.id)
+        setSelectedPetId(active.pet_id)
+        setStartTs(new Date(active.started_at).getTime())
+        setPhase('tracking')
+        phaseRef.current = 'tracking'
+        // retomar sem religar o GPS deixava o passeio sem rota
+        void startWatchingGPS()
       })
       .catch(() => {})
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Cleanup on unmount
@@ -142,7 +166,7 @@ export default function ActiveWalkPage() {
 
   function handleGPSUpdate(next: { lat: number; lng: number; ts: number; alt?: number; acc?: number }) {
     setCurrentPos({ lat: next.lat, lng: next.lng })
-    if (phase !== 'tracking') return
+    if (phaseRef.current !== 'tracking') return
     setRoutePoints(prev => {
       const last = prev.length > 0 ? prev[prev.length - 1] : null
       if (!shouldAcceptPoint(last, next)) return prev
@@ -165,7 +189,8 @@ export default function ActiveWalkPage() {
       setWalkId(walk.id)
       setStartTs(Date.now())
       setPhase('tracking')
-      void hapticSuccess()
+      phaseRef.current = 'tracking'
+      void hapticMedium()
       const ok = await startWatchingGPS()
       if (!ok) {
         // GPS falhou, mas o walk foi criado — usuário pode finalizar sem rota
@@ -192,9 +217,10 @@ export default function ActiveWalkPage() {
 
   async function handleFinish() {
     if (!walkId) return
-    if (!confirm(t('pw.active.finishConfirm'))) return
+    const ok = await confirm({ title: t('pw.active.finishConfirm'), confirmLabel: t('walk.finish') })
+    if (!ok) return
     setPhase('saving')
-    void hapticHeavy()
+    void hapticMedium()
 
     // Stop GPS
     if (watchIdRef.current) {
@@ -221,6 +247,8 @@ export default function ActiveWalkPage() {
       }
 
       clearActiveWalk()
+      invalidate('walks')
+      void hapticSuccess()
       success(t('pw.active.savedToast', { distance: formatDistance(distance), duration: formatDuration(duration) }))
       trackHappyMoment('walk')
       router.push(`/walks/${finished.id}`)
@@ -228,6 +256,7 @@ export default function ActiveWalkPage() {
       // Sem internet / erro de rede: enfileira pra reenviar depois — NÃO perde o passeio
       enqueueFinish({ walkId, payload, queuedAt: Date.now() })
       clearActiveWalk()
+      invalidate('walks')
       success(t('pw.active.offlineSaved'))
       router.push('/walks')
     }
@@ -241,7 +270,23 @@ export default function ActiveWalkPage() {
     success(t('pw.active.photoAdded', { count: photos.length + files.length }))
   }
 
-  if (petsLoading) return <DashboardLayout><PageLoader /></DashboardLayout>
+  const header = <PageHeader title={t('pw.active.title')} back="/walks" large={phase === 'choose-pet'} showBell={false} />
+
+  if (petsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto" aria-busy="true">
+          {header}
+          <Skeleton className="h-4 w-2/3 rounded-md mb-5" />
+          <div className="space-y-3 mb-6">
+            <SkeletonRow />
+            <SkeletonRow />
+          </div>
+          <Skeleton className="h-14 w-full rounded-2xl" />
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   // ── UI ────────────────────────────────────────────────
 
@@ -249,57 +294,65 @@ export default function ActiveWalkPage() {
     return (
       <DashboardLayout>
         <div className="max-w-md mx-auto">
-          <div className="mb-6 ">
-            <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white">{t('pw.active.title')}</h1>
-            <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">
-              {t('pw.active.subtitle')}
-            </p>
-          </div>
-
+          {header}
           {pets.length === 0 ? (
-            <div className="bg-white dark:bg-surface-800 rounded-2xl p-8 text-center border border-surface-100 dark:border-surface-700">
-              <div className="text-5xl mb-3">🐾</div>
-              <p className="text-surface-600 dark:text-surface-300 mb-4">{t('pw.active.noPets')}</p>
-              <button
-                onClick={() => router.push('/pets/new')}
-                className="inline-flex items-center gap-2 bg-primary-500 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-primary-600 transition"
-              >
-                {t('pw.pets.add')}
-              </button>
-            </div>
+            <EmptyState
+              icon={PawPrint}
+              title={t('pw.active.noPets')}
+              ctaLabel={t('pw.pets.add')}
+              ctaHref="/pets/new"
+            />
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-3 mb-6">
-                {pets.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedPetId(p.id)}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition text-left ${
-                      selectedPetId === p.id
-                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-950/40'
-                        : 'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 hover:border-primary-300'
-                    }`}
-                  >
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center text-2xl overflow-hidden">
-                      {p.photo_url ? <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" /> : (p.species === 'cat' ? '🐱' : '🐶')}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-surface-900 dark:text-white">{p.name}</div>
-                      <div className="text-xs text-surface-500 dark:text-surface-400">{p.breed?.name ?? '—'}</div>
-                    </div>
-                    {selectedPetId === p.id && <div className="w-6 h-6 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm">✓</div>}
-                  </button>
-                ))}
+              <p className="text-sm text-surface-600 dark:text-surface-400 mb-4">{t('pw.active.subtitle')}</p>
+              <div role="radiogroup" aria-label={t('pw.active.subtitle')} className="grid grid-cols-1 gap-3 mb-6">
+                {pets.map(p => {
+                  const selected = selectedPetId === p.id
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => { void hapticSelect(); setSelectedPetId(p.id) }}
+                      className={cn(
+                        'pressable flex items-center gap-4 p-4 min-h-[72px] rounded-2xl border-2 transition-colors text-left',
+                        selected
+                          ? 'border-primary-600 bg-primary-50 dark:border-primary-400 dark:bg-primary-500/15'
+                          : 'border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 hover:border-surface-300 dark:hover:border-surface-700',
+                      )}
+                    >
+                      <PetAvatar pet={p} size={52} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-surface-900 dark:text-white truncate">{p.name}</div>
+                        {p.breed?.name && <div className="text-xs text-surface-500 dark:text-surface-400 truncate">{p.breed.name}</div>}
+                      </div>
+                      <span
+                        aria-hidden
+                        className={cn(
+                          'w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors',
+                          selected
+                            ? 'bg-primary-700 border-primary-700 text-white dark:bg-primary-400 dark:border-primary-400 dark:text-surface-950'
+                            : 'border-surface-300 dark:border-surface-600',
+                        )}
+                      >
+                        {selected && <Check className="w-4 h-4" strokeWidth={3} />}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
 
-              <button
+              <Button
+                size="lg"
+                fullWidth
+                leftIcon={Play}
                 onClick={handleStart}
                 disabled={!selectedPetId}
-                className="w-full flex items-center justify-center gap-2 bg-primary-500 disabled:bg-surface-200 disabled:text-surface-400 text-white px-6 py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-primary-200 hover:bg-primary-600 transition"
+                className="min-h-[56px] text-lg rounded-2xl [&_svg]:fill-current"
               >
-                <Play className="w-6 h-6 fill-current" />
                 {t('pw.active.startWalk')}
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -307,10 +360,14 @@ export default function ActiveWalkPage() {
     )
   }
 
+  const ctrl =
+    'pressable flex flex-col items-center justify-center gap-1 min-h-[56px] py-3 rounded-2xl font-semibold transition-colors disabled:opacity-50 disabled:pointer-events-none'
+
   // Tracking / paused / saving UI
   return (
     <DashboardLayout>
-      <div className="max-w-md mx-auto ">
+      <div className="max-w-md mx-auto">
+        {header}
         {/* Mapa */}
         <WalkMap
           points={routePoints}
@@ -321,19 +378,19 @@ export default function ActiveWalkPage() {
         />
 
         {/* Stats */}
-        <div className="mt-4 bg-white dark:bg-surface-800 rounded-2xl p-5 border border-surface-100 dark:border-surface-700">
+        <div className="mt-4 bg-white dark:bg-surface-900 rounded-2xl p-5 border border-surface-200/70 dark:border-surface-800" aria-live="off">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-3xl md:text-4xl font-bold text-surface-900 dark:text-white tabular-nums">
                 {formatDistance(distance)}
               </div>
-              <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">{t('walk.distance')}</div>
+              <div className="text-xs text-surface-500 dark:text-surface-400 mt-1">{t('walk.distance')}</div>
             </div>
             <div>
-              <div className={`text-3xl md:text-4xl font-bold tabular-nums ${phase === 'paused' ? 'text-amber-500' : 'text-surface-900 dark:text-white'}`}>
+              <div className={cn('text-3xl md:text-4xl font-bold tabular-nums', phase === 'paused' ? 'text-amber-700 dark:text-amber-300' : 'text-surface-900 dark:text-white')}>
                 {formatDuration(duration)}
               </div>
-              <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">
+              <div className={cn('text-xs mt-1', phase === 'paused' ? 'font-semibold text-amber-700 dark:text-amber-300' : 'text-surface-500 dark:text-surface-400')}>
                 {phase === 'paused' ? t('pw.active.paused') : t('walk.time')}
               </div>
             </div>
@@ -341,28 +398,29 @@ export default function ActiveWalkPage() {
               <div className="text-3xl md:text-4xl font-bold text-surface-900 dark:text-white tabular-nums">
                 {distance > 0 && duration > 0 ? formatPace(duration / (distance / 1000)).replace('/km', '') : '—'}
               </div>
-              <div className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 mt-1">{t('pw.active.pacePerKm')}</div>
+              <div className="text-xs text-surface-500 dark:text-surface-400 mt-1">{t('pw.active.pacePerKm')}</div>
             </div>
           </div>
 
           {photos.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-surface-100 dark:border-surface-700 flex items-center justify-center gap-2 text-sm text-surface-600 dark:text-surface-300">
-              <Camera className="w-4 h-4" /> {photos.length > 1
+            <div className="mt-4 pt-4 border-t border-surface-100 dark:border-surface-800 flex items-center justify-center gap-2 text-sm text-surface-600 dark:text-surface-300">
+              <Camera className="w-4 h-4" aria-hidden /> {photos.length > 1
                 ? t('pw.active.photosCountMany', { count: photos.length })
                 : t('pw.active.photosCountOne', { count: photos.length })}
             </div>
           )}
         </div>
 
-        {/* Action buttons */}
+        {/* Controles: 56 px, alvos grandes para usar andando */}
         <div className="mt-4 grid grid-cols-3 gap-3">
           <button
+            type="button"
             onClick={() => photoInputRef.current?.click()}
             disabled={phase === 'saving'}
-            className="flex flex-col items-center justify-center gap-1 py-4 rounded-2xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700 transition"
+            className={cn(ctrl, 'bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-800 text-surface-800 dark:text-surface-100 hover:bg-surface-50 dark:hover:bg-surface-800')}
           >
-            <Camera className="w-6 h-6" />
-            <span className="text-xs font-medium">{t('pw.active.photo')}</span>
+            <Camera className="w-6 h-6" aria-hidden />
+            <span className="text-xs">{t('pw.active.photo')}</span>
           </button>
           <input
             ref={photoInputRef}
@@ -375,36 +433,39 @@ export default function ActiveWalkPage() {
 
           {phase === 'tracking' ? (
             <button
+              type="button"
               onClick={handlePause}
-              className="flex flex-col items-center justify-center gap-1 py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white transition shadow-lg shadow-amber-200"
+              className={cn(ctrl, 'bg-amber-400 text-surface-950 hover:bg-amber-500 dark:bg-amber-400 dark:hover:bg-amber-300')}
             >
-              <Pause className="w-6 h-6 fill-current" />
-              <span className="text-xs font-semibold">{t('pw.active.pause')}</span>
+              <Pause className="w-6 h-6 fill-current" aria-hidden />
+              <span className="text-xs">{t('pw.active.pause')}</span>
             </button>
           ) : (
             <button
+              type="button"
               onClick={handleResume}
               disabled={phase === 'saving'}
-              className="flex flex-col items-center justify-center gap-1 py-4 rounded-2xl bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 text-white transition shadow-lg shadow-primary-200"
+              className={cn(ctrl, 'bg-primary-700 text-white hover:bg-primary-800 dark:bg-primary-500 dark:text-surface-950 dark:hover:bg-primary-400')}
             >
-              <Play className="w-6 h-6 fill-current" />
-              <span className="text-xs font-semibold">{t('pw.active.resume')}</span>
+              <Play className="w-6 h-6 fill-current" aria-hidden />
+              <span className="text-xs">{t('pw.active.resume')}</span>
             </button>
           )}
 
           <button
+            type="button"
             onClick={handleFinish}
             disabled={phase === 'saving'}
-            className="flex flex-col items-center justify-center gap-1 py-4 rounded-2xl bg-red-500 hover:bg-red-600 disabled:bg-surface-300 text-white transition shadow-lg shadow-red-200"
+            className={cn(ctrl, 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500')}
           >
-            <Square className="w-6 h-6 fill-current" />
-            <span className="text-xs font-semibold">{phase === 'saving' ? t('pw.common.saving') : t('walk.finish')}</span>
+            <Square className="w-6 h-6 fill-current" aria-hidden />
+            <span className="text-xs">{phase === 'saving' ? t('pw.common.saving') : t('walk.finish')}</span>
           </button>
         </div>
 
-        {/* GPS status */}
-        <div className="mt-3 flex items-center justify-center gap-2 text-xs text-surface-500 dark:text-surface-400">
-          <MapPin className={`w-3.5 h-3.5 ${currentPos ? 'text-green-500' : 'text-red-500 animate-pulse'}`} />
+        {/* GPS status (texto + ícone, nunca só cor) */}
+        <div className="mt-3 flex items-center justify-center gap-2 text-xs text-surface-600 dark:text-surface-400" role="status">
+          <MapPin className={cn('w-3.5 h-3.5', currentPos ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400 motion-safe:animate-pulse')} aria-hidden />
           {currentPos ? t('pw.active.gpsOn') : t('pw.active.gpsWaiting')}
         </div>
       </div>

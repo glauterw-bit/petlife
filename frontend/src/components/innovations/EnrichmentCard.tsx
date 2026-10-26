@@ -55,7 +55,7 @@ export function EnrichmentCard({ petId, petName }: { petId: number; petName: str
   }
 
   return (
-    <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
+    <div className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200/70 dark:border-surface-800 p-5">
       <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
         <h3 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary-500" /> {t('g.enr.title')}
@@ -75,11 +75,11 @@ export function EnrichmentCard({ petId, petName }: { petId: number; petName: str
         <div className="text-center py-4">
           <div className="flex justify-center mb-3"><VyronAvatar size={56} state={loading ? 'thinking' : 'idle'} /></div>
           <button onClick={generate} disabled={loading}
-            className="pressable inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-60">
+            className="pressable inline-flex items-center gap-2 bg-primary-700 hover:bg-primary-800 text-white dark:bg-primary-500 dark:text-surface-950 dark:hover:bg-primary-400 text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-60">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {loading ? t('g.enr.thinking') : t('g.enr.generate')}
           </button>
-          <p className="text-[11px] text-surface-400 mt-2">{t('g.enr.hint')}</p>
+          <p className="text-[11px] text-surface-500 dark:text-surface-400 mt-2">{t('g.enr.hint')}</p>
         </div>
       ) : (
         <div className="space-y-2.5">
@@ -96,10 +96,10 @@ export function EnrichmentCard({ petId, petName }: { petId: number; petName: str
             >
               <div className="flex items-center gap-2">
                 <span className="text-xl">{a.emoji}</span>
-                <span className={`font-semibold text-sm flex-1 ${done[i] ? 'line-through text-surface-400' : 'text-surface-900 dark:text-white'}`}>
+                <span className={`font-semibold text-sm flex-1 ${done[i] ? 'line-through text-surface-500 dark:text-surface-400' : 'text-surface-900 dark:text-white'}`}>
                   {a.title}
                 </span>
-                <span className="text-[10px] bg-surface-100 dark:bg-surface-700 text-surface-500 dark:text-surface-300 rounded-full px-2 py-0.5">
+                <span className="text-[11px] bg-surface-100 dark:bg-surface-700 text-surface-500 dark:text-surface-300 rounded-full px-2 py-0.5">
                   {TYPE_BADGE_KEY[a.type] ? t(TYPE_BADGE_KEY[a.type]) : a.type} · {t('g.misc.min', { n: a.minutes })}
                 </span>
               </div>

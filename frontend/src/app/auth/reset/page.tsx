@@ -3,7 +3,11 @@
 import { Suspense, useState, FormEvent, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Lock, Mail, AlertCircle, CheckCircle, KeyRound, Eye, EyeOff, PawPrint } from 'lucide-react'
+import { ChevronLeft, Lock, Mail, KeyRound } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { SuccessCheck } from '@/components/ui/SuccessCheck'
+import { AuthFrame, AuthField, PasswordField, Notice } from '@/components/auth/AuthUI'
+import { hapticError, hapticSuccess } from '@/lib/feedback'
 import { auth } from '@/lib/api'
 import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
@@ -29,15 +33,17 @@ function ResetPasswordInner() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
-    if (password !== confirm) { setError(t('ac.err.passMismatch')); return }
-    if (password.length < 6) { setError(t('ac.err.passMin6')); return }
+    if (password !== confirm) { void hapticError(); setError(t('ac.err.passMismatch')); return }
+    if (password.length < 6) { void hapticError(); setError(t('ac.err.passMin6')); return }
     setLoading(true)
     try {
       await auth.resetPassword(email.trim().toLowerCase(), code.trim(), password)
       track('password_reset_done')
+      void hapticSuccess()
       setSuccess(true)
       setTimeout(() => router.push('/auth/login'), 2200)
     } catch (err: unknown) {
+      void hapticError()
       setError(err instanceof Error ? err.message : t('ac.reset.err'))
     } finally {
       setLoading(false)
@@ -46,138 +52,91 @@ function ResetPasswordInner() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-primary-50 flex items-center justify-center p-4">
-        <div className="max-w-md text-center bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-emerald-100 p-10 animate-slide-up">
-          <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-2xl flex items-center justify-center mb-4">
-            <CheckCircle className="w-9 h-9 text-emerald-600" />
-          </div>
-          <h1 className="text-xl font-bold text-surface-900 dark:text-white mb-2">{t('ac.reset.successTitle')}</h1>
-          <p className="text-sm text-surface-500 dark:text-surface-400">{t('ac.reset.successBody')}</p>
+      <AuthFrame title={t('ac.reset.successTitle')} subtitle={t('ac.reset.successBody')}>
+        <div className="flex justify-center py-4" role="status">
+          <SuccessCheck size={72} label={t('ac.reset.successTitle')} />
         </div>
-      </div>
+      </AuthFrame>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-slide-up">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex flex-col items-center gap-3">
-            <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200">
-              <PawPrint className="w-9 h-9 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-surface-900 dark:text-white">PetLife</span>
-          </Link>
-          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">{t('ac.reset.title')}</h1>
-          <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">{t('ac.reset.subtitle')}</p>
-        </div>
+    <AuthFrame title={t('ac.reset.title')} subtitle={t('ac.reset.subtitle')}>
+      <Link
+        href="/auth/forgot"
+        className="inline-flex items-center gap-1 min-h-[44px] -ml-1 -mt-2 mb-3 pr-2 rounded-xl text-sm font-semibold text-primary-700 dark:text-primary-300"
+      >
+        <ChevronLeft className="w-5 h-5" aria-hidden />
+        {t('nav.back')}
+      </Link>
 
-        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 p-6 sm:p-8">
-          <Link href="/auth/forgot" className="inline-flex items-center gap-1.5 text-sm text-surface-500 dark:text-surface-400 hover:text-surface-700 mb-6">
-            <ArrowLeft className="w-4 h-4" />
-            {t('nav.back')}
-          </Link>
+      {error && <Notice tone="danger" className="mb-5">{error}</Notice>}
 
-          {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-6 text-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.email')}</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder={t('ac.field.emailPlaceholder')}
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.reset.codeLabel')}</label>
-              <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-                <input
-                  type="text"
-                  required
-                  value={code}
-                  onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-lg font-mono tracking-widest text-surface-900 dark:text-white placeholder-surface-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.newPassword')}</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-12 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(v => !v)}
-                  aria-label={showPass ? t('ac.pass.hide') : t('ac.pass.show')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
-                >
-                  {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.field.confirmNewPassword')}</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  required
-                  value={confirm}
-                  onChange={e => setConfirm(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || code.length !== 6}
-              className="pressable w-full bg-primary-500 text-white font-semibold py-3.5 rounded-xl hover:bg-primary-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-primary-200 flex items-center justify-center gap-2 mt-2"
-            >
-              {loading ? (
-                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : null}
-              {loading ? t('ac.reset.submitting') : t('ac.reset.title')}
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <AuthField
+          id="reset-email"
+          label={t('ac.field.email')}
+          icon={Mail}
+          type="email"
+          inputMode="email"
+          autoCapitalize="none"
+          autoComplete="username"
+          required
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder={t('ac.field.emailPlaceholder')}
+        />
+        <AuthField
+          id="reset-code"
+          label={t('ac.reset.codeLabel')}
+          icon={KeyRound}
+          type="text"
+          required
+          value={code}
+          onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          placeholder="000000"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          className="!text-lg font-mono tracking-widest"
+        />
+        <PasswordField
+          id="reset-password"
+          label={t('ac.field.newPassword')}
+          icon={Lock}
+          autoComplete="new-password"
+          required
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="••••••••"
+          hint={t('ac.register.passHint')}
+          show={showPass}
+          onToggle={() => setShowPass(v => !v)}
+        />
+        <PasswordField
+          id="reset-confirm"
+          label={t('ac.field.confirmNewPassword')}
+          icon={Lock}
+          autoComplete="new-password"
+          required
+          value={confirm}
+          onChange={e => setConfirm(e.target.value)}
+          placeholder="••••••••"
+          show={showPass}
+          onToggle={() => setShowPass(v => !v)}
+        />
+        <Button type="submit" size="lg" fullWidth loading={loading} disabled={code.length !== 6} className="!mt-5">
+          {loading ? t('ac.reset.submitting') : t('ac.reset.title')}
+        </Button>
+      </form>
+    </AuthFrame>
   )
 }
 
 export default function ResetPasswordPage() {
   const t = useT()
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-surface-500 dark:text-surface-400 text-sm">{t('common.loading')}</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950 text-surface-500 dark:text-surface-400 text-sm">{t('common.loading')}</div>}>
       <ResetPasswordInner />
     </Suspense>
   )

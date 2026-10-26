@@ -33,7 +33,9 @@ function at9am(dateStr: string, daysBefore = 0): Date {
 
 /**
  * Sincroniza as notificações locais com as vacinas/lembretes próximos.
- * Pede permissão na primeira vez (em contexto — só roda quando há dados de saúde).
+ * Vacinas: avisa na VÉSPERA e NO DIA do vencimento, às 9h (o PushPrimer cita
+ * exatamente essa antecedência — mantenha os dois em sincronia).
+ * Só agenda se a permissão já foi dada, a menos que opts.ask seja true.
  * Retorna true se agendou.
  */
 export async function syncHealthNotifications(
@@ -44,13 +46,15 @@ export async function syncHealthNotifications(
   hasAnyVaccine = true,
   /** Cios previstos (GET /heat-cycles/upcoming). */
   heats: HeatUpcoming[] = [],
+  /** ask=true pede a permissão se ainda não foi decidida. Padrão: não pede (o pedido é feito com contexto pelo PushPrimer). */
+  opts?: { ask?: boolean },
 ): Promise<boolean> {
   if (!isNative()) return false
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications')
 
     let perm = await LocalNotifications.checkPermissions()
-    if (perm.display === 'prompt' || perm.display === 'prompt-with-rationale') {
+    if (opts?.ask && (perm.display === 'prompt' || perm.display === 'prompt-with-rationale')) {
       perm = await LocalNotifications.requestPermissions()
     }
     if (perm.display !== 'granted') return false

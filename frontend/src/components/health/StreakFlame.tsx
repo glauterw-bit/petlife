@@ -13,7 +13,16 @@ import { useT } from '@/contexts/LocaleContext'
  * - Chama apagada/cinza quando ainda não cuidou hoje → gatilho de retorno.
  * - Mostra progresso até o próximo marco (3/7/14/30/60/100).
  */
-export function StreakFlame({ pet, refreshKey }: { pet: Pet; refreshKey?: number }) {
+export function StreakFlame({
+  pet,
+  refreshKey,
+  variant = 'card',
+}: {
+  pet: Pet
+  refreshKey?: number
+  /** 'chip' = selo pequeno (Início): só aparece com 2+ dias e sem contagem regressiva. */
+  variant?: 'card' | 'chip'
+}) {
   const t = useT()
   const [data, setData] = useState<CareStreak | null>(null)
   const [loading, setLoading] = useState(true)
@@ -30,39 +39,56 @@ export function StreakFlame({ pet, refreshKey }: { pet: Pet; refreshKey?: number
 
   const animatedStreak = useCountUp(data?.current_streak ?? 0, { durationMs: 800, startWhen: !!data })
 
+  // Marco real (7/30/100 dias seguidos) — celebra 1x por marco e por pet.
+  useEffect(() => {
+    if (!data || data.current_streak <= 0) return
+    let timer: ReturnType<typeof setTimeout> | undefined
+    for (const m of [100, 30, 7]) {
+      if (data.current_streak < m) continue
+      const key = `petlife_streak_${pet.id}_${m}`
+      try {
+        if (localStorage.getItem(key)) break
+        localStorage.setItem(key, '1')
+      } catch {
+        break
+      }
+      timer = setTimeout(() => celebrate({
+        title: t('h.streak.celebTitle', { count: m }),
+        message: t('h.streak.celebMsg', { name: pet.name, count: data.current_streak }),
+        shareText: t('h.streak.celebShare', { count: data.current_streak, name: pet.name }),
+        trackEvent: 'recap_share',
+        card: {
+          title: t('h.streak.cardTitle', { count: data.current_streak }),
+          subtitle: t('h.streak.cardSubtitle'),
+          emoji: '🔥',
+          stats: [
+            { label: t('h.streak.statDays'), value: String(data.current_streak) },
+            { label: t('h.streak.statDedicated'), value: '🏆' },
+          ],
+        },
+      }), 600)
+      break
+    }
+    return () => { if (timer) clearTimeout(timer) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, pet.id])
+
+  if (variant === 'chip') {
+    if (!data || data.current_streak < 2) return null
+    return (
+      <span className="chip chip-warning" title={t('home.streak.chip', { n: data.current_streak })}>
+        <Flame className="w-3.5 h-3.5" fill={data.did_today ? 'currentColor' : 'none'} aria-hidden />
+        <span className="tabular-nums">{t('home.streak.chip', { n: data.current_streak })}</span>
+      </span>
+    )
+  }
+
   if (loading) {
     return <div className="h-[88px] rounded-2xl bg-surface-100 dark:bg-surface-700 animate-pulse" />
   }
   if (!data) return null
 
   const lit = data.did_today && data.current_streak > 0
-  // 🔥 celebração de marco (7/30/100) — 1x por marco
-  if (typeof window !== 'undefined' && data.current_streak > 0) {
-    for (const m of [100, 30, 7]) {
-      if (data.current_streak >= m) {
-        const key = `petlife_streak_${pet.id}_${m}`
-        if (!localStorage.getItem(key)) {
-          localStorage.setItem(key, '1')
-          setTimeout(() => celebrate({
-            title: t('h.streak.celebTitle', { count: m }),
-            message: t('h.streak.celebMsg', { name: pet.name, count: data.current_streak }),
-            shareText: t('h.streak.celebShare', { count: data.current_streak, name: pet.name }),
-            trackEvent: 'recap_share',
-            card: {
-              title: t('h.streak.cardTitle', { count: data.current_streak }),
-              subtitle: t('h.streak.cardSubtitle'),
-              emoji: '🔥',
-              stats: [
-                { label: t('h.streak.statDays'), value: String(data.current_streak) },
-                { label: t('h.streak.statDedicated'), value: '🏆' },
-              ],
-            },
-          }), 600)
-        }
-        break
-      }
-    }
-  }
   const streak = data.current_streak
   // intensidade da chama escala com o streak (cor mais quente conforme cresce)
   const flameColor = !lit
@@ -123,7 +149,7 @@ export function StreakFlame({ pet, refreshKey }: { pet: Pet; refreshKey?: number
 
         {data.best_streak > 0 && (
           <div className="text-center shrink-0 px-2">
-            <div className="text-xs text-surface-400 uppercase tracking-wide">{t('h.streak.recordLabel')}</div>
+            <div className="text-xs text-surface-500 dark:text-surface-400 uppercase tracking-wide">{t('h.streak.recordLabel')}</div>
             <div className="text-lg font-bold text-surface-700 dark:text-surface-200 tabular-nums">{data.best_streak}</div>
           </div>
         )}

@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MessageCircleHeart, X, Send, PartyPopper, Star } from 'lucide-react'
+import { MessageCircleHeart, Send, PartyPopper, Star } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
+import { SuccessCheck } from '@/components/ui/SuccessCheck'
 import { feedback as feedbackApi } from '@/lib/api'
 import { hapticLight, hapticSuccess } from '@/lib/feedback'
 import { openReviewPage, requestNativeReview, lastReviewAskAt } from '@/lib/review'
@@ -135,166 +138,128 @@ export function FeedbackModal() {
     }
   }
 
-  if (!open) return null
-
   const canSend = !!rating || !!likes.trim() || !!suggestion.trim()
+  const textareaCls =
+    'w-full px-3.5 py-2.5 rounded-xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-950 text-[15px] text-surface-900 dark:text-white placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none'
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
-      <div className="relative bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[92dvh] overflow-y-auto animate-slide-up shadow-2xl pb-[env(safe-area-inset-bottom)]">
-        {done && askStore ? (
-          <div className="p-8 text-center">
-            <div className="w-20 h-20 mx-auto bg-amber-50 dark:bg-amber-900/30 rounded-3xl flex items-center justify-center mb-4">
-              <Star className="w-10 h-10 text-amber-500 fill-amber-400" />
-            </div>
-            <h2 className="font-display text-xl font-bold text-surface-900 dark:text-white mb-2">
-              {t('fb.storeTitle')}
-            </h2>
-            <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed mb-6">
-              {t('fb.storeBody')}
-            </p>
-            <button
-              onClick={goToStore}
-              className="w-full px-4 py-3.5 rounded-xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition shadow-md shadow-primary-500/30"
-            >
-              {t('fb.storeCta')}
-            </button>
-            <button
-              onClick={() => setOpen(false)}
-              className="mt-2.5 w-full px-4 py-2.5 rounded-xl text-sm font-medium text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition"
-            >
-              {t('fb.storeLater')}
-            </button>
+    <Modal open={open} onClose={done ? () => setOpen(false) : dismiss} size="md">
+      {done && askStore ? (
+        <div className="py-4 text-center">
+          <div className="w-20 h-20 mx-auto bg-amber-50 dark:bg-amber-500/15 rounded-3xl flex items-center justify-center mb-4">
+            <Star className="w-10 h-10 text-amber-500 fill-amber-400" aria-hidden />
           </div>
-        ) : done ? (
-          <div className="p-8 text-center">
-            <div className="w-20 h-20 mx-auto bg-primary-50 dark:bg-primary-900/30 rounded-3xl flex items-center justify-center mb-4">
-              <PartyPopper className="w-10 h-10 text-primary-600 dark:text-primary-400" />
-            </div>
-            <h2 className="font-display text-xl font-bold text-surface-900 dark:text-white mb-2">
-              {t('fb.thanksTitle')}
-            </h2>
-            <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">
-              {t('fb.thanksBody')}
-            </p>
+          <h2 className="font-display text-xl font-extrabold text-surface-900 dark:text-white mb-2">{t('fb.storeTitle')}</h2>
+          <p className="text-[15px] text-surface-600 dark:text-surface-300 leading-relaxed mb-6">{t('fb.storeBody')}</p>
+          <Button size="lg" fullWidth leftIcon={Star} onClick={goToStore}>
+            {t('fb.storeCta')}
+          </Button>
+          <Button variant="ghost" fullWidth className="mt-2" onClick={() => setOpen(false)}>
+            {t('fb.storeLater')}
+          </Button>
+        </div>
+      ) : done ? (
+        <div className="py-6 text-center" role="status">
+          <div className="flex justify-center mb-4">
+            <SuccessCheck size={72} />
           </div>
-        ) : (
-          <>
-            <button
-              onClick={dismiss}
-              aria-label={t('common.close')}
-              className="absolute right-3 top-3 p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-700 transition z-10"
-            >
-              <X className="w-4 h-4 text-surface-500 dark:text-surface-400" />
-            </button>
-
-            <div className="bg-gradient-to-br from-primary-100 to-accent-50 dark:from-primary-900/30 dark:to-accent-900/20 p-7 pt-10 text-center">
-              <div className="w-16 h-16 mx-auto bg-white dark:bg-surface-700 rounded-3xl shadow-lg flex items-center justify-center mb-3">
-                <MessageCircleHeart className="w-8 h-8 text-primary-600 dark:text-primary-400" />
-              </div>
-              <h2 className="font-display text-xl font-bold text-surface-900 dark:text-white mb-1.5">
-                {t('fb.title')}
-              </h2>
-              <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">
-                {t('fb.subtitle')}
-              </p>
+          <h2 className="font-display text-xl font-extrabold text-surface-900 dark:text-white mb-2 inline-flex items-center gap-2">
+            {t('fb.thanksTitle')}
+            <PartyPopper className="w-5 h-5 text-primary-700 dark:text-primary-300" aria-hidden />
+          </h2>
+          <p className="text-[15px] text-surface-600 dark:text-surface-300 leading-relaxed">{t('fb.thanksBody')}</p>
+        </div>
+      ) : (
+        <>
+          <div className="-mx-4 -mt-4 sm:-mx-6 sm:-mt-6 bg-gradient-to-br from-primary-100 to-accent-50 dark:from-primary-500/15 dark:to-surface-900 px-7 pb-7 pt-10 text-center">
+            <div className="w-16 h-16 mx-auto bg-white dark:bg-surface-800 rounded-3xl shadow-card flex items-center justify-center mb-3">
+              <MessageCircleHeart className="w-8 h-8 text-primary-700 dark:text-primary-300" aria-hidden />
             </div>
+            <h2 className="font-display text-xl font-extrabold text-surface-900 dark:text-white mb-1.5">{t('fb.title')}</h2>
+            <p className="text-[15px] text-surface-700 dark:text-surface-300 leading-relaxed">{t('fb.subtitle')}</p>
+          </div>
 
-            <div className="p-6 space-y-5">
-              {/* nota por carinha */}
-              <div>
-                <label className="block text-sm font-semibold text-surface-800 dark:text-surface-100 mb-2.5">
-                  {t('fb.rating')}
-                </label>
-                <div className="flex items-center justify-between gap-1.5">
-                  {FACES.map(f => {
-                    const active = rating === f.v
-                    return (
-                      <button
-                        key={f.v}
-                        onClick={() => { setRating(f.v); void hapticLight() }}
-                        aria-label={t(f.labelKey)}
-                        aria-pressed={active}
-                        className={`pressable flex-1 flex flex-col items-center gap-1 py-2.5 rounded-2xl border transition ${
-                          active
-                            ? 'border-primary-400 bg-primary-50 dark:bg-primary-900/30 scale-105'
-                            : 'border-surface-200 dark:border-surface-600 hover:bg-surface-50 dark:hover:bg-surface-700/50'
-                        }`}
-                      >
-                        <span className="text-2xl leading-none">{f.emoji}</span>
-                        <span className={`text-[10px] font-medium ${active ? 'text-primary-700 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400'}`}>
-                          {t(f.labelKey)}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
+          <div className="pt-5 space-y-5">
+            {/* nota por carinha (o emoji é conteúdo, o rótulo vai em texto) */}
+            <fieldset>
+              <legend className="block text-sm font-semibold text-surface-800 dark:text-surface-100 mb-2.5">{t('fb.rating')}</legend>
+              <div className="flex items-center justify-between gap-1.5">
+                {FACES.map(f => {
+                  const active = rating === f.v
+                  return (
+                    <button
+                      key={f.v}
+                      type="button"
+                      onClick={() => { setRating(f.v); void hapticLight() }}
+                      aria-pressed={active}
+                      className={`pressable flex-1 min-h-[64px] flex flex-col items-center justify-center gap-1 py-2 rounded-2xl border transition-[background-color,border-color,transform] duration-150 ${
+                        active
+                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/15 scale-105'
+                          : 'border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800'
+                      }`}
+                    >
+                      <span className="text-2xl leading-none" aria-hidden>{f.emoji}</span>
+                      <span className={`text-[11px] font-medium ${active ? 'text-primary-800 dark:text-primary-200' : 'text-surface-600 dark:text-surface-400'}`}>
+                        {t(f.labelKey)}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
+            </fieldset>
 
-              <div>
-                <label className="block text-sm font-semibold text-surface-800 dark:text-surface-100 mb-1.5">
-                  {t('fb.likes')} <span className="font-normal text-surface-400">({t('common.optional')})</span>
-                </label>
-                <textarea
-                  value={likes}
-                  onChange={e => setLikes(e.target.value)}
-                  rows={2}
-                  maxLength={2000}
-                  placeholder={t('fb.likesPlaceholder')}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-900 text-sm text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-surface-800 dark:text-surface-100 mb-1.5">
-                  {t('fb.suggestion')}
-                </label>
-                <textarea
-                  value={suggestion}
-                  onChange={e => setSuggestion(e.target.value)}
-                  rows={3}
-                  maxLength={2000}
-                  placeholder={t('fb.suggestionPlaceholder')}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-900 text-sm text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
-                />
-              </div>
-
-              <label className="flex items-start gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={canContact}
-                  onChange={e => setCanContact(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded accent-primary-500 shrink-0"
-                />
-                <span className="text-xs text-surface-600 dark:text-surface-300 leading-snug">
-                  {t('fb.canContact')}
-                </span>
+            <div>
+              <label htmlFor="fb-likes" className="block text-sm font-semibold text-surface-800 dark:text-surface-100 mb-1.5">
+                {t('fb.likes')} <span className="font-normal text-surface-500 dark:text-surface-400">({t('common.optional')})</span>
               </label>
-
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={dismiss}
-                  className="px-4 py-3 rounded-xl text-sm font-medium text-surface-600 dark:text-surface-300 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 dark:hover:bg-surface-600 transition"
-                >
-                  {t('fb.later')}
-                </button>
-                <button
-                  onClick={submit}
-                  disabled={!canSend || sending}
-                  className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition shadow-md shadow-primary-500/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {sending ? (
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                  {sending ? t('fb.sending') : t('fb.send')}
-                </button>
-              </div>
+              <textarea
+                id="fb-likes"
+                value={likes}
+                onChange={e => setLikes(e.target.value)}
+                rows={2}
+                maxLength={2000}
+                placeholder={t('fb.likesPlaceholder')}
+                className={textareaCls}
+              />
             </div>
-          </>
-        )}
-      </div>
-    </div>
+
+            <div>
+              <label htmlFor="fb-suggestion" className="block text-sm font-semibold text-surface-800 dark:text-surface-100 mb-1.5">
+                {t('fb.suggestion')}
+              </label>
+              <textarea
+                id="fb-suggestion"
+                value={suggestion}
+                onChange={e => setSuggestion(e.target.value)}
+                rows={3}
+                maxLength={2000}
+                placeholder={t('fb.suggestionPlaceholder')}
+                className={textareaCls}
+              />
+            </div>
+
+            <label htmlFor="fb-contact" className="flex items-start gap-2.5 cursor-pointer min-h-[44px]">
+              <input
+                id="fb-contact"
+                type="checkbox"
+                checked={canContact}
+                onChange={e => setCanContact(e.target.checked)}
+                className="mt-0.5 w-5 h-5 rounded accent-primary-700 dark:accent-primary-500 shrink-0"
+              />
+              <span className="text-[13px] text-surface-700 dark:text-surface-300 leading-snug">{t('fb.canContact')}</span>
+            </label>
+
+            <div className="flex gap-3 pt-1">
+              <Button variant="secondary" size="lg" onClick={dismiss}>
+                {t('fb.later')}
+              </Button>
+              <Button size="lg" className="flex-1" onClick={submit} disabled={!canSend} loading={sending} leftIcon={Send}>
+                {sending ? t('fb.sending') : t('fb.send')}
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </Modal>
   )
 }

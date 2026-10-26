@@ -1,93 +1,76 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Printer, Share2, CheckCircle, AlertCircle, Clock, QrCode, Shield } from 'lucide-react'
-import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { PageLoader } from '@/components/ui/LoadingSpinner'
-import { pets as petsApi, petExport } from '@/lib/api'
-import { formatDate, formatAge, getSpeciesEmoji } from '@/lib/utils'
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
+import { Plane, Plus, Send } from 'lucide-react'
+import { petExport } from '@/lib/api'
+import { formatAge, formatDate, cn, localeTag } from '@/lib/utils'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
 import { trackHappyMoment } from '@/lib/review'
 import { requestSoftUpsell } from '@/lib/softUpsell'
-import { track } from '@/lib/track'
+import { useCached } from '@/lib/cache'
+import { latestDoses, sortByUrgency, vaccineState } from '@/lib/care'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { Skeleton, SkeletonText } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
+import {
+  WalletPass, carteirinhaPublicUrl, carteirinhaVaccines, rabiesInfo, type CarteirinhaData,
+} from '@/components/health/WalletPass'
+import { SendToSheet } from '@/components/health/SendToSheet'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
-interface CardData {
-  pet: {
-    id: number
-    public_token?: string
-    name: string
-    species: string
-    breed: string | null
-    birth_date: string | null
-    weight: number | null
-    color: string | null
-    gender: string | null
-    neutered: boolean
-    microchip: string | null
-    photo: string | null
+class LoadError extends Error {
+  constructor(public status: number) {
+    super(`HTTP ${status}`)
   }
-  owner: { name: string; email: string; phone?: string }
-  vaccines: {
-    id: number
-    name: string
-    date_given: string
-    next_due: string | null
-    lot_number: string | null
-    veterinarian: string | null
-    notes: string | null
-    document_path: string | null
-  }[]
-  generated_at: string
 }
 
-function vaccineStatus(next_due: string | null): 'up_to_date' | 'upcoming' | 'overdue' {
-  if (!next_due) return 'up_to_date'
-  const diff = (new Date(next_due).getTime() - Date.now()) / 86400000
-  if (diff < 0) return 'overdue'
-  if (diff <= 30) return 'upcoming'
-  return 'up_to_date'
+/** Sessão expirada: o app manda para o login, sem toast nem erro na tela. */
+function redirectToLogin() {
+  try { localStorage.removeItem('petlife_token') } catch {}
+  if (!window.location.pathname.startsWith('/auth/')) window.location.assign('/auth/login?session_expired=1')
 }
 
-const statusConfig = {
-  up_to_date: { labelKey: 'h.status.upToDate', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', Icon: CheckCircle, iconColor: 'text-emerald-500' },
-  upcoming: { labelKey: 'h.status.upcoming', color: 'bg-amber-100 text-amber-700 border-amber-200', dot: 'bg-amber-500', Icon: Clock, iconColor: 'text-amber-500' },
-  overdue: { labelKey: 'h.status.overdue', color: 'bg-red-100 text-red-700 border-red-200', dot: 'bg-red-500', Icon: AlertCircle, iconColor: 'text-red-500' },
+async function fetchCarteirinha(petId: number): Promise<CarteirinhaData> {
+  const token = localStorage.getItem('petlife_token')
+  const res = await fetch(`${API_URL}/vaccines/pet/${petId}/carteirinha`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (res.status === 401) {
+    redirectToLogin()
+    throw new LoadError(401)
+  }
+  if (!res.ok) throw new LoadError(res.status)
+  return res.json()
+}
+
+function PassSkeleton() {
+  return (
+    <div aria-hidden className="w-full max-w-sm mx-auto">
+      <Skeleton className="w-full aspect-[0.66] rounded-3xl" />
+      <Skeleton className="mx-auto mt-4 h-10 w-32 rounded-xl" />
+      <div className="mt-6 rounded-2xl bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 p-4">
+        <SkeletonText lines={4} />
+      </div>
+    </div>
+  )
 }
 
 export default function CarteirinhaPage() {
   const t = useT()
   const params = useParams()
-  const router = useRouter()
-  const { error } = useToast()
-  const cardRef = useRef<HTMLDivElement>(null)
-  const [data, setData] = useState<CardData | null>(null)
-  const [loading, setLoading] = useState(true)
-
+  const { success, error } = useToast()
   const petId = Number(params.petId)
-  const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/public/carteirinha/${data?.pet.public_token ?? petId}`
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(publicUrl)}&bgcolor=ffffff&color=1a1a2e&margin=10`
+  const q = useCached<CarteirinhaData>(Number.isFinite(petId) ? `carteirinha:${petId}` : null, () => fetchCarteirinha(petId))
+  const [sendOpen, setSendOpen] = useState(false)
+  const [flyKey, setFlyKey] = useState(0)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const token = localStorage.getItem('petlife_token')
-        const res = await fetch(`${API_URL}/vaccines/pet/${petId}/carteirinha`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!res.ok) throw new Error(t('h.card.loadError'))
-        setData(await res.json())
-      } catch (e: unknown) {
-        error(e instanceof Error ? e.message : t('h.card.loadErrorGeneric'))
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [petId])
+  const data = q.data
+  const status = q.error instanceof LoadError ? q.error.status : q.error ? 0 : null
 
   function handlePrint() {
     window.print()
@@ -96,293 +79,175 @@ export default function CarteirinhaPage() {
     trackHappyMoment('carteirinha_print')
   }
 
-  function handleShare() {
-    // Compartilhamos o link público (acessível sem login), não a página privada.
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const shareUrl = `${origin}/public/carteirinha/${data?.pet.public_token ?? petId}`
-    const text = t('h.card.shareText', { name: data?.pet.name ?? '', url: shareUrl })
-    if (navigator.share) {
-      navigator.share({ title: t('h.card.shareTitle', { name: data?.pet.name ?? '' }), text, url: shareUrl })
-        .then(() => { track('carteirinha_share'); trackHappyMoment('carteirinha_share') })
-        .catch(() => {})
-    } else {
-      navigator.clipboard.writeText(shareUrl)
-        .then(() => { alert(t('h.card.linkCopied')); track('carteirinha_share'); trackHappyMoment('carteirinha_share') })
-        .catch(() => { window.prompt(t('h.card.shareTitle', { name: data?.pet.name ?? '' }), shareUrl) })
+  async function handlePdf() {
+    if (!data) return
+    try {
+      await petExport.sharePdf(data.pet.id, data.pet.name)
+      trackHappyMoment('pdf_export')
+      requestSoftUpsell('pdf')
+    } catch (e: unknown) {
+      error(e instanceof Error ? e.message : t('wallet.loadError'))
+      throw e
     }
   }
 
-  function shareWhatsApp() {
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const shareUrl = `${origin}/public/carteirinha/${data?.pet.public_token ?? petId}`
-    const text = encodeURIComponent(t('h.card.shareWhatsAppText', { name: data?.pet.name ?? '', url: shareUrl }))
-    window.open(`https://wa.me/?text=${text}`, '_blank')
-    track('carteirinha_whatsapp')
-    trackHappyMoment('carteirinha_whatsapp')
+  const header = (
+    <PageHeader
+      title={data ? t('care.cardTitle', { pet: data.pet.name }) : t('wallet.title')}
+      back
+      large={false}
+      showBell={false}
+      actions={
+        data ? (
+          <Button size="sm" leftIcon={Send} onClick={() => setSendOpen(true)} aria-label={t('wallet.sendAria')}>
+            {t('wallet.send')}
+          </Button>
+        ) : undefined
+      }
+    />
+  )
+
+  if (!data) {
+    return (
+      <>
+        {header}
+        {status === 404 ? (
+          <EmptyState title={t('h.card.notFound')} ctaLabel={t('nav.back')} ctaHref="/health/vaccines" />
+        ) : status !== null && status !== 401 ? (
+          <Card padding="lg" className="max-w-sm mx-auto text-center mt-6">
+            <p className="text-[15px] text-surface-700 dark:text-surface-200 mb-4">{t('wallet.loadError')}</p>
+            <Button variant="secondary" loading={q.refreshing} onClick={() => void q.refresh()}>
+              {t('ui.retry')}
+            </Button>
+          </Card>
+        ) : (
+          <div className="pt-2"><PassSkeleton /></div>
+        )}
+      </>
+    )
   }
-
-  // "Enviar para quem cuida" — o documento que sai é o produto: hotel, creche,
-  // banho e tosa e veterinário pedem a carteirinha. Mensagem pronta por destino.
-  function sendTo(dest: 'hotel' | 'groomer' | 'vet') {
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const shareUrl = `${origin}/public/carteirinha/${data?.pet.public_token ?? petId}`
-    const text = encodeURIComponent(t(`h.card.sendText.${dest}`, { name: data?.pet.name ?? '', url: shareUrl }))
-    window.open(`https://wa.me/?text=${text}`, '_blank')
-    track(`carteirinha_send_${dest}`)
-    trackHappyMoment('carteirinha_whatsapp')
-  }
-
-  const totalVaccines = data?.vaccines.length ?? 0
-  const upToDate = data?.vaccines.filter(v => vaccineStatus(v.next_due) === 'up_to_date').length ?? 0
-  const overdue = data?.vaccines.filter(v => vaccineStatus(v.next_due) === 'overdue').length ?? 0
-
-  if (loading) return <DashboardLayout><PageLoader /></DashboardLayout>
-  if (!data) return <DashboardLayout><div className="text-center py-20 text-surface-500 dark:text-surface-400">{t('h.card.notFound')}</div></DashboardLayout>
 
   const pet = data.pet
+  const rabies = rabiesInfo(data)
+  const showTravelTip = (rabies.kind === 'soon' || rabies.kind === 'expired') && rabies.daysLeft !== null
+  let travelStatus = ''
+  if (rabies.kind === 'expired') travelStatus = t('wallet.travelExpired')
+  else if (rabies.kind === 'soon' && rabies.daysLeft !== null) {
+    travelStatus =
+      rabies.daysLeft === 0
+        ? t('wallet.travelDueToday')
+        : rabies.daysLeft === 1
+          ? t('wallet.travelDueOne')
+          : t('wallet.travelDueIn', { n: rabies.daysLeft })
+  }
+  const shareUrl = carteirinhaPublicUrl(data)
   const speciesLabel = pet.species === 'dog' ? t('pet.dog') : pet.species === 'cat' ? t('pet.cat') : t('h.card.speciesOther')
+  const details = [
+    { label: t('pet.species'), value: speciesLabel },
+    { label: t('h.card.age'), value: formatAge(pet.birth_date) },
+    { label: t('h.card.birth'), value: formatDate(pet.birth_date) },
+    { label: t('h.card.weight'), value: pet.weight ? `${Number(pet.weight).toLocaleString(localeTag())} kg` : '—' },
+    { label: t('pet.gender'), value: pet.gender === 'male' ? t('pet.male') : pet.gender === 'female' ? t('pet.female') : '—' },
+    { label: t('pet.neutered'), value: pet.neutered ? t('common.yes') : t('common.no') },
+    { label: t('pet.color'), value: pet.color ?? '—' },
+    { label: t('pet.microchip'), value: pet.microchip ?? '—' },
+    { label: t('h.card.tutor'), value: data.owner.name },
+  ]
+  const doses = sortByUrgency(latestDoses(carteirinhaVaccines(data)))
 
   return (
-    <DashboardLayout>
-      {/* Toolbar — hidden on print */}
-      <div className="flex items-center justify-between mb-6 print:hidden">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-surface-600 dark:text-surface-300 hover:text-surface-900 transition">
-          <ArrowLeft className="w-5 h-5" />
-          <span className="text-sm font-medium">{t('nav.back')}</span>
-        </button>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={shareWhatsApp}
-            aria-label={t('h.card.ariaWhatsApp')}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition"
-          >
-            <Share2 className="w-4 h-4" />
-            WhatsApp
-          </button>
-          <button
-            onClick={() => {
-              petExport.sharePdf(Number(petId), data?.pet.name ?? 'pet')
-                .then(() => { trackHappyMoment('pdf_export'); requestSoftUpsell('pdf') })
-                .catch(() => {})
-            }}
-            aria-label={t('h.card.ariaPdf')}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition"
-          >
-            📄 PDF
-          </button>
-          <button
-            onClick={handleShare}
-            aria-label={t('h.card.ariaShare')}
-            className="flex items-center gap-2 px-4 py-2 border border-surface-200 dark:border-surface-700 rounded-xl text-sm font-medium text-surface-700 dark:text-surface-200 hover:border-primary-300 hover:text-primary-700 transition"
-          >
-            <Share2 className="w-4 h-4" />
-            {t('h.card.share')}
-          </button>
-          <button
-            onClick={handlePrint}
-            aria-label={t('h.card.ariaPrint')}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition"
-          >
-            <Printer className="w-4 h-4" />
-            {t('h.card.print')}
-          </button>
-        </div>
-      </div>
+    <>
+      {header}
 
-      {/* Enviar para quem cuida — hidden on print */}
-      <div className="max-w-2xl mx-auto mb-5 print:hidden">
-        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-900/20 p-4">
-          <p className="text-sm font-semibold text-surface-800 dark:text-surface-100">{t('h.card.sendTitle')}</p>
-          <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5 mb-3">{t('h.card.sendHint')}</p>
-          <div className="grid grid-cols-3 gap-2">
-            {([
-              ['hotel', '🏨', t('h.card.sendHotel')],
-              ['groomer', '✂️', t('h.card.sendGroomer')],
-              ['vet', '🩺', t('h.card.sendVet')],
-            ] as const).map(([dest, icon, label]) => (
-              <button
-                key={dest}
-                onClick={() => sendTo(dest)}
-                className="pressable flex flex-col items-center gap-1 py-2.5 rounded-xl bg-white dark:bg-surface-800 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold text-surface-700 dark:text-surface-200 hover:border-emerald-400 transition"
-              >
-                <span className="text-xl leading-none">{icon}</span>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <div id="carteirinha-print" className="pb-8 pt-1">
+        <WalletPass data={data} flyKey={flyKey} />
 
-      {/* CARD */}
-      <div ref={cardRef} className="max-w-2xl mx-auto">
-        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 overflow-hidden print:shadow-none print:border-0">
-
-          {/* Header gradient */}
-          <div className="bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-500 px-8 py-8 text-white relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-2 right-8 text-[120px] leading-none select-none">
-                {getSpeciesEmoji(pet.species)}
-              </div>
-            </div>
-            <div className="relative flex items-start gap-5">
-              {/* Pet avatar */}
-              <div className="shrink-0">
-                {pet.photo ? (
-                  <img
-                    src={`${API_URL}${pet.photo}`}
-                    alt={pet.name}
-                    className="w-20 h-20 rounded-2xl object-cover border-4 border-white/30 shadow-lg"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-white/20 flex items-center justify-center text-5xl border-4 border-white/30">
-                    {getSpeciesEmoji(pet.species)}
-                  </div>
+        {showTravelTip && (
+          <Card tone={rabies.kind === 'expired' ? 'danger' : 'warning'} className="mt-5 max-w-sm mx-auto print:hidden">
+            <div className="flex items-start gap-3">
+              <span
+                className={cn(
+                  'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                  rabies.kind === 'expired'
+                    ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
                 )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <Shield className="w-4 h-4 text-white/80" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-white/80">{t('h.card.badge')}</span>
-                </div>
-                <h1 className="text-3xl font-bold text-white truncate">{pet.name}</h1>
-                <p className="text-white/80 text-sm mt-0.5">
-                  {speciesLabel} • {pet.breed ?? t('h.card.mixedBreed')}
-                </p>
-                <p className="text-white/70 text-xs mt-1">{t('h.card.owner', { name: data.owner.name })}</p>
-              </div>
+              >
+                <Plane className="w-5 h-5" aria-hidden />
+              </span>
+              <p className="flex-1 text-sm leading-relaxed text-surface-800 dark:text-surface-100">
+                {t('wallet.travelTip', { pet: pet.name, status: travelStatus })}
+              </p>
             </div>
-
-            {/* Stats pills */}
-            <div className="relative flex gap-3 mt-5 flex-wrap">
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5 text-xs font-semibold text-white">
-                {t('h.card.statsTotal', { count: totalVaccines })}
-              </div>
-              <div className="bg-emerald-400/30 backdrop-blur-sm rounded-xl px-3 py-1.5 text-xs font-semibold text-white">
-                {t('h.card.statsUpToDate', { count: upToDate })}
-              </div>
-              {overdue > 0 && (
-                <div className="bg-red-400/30 backdrop-blur-sm rounded-xl px-3 py-1.5 text-xs font-semibold text-white">
-                  {overdue > 1 ? t('h.card.statsOverdueMany', { count: overdue }) : t('h.card.statsOverdueOne', { count: overdue })}
-                </div>
-              )}
+            <div className="mt-3 pl-[52px]">
+              <Button
+                size="sm"
+                variant={rabies.kind === 'expired' ? 'primary' : 'soft'}
+                leftIcon={Plus}
+                href={`/health/vaccines?pet=${pet.id}&add=1&name=${encodeURIComponent('Antirrábica')}`}
+              >
+                {t('wallet.registerDose')}
+              </Button>
             </div>
-          </div>
+          </Card>
+        )}
 
-          {/* Pet details */}
-          <div className="px-8 py-5 border-b border-surface-100 dark:border-surface-700 bg-surface-50/50">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
-              {[
-                { label: t('pet.species'), value: speciesLabel },
-                { label: t('h.card.age'), value: formatAge(pet.birth_date) },
-                { label: t('h.card.birth'), value: formatDate(pet.birth_date) },
-                { label: t('h.card.weight'), value: pet.weight ? `${pet.weight} kg` : '—' },
-                { label: t('pet.gender'), value: pet.gender === 'male' ? t('pet.male') : pet.gender === 'female' ? t('pet.female') : '—' },
-                { label: t('pet.neutered'), value: pet.neutered ? t('common.yes') : t('common.no') },
-                { label: t('pet.color'), value: pet.color ?? '—' },
-                { label: t('pet.microchip'), value: pet.microchip ?? '—' },
-                { label: t('h.card.tutor'), value: data.owner.name },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p className="text-xs text-surface-400 font-medium uppercase tracking-wide">{label}</p>
-                  <p className="text-sm font-semibold text-surface-800 dark:text-surface-100 mt-0.5">{value}</p>
-                </div>
+        <Card className="mt-5 max-w-sm mx-auto" padding="md">
+          <h2 className="text-[13px] font-bold uppercase tracking-wide text-surface-600 dark:text-surface-300 mb-3">
+            {t('wallet.details', { pet: pet.name })}
+          </h2>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+            {details.map(({ label, value }) => (
+              <div key={label} className="min-w-0">
+                <dt className="text-xs font-medium text-surface-500 dark:text-surface-400">{label}</dt>
+                <dd className="text-[15px] font-semibold text-surface-900 dark:text-surface-100 truncate">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
+
+        {/* Só na impressão: o histórico completo, já que o verso do passe não sai no papel */}
+        <section className="hidden print:block mt-6">
+          <h2 className="text-sm font-bold uppercase tracking-wide mb-2">{t('h.card.history')}</h2>
+          <table className="w-full text-sm border-collapse">
+            <tbody>
+              {doses.map(v => (
+                <tr key={v.id} className="border-b border-surface-200">
+                  <td className="py-1.5 font-semibold">{v.name}</td>
+                  <td className="py-1.5">{t('wallet.given', { date: formatDate(v.date_given) })}</td>
+                  <td className="py-1.5">{v.next_due ? t('wallet.next', { date: formatDate(v.next_due) }) : '—'}</td>
+                  <td className="py-1.5">{t(`ui.status.${vaccineState(v)}`)}</td>
+                </tr>
               ))}
-            </div>
-          </div>
-
-          {/* Vaccines list */}
-          <div className="px-8 py-6">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-4">{t('h.card.history')}</h2>
-
-            {data.vaccines.length === 0 ? (
-              <div className="text-center py-8 text-surface-400 text-sm">{t('h.card.noVaccines')}</div>
-            ) : (
-              <div className="space-y-3">
-                {data.vaccines.map((v, i) => {
-                  const st = vaccineStatus(v.next_due)
-                  const cfg = statusConfig[st]
-                  const { Icon } = cfg
-                  return (
-                    <div key={v.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-surface-100 dark:border-surface-700 hover:border-surface-200 transition bg-white dark:bg-surface-800">
-                      <div className="mt-0.5">
-                        <Icon className={`w-4 h-4 ${cfg.iconColor}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <span className="font-semibold text-sm text-surface-900 dark:text-white">{v.name}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${cfg.color}`}>{t(cfg.labelKey)}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-x-5 gap-y-0.5 mt-1.5">
-                          <span className="text-xs text-surface-500 dark:text-surface-400">
-                            <span className="font-medium text-surface-700 dark:text-surface-200">{t('h.vac.applied')}</span> {formatDate(v.date_given)}
-                          </span>
-                          {v.next_due && (
-                            <span className="text-xs text-surface-500 dark:text-surface-400">
-                              <span className="font-medium text-surface-700 dark:text-surface-200">{t('h.vac.next')}</span> {formatDate(v.next_due)}
-                            </span>
-                          )}
-                          {v.veterinarian && (
-                            <span className="text-xs text-surface-500 dark:text-surface-400">
-                              <span className="font-medium text-surface-700 dark:text-surface-200">{t('h.vac.vet')}</span> {v.veterinarian}
-                            </span>
-                          )}
-                          {v.lot_number && (
-                            <span className="text-xs text-surface-500 dark:text-surface-400">
-                              <span className="font-medium text-surface-700 dark:text-surface-200">{t('h.vac.lot')}</span> {v.lot_number}
-                            </span>
-                          )}
-                        </div>
-                        {v.notes && <p className="text-xs text-surface-400 italic mt-1">{v.notes}</p>}
-                      </div>
-                      <span className="text-xs text-surface-400 font-medium shrink-0">#{String(i + 1).padStart(2, '0')}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Footer with QR code */}
-          <div className="px-8 py-6 border-t border-surface-100 dark:border-surface-700 bg-surface-50/50 flex items-end justify-between gap-6 flex-wrap">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <QrCode className="w-4 h-4 text-surface-400" />
-                <span className="text-xs text-surface-400 font-medium uppercase tracking-wide">{t('h.card.verifyCode')}</span>
-              </div>
-              <img
-                src={qrUrl}
-                alt={t('h.card.qrAlt')}
-                className="w-28 h-28 rounded-xl border border-surface-200 dark:border-surface-700"
-              />
-              <p className="text-xs text-surface-400 mt-1.5 max-w-[160px]">{t('h.card.scanHint')}</p>
-            </div>
-
-            <div className="text-right">
-              <div className="text-xs text-surface-400 mb-1">{t('h.card.issuedOn')}</div>
-              <div className="text-sm font-semibold text-surface-700 dark:text-surface-200">
-                {formatDate(data.generated_at.split('T')[0])}
-              </div>
-              <div className="mt-4 flex items-center gap-1.5 justify-end">
-                <div className="w-6 h-6 bg-primary-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">P</span>
-                </div>
-                <span className="text-sm font-bold text-surface-700 dark:text-surface-200">PetLife</span>
-              </div>
-              <p className="text-xs text-surface-400 mt-0.5">{t('h.card.tagline')}</p>
-            </div>
-          </div>
-        </div>
+            </tbody>
+          </table>
+          <p className="mt-3 text-xs">{t('wallet.footer', { date: formatDate(data.generated_at.slice(0, 10)) })}</p>
+        </section>
       </div>
 
-      {/* Print styles */}
+      <SendToSheet
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
+        petName={pet.name}
+        shareUrl={shareUrl}
+        onPdf={handlePdf}
+        onPrint={handlePrint}
+        onSent={() => {
+          setFlyKey(k => k + 1)
+          success(t('wallet.sent'))
+        }}
+      />
+
+      {/* Impressão: só a carteirinha, com as cores do passe */}
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          #__next, #__next * { visibility: visible; }
-          .print\\:hidden { display: none !important; }
+          body * { visibility: hidden !important; }
+          #carteirinha-print, #carteirinha-print * { visibility: visible !important; }
+          #carteirinha-print { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+          #carteirinha-print * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           @page { margin: 10mm; size: A4; }
         }
       `}</style>
-    </DashboardLayout>
+    </>
   )
 }

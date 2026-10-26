@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, Camera, Sparkles, AlertCircle, Heart, AlertTriangle } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
 import { innovations, type PainAssessmentResult } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
@@ -61,23 +62,11 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
   }
   function reset() { setFile(null); setPreview(null); setResult(null); setError(null) }
 
-  if (!open) return null
   const color = result ? PAIN_COLOR[result.pain_level] : 'emerald'
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto animate-slide-up shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100 dark:border-surface-700 sticky top-0 bg-white/95 dark:bg-surface-800/95 backdrop-blur z-10">
-          <div className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-rose-500" />
-            <h2 className="font-bold text-surface-900 dark:text-white">{t('g.pain.title', { name: petName })}</h2>
-          </div>
-          <button onClick={onClose} aria-label={t('common.close')} className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-5 space-y-4">
+    <Modal open={open} onClose={onClose} title={t('g.pain.title', { name: petName })} size="lg">
+      <div className="space-y-4">
           {!result && (
             <>
               <p className="text-sm text-surface-600 dark:text-surface-300">
@@ -95,39 +84,39 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
                 <div className="space-y-3">
                   <img src={preview} alt={petName} className="w-full rounded-2xl object-cover max-h-72 border border-surface-200 dark:border-surface-700" />
                   <div className="flex gap-2">
-                    <label className="flex-1 cursor-pointer text-center text-sm bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 px-3 py-2 rounded-xl">
+                    <label className="flex-1 cursor-pointer text-center text-sm bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 px-3 min-h-[44px] rounded-xl">
                       <input type="file" accept="image/*" capture="environment" className="hidden" onChange={pickFile} />
                       {t('g.misc.change')}
                     </label>
-                    <button onClick={run} disabled={loading} className="flex-1 flex items-center justify-center gap-1.5 text-sm bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 rounded-xl disabled:opacity-60">
+                    <button onClick={run} disabled={loading} className="flex-1 flex items-center justify-center gap-1.5 text-sm bg-primary-700 hover:bg-primary-800 text-white dark:bg-primary-500 dark:text-surface-950 px-3 min-h-[44px] rounded-xl disabled:opacity-60">
                       {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Sparkles className="w-4 h-4" />}
                       {loading ? t('g.misc.analyzing') : t('g.pain.run')}
                     </button>
                   </div>
                 </div>
               )}
-              {error && <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/30 text-red-700 rounded-xl p-3 text-sm"><AlertCircle className="w-4 h-4" />{error}</div>}
+              {error && <div className="flex items-center gap-2 border tone-danger-bg text-red-700 dark:text-red-300 rounded-xl p-3 text-sm"><AlertCircle className="w-4 h-4" />{error}</div>}
             </>
           )}
 
           {result && (
             <>
               {result.image_quality === 'ruim' ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                  <p className="font-semibold text-amber-800">{t('g.pain.badPhoto')}</p>
-                  <p className="text-sm text-amber-700">{result.image_quality_notes}</p>
+                <div className="border tone-warning-bg rounded-2xl p-4">
+                  <p className="font-semibold text-amber-800 dark:text-amber-200">{t('g.pain.badPhoto')}</p>
+                  <p className="text-sm text-amber-800 dark:text-amber-100">{result.image_quality_notes}</p>
                 </div>
               ) : (
                 <>
                   <div className={cn(
                     'rounded-2xl p-4 border-2',
-                    color === 'emerald' && 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300',
-                    color === 'amber' && 'bg-amber-50 dark:bg-amber-900/30 border-amber-300',
-                    color === 'orange' && 'bg-orange-50 dark:bg-orange-900/30 border-orange-300',
-                    color === 'red' && 'bg-red-50 dark:bg-red-900/30 border-red-300 animate-pulse-soft',
+                    color === 'emerald' && 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/40',
+                    color === 'amber' && 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40',
+                    color === 'orange' && 'bg-orange-50 dark:bg-orange-500/10 border-orange-300 dark:border-orange-500/40',
+                    color === 'red' && 'bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/40',
                   )}>
                     <div className="flex items-center gap-2 mb-1">
-                      {color === 'red' ? <AlertTriangle className="w-5 h-5 text-red-600" /> : <Heart className={cn('w-5 h-5', color === 'emerald' && 'text-emerald-600', color === 'amber' && 'text-amber-600', color === 'orange' && 'text-orange-600')} />}
+                      {color === 'red' ? <AlertTriangle className="w-5 h-5 text-red-600" /> : <Heart className={cn('w-5 h-5', color === 'emerald' && 'text-emerald-600 dark:text-emerald-400', color === 'amber' && 'text-amber-600 dark:text-amber-400', color === 'orange' && 'text-orange-600 dark:text-orange-400')} />}
                       <p className="font-bold text-surface-900 dark:text-white">{t(PAIN_LABEL_KEY[result.pain_level] ?? 'g.pain.lvl.none')}</p>
                       {result.total_score && (
                         <span className="ml-auto text-sm font-bold">{t('g.pain.score', { score: result.total_score, max: result.max_possible ?? '' })}</span>
@@ -154,7 +143,7 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
 
                   {result.recommendations?.length > 0 && (
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-surface-400 font-semibold mb-1.5">{t('g.misc.recommendations')}</p>
+                      <p className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 font-semibold mb-1.5">{t('g.misc.recommendations')}</p>
                       <ul className="space-y-1">
                         {result.recommendations.map((r, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm text-surface-700 dark:text-surface-200">
@@ -173,8 +162,7 @@ export function PainAssessmentModal({ petId, petName, open, onClose }: PainAsses
               </button>
             </>
           )}
-        </div>
       </div>
-    </div>
+    </Modal>
   )
 }

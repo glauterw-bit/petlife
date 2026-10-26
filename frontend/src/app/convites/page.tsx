@@ -2,7 +2,15 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Users, Check, X, Loader2, PawPrint, MailOpen } from 'lucide-react'
+import { Users, Check, X } from 'lucide-react'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { PetAvatar } from '@/components/ui/PetAvatar'
+import { SkeletonRow } from '@/components/ui/Skeleton'
+import { Stagger, StaggerItem } from '@/components/ui/Motion'
+import { hapticSuccess, hapticError } from '@/lib/feedback'
 import { trackHappyMoment } from '@/lib/review'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { innovations, type InviteEntry } from '@/lib/api'
@@ -11,6 +19,7 @@ import { savePendingInvite } from '@/lib/petDraft'
 import { useT } from '@/contexts/LocaleContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
+const photoUrl = (p?: string | null) => (p ? (p.startsWith('http') ? p : `${API_URL}${p}`) : null)
 
 const ROLE_LABEL_KEY: Record<string, string> = {
   co_tutor: 'g.inv.role.coTutor',
@@ -66,9 +75,11 @@ function InvitesContent() {
     setProcessing(token)
     try {
       const r = await innovations.acceptInvite(token)
+      void hapticSuccess()
       success(t('g.inv.accepted', { name: r.pet_name })); trackHappyMoment('cotutor_aceito')
       await load()
     } catch (e: unknown) {
+      void hapticError()
       error(e instanceof Error ? e.message : t('g.misc.errorShort'))
     } finally {
       setProcessing(null)
@@ -82,6 +93,7 @@ function InvitesContent() {
       success(t('g.inv.declined'))
       await load()
     } catch (e: unknown) {
+      void hapticError()
       error(e instanceof Error ? e.message : t('g.misc.errorShort'))
     } finally {
       setProcessing(null)
@@ -90,71 +102,60 @@ function InvitesContent() {
 
   return (
     <DashboardLayout>
-      <div className="mb-5 md:mb-6 ">
-        <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2 leading-tight">
-          <MailOpen className="w-6 h-6 text-cyan-600 shrink-0" />
-          {t('g.inv.title')}
-        </h1>
-        <p className="text-xs md:text-sm text-surface-500 dark:text-surface-400 mt-1">{t('g.inv.subtitle')}</p>
-      </div>
+      <div className="max-w-2xl mx-auto">
+        <PageHeader title={t('g.inv.title')} subtitle={t('g.inv.subtitle')} />
 
-      {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-cyan-500" /></div>
-      ) : invites.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
-          <Users className="w-12 h-12 text-surface-300 mx-auto mb-3" />
-          <h3 className="font-bold text-surface-900 dark:text-white mb-1">{t('g.inv.emptyTitle')}</h3>
-          <p className="text-sm text-surface-500 dark:text-surface-400">{t('g.inv.emptyText')}</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {invites.map(inv => (
-            <div key={inv.id} className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-primary-50 to-cyan-50 dark:from-primary-900/30 dark:to-cyan-900/30 flex items-center justify-center shrink-0">
-                  {inv.pet_photo ? (
-                    <img src={`${API_URL}${inv.pet_photo}`} alt={inv.pet_name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-3xl">{inv.pet_species === 'dog' ? '🐕' : '🐈'}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-surface-900 dark:text-white">{inv.pet_name}</h3>
-                  <p className="text-sm text-surface-500 dark:text-surface-400">
-                    {t('g.inv.from')} <strong>{inv.inviter_name}</strong>
-                  </p>
-                  <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-1">{ROLE_LABEL_KEY[inv.role] ? t(ROLE_LABEL_KEY[inv.role]) : inv.role}</p>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-4">
-                <button
-                  onClick={() => decline(inv.invite_token)}
-                  disabled={processing === inv.invite_token}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold border border-surface-200 dark:border-surface-600 text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700 disabled:opacity-60"
-                >
-                  <X className="w-4 h-4" />
-                  {t('g.inv.decline')}
-                </button>
-                <button
-                  onClick={() => accept(inv.invite_token)}
-                  disabled={processing === inv.invite_token}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold bg-cyan-500 hover:bg-cyan-600 text-white disabled:opacity-60 transition shadow-md shadow-cyan-500/30"
-                >
-                  {processing === inv.invite_token ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  {t('g.inv.accept')}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        {loading ? (
+          <div className="space-y-3" aria-busy="true">
+            <SkeletonRow />
+            <SkeletonRow />
+          </div>
+        ) : invites.length === 0 ? (
+          <Card padding="none">
+            <EmptyState icon={Users} title={t('g.inv.emptyTitle')} text={t('g.inv.emptyText')} />
+          </Card>
+        ) : (
+          <Stagger as="ul" className="space-y-3">
+            {invites.map(inv => {
+              const busy = processing === inv.invite_token
+              return (
+                <StaggerItem as="li" key={inv.id}>
+                  <Card padding="lg">
+                    <div className="flex items-center gap-4">
+                      <PetAvatar
+                        pet={{ name: inv.pet_name, species: inv.pet_species, photo_url: photoUrl(inv.pet_photo) }}
+                        size={56}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-display font-bold text-[17px] text-surface-900 dark:text-white truncate">{inv.pet_name}</h3>
+                        <p className="text-sm text-surface-600 dark:text-surface-400">
+                          {t('g.inv.from')} <strong className="text-surface-800 dark:text-surface-200">{inv.inviter_name}</strong>
+                        </p>
+                        <span className="chip chip-info mt-1.5">{ROLE_LABEL_KEY[inv.role] ? t(ROLE_LABEL_KEY[inv.role]) : inv.role}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button variant="secondary" className="flex-1" leftIcon={X} onClick={() => decline(inv.invite_token)} disabled={busy}>
+                        {t('g.inv.decline')}
+                      </Button>
+                      <Button className="flex-1" leftIcon={Check} onClick={() => accept(inv.invite_token)} loading={busy}>
+                        {t('g.inv.accept')}
+                      </Button>
+                    </div>
+                  </Card>
+                </StaggerItem>
+              )
+            })}
+          </Stagger>
+        )}
+      </div>
     </DashboardLayout>
   )
 }
 
 export default function InvitesPage() {
   return (
-    <Suspense fallback={<DashboardLayout><div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-cyan-500" /></div></DashboardLayout>}>
+    <Suspense fallback={<DashboardLayout><div className="space-y-3 max-w-2xl mx-auto pt-16"><SkeletonRow /><SkeletonRow /></div></DashboardLayout>}>
       <InvitesContent />
     </Suspense>
   )

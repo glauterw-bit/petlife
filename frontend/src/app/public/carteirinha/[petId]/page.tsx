@@ -1,23 +1,31 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Printer, CheckCircle, AlertCircle, Clock, ShieldCheck } from 'lucide-react'
-import { formatDate, formatAge, getSpeciesLabel, getSpeciesEmoji } from '@/lib/utils'
+import { motion } from 'framer-motion'
+import {
+  Printer, AlertCircle, Info, Syringe, ShieldCheck, ShieldAlert, Dog, Cat, PawPrint, History, ChevronDown,
+} from 'lucide-react'
+import { formatAge, getSpeciesLabel, localeTag, cn } from '@/lib/utils'
+import { normalizeVaccineName, daysUntil, SOON_DAYS } from '@/lib/care'
 import { DownloadCta } from '@/components/public/DownloadCta'
-
-/**
- * Datas fixas em dd/MM/yyyy.
- *
- * Toda a cópia desta página é em português — mas `formatDate` segue o idioma do
- * APARELHO DE QUEM ABRE, não de quem emitiu. Um aparelho em inglês mostrava
- * "08/25/2026" no meio de um texto em português. Como este é o documento que o
- * tutor manda pro hotel/creche, data ambígua é problema real: 08/25 e 25/08 se
- * confundem em qualquer dia até o 12.
- */
-const BR = 'dd/MM/yyyy'
+import { usePublicColorScheme } from '@/components/public/usePublicColorScheme'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { useT } from '@/contexts/LocaleContext'
+import { variants, spring } from '@/lib/motion'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
+
+interface CardVaccine {
+  id: number
+  name: string
+  date_given: string
+  next_due: string | null
+  lot_number: string | null
+  veterinarian: string | null
+  notes?: string | null
+}
 
 interface CardData {
   pet: {
@@ -34,48 +42,59 @@ interface CardData {
     photo: string | null
   }
   owner: { name: string }
-  vaccines: {
-    id: number
-    name: string
-    date_given: string
-    next_due: string | null
-    lot_number: string | null
-    veterinarian: string | null
-    notes: string | null
-  }[]
+  vaccines: CardVaccine[]
   generated_at: string
 }
 
-function vaccineStatus(next_due: string | null): 'up_to_date' | 'upcoming' | 'overdue' {
-  if (!next_due) return 'up_to_date'
-  const diff = (new Date(next_due).getTime() - Date.now()) / 86400000
-  if (diff < 0) return 'overdue'
-  if (diff <= 30) return 'upcoming'
-  return 'up_to_date'
+type VState = 'ok' | 'soon' | 'overdue'
+
+function stateOf(v: CardVaccine): VState {
+  if (!v.next_due) return 'ok'
+  const d = daysUntil(v.next_due)
+  if (d < 0) return 'overdue'
+  if (d <= SOON_DAYS) return 'soon'
+  return 'ok'
 }
 
-const statusConfig = {
-  up_to_date: { label: 'Em dia', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', Icon: CheckCircle, iconColor: 'text-emerald-500' },
-  upcoming: { label: 'Próxima', color: 'bg-amber-100 text-amber-700 border-amber-200', Icon: Clock, iconColor: 'text-amber-500' },
-  overdue: { label: 'Atrasada', color: 'bg-red-100 text-red-700 border-red-200', Icon: AlertCircle, iconColor: 'text-red-500' },
+const SEVERITY: Record<VState, number> = { overdue: 2, soon: 1, ok: 0 }
+
+/**
+ * Data sem ambiguidade (mês por extenso) no idioma de quem abre: "25 de out. de 2026".
+ * dd/MM vs MM/dd confundia hotel e creche; com o mês escrito não há como errar.
+ * Lê 'YYYY-MM-DD' como data local para não voltar um dia por fuso.
+ */
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString(localeTag(), { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function isRabies(name: string) {
+  const n = normalizeVaccineName(name)
+  return n.includes('antirrab') || n.includes('antirab') || n.includes('raiva') || n.includes('rabies') || n.includes('rabia')
 }
 
 export default function PublicCarteirinhaPage() {
+  usePublicColorScheme()
+  const t = useT()
   const params = useParams()
   const petId = String(params.petId)
   const [data, setData] = useState<CardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [errorKey, setErrorKey] = useState<string | null>(null)
+  const [showOld, setShowOld] = useState(false)
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`${API_URL}/public/carteirinha/${petId}`)
-        if (res.status === 404) { setErrorMsg('Carteirinha não encontrada.'); return }
-        if (!res.ok) { setErrorMsg('Erro ao verificar carteirinha.'); return }
+        const res = await fetch(`${API_URL}/public/carteirinha/${encodeURIComponent(petId)}`)
+        if (res.status === 404) { setErrorKey('pub.card.notFound'); return }
+        if (!res.ok) { setErrorKey('pub.card.loadError'); return }
         setData(await res.json())
       } catch {
-        setErrorMsg('Erro de conexão. Tente novamente.')
+        setErrorKey('pub.card.connError')
       } finally {
         setLoading(false)
       }
@@ -83,224 +102,262 @@ export default function PublicCarteirinhaPage() {
     load()
   }, [petId])
 
+  /** Só a dose mais recente de cada vacina conta para a situação; as antigas viram histórico. */
+  const { current, previous } = useMemo(() => {
+    const latest = new Map<string, CardVaccine>()
+    const prev: CardVaccine[] = []
+    const byDate = [...(data?.vaccines ?? [])].sort((a, b) => b.date_given.localeCompare(a.date_given))
+    for (const v of byDate) {
+      const k = normalizeVaccineName(v.name)
+      if (latest.has(k)) prev.push(v)
+      else latest.set(k, v)
+    }
+    const cur = Array.from(latest.values()).sort((a, b) => {
+      const s = SEVERITY[stateOf(b)] - SEVERITY[stateOf(a)]
+      if (s) return s
+      return (a.next_due ?? '9999').localeCompare(b.next_due ?? '9999')
+    })
+    return { current: cur, previous: prev }
+  }, [data])
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-emerald-50 flex items-center justify-center">
-        <div className="text-surface-500 dark:text-surface-400 text-sm">Verificando carteirinha…</div>
-      </div>
+      <main className="min-h-dvh bg-surface-50 dark:bg-surface-950 py-8 px-4" aria-busy="true">
+        <span className="sr-only">{t('pub.card.loading')}</span>
+        <div className="max-w-xl mx-auto space-y-4">
+          <Skeleton className="h-14 rounded-2xl" />
+          <Skeleton className="h-56 rounded-3xl" />
+          <Skeleton className="h-40 rounded-2xl" />
+        </div>
+      </main>
     )
   }
 
-  if (errorMsg || !data) {
+  if (errorKey || !data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-surface-50 flex items-center justify-center px-4">
-        <div className="max-w-md text-center bg-white dark:bg-surface-800 rounded-3xl shadow-lg border border-red-100 p-10">
-          <div className="w-16 h-16 mx-auto bg-red-50 rounded-2xl flex items-center justify-center mb-4">
-            <AlertCircle className="w-8 h-8 text-red-500" />
-          </div>
-          <h1 className="text-xl font-bold text-surface-900 dark:text-white mb-2">Verificação falhou</h1>
-          <p className="text-sm text-surface-500 dark:text-surface-400">{errorMsg ?? 'Não foi possível carregar a carteirinha.'}</p>
+      <main className="min-h-dvh bg-surface-50 dark:bg-surface-950 flex items-center justify-center px-4">
+        <div className="max-w-md text-center bg-white dark:bg-surface-900 rounded-3xl border border-surface-200/70 dark:border-surface-800 p-10">
+          <span className="w-14 h-14 mx-auto rounded-full bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300 flex items-center justify-center mb-4">
+            <AlertCircle className="w-7 h-7" aria-hidden />
+          </span>
+          <h1 className="text-lg font-bold text-surface-900 dark:text-white mb-1">{t('pub.card.errorTitle')}</h1>
+          <p className="text-sm text-surface-600 dark:text-surface-400">{t(errorKey ?? 'pub.card.loadError')}</p>
         </div>
-      </div>
+      </main>
     )
   }
 
   const pet = data.pet
-  const totalVaccines = data.vaccines.length
-  const upToDate = data.vaccines.filter(v => vaccineStatus(v.next_due) === 'up_to_date').length
-  const overdue = data.vaccines.filter(v => vaccineStatus(v.next_due) === 'overdue').length
+  const SpeciesIcon = pet.species === 'dog' ? Dog : pet.species === 'cat' ? Cat : PawPrint
+  const overdue = current.filter(v => stateOf(v) === 'overdue').length
+  const soon = current.filter(v => stateOf(v) === 'soon').length
+  const okCount = current.length - overdue - soon
+  const rabies = current.find(v => isRabies(v.name)) ?? null
+  const rabiesState = rabies ? stateOf(rabies) : null
+
+  const details: { label: string; value: string }[] = [
+    { label: t('pub.card.species'), value: getSpeciesLabel(pet.species) },
+    { label: t('pub.card.age'), value: formatAge(pet.birth_date) },
+    { label: t('pub.card.birth'), value: fmtDate(pet.birth_date) },
+    { label: t('pub.card.weight'), value: pet.weight ? `${pet.weight.toLocaleString(localeTag())} kg` : '—' },
+    { label: t('pub.card.sex'), value: pet.gender === 'male' ? t('pub.card.male') : pet.gender === 'female' ? t('pub.card.female') : '—' },
+    { label: t('pub.card.neutered'), value: pet.neutered ? t('pub.yes') : t('pub.no') },
+    { label: t('pub.card.color'), value: pet.color ?? '—' },
+    { label: t('pub.card.microchip'), value: pet.microchip ?? '—' },
+  ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-emerald-50 py-8 px-4 print:bg-white print:py-0">
-      {/* Verification banner */}
-      <div className="max-w-2xl mx-auto mb-4 print:hidden">
-        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3">
-          <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-emerald-800">Carteirinha verificada</p>
-            <p className="text-xs text-emerald-700">Documento digital autêntico emitido pelo PetLife.</p>
+    <main className="min-h-dvh bg-surface-50 dark:bg-surface-950 py-6 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] print:bg-white print:py-0">
+      <div className="max-w-xl mx-auto">
+        {/* Aviso honesto: quem lançou as vacinas foi o tutor */}
+        <div className="flex items-start gap-3 rounded-2xl px-4 py-3 mb-4 bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 print:border-surface-300">
+          <Info className="w-5 h-5 text-sky-700 dark:text-sky-300 shrink-0 mt-0.5" aria-hidden />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-surface-900 dark:text-white leading-snug">{t('pub.card.trustTitle')}</p>
+            <p className="text-xs text-surface-600 dark:text-surface-400 mt-0.5">
+              {t('pub.card.updatedAt', { date: fmtDate(data.generated_at) })}
+            </p>
           </div>
           <button
+            type="button"
             onClick={() => window.print()}
-            className="hidden sm:flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-white dark:bg-surface-800 border border-emerald-200 px-3 py-1.5 rounded-xl hover:bg-emerald-50 transition"
+            className="print:hidden shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 -my-1 -mr-1 rounded-xl text-sm font-semibold text-surface-700 dark:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800"
+            aria-label={t('pub.card.print')}
           >
-            <Printer className="w-3.5 h-3.5" />
-            Imprimir
+            <Printer className="w-4 h-4" aria-hidden />
+            <span className="hidden sm:inline">{t('pub.card.print')}</span>
           </button>
         </div>
-      </div>
 
-      {/* CARD */}
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 overflow-hidden print:shadow-none print:border-0">
-          {/* Header gradient */}
-          <div className="bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-500 px-8 py-8 text-white relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-2 right-8 text-[120px] leading-none select-none">
-                {getSpeciesEmoji(pet.species)}
-              </div>
-            </div>
-            <div className="relative flex items-start gap-5">
-              <div className="shrink-0">
-                {pet.photo ? (
-                  <img
-                    src={`${API_URL}${pet.photo}`}
-                    alt={pet.name}
-                    className="w-20 h-20 rounded-2xl object-cover border-4 border-white/30 shadow-lg"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-white/20 flex items-center justify-center text-5xl border-4 border-white/30">
-                    {getSpeciesEmoji(pet.species)}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <ShieldCheck className="w-4 h-4 text-white/80" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-white/80">Carteirinha de Vacinação</span>
-                </div>
-                <h1 className="text-3xl font-bold text-white truncate">{pet.name}</h1>
-                <p className="text-white/80 text-sm mt-0.5">
-                  {getSpeciesLabel(pet.species)} • {pet.breed ?? 'SRD'}
-                </p>
-                <p className="text-white/70 text-xs mt-1">Tutor: {data.owner.name}</p>
-              </div>
-            </div>
-
-            <div className="relative flex gap-3 mt-5 flex-wrap">
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5 text-xs font-semibold text-white">
-                {totalVaccines} vacinas registradas
-              </div>
-              <div className="bg-emerald-400/30 backdrop-blur-sm rounded-xl px-3 py-1.5 text-xs font-semibold text-white">
-                {upToDate} em dia
-              </div>
-              {overdue > 0 && (
-                <div className="bg-red-400/30 backdrop-blur-sm rounded-xl px-3 py-1.5 text-xs font-semibold text-white">
-                  {overdue} atrasada{overdue > 1 ? 's' : ''}
-                </div>
-              )}
-            </div>
+        {/* Passe: cartão verde no estilo Wallet */}
+        <motion.section
+          aria-labelledby="pass-name"
+          initial="hidden"
+          animate="show"
+          variants={variants.scaleIn}
+          transition={spring.soft}
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-700 via-primary-700 to-emerald-800 text-white p-5 shadow-float print:shadow-none"
+        >
+          <SpeciesIcon className="absolute -right-6 -bottom-6 w-40 h-40 text-white/10" aria-hidden strokeWidth={1.4} />
+          <div className="relative flex items-center justify-between text-[11px] font-semibold uppercase tracking-widest text-white/85">
+            <span className="inline-flex items-center gap-1.5"><Syringe className="w-3.5 h-3.5" aria-hidden />{t('pub.card.eyebrow')}</span>
+            <span className="inline-flex items-center gap-1"><PawPrint className="w-3.5 h-3.5" aria-hidden />PetLife</span>
           </div>
 
-          {/* Pet details */}
-          <div className="px-8 py-5 border-b border-surface-100 dark:border-surface-700 bg-surface-50/50">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
-              {[
-                { label: 'Espécie', value: getSpeciesLabel(pet.species) },
-                { label: 'Idade', value: formatAge(pet.birth_date) },
-                { label: 'Nascimento', value: formatDate(pet.birth_date, BR) },
-                { label: 'Peso', value: pet.weight ? `${pet.weight} kg` : '—' },
-                { label: 'Sexo', value: pet.gender === 'male' ? 'Macho' : pet.gender === 'female' ? 'Fêmea' : '—' },
-                { label: 'Castrado', value: pet.neutered ? 'Sim' : 'Não' },
-                { label: 'Cor / Pelagem', value: pet.color ?? '—' },
-                { label: 'Microchip', value: pet.microchip ?? '—' },
-                { label: 'Tutor', value: data.owner.name },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p className="text-xs text-surface-400 font-medium uppercase tracking-wide">{label}</p>
-                  <p className="text-sm font-semibold text-surface-800 dark:text-surface-100 mt-0.5">{value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Vaccines */}
-          <div className="px-8 py-6">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-4">Histórico de Vacinação</h2>
-
-            {data.vaccines.length === 0 ? (
-              <div className="text-center py-8 text-surface-400 text-sm">Nenhuma vacina registrada.</div>
+          <div className="relative flex items-center gap-4 mt-4">
+            {pet.photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`${API_URL}${pet.photo}`}
+                alt={pet.name}
+                className="w-20 h-20 rounded-2xl object-cover ring-2 ring-white/40 shadow-lg shrink-0"
+              />
             ) : (
-              <div className="space-y-3">
-                {data.vaccines.map((v, i) => {
-                  const st = vaccineStatus(v.next_due)
-                  const cfg = statusConfig[st]
-                  const { Icon } = cfg
-                  return (
-                    <div key={v.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-surface-100 dark:border-surface-700 bg-white dark:bg-surface-800">
-                      <div className="mt-0.5"><Icon className={`w-4 h-4 ${cfg.iconColor}`} /></div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <span className="font-semibold text-sm text-surface-900 dark:text-white">{v.name}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${cfg.color}`}>{cfg.label}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-x-5 gap-y-0.5 mt-1.5">
-                          <span className="text-xs text-surface-500 dark:text-surface-400">
-                            <span className="font-medium text-surface-700 dark:text-surface-200">Aplicada:</span> {formatDate(v.date_given, BR)}
-                          </span>
-                          {v.next_due && (
-                            <span className="text-xs text-surface-500 dark:text-surface-400">
-                              <span className="font-medium text-surface-700 dark:text-surface-200">Próxima:</span> {formatDate(v.next_due, BR)}
-                            </span>
-                          )}
-                          {v.veterinarian && (
-                            <span className="text-xs text-surface-500 dark:text-surface-400">
-                              <span className="font-medium text-surface-700 dark:text-surface-200">Vet:</span> {v.veterinarian}
-                            </span>
-                          )}
-                          {v.lot_number && (
-                            <span className="text-xs text-surface-500 dark:text-surface-400">
-                              <span className="font-medium text-surface-700 dark:text-surface-200">Lote:</span> {v.lot_number}
-                            </span>
-                          )}
-                        </div>
-                        {v.notes && <p className="text-xs text-surface-400 italic mt-1">{v.notes}</p>}
-                      </div>
-                      <span className="text-xs text-surface-400 font-medium shrink-0">#{String(i + 1).padStart(2, '0')}</span>
-                    </div>
-                  )
-                })}
-              </div>
+              <span className="w-20 h-20 rounded-2xl bg-white/15 ring-2 ring-white/30 flex items-center justify-center shrink-0">
+                <SpeciesIcon className="w-10 h-10" aria-hidden />
+              </span>
             )}
+            <div className="min-w-0">
+              <h1 id="pass-name" className="font-display text-3xl font-extrabold leading-tight truncate">{pet.name}</h1>
+              <p className="text-sm text-white/90 truncate">
+                {getSpeciesLabel(pet.species)} · {pet.breed ?? t('pub.card.mixed')}
+              </p>
+              <p className="text-xs text-white/80 mt-0.5">{t('pub.card.tutor', { name: data.owner.name })}</p>
+            </div>
           </div>
 
-          {/* Footer */}
-          <div className="px-8 py-6 border-t border-surface-100 dark:border-surface-700 bg-surface-50/50 flex items-end justify-between gap-6 flex-wrap">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span className="text-xs text-emerald-700 font-semibold uppercase tracking-wide">Documento verificado</span>
-              </div>
-              <p className="text-xs text-surface-500 dark:text-surface-400 mt-1 max-w-[260px]">
-                Esta carteirinha foi gerada pelo sistema PetLife e é validada digitalmente.
+          {/* Selo da antirrábica */}
+          {rabies && (
+            <div
+              className={cn(
+                'relative mt-4 flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5',
+                rabiesState === 'overdue' ? 'bg-red-950/40 ring-1 ring-red-200/40' : 'bg-white/15 ring-1 ring-white/25',
+              )}
+            >
+              {rabiesState === 'overdue'
+                ? <ShieldAlert className="w-5 h-5 shrink-0" aria-hidden />
+                : <ShieldCheck className="w-5 h-5 shrink-0" aria-hidden />}
+              <p className="text-sm font-semibold leading-tight">
+                {rabiesState === 'overdue'
+                  ? t('pub.card.rabiesOverdue', { date: fmtDate(rabies.next_due) })
+                  : rabies.next_due
+                    ? t('pub.card.rabiesOk', { date: fmtDate(rabies.next_due) })
+                    : t('pub.card.rabiesGiven', { date: fmtDate(rabies.date_given) })}
               </p>
             </div>
+          )}
 
-            <div className="text-right">
-              <div className="text-xs text-surface-400 mb-1">Emitida em</div>
-              <div className="text-sm font-semibold text-surface-700 dark:text-surface-200">
-                {formatDate(data.generated_at.split('T')[0], BR)}
-              </div>
-              <div className="mt-4 flex items-center gap-1.5 justify-end">
-                <div className="w-6 h-6 bg-primary-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">P</span>
-                </div>
-                <span className="text-sm font-bold text-surface-700 dark:text-surface-200">PetLife</span>
-              </div>
-              <p className="text-xs text-surface-400 mt-0.5">Gestão de saúde pet com IA</p>
-            </div>
+          <div className="relative mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="rounded-full bg-white/15 px-3 py-1">
+              {current.length === 1 ? t('pub.card.vaccinesOne') : t('pub.card.vaccinesMany', { n: current.length })}
+            </span>
+            {okCount > 0 && <span className="rounded-full bg-white/15 px-3 py-1">{t('pub.card.okCount', { n: okCount })}</span>}
+            {soon > 0 && <span className="rounded-full bg-amber-300 text-amber-950 px-3 py-1">{soon === 1 ? t('pub.card.soonOne') : t('pub.card.soonCount', { n: soon })}</span>}
+            {overdue > 0 && <span className="rounded-full bg-white text-red-800 px-3 py-1">{overdue === 1 ? t('pub.card.overdueOne') : t('pub.card.overdueCount', { n: overdue })}</span>}
           </div>
-        </div>
+        </motion.section>
+
+        {/* Dados do pet */}
+        <section aria-labelledby="pet-data" className="mt-4 rounded-2xl bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 p-5">
+          <h2 id="pet-data" className="sr-only">{t('pub.card.dataTitle')}</h2>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+            {details.map(({ label, value }) => (
+              <div key={label}>
+                <dt className="text-[11px] font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">{label}</dt>
+                <dd className="text-sm font-semibold text-surface-900 dark:text-surface-100 mt-0.5 break-words">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* Vacinas */}
+        <section aria-labelledby="vax-title" className="mt-4 rounded-2xl bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 p-5">
+          <h2 id="vax-title" className="text-base font-bold font-display text-surface-900 dark:text-white mb-3">{t('pub.card.vaccinesTitle')}</h2>
+
+          {current.length === 0 ? (
+            <p className="text-center py-6 text-sm text-surface-600 dark:text-surface-400">{t('pub.card.noVaccines')}</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {current.map(v => <VaccineRow key={v.id} v={v} state={stateOf(v)} />)}
+            </ul>
+          )}
+
+          {previous.length > 0 && (
+            <div className="mt-4 border-t border-surface-100 dark:border-surface-800 pt-3">
+              <button
+                type="button"
+                onClick={() => setShowOld(s => !s)}
+                aria-expanded={showOld}
+                className="print:hidden w-full flex items-center justify-between min-h-[44px] text-sm font-semibold text-surface-700 dark:text-surface-200"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <History className="w-4 h-4" aria-hidden />
+                  {t('pub.card.previous', { n: previous.length })}
+                </span>
+                <ChevronDown className={cn('w-4 h-4 transition-transform', showOld && 'rotate-180')} aria-hidden />
+              </button>
+              <ul className={cn('space-y-2.5 mt-2', !showOld && 'hidden print:block')}>
+                {previous.map(v => <VaccineRow key={v.id} v={v} state="superseded" />)}
+              </ul>
+            </div>
+          )}
+        </section>
+
+        <footer className="mt-4 px-1 text-xs text-surface-600 dark:text-surface-400 leading-relaxed">
+          <p>{t('pub.card.footer')}</p>
+        </footer>
 
         <DownloadCta
           campanha="carteirinha"
           className="mt-6"
-          headline={`Recebeu a carteirinha do ${pet.name}? Faça a do seu pet.`}
-          sub="Carteira de vacinação digital, lembretes de reforço e envio em PDF pro hotel, creche ou veterinário."
+          headline={t('pub.card.ctaHeadline', { name: pet.name })}
+          sub={t('pub.card.ctaSub')}
         />
-
-        <p className="text-center text-xs text-surface-400 mt-6 print:hidden">
-          ID: {pet.id} • Verificado via QR code
-        </p>
       </div>
 
       <style>{`
         @media print {
           body { background: white !important; }
-          .print\\:hidden { display: none !important; }
           @page { margin: 10mm; size: A4; }
         }
       `}</style>
-    </div>
+    </main>
+  )
+}
+
+function VaccineRow({ v, state }: { v: CardVaccine; state: VState | 'superseded' }) {
+  const t = useT()
+  return (
+    <li className="rounded-xl border border-surface-200/70 dark:border-surface-800 bg-surface-50/60 dark:bg-surface-800/40 p-3.5">
+      <div className="flex items-start justify-between gap-2">
+        <span className="font-semibold text-sm text-surface-900 dark:text-white">{v.name}</span>
+        <StatusBadge state={state} />
+      </div>
+      <dl className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-xs text-surface-600 dark:text-surface-400">
+        <div className="flex gap-1">
+          <dt className="font-medium text-surface-700 dark:text-surface-300">{t('pub.card.given')}</dt>
+          <dd>{fmtDate(v.date_given)}</dd>
+        </div>
+        {v.next_due && state !== 'superseded' && (
+          <div className="flex gap-1">
+            <dt className="font-medium text-surface-700 dark:text-surface-300">{t('pub.card.next')}</dt>
+            <dd>{fmtDate(v.next_due)}</dd>
+          </div>
+        )}
+        {v.veterinarian && (
+          <div className="flex gap-1">
+            <dt className="font-medium text-surface-700 dark:text-surface-300">{t('pub.card.vet')}</dt>
+            <dd>{v.veterinarian}</dd>
+          </div>
+        )}
+        {v.lot_number && (
+          <div className="flex gap-1">
+            <dt className="font-medium text-surface-700 dark:text-surface-300">{t('pub.card.lot')}</dt>
+            <dd>{v.lot_number}</dd>
+          </div>
+        )}
+      </dl>
+      {v.notes && <p className="text-xs text-surface-500 dark:text-surface-400 italic mt-1">{v.notes}</p>}
+    </li>
   )
 }

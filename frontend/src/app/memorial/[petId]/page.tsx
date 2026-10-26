@@ -42,7 +42,7 @@ export default function MemorialPage() {
   function share() {
     if (!data) return
     const text = encodeURIComponent(`${t('g.mem.shareText', { name: data.pet.name })}\n${typeof window !== 'undefined' ? window.location.href : ''}`)
-    window.open(`https://wa.me/?text=${text}`, '_blank')
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener')
   }
 
   if (error) {
@@ -64,11 +64,11 @@ export default function MemorialPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-stone-900 via-stone-900 to-stone-950 text-stone-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-stone-900 via-stone-900 to-stone-950 text-stone-100 [color-scheme:dark] py-12 px-4 pt-[max(3rem,env(safe-area-inset-top))] pb-[max(3rem,env(safe-area-inset-bottom))]">
       <div className="max-w-xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <Heart className="w-8 h-8 text-rose-400 mx-auto mb-3" />
+          <Heart className="w-8 h-8 text-rose-400 mx-auto mb-3" aria-hidden />
           <p className="text-xs uppercase tracking-widest text-stone-400 font-semibold">{t('g.mem.inMemory')}</p>
         </div>
 
@@ -114,15 +114,15 @@ export default function MemorialPage() {
         <div className="flex justify-center gap-3">
           <button
             onClick={share}
-            className="flex items-center gap-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 px-5 py-2.5 rounded-xl font-semibold transition border border-rose-500/30"
+            className="pressable flex items-center gap-2 min-h-[44px] bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 px-5 rounded-xl font-semibold transition border border-rose-500/30"
           >
-            <Share2 className="w-4 h-4" />
+            <Share2 className="w-4 h-4" aria-hidden />
             {t('g.misc.share')}
           </button>
         </div>
 
-        <div className="text-center mt-12 text-stone-500 text-xs">
-          <PawPrint className="w-4 h-4 inline mr-1" />
+        <div className="text-center mt-12 text-stone-400 text-xs">
+          <PawPrint className="w-4 h-4 inline mr-1" aria-hidden />
           {t('g.mem.footer')}
         </div>
       </div>

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { differenceInCalendarDays, format, parseISO } from 'date-fns'
-import { Plus, Trash2, Loader2, Check } from 'lucide-react'
+import { Plus, Trash2, Loader2, Check, Bell, Lightbulb, Flower2 } from 'lucide-react'
+import { useConfirm } from '@/components/ui/Confirm'
+import { hapticSuccess } from '@/lib/feedback'
 import { heatCycles, type HeatCycleOverview } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { formatDate } from '@/lib/utils'
@@ -19,12 +21,13 @@ interface Props {
 }
 
 const todayStr = () => format(new Date(), 'yyyy-MM-dd')
-const inputCls = 'w-full px-3 py-2 text-sm border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500'
-const btnCls = 'pressable flex items-center gap-1 bg-primary-500 hover:bg-primary-600 text-white text-xs font-semibold px-3 py-1.5 rounded-xl disabled:opacity-60'
+const inputCls = 'w-full px-3 min-h-[44px] text-[15px] bg-white text-surface-900 dark:text-surface-100 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500'
+const btnCls = 'pressable flex items-center gap-1 min-h-[44px] bg-primary-700 hover:bg-primary-800 text-white dark:bg-primary-500 dark:text-surface-950 dark:hover:bg-primary-400 text-sm font-semibold px-3.5 rounded-xl disabled:opacity-60'
 
 export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile, refreshKey }: Props) {
   const t = useT()
   const { success, error } = useToast()
+  const confirm = useConfirm()
   const [data, setData] = useState<HeatCycleOverview | null>(null)
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<'none' | 'add' | 'end'>('none')
@@ -43,6 +46,7 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
     try {
       setData(await action())
       setMode('none')
+      void hapticSuccess()
       success(okMsg)
     } catch (e: unknown) {
       error(e instanceof Error ? e.message : t('h.heat.errSave'))
@@ -64,7 +68,7 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
   }
 
   async function remove(cycleId: number) {
-    if (!confirm(t('h.heat.deleteConfirm'))) return
+    if (!(await confirm({ title: t('h.heat.deleteConfirm'), tone: 'danger', confirmLabel: t('ui.confirm.delete') }))) return
     try {
       await heatCycles.remove(petId, cycleId)
       setData(await heatCycles.get(petId))
@@ -76,10 +80,10 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
 
   if (gender === 'male') return null
 
-  const card = 'bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5'
+  const card = 'bg-white dark:bg-surface-900 rounded-2xl border border-surface-200/70 dark:border-surface-800 p-5'
   const title = (
     <h3 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
-      <span aria-hidden>🌸</span> {t('h.heat.title')}
+      <Flower2 className="w-4 h-4 text-primary-700 dark:text-primary-300" aria-hidden /> {t('h.heat.title')}
     </h3>
   )
 
@@ -111,17 +115,17 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
         {title}
         {current ? (
           <button onClick={() => { setEndDate(todayStr()); setMode(m => (m === 'end' ? 'none' : 'end')) }} className={btnCls}>
-            <Check className="w-3.5 h-3.5" /> {t('h.heat.markEnd')}
+            <Check className="w-4 h-4" aria-hidden /> {t('h.heat.markEnd')}
           </button>
         ) : (
           <button onClick={() => { setForm({ started_at: todayStr(), ended_at: '', notes: '' }); setMode(m => (m === 'add' ? 'none' : 'add')) }} className={btnCls}>
-            <Plus className="w-3.5 h-3.5" /> {t('h.heat.register')}
+            <Plus className="w-4 h-4" aria-hidden /> {t('h.heat.register')}
           </button>
         )}
       </div>
 
       {neutered && (
-        <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 mb-3">
+        <p className="text-xs text-amber-800 dark:text-amber-200 border tone-warning-bg rounded-xl p-3 mb-3">
           {t('h.heat.neutered', { name: petName })}
         </p>
       )}
@@ -129,18 +133,18 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
       {mode === 'add' && (
         <div className="rounded-xl border border-surface-200 dark:border-surface-700 p-3 mb-3 space-y-2 animate-slide-up">
           <div className="grid grid-cols-2 gap-2">
-            <label className="text-xs text-surface-500 dark:text-surface-400">
+            <label className="text-xs text-surface-600 dark:text-surface-400">
               {t('h.heat.startLabel')}
               <input type="date" value={form.started_at} max={todayStr()}
                 onChange={e => setForm(f => ({ ...f, started_at: e.target.value }))} className={`${inputCls} mt-1`} />
             </label>
-            <label className="text-xs text-surface-500 dark:text-surface-400">
+            <label className="text-xs text-surface-600 dark:text-surface-400">
               {t('h.heat.endLabel')}
               <input type="date" value={form.ended_at} min={form.started_at} max={todayStr()}
                 onChange={e => setForm(f => ({ ...f, ended_at: e.target.value }))} className={`${inputCls} mt-1`} />
             </label>
           </div>
-          <input type="text" value={form.notes} maxLength={500} placeholder={t('h.heat.notesPh')}
+          <input type="text" value={form.notes} maxLength={500} aria-label={t('h.heat.notesPh')} placeholder={t('h.heat.notesPh')}
             onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className={inputCls} />
           <div className="flex justify-end">
             <button onClick={saveNew} disabled={saving || !form.started_at} className={btnCls}>
@@ -152,23 +156,23 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
 
       {mode === 'end' && current && (
         <div className="rounded-xl border border-surface-200 dark:border-surface-700 p-3 mb-3 flex items-end gap-2 animate-slide-up">
-          <label className="flex-1 text-xs text-surface-500 dark:text-surface-400">
+          <label className="flex-1 text-xs text-surface-600 dark:text-surface-400">
             {t('h.heat.endDate')}
             <input type="date" value={endDate} min={current.started_at.slice(0, 10)} max={todayStr()}
               onChange={e => setEndDate(e.target.value)} className={`${inputCls} mt-1`} />
           </label>
-          <button onClick={saveEnd} disabled={saving || !endDate} className={`${btnCls} py-2`}>
+          <button onClick={saveEnd} disabled={saving || !endDate} className={btnCls}>
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t('common.save')}
           </button>
         </div>
       )}
 
       {current && (
-        <div className="rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 p-3 mb-3">
-          <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
+        <div className="rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/25 p-3 mb-3">
+          <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">
             {t('h.heat.inHeat', { date: formatDate(current.started_at), day: currentDay })}
           </p>
-          <p className="text-xs text-rose-600/80 dark:text-rose-300/80 mt-0.5">
+          <p className="text-xs text-rose-800/90 dark:text-rose-200/90 mt-0.5">
             {current.overdue ? t('h.heat.overdue') : t('h.heat.expectedEnd', { date: formatDate(current.expected_end) })}
           </p>
         </div>
@@ -182,10 +186,10 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
 
       {pred ? (
         <div className="rounded-xl border border-surface-200 dark:border-surface-700 p-3 mb-3">
-          <div className="text-[10px] uppercase tracking-wide text-surface-400">{t('h.heat.next')}</div>
+          <div className="text-xs uppercase tracking-wide text-surface-600 dark:text-surface-400">{t('h.heat.next')}</div>
           <div className="text-base font-bold text-surface-900 dark:text-white">
             {formatDate(pred.next_start)}{' '}
-            <span className={`text-sm font-medium ${daysUntil < 0 ? 'text-amber-600' : 'text-primary-600'}`}>· {predLabel}</span>
+            <span className={`text-sm font-medium ${daysUntil < 0 ? 'text-amber-700 dark:text-amber-300' : 'text-primary-700 dark:text-primary-300'}`}>· {predLabel}</span>
           </div>
           <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">
             {pred.based_on === 'history'
@@ -193,11 +197,11 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
               : t(data.species === 'cat' ? 'h.heat.basedSpeciesCat' : 'h.heat.basedSpeciesDog')}
           </p>
           {!data.neutered && (
-            <p className="text-xs text-surface-400 mt-1">🔔 {t('h.heat.notifyInfo', { count: data.notify_lead_days })}</p>
+            <p className="text-xs text-surface-600 dark:text-surface-400 mt-1 flex items-start gap-1.5"><Bell className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden /> {t('h.heat.notifyInfo', { count: data.notify_lead_days })}</p>
           )}
         </div>
       ) : (
-        <p className="text-sm text-surface-400 text-center py-3">{t('h.heat.empty')}</p>
+        <p className="text-sm text-surface-600 dark:text-surface-400 text-center py-3">{t('h.heat.empty')}</p>
       )}
 
       {data.cycles.length > 0 && (
@@ -205,14 +209,14 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
           <div className="text-xs font-semibold text-surface-500 dark:text-surface-400 mb-1">{t('h.heat.history')}</div>
           <div className="max-h-44 overflow-y-auto">
             {data.cycles.map(c => (
-              <div key={c.id} className="flex items-center gap-2 text-xs py-1.5 border-b border-surface-100 dark:border-surface-700 last:border-0">
+              <div key={c.id} className="flex items-center gap-2 text-xs py-1.5 border-b border-surface-100 dark:border-surface-800 last:border-0">
                 <span className="text-surface-700 dark:text-surface-200 tabular-nums whitespace-nowrap">
                   {formatDate(c.started_at)} → {c.ended_at ? formatDate(c.ended_at) : t('h.heat.ongoing')}
                 </span>
-                {c.duration_days != null && <span className="text-surface-400 whitespace-nowrap">{t('h.heat.days', { count: c.duration_days })}</span>}
-                <span className="flex-1 truncate text-surface-400">{c.notes}</span>
-                <button onClick={() => remove(c.id)} aria-label={t('common.delete')} className="text-surface-300 hover:text-red-400 p-0.5">
-                  <Trash2 className="w-3.5 h-3.5" />
+                {c.duration_days != null && <span className="text-surface-500 dark:text-surface-400 whitespace-nowrap">{t('h.heat.days', { count: c.duration_days })}</span>}
+                <span className="flex-1 truncate text-surface-500 dark:text-surface-400">{c.notes}</span>
+                <button onClick={() => remove(c.id)} aria-label={t('common.delete')} className="pressable w-11 h-11 -my-2 -mr-2 flex items-center justify-center rounded-xl text-surface-500 hover:text-red-600 dark:text-surface-400 dark:hover:text-red-300">
+                  <Trash2 className="w-4 h-4" aria-hidden />
                 </button>
               </div>
             ))}
@@ -220,7 +224,7 @@ export function HeatCycleCard({ petId, petName, gender, neutered, onEditProfile,
         </div>
       )}
 
-      <p className="text-xs text-surface-400 mt-3">💡 {t(data.species === 'cat' ? 'h.heat.tipCat' : 'h.heat.tipDog')}</p>
+      <p className="text-xs text-surface-600 dark:text-surface-400 mt-3 flex items-start gap-1.5"><Lightbulb className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden /> {t(data.species === 'cat' ? 'h.heat.tipCat' : 'h.heat.tipDog')}</p>
     </div>
   )
 }

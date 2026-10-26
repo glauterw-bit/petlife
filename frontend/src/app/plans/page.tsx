@@ -1,7 +1,19 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { Check, Crown, Sparkles, Star, RefreshCw, Loader2 } from 'lucide-react'
+import { Check, Crown, Sparkles, Star, RefreshCw, Info, Gift, Minus } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { Sheet } from '@/components/ui/Sheet'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { Stagger, StaggerItem } from '@/components/ui/Motion'
+import { fieldClasses } from '@/components/auth/AuthUI'
+import { hapticSuccess, hapticError } from '@/lib/feedback'
+import { spring } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useToast } from '@/components/ui/ToastContext'
 import { billing, type BillingCatalog, type BillingMe, type PlanTier } from '@/lib/api'
@@ -14,9 +26,19 @@ type Cadence = 'monthly' | 'annual'
 
 /** Metadados visuais + chaves de tradução do nome/tagline de cada tier. */
 const TIER_META: Record<PlanTier, { nameKey: string; taglineKey: string; icon: typeof Star; accent: string }> = {
-  free: { nameKey: 'ac.plans.tier.free', taglineKey: 'ac.plans.tag.free', icon: Star, accent: 'text-gray-500' },
-  plus: { nameKey: 'ac.plans.tier.plus', taglineKey: 'ac.plans.tag.plus', icon: Sparkles, accent: 'text-emerald-600' },
-  pro: { nameKey: 'ac.plans.tier.pro', taglineKey: 'ac.plans.tag.pro', icon: Crown, accent: 'text-amber-500' },
+  free: { nameKey: 'ac.plans.tier.free', taglineKey: 'ac.plans.tag.free', icon: Star, accent: 'text-surface-500 dark:text-surface-400' },
+  plus: { nameKey: 'ac.plans.tier.plus', taglineKey: 'ac.plans.tag.plus', icon: Sparkles, accent: 'text-primary-700 dark:text-primary-300' },
+  pro: { nameKey: 'ac.plans.tier.pro', taglineKey: 'ac.plans.tag.pro', icon: Crown, accent: 'text-amber-600 dark:text-amber-400' },
+}
+
+/**
+ * Limites reais de cada plano — espelham QUOTAS em backend/pricing.py
+ * (-1 = sem limite). Usados só na tabela de comparação.
+ */
+const LIMITS: Record<PlanTier, { pets: number; ai_chat: number; ai_analysis: number }> = {
+  free: { pets: 3, ai_chat: 10, ai_analysis: 3 },
+  plus: { pets: 5, ai_chat: 100, ai_analysis: 30 },
+  pro: { pets: -1, ai_chat: -1, ai_analysis: -1 },
 }
 
 const FEATURES: Record<PlanTier, string[]> = {
@@ -32,14 +54,12 @@ const FEATURES: Record<PlanTier, string[]> = {
     'ac.plans.feat.plus2',
     'ac.plans.feat.plus3',
     'ac.plans.feat.plus4',
-    'ac.plans.feat.plus5',
   ],
   pro: [
     'ac.plans.feat.pro1',
     'ac.plans.feat.pro2',
     'ac.plans.feat.pro3',
     'ac.plans.feat.pro4',
-    'ac.plans.feat.pro5',
   ],
 }
 
@@ -90,6 +110,7 @@ export default function PlansPage() {
     initIap(async (proof) => {
       try {
         await billing.verifyIap(proof)
+        void hapticSuccess()
         success(t('ac.plans.activated'))
         await refresh()
       } catch (err) {
@@ -129,7 +150,7 @@ export default function PlansPage() {
   async function startWebCheckout() {
     if (!webSku || webBusy) return
     const digits = cpf.replace(/\D/g, '')
-    if (digits.length !== 11) { error(t('ac.plans.cpfInvalid')); return }
+    if (digits.length !== 11) { void hapticError(); error(t('ac.plans.cpfInvalid')); return }
     setWebBusy(true)
     try {
       track('web_checkout_start')
@@ -161,71 +182,93 @@ export default function PlansPage() {
 
   const usage = me?.usage
   const tiers: PlanTier[] = ['free', 'plus', 'pro']
+  const monthlyTrial = !!catalog?.products.some(p => p.cadence === 'monthly' && p.has_trial)
+  // O teste grátis é uma oferta da App Store: no checkout web não existe.
+  const showTrial = cadence === 'monthly' && monthlyTrial && (canBuy || plat === 'ios')
+  const webProduct = catalog?.products.find(p => p.sku === webSku)
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto px-4 py-6">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('ac.plans.title')}</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            {t('ac.plans.subtitle')}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('ac.plans.notInsurance')}</p>
+      <div className="max-w-5xl mx-auto">
+        <PageHeader title={t('ac.plans.title')} subtitle={t('ac.plans.subtitle')} />
+
+        <div className="flex items-start gap-2.5 rounded-xl border tone-brand-bg p-3 mb-5 text-[13px] leading-snug text-primary-900 dark:text-primary-100">
+          <Info className="w-4 h-4 mt-0.5 shrink-0 text-primary-700 dark:text-primary-300" aria-hidden />
+          <p>{t('ac.plans.notInsurance')}</p>
         </div>
 
         {/* Status de quem já assina: sem isso, quem acabou de comprar não sabe se deu certo */}
         {me?.is_premium && me.premium_expires_at && (
-          <div className="mb-6 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4">
-            <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
+          <Card tone="success" className="mb-5">
+            <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
               {t('ac.plans.statusActive', {
                 plan: t(TIER_META[currentTier].nameKey),
                 date: new Date(me.premium_expires_at + (me.premium_expires_at.endsWith('Z') ? '' : 'Z')).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
               })}
             </p>
-            <p className="text-xs text-emerald-700/90 dark:text-emerald-300/90 mt-1 leading-relaxed">
+            <p className="text-xs text-emerald-800 dark:text-emerald-300 mt-1 leading-relaxed">
               {t('ac.plans.statusTrialHint')}
             </p>
-          </div>
+          </Card>
         )}
 
         {/* Uso atual */}
         {usage && (
-          <div className="mb-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
-              {t('ac.plans.usagePre')}<span className="font-bold capitalize">{t(TIER_META[currentTier].nameKey)}</span>{t('ac.plans.usagePost')}
+          <Card className="mb-5">
+            <p className="text-sm font-medium text-surface-700 dark:text-surface-200 mb-3">
+              {t('ac.plans.usagePre')}<span className="font-bold">{t(TIER_META[currentTier].nameKey)}</span>{t('ac.plans.usagePost')}
             </p>
             <div className="grid grid-cols-3 gap-3 text-center">
               <UsageStat label={t('nav.pets')} used={usage.used.pets} limit={usage.limits.pets} />
               <UsageStat label={t('ac.plans.usageAi')} used={usage.used.ai_chat} limit={usage.limits.ai_chat} />
               <UsageStat label={t('ac.plans.usageAnalysis')} used={usage.used.ai_analysis} limit={usage.limits.ai_analysis} />
             </div>
-          </div>
+          </Card>
         )}
 
-        {/* Toggle mensal/anual */}
-        <div className="flex justify-center mb-6">
-          <div className="inline-flex rounded-full bg-gray-100 dark:bg-gray-700 p-1">
-            <button
-              onClick={() => setCadence('monthly')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${cadence === 'monthly' ? 'bg-white dark:bg-gray-900 text-emerald-600 shadow' : 'text-gray-500'}`}
-            >
-              {t('ac.plans.monthly')}
-            </button>
-            <button
-              onClick={() => setCadence('annual')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${cadence === 'annual' ? 'bg-white dark:bg-gray-900 text-emerald-600 shadow' : 'text-gray-500'}`}
-            >
-              {t('ac.plans.annual')} <span className="text-emerald-500">{t('ac.plans.annualBonus')}</span>
-            </button>
+        {/* Mensal / Anual + oferta de cada cadência, junto do seletor */}
+        <div className="max-w-sm mx-auto mb-6">
+          <SegmentedControl
+            ariaLabel={t('acct.plans.cadenceAria')}
+            value={cadence}
+            onChange={setCadence}
+            options={[
+              { value: 'monthly', label: t('ac.plans.monthly') },
+              { value: 'annual', label: t('ac.plans.annual') },
+            ]}
+          />
+          <div className="h-8 mt-2 flex justify-center items-center" aria-live="polite">
+            <AnimatePresence mode="wait" initial={false}>
+              {cadence === 'monthly' && showTrial ? (
+                <motion.span key="trial" className="chip chip-success" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={spring.snappy}>
+                  <Gift className="w-3.5 h-3.5" aria-hidden />
+                  {t('acct.plans.trialMonthly')}
+                </motion.span>
+              ) : cadence === 'annual' ? (
+                <motion.span key="annual" className="chip chip-success" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={spring.snappy}>
+                  <Check className="w-3.5 h-3.5" aria-hidden />
+                  {t('acct.plans.annualChip')}
+                </motion.span>
+              ) : null}
+            </AnimatePresence>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+          <div className="grid md:grid-cols-3 gap-4" aria-busy="true">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="rounded-2xl border border-surface-200/70 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 space-y-3">
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="h-3 w-40" />
+                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-5/6" />
+                <Skeleton className="h-11 w-full rounded-xl" />
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-4">
+          <Stagger className="grid md:grid-cols-3 gap-4" gap={0.06}>
             {tiers.map(tier => {
               const meta = TIER_META[tier]
               const Icon = meta.icon
@@ -234,156 +277,188 @@ export default function PlansPage() {
               const isFree = tier === 'free'
               const highlight = tier === 'pro'
               return (
-                <div
-                  key={tier}
-                  className={`relative rounded-2xl border p-5 flex flex-col bg-white dark:bg-gray-800 ${highlight ? 'border-amber-400 ring-2 ring-amber-200 dark:ring-amber-500/30' : 'border-gray-200 dark:border-gray-700'}`}
-                >
-                  {highlight && (
-                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-400 text-white text-xs font-bold px-3 py-0.5 rounded-full">
-                      {t('ac.plans.mostComplete')}
-                    </span>
-                  )}
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon className={`w-5 h-5 ${meta.accent}`} />
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t(meta.nameKey)}</h3>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t(meta.taglineKey)}</p>
+                <StaggerItem key={tier}>
+                  <div
+                    className={cn(
+                      'relative h-full rounded-2xl border p-5 flex flex-col bg-white dark:bg-surface-900',
+                      highlight
+                        ? 'border-amber-400 ring-2 ring-amber-200 dark:border-amber-500/60 dark:ring-amber-500/20'
+                        : 'border-surface-200/70 dark:border-surface-800',
+                    )}
+                  >
+                    {highlight && (
+                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-200 dark:border-amber-500/40 text-xs font-bold px-3 py-0.5 rounded-full whitespace-nowrap">
+                        {t('ac.plans.mostComplete')}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon className={cn('w-5 h-5', meta.accent)} aria-hidden />
+                      <h3 className="text-lg font-display font-bold text-surface-900 dark:text-white">{t(meta.nameKey)}</h3>
+                    </div>
+                    <p className="text-[13px] text-surface-500 dark:text-surface-400 mb-3">{t(meta.taglineKey)}</p>
 
-                  <div className="mb-4">
-                    {isFree ? (
-                      <p className="text-2xl font-extrabold text-gray-900 dark:text-white">R$ 0</p>
-                    ) : product ? (
-                      <>
-                        <p className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                          {brl(product.price_brl)}
-                          <span className="text-sm font-medium text-gray-400">/{cadence === 'monthly' ? t('ac.plans.perMonth') : t('ac.plans.perYear')}</span>
-                        </p>
-                        {cadence === 'annual' && (
-                          <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                            {t('ac.plans.annualEquiv', { v: brl(product.price_brl / 12) })}
+                    <div className="mb-4 min-h-[56px]">
+                      {isFree ? (
+                        <p className="text-[28px] font-display font-extrabold text-surface-900 dark:text-white">R$ 0</p>
+                      ) : product ? (
+                        <>
+                          <p className="text-[28px] font-display font-extrabold text-surface-900 dark:text-white leading-tight">
+                            {brl(product.price_brl)}
+                            <span className="text-sm font-medium text-surface-500 dark:text-surface-400">/{cadence === 'monthly' ? t('ac.plans.perMonth') : t('ac.plans.perYear')}</span>
                           </p>
-                        )}
-                        {/* O trial de 30 dias é o maior argumento de venda (o
-                            mercado dá 3–7) e ficava invisível até o clique. */}
-                        {product.has_trial && canBuy && (
-                          <>
-                            <span className="inline-block mt-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                              {t('ac.plans.trialBadge')}
-                            </span>
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-snug">
+                          {cadence === 'annual' && (
+                            <p className="text-xs font-semibold text-primary-700 dark:text-primary-300 mt-0.5">
+                              {t('ac.plans.annualEquiv', { v: brl(product.price_brl / 12) })}
+                            </p>
+                          )}
+                          {product.has_trial && canBuy && (
+                            <p className="text-[12px] text-surface-500 dark:text-surface-400 mt-1 leading-snug">
                               {t('ac.plans.trialNote', { price: brl(product.price_brl) })}
                             </p>
-                          </>
-                        )}
-                      </>
-                    ) : null}
+                          )}
+                        </>
+                      ) : null}
+                    </div>
+
+                    <ul className="space-y-2 mb-5 flex-1">
+                      {FEATURES[tier].map(f => (
+                        <li key={f} className="flex items-start gap-2 text-sm text-surface-700 dark:text-surface-300">
+                          <Check className="w-4 h-4 text-primary-700 dark:text-primary-300 mt-0.5 shrink-0" aria-hidden />
+                          <span>{t(f)}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {isCurrent ? (
+                      <Button variant="secondary" fullWidth disabled>
+                        {t('ac.plans.currentPlan')}
+                      </Button>
+                    ) : isFree ? (
+                      <Button variant="ghost" fullWidth disabled>
+                        {t('ac.plans.basicPlan')}
+                      </Button>
+                    ) : (
+                      <Button
+                        fullWidth
+                        variant={highlight ? 'primary' : 'soft'}
+                        onClick={() => handleSubscribe(tier)}
+                        loading={busySku === product?.sku}
+                      >
+                        {!canBuy && plat === 'web' && catalog?.web_checkout ? t('ac.plans.webCta') : product?.has_trial && canBuy ? t('ac.plans.startTrial') : t('ac.plans.subscribe')}
+                      </Button>
+                    )}
                   </div>
-
-                  <ul className="space-y-2 mb-5 flex-1">
-                    {FEATURES[tier].map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
-                        <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                        <span>{t(f)}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {isCurrent ? (
-                    <button disabled className="w-full py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-500 font-semibold text-sm">
-                      {t('ac.plans.currentPlan')}
-                    </button>
-                  ) : isFree ? (
-                    <button disabled className="w-full py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-400 font-semibold text-sm">
-                      {t('ac.plans.basicPlan')}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleSubscribe(tier)}
-                      disabled={busySku === product?.sku}
-                      className={`w-full py-2.5 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 ${highlight ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} disabled:opacity-60`}
-                    >
-                      {busySku === product?.sku && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {!canBuy && plat === 'web' && catalog?.web_checkout ? t('ac.plans.webCta') : product?.has_trial && canBuy ? t('ac.plans.startTrial') : t('ac.plans.subscribe')}
-                    </button>
-                  )}
-                </div>
+                </StaggerItem>
               )
             })}
-          </div>
+          </Stagger>
         )}
+
+        {/* O que muda de um plano para o outro (valores reais dos limites) */}
+        <section aria-labelledby="plans-compare" className="mt-8">
+          <h2 id="plans-compare" className="text-base font-display font-bold text-surface-900 dark:text-white mb-1">
+            {t('acct.plans.compareTitle')}
+          </h2>
+          <p className="text-[13px] text-surface-500 dark:text-surface-400 mb-3">{t('acct.plans.compareSub')}</p>
+          <Card padding="none" className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-surface-500 dark:text-surface-400">
+                  <th scope="col" className="font-medium py-3 pl-4 pr-2"><span className="sr-only">{t('acct.plans.featureCol')}</span></th>
+                  {tiers.map(tier => (
+                    <th key={tier} scope="col" className={cn('font-semibold py-3 px-2 text-center whitespace-nowrap', tier === 'plus' ? 'text-primary-700 dark:text-primary-300' : 'text-surface-700 dark:text-surface-200')}>
+                      {t(TIER_META[tier].nameKey)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-200/70 dark:divide-surface-800 border-t border-surface-200/70 dark:border-surface-800">
+                <CompareRow label={t('acct.plans.rowPets')} values={tiers.map(x => LIMITS[x].pets)} unlimited={t('acct.plans.unlimited')} included={t('acct.plans.included')} />
+                <CompareRow label={t('acct.plans.rowChat')} values={tiers.map(x => LIMITS[x].ai_chat)} unlimited={t('acct.plans.unlimited')} included={t('acct.plans.included')} />
+                <CompareRow label={t('acct.plans.rowAnalysis')} values={tiers.map(x => LIMITS[x].ai_analysis)} unlimited={t('acct.plans.unlimited')} included={t('acct.plans.included')} />
+                <CompareRow label={t('acct.plans.rowCard')} values={[true, true, true]} unlimited={t('acct.plans.unlimited')} included={t('acct.plans.included')} />
+              </tbody>
+            </table>
+          </Card>
+        </section>
 
         {/* Restaurar compras (obrigatório Apple) + nota */}
         <div className="mt-6 text-center">
-          <button
-            onClick={handleRestore}
-            disabled={restoring}
-            className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:underline disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${restoring ? 'animate-spin' : ''}`} />
+          <Button variant="ghost" onClick={handleRestore} disabled={restoring} leftIcon={RefreshCw} className={restoring ? '[&_svg]:animate-spin' : ''}>
             {t('ac.plans.restore')}
-          </button>
+          </Button>
           {!canBuy && (
-            <p className="text-xs text-gray-400 mt-3 max-w-md mx-auto">
+            <p className="text-xs text-surface-500 dark:text-surface-400 mt-3 max-w-md mx-auto">
               {t(plat === 'web' && catalog?.web_checkout ? 'ac.plans.webNote' : plat === 'android' ? 'ac.plans.androidSoon' : 'ac.plans.iosOnly')}
             </p>
           )}
-          <p className="text-[11px] text-gray-400 mt-3 max-w-lg mx-auto">
+          <p className="text-[12px] text-surface-500 dark:text-surface-400 mt-3 max-w-lg mx-auto">
             {t('ac.plans.renewNote')}
           </p>
-          <p className="text-[11px] mt-2">
-            <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener" className="text-emerald-600 hover:underline">{t('ac.plans.eula')}</a>
-            <span className="text-gray-300 mx-2">·</span>
-            <a href="/privacy" className="text-emerald-600 hover:underline">{t('ac.plans.privacy')}</a>
+          <p className="text-[12px] mt-1 flex justify-center items-center gap-1">
+            <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener" className="inline-flex items-center min-h-[44px] px-1 font-semibold text-primary-700 dark:text-primary-300 hover:underline">{t('ac.plans.eula')}</a>
+            <span className="text-surface-300 dark:text-surface-600" aria-hidden>·</span>
+            <a href="/privacy" className="inline-flex items-center min-h-[44px] px-1 font-semibold text-primary-700 dark:text-primary-300 hover:underline">{t('ac.plans.privacy')}</a>
           </p>
         </div>
 
-        {webSku && (
-          <div
-            className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
-            onClick={() => { if (!webBusy) setWebSku(null) }}
-          >
-            <div
-              className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl"
-              onClick={e => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-                {t('ac.plans.webTitle', { plan: catalog?.products.find(p => p.sku === webSku)?.name ?? '' })}
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('ac.plans.webBody')}</p>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">{t('ac.plans.cpfLabel')}</label>
-              <input
-                inputMode="numeric"
-                autoComplete="off"
-                value={cpf}
-                onChange={e => setCpf(e.target.value)}
-                placeholder="000.000.000-00"
-                className="w-full px-3.5 py-2.5 mb-4 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              />
-              <button
-                onClick={startWebCheckout}
-                disabled={webBusy}
-                className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {webBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+        <Sheet
+          open={!!webSku}
+          onClose={() => { if (!webBusy) setWebSku(null) }}
+          dismissible={!webBusy}
+          title={t('ac.plans.webTitle', { plan: webProduct?.name ?? '' })}
+          description={t('ac.plans.webBody')}
+          footer={
+            <div className="space-y-2">
+              <Button size="lg" fullWidth onClick={startWebCheckout} loading={webBusy}>
                 {t('ac.plans.webGo')}
-              </button>
-              <button
-                onClick={() => setWebSku(null)}
-                disabled={webBusy}
-                className="w-full mt-2 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/40"
-              >
+              </Button>
+              <Button variant="ghost" fullWidth onClick={() => setWebSku(null)} disabled={webBusy}>
                 {t('ac.plans.webCancel')}
-              </button>
+              </Button>
             </div>
-          </div>
-        )}
+          }
+        >
+          <label htmlFor="plans-cpf" className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-1.5">{t('ac.plans.cpfLabel')}</label>
+          <input
+            id="plans-cpf"
+            inputMode="numeric"
+            autoComplete="off"
+            value={cpf}
+            onChange={e => setCpf(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') void startWebCheckout() }}
+            placeholder="000.000.000-00"
+            className={cn(fieldClasses, 'px-4')}
+          />
+        </Sheet>
 
-        {/* Prefere não pagar? Indique e ganhe */}
-        <div className="max-w-md mx-auto mt-8">
+        {/* Prefere não pagar? Indique e ganhe (o Início linka para #indicacao) */}
+        <section id="indicacao" className="max-w-md mx-auto mt-8 scroll-mt-24">
           <ReferralCard />
-        </div>
+        </section>
       </div>
     </DashboardLayout>
+  )
+}
+
+function CompareRow({ label, values, unlimited, included }: { label: string; values: (number | boolean)[]; unlimited: string; included: string }) {
+  return (
+    <tr>
+      <th scope="row" className="text-left font-medium text-surface-700 dark:text-surface-200 py-3 pl-4 pr-2">{label}</th>
+      {values.map((v, i) => (
+        <td key={i} className={cn('py-3 px-2 text-center tabular-nums', i === 1 ? 'font-bold text-primary-800 dark:text-primary-200' : 'text-surface-700 dark:text-surface-300')}>
+          {v === true ? (
+            <><Check className="w-4 h-4 mx-auto text-primary-700 dark:text-primary-300" aria-hidden /><span className="sr-only">{included}</span></>
+          ) : v === false ? (
+            <Minus className="w-4 h-4 mx-auto text-surface-400" aria-hidden />
+          ) : v === -1 ? (
+            unlimited
+          ) : (
+            v
+          )}
+        </td>
+      ))}
+    </tr>
   )
 }
 
@@ -392,14 +467,14 @@ function UsageStat({ label, used, limit }: { label: string; used: number; limit:
   const pct = unlimited ? 0 : Math.min(100, Math.round((used / Math.max(limit, 1)) * 100))
   return (
     <div>
-      <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-      <p className="text-sm font-bold text-gray-900 dark:text-white">
+      <p className="text-xs text-surface-500 dark:text-surface-400">{label}</p>
+      <p className="text-sm font-bold text-surface-900 dark:text-white tabular-nums">
         {used}
-        <span className="text-gray-400 font-normal">/{unlimited ? '∞' : limit}</span>
+        <span className="text-surface-400 font-normal">/{unlimited ? '∞' : limit}</span>
       </p>
       {!unlimited && (
-        <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 mt-1 overflow-hidden">
-          <div className={`h-full rounded-full ${pct >= 100 ? 'bg-red-400' : 'bg-emerald-400'}`} style={{ width: `${pct}%` }} />
+        <div className="h-1.5 rounded-full bg-surface-100 dark:bg-surface-800 mt-1 overflow-hidden">
+          <div className={`h-full rounded-full ${pct >= 100 ? 'bg-red-500' : 'bg-primary-500'}`} style={{ width: `${pct}%` }} />
         </div>
       )}
     </div>

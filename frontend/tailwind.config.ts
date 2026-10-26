@@ -66,13 +66,19 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
         display: ['var(--font-display)', 'Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'crm-card': '0 1px 2px rgb(0 0 0 / .04), 0 0 0 1px rgb(var(--crm-line))',
         'crm-pop': '0 12px 32px -8px rgb(0 0 0 / .22), 0 0 0 1px rgb(var(--crm-line))',
         'crm-glow': '0 0 0 4px rgb(var(--crm-ring) / .2)',
+        card: '0 1px 2px rgb(0 0 0 / .04), 0 4px 16px -8px rgb(0 0 0 / .08)',
+        float: '0 12px 32px -12px rgb(0 0 0 / .25)',
+      },
+      borderRadius: {
+        card: '1rem',
+        hero: '1.5rem',
       },
       fontSize: {
         '2xs': ['11px', '16px'],
@@ -80,8 +86,10 @@ const config: Config = {
       },
       animation: {
         'crm-shimmer': 'crm-shimmer 1.4s infinite',
-        'fade-in': 'fadeIn 0.5s ease-in-out',
-        'slide-up': 'slideUp 0.4s ease-out',
+        'fade-in': 'fadeIn 0.22s ease-out',
+        'fade-out': 'fadeOut 0.18s ease-in forwards',
+        shimmer: 'shimmer 1.4s ease-in-out infinite',
+        'slide-up': 'slideUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)',
         'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
         'paw-bounce': 'pawBounce 0.6s ease-in-out',
         'flame': 'flame 1.4s ease-in-out infinite',
@@ -91,6 +99,14 @@ const config: Config = {
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
+        },
+        fadeOut: {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '150% 0' },
+          '100%': { backgroundPosition: '-50% 0' },
         },
         slideUp: {
           '0%': { transform: 'translateY(20px)', opacity: '0' },

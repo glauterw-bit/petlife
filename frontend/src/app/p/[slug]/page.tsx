@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { getSpeciesLabel } from '@/lib/utils'
 import Link from 'next/link'
-import { PawPrint, Syringe, Footprints, Heart, Download } from 'lucide-react'
+import { PawPrint, Syringe, Footprints, Heart, Download, CheckCircle2 } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 const APP_STORE_URL = 'https://apps.apple.com/br/app/petlife-sa%C3%BAde-do-pet/id6768136468'
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     description: `Conheça ${pet.name}${pet.breed ? `, ${pet.breed}` : ''}! Carteirinha de saúde digital no PetLife.`,
     openGraph: {
       title: `${pet.name} ${emoji} está no PetLife`,
-      description: `${pet.stats.walks_km} km passeados · vacinas ${pet.stats.vaccines_ok ? 'em dia ✅' : 'registradas'} · Crie a carteirinha do seu pet também!`,
+      description: `${pet.stats.walks_km} km passeados · vacinas ${pet.stats.vaccines_ok ? 'em dia' : 'registradas'} pelo tutor · Crie a carteirinha do seu pet também!`,
       ...(pet.photo ? { images: [pet.photo] } : {}),
     },
   }
@@ -62,12 +62,12 @@ export default async function PublicPetPage({ params }: { params: { slug: string
 
   if (!pet) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-emerald-50 flex items-center justify-center px-4">
+      <div className="min-h-screen [color-scheme:light] bg-gradient-to-br from-primary-50 via-white to-emerald-50 text-surface-900 flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <div className="text-6xl mb-4">🐾</div>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center"><PawPrint className="w-8 h-8" aria-hidden /></div>
           <h1 className="text-xl font-bold text-surface-900 mb-2">Perfil não encontrado</h1>
-          <p className="text-sm text-surface-500 mb-6">Este perfil não existe ou o tutor o tornou privado.</p>
-          <Link href="/" className="inline-flex items-center gap-2 bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold">
+          <p className="text-sm text-surface-600 mb-6">Este perfil não existe ou o tutor o tornou privado.</p>
+          <Link href="/" className="inline-flex items-center gap-2 min-h-[44px] bg-primary-700 text-white px-5 rounded-xl text-sm font-semibold">
             <PawPrint className="w-4 h-4" /> Conhecer o PetLife
           </Link>
         </div>
@@ -79,12 +79,12 @@ export default async function PublicPetPage({ params }: { params: { slug: string
   const idade = petAge(pet.birth_date)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-emerald-50 py-8 px-4">
+    <div className="min-h-screen [color-scheme:light] bg-gradient-to-br from-primary-50 via-white to-emerald-50 text-surface-900 py-8 px-4 pt-[max(2rem,env(safe-area-inset-top))]">
       <div className="max-w-md mx-auto">
         {/* Cabeçalho PetLife */}
         <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-            <PawPrint className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-primary-700 rounded-lg flex items-center justify-center">
+            <PawPrint className="w-5 h-5 text-white" aria-hidden />
           </div>
           <span className="font-bold text-surface-900">PetLife</span>
         </div>
@@ -98,14 +98,14 @@ export default async function PublicPetPage({ params }: { params: { slug: string
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={pet.photo} alt={pet.name} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-6xl">{emoji}</span>
+                <span className="text-6xl" aria-hidden>{emoji}</span>
               )}
             </div>
             <div className="text-center mt-3">
               <h1 className="text-2xl font-bold text-surface-900">
                 {pet.name} {pet.is_deceased ? '🌈' : emoji}
               </h1>
-              <p className="text-sm text-surface-500">
+              <p className="text-sm text-surface-600">
                 {[pet.breed, idade].filter(Boolean).join(' · ') || getSpeciesLabel(pet.species)}
               </p>
               {pet.bio && <p className="text-sm text-surface-600 mt-2 leading-snug">{pet.bio}</p>}
@@ -114,50 +114,51 @@ export default async function PublicPetPage({ params }: { params: { slug: string
             {/* Stats */}
             <div className="grid grid-cols-3 gap-2 mt-5">
               <div className="bg-primary-50 rounded-2xl p-3 text-center">
-                <Footprints className="w-4 h-4 text-primary-600 mx-auto mb-1" />
+                <Footprints className="w-4 h-4 text-primary-700 mx-auto mb-1" aria-hidden />
                 <div className="text-lg font-bold text-surface-900 leading-tight">{pet.stats.walks_km}</div>
-                <div className="text-[11px] text-surface-500 leading-tight">km passeados</div>
+                <div className="text-xs text-surface-600 leading-tight">km passeados</div>
               </div>
               <div className="bg-emerald-50 rounded-2xl p-3 text-center">
-                <Syringe className="w-4 h-4 text-emerald-600 mx-auto mb-1" />
+                <Syringe className="w-4 h-4 text-emerald-700 mx-auto mb-1" aria-hidden />
                 <div className="text-lg font-bold text-surface-900 leading-tight">
-                  {pet.stats.vaccines_ok ? '✓' : pet.stats.vaccines_total}
+                  {pet.stats.vaccines_ok ? <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-700" aria-label="ok" /> : pet.stats.vaccines_total}
                 </div>
-                <div className="text-[11px] text-surface-500 leading-tight">
+                <div className="text-xs text-surface-600 leading-tight">
                   {pet.stats.vaccines_ok ? 'vacinas em dia' : 'vacinas'}
                 </div>
               </div>
               <div className="bg-rose-50 rounded-2xl p-3 text-center">
-                <Heart className="w-4 h-4 text-rose-500 mx-auto mb-1" />
+                <Heart className="w-4 h-4 text-rose-600 mx-auto mb-1" aria-hidden />
                 <div className="text-lg font-bold text-surface-900 leading-tight">{pet.stats.walks_count}</div>
-                <div className="text-[11px] text-surface-500 leading-tight">passeios</div>
+                <div className="text-xs text-surface-600 leading-tight">passeios</div>
               </div>
             </div>
+            <p className="mt-3 text-center text-xs text-surface-600">Vacinas registradas pelo tutor no PetLife.</p>
           </div>
         </div>
 
         {/* CTA */}
         <div className="mt-6 bg-white rounded-3xl shadow-lg border border-surface-100 p-5 text-center">
           <p className="text-sm text-surface-700 font-medium mb-3">
-            Crie a carteirinha digital do seu pet — vacinas, IA veterinária e passeios num só app 🐾
+            Crie a carteirinha digital do seu pet: vacinas, lembretes, assistente com IA e passeios num só app.
           </p>
           <div className="flex flex-col gap-2">
             <a
               href={APP_STORE_URL}
-              className="inline-flex items-center justify-center gap-2 bg-surface-900 text-white px-5 py-3 rounded-2xl text-sm font-semibold"
+              className="inline-flex items-center justify-center gap-2 min-h-[48px] bg-surface-900 text-white px-5 rounded-xl text-sm font-semibold"
             >
               <Download className="w-4 h-4" /> Baixar na App Store
             </a>
             <Link
               href="/auth/register"
-              className="inline-flex items-center justify-center gap-2 bg-primary-500 text-white px-5 py-3 rounded-2xl text-sm font-semibold"
+              className="inline-flex items-center justify-center gap-2 min-h-[48px] bg-primary-700 text-white px-5 rounded-xl text-sm font-semibold"
             >
               <PawPrint className="w-4 h-4" /> Usar no navegador (grátis)
             </Link>
           </div>
         </div>
 
-        <p className="text-center text-[11px] text-surface-400 mt-4">
+        <p className="text-center text-xs text-surface-600 mt-4 pb-[env(safe-area-inset-bottom)]">
           PetLife — o cuidado que seu pet merece · Sem anúncios · LGPD
         </p>
       </div>

@@ -18,13 +18,25 @@ import { SoftUpsell } from '@/components/billing/SoftUpsell'
 import { CelebrationOverlay, celebrate } from '@/components/ui/CelebrationOverlay'
 import { pets as petsApi, type Pet } from '@/lib/api'
 import { trackAppOpenOnce } from '@/lib/track'
+import { useShell } from './shell'
 import { useT } from '@/contexts/LocaleContext'
 
 interface DashboardLayoutProps {
   children: ReactNode
 }
 
+/**
+ * Dentro do TutorShell (rotas do tutor) só repassa o conteúdo — o shell já
+ * desenha barra, sino e Vyron. Fora dele (/vet, /admin, /clinica-convite,
+ * /clinicas-com-acesso) mantém o layout completo legado.
+ */
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const shell = useShell()
+  if (shell?.inShell) return <>{children}</>
+  return <LegacyDashboardLayout>{children}</LegacyDashboardLayout>
+}
+
+function LegacyDashboardLayout({ children }: DashboardLayoutProps) {
   const { user, isLoading, isVetUser } = useAuth()
   const router = useRouter()
   const t = useT()
@@ -86,7 +98,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   if (!user) return null
 
   return (
-    <div className="flex min-h-screen bg-surface-50 dark:bg-surface-900/60 w-full max-w-full overflow-x-hidden">
+    <div className="flex min-h-screen bg-surface-50 dark:bg-surface-950 w-full max-w-full overflow-x-hidden">
       <Sidebar
         pets={pets}
         activePetId={activePetId}

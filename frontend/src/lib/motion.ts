@@ -109,3 +109,51 @@ export function scoreColor(score: number): string {
   if (score >= 40) return '#f59e0b' // amber
   return '#ef4444' // vermelho
 }
+
+// ── Tokens de motion (framer-motion) ─────────────────────────────────────
+// Curtos e com função: nada passa de ~400 ms. Use com <MotionConfig
+// reducedMotion="user"> (o TutorShell já envolve as telas do tutor).
+
+/** Durações em segundos (framer usa segundos). */
+export const dur = { micro: 0.12, fast: 0.18, base: 0.22, slow: 0.32 }
+
+/** Desaceleração padrão do app — rápida no começo, assenta suave. */
+export const easeOut = [0.2, 0.8, 0.2, 1] as const
+
+export const spring = {
+  /** Pílulas, folhas, trocas de aba: chega rápido, sem quicar. */
+  snappy: { type: 'spring' as const, stiffness: 520, damping: 38, mass: 0.8 },
+  /** Anel de proteção, cartões. */
+  soft: { type: 'spring' as const, stiffness: 300, damping: 30 },
+  /** Selos, check de sucesso: um leve "pop". */
+  pop: { type: 'spring' as const, stiffness: 420, damping: 22 },
+}
+
+export const variants = {
+  fadeUp: { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } },
+  scaleIn: { hidden: { opacity: 0, scale: 0.94 }, show: { opacity: 1, scale: 1 } },
+  stagger: (gap = 0.05) => ({ hidden: {}, show: { transition: { staggerChildren: gap } } }),
+  sheet: { hidden: { y: '100%' }, show: { y: 0 }, exit: { y: '100%' } },
+}
+
+// ── Direção da navegação (transição de tela) ─────────────────────────────
+export type NavDirection = 'forward' | 'back'
+
+let _navDirection: NavDirection = 'forward'
+
+/** Marque 'back' antes de router.back()/push de "voltar" — a próxima tela entra pela esquerda. */
+export function setNavDirection(d: NavDirection): void {
+  _navDirection = d
+}
+
+/** Lê a direção da navegação em curso e volta para 'forward'. */
+export function consumeNavDirection(): NavDirection {
+  const d = _navDirection
+  _navDirection = 'forward'
+  return d
+}
+
+/** Lê a direção sem consumir (para render; consuma depois num efeito). */
+export function peekNavDirection(): NavDirection {
+  return _navDirection
+}

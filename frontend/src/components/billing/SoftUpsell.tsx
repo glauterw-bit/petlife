@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Sparkles, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Button } from '@/components/ui/Button'
+import { variants, spring } from '@/lib/motion'
 import { billing } from '@/lib/api'
 import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
@@ -72,42 +75,50 @@ export function SoftUpsell() {
     return () => window.removeEventListener(SOFT_UPSELL_EVENT, onEvent)
   }, [pathname])
 
-  if (!reason) return null
-
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[80] p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex justify-center pointer-events-none">
-      <div className="pointer-events-auto w-full max-w-md rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-surface-800 shadow-2xl p-4 animate-slide-up">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-surface-900 dark:text-white">{t(`ac.soft.title.${reason}`)}</p>
-            <p className="text-xs text-surface-600 dark:text-surface-300 mt-0.5 leading-relaxed">{t(`ac.soft.body.${reason}`)}</p>
-            <div className="flex gap-2 mt-3">
+    <div className="fixed inset-x-0 bottom-nav md:bottom-0 z-[60] p-3 sm:p-4 md:pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-center pointer-events-none">
+      <AnimatePresence>
+        {reason && (
+          <motion.div
+            key={reason}
+            role="dialog"
+            aria-modal="false"
+            aria-labelledby="soft-upsell-title"
+            variants={variants.fadeUp}
+            initial="hidden"
+            animate="show"
+            exit="hidden"
+            transition={spring.snappy}
+            className="pointer-events-auto w-full max-w-md rounded-2xl border border-primary-200 dark:border-primary-500/25 bg-white dark:bg-surface-900 shadow-float p-4"
+          >
+            <div className="flex items-start gap-3">
+              <span className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-500/15 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-primary-700 dark:text-primary-300" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p id="soft-upsell-title" className="text-[15px] font-bold text-surface-900 dark:text-white">{t(`ac.soft.title.${reason}`)}</p>
+                <p className="text-[13px] text-surface-600 dark:text-surface-300 mt-0.5 leading-relaxed">{t(`ac.soft.body.${reason}`)}</p>
+                <div className="flex gap-2 mt-3">
+                  <Button size="sm" onClick={() => { track('soft_upsell_cta'); setReason(null); router.push('/plans') }}>
+                    {t('ac.soft.cta')}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setReason(null)}>
+                    {t('ac.soft.later')}
+                  </Button>
+                </div>
+              </div>
               <button
-                onClick={() => { track('soft_upsell_cta'); setReason(null); router.push('/plans') }}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 transition"
-              >
-                {t('ac.soft.cta')}
-              </button>
-              <button
+                type="button"
                 onClick={() => setReason(null)}
-                className="px-3 py-2 rounded-xl text-xs font-medium text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition"
+                aria-label={t('common.close')}
+                className="-mr-2 -mt-2 w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-xl text-surface-500 hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
               >
-                {t('ac.soft.later')}
+                <X className="w-4 h-4" aria-hidden />
               </button>
             </div>
-          </div>
-          <button
-            onClick={() => setReason(null)}
-            aria-label={t('common.close')}
-            className="p-1 rounded-lg text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

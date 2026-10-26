@@ -17,15 +17,32 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
+/** Aplica o tema no <html> e acerta a cor dos ícones da barra de status no app nativo. */
+function applyTheme(t: Theme) {
+  document.documentElement.classList.toggle('dark', t === 'dark')
+  void (async () => {
+    try {
+      const { Capacitor } = await import('@capacitor/core')
+      if (!Capacitor.isNativePlatform()) return
+      const { StatusBar, Style } = await import('@capacitor/status-bar')
+      // Style.Dark = texto claro (fundo escuro); Style.Light = texto escuro
+      await StatusBar.setStyle({ style: t === 'dark' ? Style.Dark : Style.Light })
+    } catch {
+      /* plugin ausente — segue sem */
+    }
+  })()
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light')
 
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('petlife_theme') : null
+    let stored: string | null = null
+    try { stored = localStorage.getItem('petlife_theme') } catch {}
     // Migração: quem tinha 'system' passa a claro (novo padrão). Só 'dark' explícito persiste.
     const initial: Theme = stored === 'dark' ? 'dark' : 'light'
     setThemeState(initial)
-    document.documentElement.classList.toggle('dark', initial === 'dark')
+    applyTheme(initial)
     if (stored !== 'dark' && stored !== 'light') {
       try { localStorage.setItem('petlife_theme', initial) } catch {}
     }
@@ -34,7 +51,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = (t: Theme) => {
     setThemeState(t)
     try { localStorage.setItem('petlife_theme', t) } catch {}
-    document.documentElement.classList.toggle('dark', t === 'dark')
+    applyTheme(t)
   }
 
   return (

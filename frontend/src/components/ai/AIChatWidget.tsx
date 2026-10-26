@@ -1,11 +1,61 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Send, ChevronDown } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { AnimatePresence, motion } from 'framer-motion'
+import { X, Send, ChevronDown, Check, Dog, Cat, PawPrint } from 'lucide-react'
 import { VyronAvatar } from './VyronAvatar'
 import { ai, billing, type Pet } from '@/lib/api'
-import { cn, getSpeciesEmoji } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
+import { hapticLight } from '@/lib/feedback'
+import { spring, dur, easeOut } from '@/lib/motion'
+
+/** Telas onde o botão do Vyron atrapalha (formulários longos, passeio ativo, suporte humano). */
+const HIDDEN_ROUTES = ['/suporte', '/pets/new', '/walks/active', '/settings', '/plans']
+
+function SpeciesIcon({ species, className }: { species?: string; className?: string }) {
+  const Icon = species === 'dog' ? Dog : species === 'cat' ? Cat : PawPrint
+  return <Icon className={className} aria-hidden />
+}
+
+/** Teclado virtual aberto (a viewport visual encolhe bem mais que a barra do Safari). */
+function useKeyboardOpen(): boolean {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () => setOpen(vv.height < window.innerHeight - 150)
+    update()
+    vv.addEventListener('resize', update)
+    return () => vv.removeEventListener('resize', update)
+  }, [])
+  return open
+}
+
+/** true enquanto o usuário rola para baixo (o botão encolhe e sai da frente). */
+function useScrollingDown(): boolean {
+  const [down, setDown] = useState(false)
+  useEffect(() => {
+    let last = window.scrollY
+    let ticking = false
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        const y = window.scrollY
+        if (Math.abs(y - last) > 6) {
+          setDown(y > last && y > 40)
+          last = y
+        }
+        ticking = false
+      })
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return down
+}
 
 interface Message {
   upsell?: boolean
@@ -26,10 +76,15 @@ const UPSELL_APOS_RESPOSTAS = 3
 
 interface AIChatWidgetProps {
   pets: Pet[]
+  /** Alguma tela pediu para esconder o botão (useHideAssistant). */
+  hidden?: boolean
 }
 
-export function AIChatWidget({ pets }: AIChatWidgetProps) {
+export function AIChatWidget({ pets, hidden = false }: AIChatWidgetProps) {
   const t = useT()
+  const pathname = usePathname() ?? ''
+  const keyboardOpen = useKeyboardOpen()
+  const scrollingDown = useScrollingDown()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -130,69 +185,95 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
     }
   }
 
+  // fecha o chat ao trocar de tela (ex.: tocou em "ver planos" dentro dele)
+  useEffect(() => { setOpen(false); setPetDropdown(false) }, [pathname])
+
   const selectedPet = pets.find(p => p.id === selectedPetId)
+  const routeHidden = HIDDEN_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
+  const showButton = !open && !hidden && !routeHidden && !keyboardOpen
 
   return (
     <>
-      {/* Floating button */}
-      {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          aria-label={t('v.ai.openChat')}
-          style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
-          className="pressable fixed bottom-nav md:bottom-6 z-40 flex items-center gap-2 bg-white dark:bg-surface-800 border-2 border-primary-400 text-primary-700 dark:text-primary-300 pl-1.5 pr-4 py-1.5 tap-target rounded-full shadow-xl shadow-primary-300/40 transition-all hover:scale-105"
-        >
-          <VyronAvatar size={40} state="idle" />
-          <span className="text-sm font-bold">Vyron</span>
-        </button>
-      )}
+      {/* Botão flutuante: só o Vyron, 52 px */}
+      <AnimatePresence>
+        {showButton && (
+          <motion.button
+            key="vyron-fab"
+            type="button"
+            onClick={() => { void hapticLight(); setOpen(true) }}
+            aria-label={t('shell.assistant')}
+            style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: scrollingDown ? 0.9 : 1, scale: scrollingDown ? 0.85 : 1 }}
+            exit={{ opacity: 0, scale: 0.6, transition: { duration: dur.fast } }}
+            whileTap={{ scale: 0.92 }}
+            transition={spring.pop}
+            className="fixed bottom-nav md:bottom-6 z-40 w-[52px] h-[52px] rounded-full flex items-center justify-center bg-white dark:bg-surface-800 border border-primary-200 dark:border-primary-500/30 shadow-float origin-bottom-right"
+          >
+            <VyronAvatar size={40} state="idle" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
-      {/* Chat modal */}
+      {/* Chat */}
+      <AnimatePresence>
       {open && (
-        <div
-          className="fixed bottom-nav md:bottom-6 right-2 left-2 md:right-6 md:left-auto z-40 w-auto md:w-96 max-h-[min(80dvh,640px)] flex flex-col bg-white dark:bg-surface-800 rounded-2xl shadow-2xl border border-surface-200 dark:border-surface-700 overflow-hidden animate-slide-up"
+        <motion.div
+          key="vyron-panel"
+          role="dialog"
+          aria-label="Vyron"
+          initial={{ opacity: 0, y: 16, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.98, transition: { duration: dur.fast, ease: easeOut } }}
+          transition={spring.snappy}
+          className="fixed bottom-nav md:bottom-6 right-2 left-2 md:right-6 md:left-auto z-[45] w-auto md:w-96 max-h-[min(78dvh,640px)] flex flex-col bg-white dark:bg-surface-900 rounded-3xl shadow-float border border-surface-200 dark:border-surface-800 overflow-hidden origin-bottom-right"
         >
           {/* Header */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-primary-500 text-white">
-            <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center shadow-inner">
-              <VyronAvatar size={38} state={loading ? 'thinking' : 'idle'} />
+          <div className="flex items-center gap-3 pl-4 pr-2 py-2.5 border-b border-surface-100 dark:border-surface-800">
+            <div className="w-11 h-11 bg-primary-50 dark:bg-primary-500/15 rounded-2xl flex items-center justify-center">
+              <VyronAvatar size={36} state={loading ? 'thinking' : 'idle'} />
             </div>
-            <div className="flex-1">
-              <div className="font-bold text-sm">Vyron</div>
-              <div className="text-xs text-primary-100">{loading ? t('v.ai.thinking') : t('v.ai.status')}</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-sm text-surface-900 dark:text-white">Vyron</div>
+              <div className="text-xs text-surface-500 dark:text-surface-400" aria-live="polite">{loading ? t('v.ai.thinking') : t('v.ai.status')}</div>
             </div>
             <button
+              type="button"
               onClick={() => setOpen(false)}
-              className="p-1.5 rounded-lg hover:bg-white/20 transition"
+              aria-label={t('common.close')}
+              className="pressable w-11 h-11 rounded-full flex items-center justify-center text-surface-500 hover:bg-surface-100 hover:text-surface-700 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-200 transition"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden />
             </button>
           </div>
 
           {/* Pet selector */}
           {pets.length > 0 && (
-            <div className="px-3 py-2 border-b border-surface-100 dark:border-surface-700 relative">
+            <div className="px-3 py-2 border-b border-surface-100 dark:border-surface-800 relative">
               <button
                 onClick={() => setPetDropdown(v => !v)}
-                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-50 dark:bg-surface-900/60 hover:bg-surface-100 transition text-sm"
+                type="button"
+                aria-expanded={petDropdown}
+                className="w-full min-h-[44px] flex items-center gap-2 px-3 rounded-xl bg-surface-50 dark:bg-surface-800 hover:bg-surface-100 dark:hover:bg-surface-700 transition text-sm"
               >
-                <span>{getSpeciesEmoji(selectedPet?.species)}</span>
+                <SpeciesIcon species={selectedPet?.species} className="w-4 h-4 text-primary-700 dark:text-primary-300" />
                 <span className="text-surface-700 dark:text-surface-200 font-medium">
                   {selectedPet?.name ?? t('v.side.selectPet')}
                 </span>
                 <ChevronDown className={cn('w-4 h-4 text-surface-400 ml-auto transition-transform', petDropdown && 'rotate-180')} />
               </button>
               {petDropdown && (
-                <div className="absolute left-3 right-3 top-full mt-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl shadow-lg z-10 overflow-hidden">
+                <div className="absolute left-3 right-3 top-full mt-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl shadow-float z-10 overflow-hidden">
                   {pets.map(p => (
                     <button
                       key={p.id}
                       onClick={() => { setSelectedPetId(p.id); setPetDropdown(false) }}
-                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-primary-50 text-sm text-left"
+                      type="button"
+                      className="w-full min-h-[44px] flex items-center gap-2 px-3 hover:bg-primary-50 dark:hover:bg-primary-500/10 text-sm text-left text-surface-800 dark:text-surface-100"
                     >
-                      <span>{getSpeciesEmoji(p.species)}</span>
+                      <SpeciesIcon species={p.species} className="w-4 h-4 text-surface-500 dark:text-surface-400" />
                       <span>{p.name}</span>
-                      {p.id === selectedPetId && <span className="ml-auto text-primary-600">✓</span>}
+                      {p.id === selectedPetId && <Check className="ml-auto w-4 h-4 text-primary-700 dark:text-primary-300" aria-hidden />}
                     </button>
                   ))}
                 </div>
@@ -211,7 +292,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
                 )}
               >
                 {msg.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-500/15 flex items-center justify-center shrink-0">
                     <VyronAvatar size={26} state="idle" />
                   </div>
                 )}
@@ -219,8 +300,8 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
                   className={cn(
                     'max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed',
                     msg.role === 'user'
-                      ? 'bg-primary-500 text-white rounded-tr-sm'
-                      : 'bg-surface-100 dark:bg-surface-700 text-surface-800 dark:text-surface-100 rounded-tl-sm'
+                      ? 'bg-primary-700 text-white dark:bg-primary-500 dark:text-surface-950 rounded-tr-sm'
+                      : 'bg-surface-100 dark:bg-surface-800 text-surface-800 dark:text-surface-100 rounded-tl-sm'
                   )}
                 >
                   {msg.upsell ? (
@@ -231,7 +312,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
                           ? t('v.ai.upsellLow', { n: usageRef.current.restam })
                           : t('v.ai.upsellBody')}
                       </span>
-                      <a href="/plans" className="inline-block mt-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                      <a href="/plans" className="inline-flex items-center mt-2 min-h-[36px] bg-primary-700 hover:bg-primary-800 text-white dark:bg-primary-500 dark:text-surface-950 text-xs font-semibold px-3 rounded-lg transition">
                         {t('v.ai.upsellCta')}
                       </a>
                     </span>
@@ -242,10 +323,10 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
 
             {loading && (
               <div className="flex gap-2">
-                <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-500/15 flex items-center justify-center shrink-0">
                   <VyronAvatar size={26} state="thinking" />
                 </div>
-                <div className="bg-surface-100 dark:bg-surface-700 rounded-2xl rounded-tl-sm px-3 py-2">
+                <div className="bg-surface-100 dark:bg-surface-800 rounded-2xl rounded-tl-sm px-3 py-2">
                   <div className="flex gap-1">
                     {[0, 1, 2].map(i => (
                       <div
@@ -262,8 +343,10 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
           </div>
 
           {/* Input */}
-          <div className="px-3 py-3 border-t border-surface-100 dark:border-surface-700 flex gap-2 shrink-0 pb-keyboard">
+          <div className="px-3 py-3 border-t border-surface-100 dark:border-surface-800 flex gap-2 shrink-0 pb-keyboard">
+            <label htmlFor="vyron-input" className="sr-only">{t('v.ai.placeholder')}</label>
             <input
+              id="vyron-input"
               ref={inputRef}
               type="text"
               value={input}
@@ -273,7 +356,7 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
                 setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 250)
               }}
               placeholder={t('v.ai.placeholder')}
-              className="flex-1 text-base px-3 py-2 border border-surface-200 dark:border-surface-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="flex-1 min-w-0 min-h-[44px] text-base px-3 border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-900 dark:text-surface-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               inputMode="text"
               enterKeyHint="send"
             />
@@ -281,13 +364,15 @@ export function AIChatWidget({ pets }: AIChatWidgetProps) {
               onClick={sendMessage}
               aria-label={t('v.ai.send')}
               disabled={!input.trim() || loading}
-              className="tap-target bg-primary-500 text-white rounded-xl flex items-center justify-center hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition px-3"
+              type="button"
+              className="tap-target bg-primary-700 text-white dark:bg-primary-500 dark:text-surface-950 rounded-xl flex items-center justify-center hover:bg-primary-800 dark:hover:bg-primary-400 disabled:opacity-50 disabled:cursor-not-allowed transition px-3"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4" aria-hidden />
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </>
   )
 }

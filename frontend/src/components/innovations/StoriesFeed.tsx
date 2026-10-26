@@ -5,6 +5,9 @@ import { localeTag } from '@/lib/utils'
 import { Camera, Trash2, Loader2, Sparkles } from 'lucide-react'
 import { innovations, type StoryEntry } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
+import { useConfirm } from '@/components/ui/Confirm'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { SkeletonTile } from '@/components/ui/Skeleton'
 import { useT } from '@/contexts/LocaleContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
@@ -24,6 +27,7 @@ const EMOTION_LABEL_KEY: Record<string, string> = {
 export function StoriesFeed({ petId, petName }: { petId: number; petName: string }) {
   const t = useT()
   const { success, error } = useToast()
+  const confirm = useConfirm()
   const [stories, setStories] = useState<StoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -54,7 +58,7 @@ export function StoriesFeed({ petId, petName }: { petId: number; petName: string
   }
 
   async function del(id: number) {
-    if (!confirm(t('g.st.confirmDelete'))) return
+    if (!(await confirm({ title: t('g.st.confirmDelete'), tone: 'danger', confirmLabel: t('ui.confirm.delete') }))) return
     try {
       await innovations.deleteStory(id)
       setStories(stories.filter(s => s.id !== id))
@@ -67,7 +71,7 @@ export function StoriesFeed({ petId, petName }: { petId: number; petName: string
   return (
     <div className="space-y-4">
       {/* Upload */}
-      <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-4">
+      <div className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200/70 dark:border-surface-800 p-4">
         <input
           type="text"
           value={caption}
@@ -88,16 +92,13 @@ export function StoriesFeed({ petId, petName }: { petId: number; petName: string
 
       {/* Feed */}
       {loading ? (
-        <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-surface-400" /></div>
+        <div className="grid grid-cols-2 gap-3" aria-busy="true"><SkeletonTile /><SkeletonTile /></div>
       ) : stories.length === 0 ? (
-        <div className="text-center py-12 bg-surface-50 dark:bg-surface-800/50 rounded-2xl">
-          <Camera className="w-10 h-10 text-surface-300 mx-auto mb-2" />
-          <p className="text-sm text-surface-500 dark:text-surface-400">{t('g.st.empty')}</p>
-        </div>
+        <EmptyState icon={Camera} title={t('g.st.empty')} />
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {stories.map(s => (
-            <div key={s.id} className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 overflow-hidden group">
+            <div key={s.id} className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200/70 dark:border-surface-800 overflow-hidden">
               <div className="relative aspect-square">
                 <img
                   src={`${API_URL}${s.photo_url}`}
@@ -112,20 +113,22 @@ export function StoriesFeed({ petId, petName }: { petId: number; petName: string
                 <button
                   onClick={() => del(s.id)}
                   aria-label={t('g.st.deleteAria')}
-                  className="absolute top-2 right-2 bg-black/60 backdrop-blur text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-red-500"
+                  className="pressable absolute top-0 right-0 w-11 h-11 flex items-center justify-center"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="w-8 h-8 rounded-full bg-black/55 backdrop-blur text-white flex items-center justify-center">
+                    <Trash2 className="w-4 h-4" aria-hidden />
+                  </span>
                 </button>
               </div>
               <div className="p-3">
                 {s.user_caption && <p className="text-sm font-medium text-surface-900 dark:text-white mb-1">{s.user_caption}</p>}
                 {s.ai_caption && (
                   <p className="text-xs text-surface-500 dark:text-surface-400 italic flex items-start gap-1">
-                    <Sparkles className="w-3 h-3 shrink-0 mt-0.5 text-primary-500" />
+                    <Sparkles className="w-3 h-3 shrink-0 mt-0.5 text-primary-600 dark:text-primary-400" aria-hidden />
                     <span>{s.ai_caption}</span>
                   </p>
                 )}
-                <p className="text-[10px] text-surface-400 mt-1">{new Date(s.created_at).toLocaleDateString(localeTag())}</p>
+                <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">{new Date(s.created_at).toLocaleDateString(localeTag())}</p>
               </div>
             </div>
           ))}

@@ -8,8 +8,10 @@ import { ToastProvider } from '@/components/ui/ToastContext'
 import { DeepLinks } from '@/components/native/DeepLinks'
 import { InstallPing } from '@/components/native/InstallPing'
 import { Telemetry } from '@/components/native/Telemetry'
+import { TutorShell } from '@/components/layout/TutorShell'
+import { ConfirmProvider } from '@/components/ui/Confirm'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 // Display arredondada só para títulos — o "fofo" que o nicho pet pede,
 // mantendo Inter no corpo pra seriedade médica.
 const nunito = Nunito({ subsets: ['latin'], weight: ['700', '800'], variable: '--font-display' })
@@ -43,7 +45,11 @@ export const metadata: Metadata = {
 }
 
 export const viewport = {
-  themeColor: '#10b981',
+  // Cor da barra do navegador acompanhando o fundo do app (claro/escuro)
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fafaf9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0c0a09' },
+  ],
   width: 'device-width',
   initialScale: 1,
   // Trava a escala em 1:1 — impede a WKWebView do iOS de renderizar o app
@@ -57,12 +63,13 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className="scroll-smooth">
-      <body className={`${inter.className} ${nunito.variable}`}>
+    <html lang="pt-BR" className="scroll-smooth" suppressHydrationWarning>
+      <body className={`${inter.className} ${inter.variable} ${nunito.variable}`}>
         {/* Prevenir flash de tema errado: lê preferência antes do React hidratar */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('petlife_theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
+            // Igual ao ThemeContext: claro é o padrão; só 'dark' explícito vira escuro.
+            __html: `(function(){try{if(localStorage.getItem('petlife_theme')==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`,
           }}
         />
         <ThemeProvider>
@@ -72,7 +79,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <DeepLinks />
                 <InstallPing />
                 <Telemetry />
-                {children}
+                <ConfirmProvider>
+                  <TutorShell>{children}</TutorShell>
+                </ConfirmProvider>
               </ToastProvider>
             </AuthProvider>
           </LocaleProvider>

@@ -8,10 +8,10 @@ export const metadata = {
 
 export default function DeleteAccountPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-emerald-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-emerald-50 dark:from-surface-950 dark:via-surface-900 dark:to-surface-950 pt-[max(2rem,env(safe-area-inset-top))] pb-8 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <Link href="/" className="inline-flex items-center gap-2 text-surface-600 dark:text-surface-300 hover:text-surface-900">
+          <Link href="/" className="inline-flex items-center gap-2 min-h-[44px] text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white">
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Voltar</span>
           </Link>
@@ -23,7 +23,7 @@ export default function DeleteAccountPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 p-8 sm:p-10">
+        <div className="bg-white dark:bg-surface-900 rounded-3xl shadow-card border border-surface-200/70 dark:border-surface-800 p-6 sm:p-10">
           <div className="flex items-center gap-3 mb-1">
             <Trash2 className="w-7 h-7 text-red-500" />
             <h1 className="text-3xl font-bold text-surface-900 dark:text-white">Excluir conta e dados</h1>

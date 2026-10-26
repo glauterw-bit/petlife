@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { PawPrint, Gift, Copy, Check } from 'lucide-react'
+import { PawPrint, Gift, Copy, Check, Loader2 } from 'lucide-react'
 import { appStoreUrl } from '@/components/public/DownloadCta'
+import { usePublicColorScheme } from '@/components/public/usePublicColorScheme'
 import { track } from '@/lib/track'
+import { useT } from '@/contexts/LocaleContext'
+import { hapticSuccess } from '@/lib/feedback'
 
 /**
  * Link de indicação (/i/PET-XXXXXX).
@@ -15,6 +18,8 @@ import { track } from '@/lib/track'
  * para o cadastro web com o código preenchido.
  */
 export default function InvitePage() {
+  usePublicColorScheme()
+  const t = useT()
   const params = useParams()
   const router = useRouter()
   const code = String(params.code || '').toUpperCase()
@@ -29,37 +34,48 @@ export default function InvitePage() {
   }, [code, router])
 
   async function copyAndGo() {
-    try { await navigator.clipboard.writeText(code); setCopied(true) } catch {}
+    try { await navigator.clipboard.writeText(code); setCopied(true); void hapticSuccess() } catch {}
     track('public_cta_click', { meta: 'indicacao:app_store' })
     window.location.href = appStoreUrl('indicacao')
   }
 
-  if (!ios) return <div className="min-h-screen flex items-center justify-center text-surface-500">Abrindo o PetLife…</div>
+  if (!ios) {
+    return (
+      <main className="min-h-dvh bg-surface-50 dark:bg-surface-950 flex items-center justify-center gap-2 text-surface-600 dark:text-surface-400" role="status">
+        <Loader2 className="w-5 h-5 animate-spin" aria-hidden /> {t('pub.inv.opening')}
+      </main>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white dark:from-surface-900 dark:to-surface-900 flex items-center justify-center p-6">
-      <div className="max-w-sm w-full bg-white dark:bg-surface-800 rounded-3xl shadow-lg p-6 text-center">
-        <div className="w-14 h-14 mx-auto bg-primary-500 rounded-2xl flex items-center justify-center mb-3">
-          <PawPrint className="w-8 h-8 text-white" />
-        </div>
-        <h1 className="text-xl font-bold text-surface-900 dark:text-white">Você foi convidado para o PetLife</h1>
-        <p className="text-sm text-surface-600 dark:text-surface-300 mt-2">
-          Carteirinha de vacinas no celular e lembrete antes de cada dose. Grátis.
-        </p>
-        <div className="mt-5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4">
-          <p className="text-xs text-emerald-800 dark:text-emerald-200 flex items-center justify-center gap-1"><Gift className="w-4 h-4" /> Seu código de convite</p>
-          <p className="text-2xl font-bold tracking-widest text-emerald-700 dark:text-emerald-300 mt-1">{code}</p>
-          <p className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80 mt-1">
-            No cadastro, toque em &quot;Tenho um código de convite&quot;. Quando você cadastrar a primeira vacina, vocês dois ganham 30 dias de PetLife+.
+    <main className="min-h-dvh bg-surface-50 dark:bg-surface-950 flex items-center justify-center p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div className="max-w-sm w-full bg-white dark:bg-surface-900 rounded-3xl border border-surface-200/70 dark:border-surface-800 shadow-card p-6 text-center">
+        <span className="w-14 h-14 mx-auto bg-primary-700 dark:bg-primary-500 rounded-2xl flex items-center justify-center mb-3">
+          <PawPrint className="w-8 h-8 text-white dark:text-surface-950" aria-hidden />
+        </span>
+        <h1 className="text-xl font-bold text-surface-900 dark:text-white">{t('pub.inv.title')}</h1>
+        <p className="text-sm text-surface-600 dark:text-surface-300 mt-2">{t('pub.inv.sub')}</p>
+        <div className="mt-5 tone-success-bg border rounded-2xl p-4">
+          <p className="text-xs text-emerald-800 dark:text-emerald-200 flex items-center justify-center gap-1">
+            <Gift className="w-4 h-4" aria-hidden /> {t('pub.inv.codeLabel')}
           </p>
+          <p className="text-2xl font-bold tracking-widest text-emerald-800 dark:text-emerald-300 mt-1 select-all">{code}</p>
+          <p className="text-xs text-emerald-800 dark:text-emerald-200 mt-1">{t('pub.inv.howTo')}</p>
         </div>
-        <button onClick={copyAndGo} className="mt-5 w-full inline-flex items-center justify-center gap-2 bg-surface-900 dark:bg-white text-white dark:text-surface-900 px-5 py-3 rounded-2xl text-sm font-semibold">
-          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} Copiar código e baixar na App Store
+        <button
+          type="button"
+          onClick={copyAndGo}
+          className="pressable mt-5 w-full min-h-[52px] inline-flex items-center justify-center gap-2 bg-surface-900 dark:bg-white text-white dark:text-surface-900 px-5 rounded-2xl text-sm font-semibold"
+        >
+          {copied ? <Check className="w-4 h-4" aria-hidden /> : <Copy className="w-4 h-4" aria-hidden />} {t('pub.inv.copyAndGo')}
         </button>
-        <a href={`/auth/register?ref=${encodeURIComponent(code)}`} className="block mt-3 text-sm text-primary-600 dark:text-primary-400 underline">
-          Usar no navegador
+        <a
+          href={`/auth/register?ref=${encodeURIComponent(code)}`}
+          className="mt-2 flex items-center justify-center min-h-[44px] text-sm font-semibold text-primary-700 dark:text-primary-300 underline underline-offset-2"
+        >
+          {t('pub.inv.useBrowser')}
         </a>
       </div>
-    </div>
+    </main>
   )
 }

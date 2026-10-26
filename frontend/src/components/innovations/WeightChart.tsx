@@ -8,6 +8,8 @@ import { useToast } from '@/components/ui/ToastContext'
 import { useChartTheme, smoothPath, parseRange } from '@/lib/charts'
 import { useT } from '@/contexts/LocaleContext'
 import { parseWeightKg } from '@/lib/weight'
+import { hapticSuccess, hapticError } from '@/lib/feedback'
+import { invalidate } from '@/lib/cache'
 
 interface WeightChartProps {
   petId: number
@@ -40,8 +42,12 @@ export function WeightChart({ petId }: WeightChartProps) {
       await innovations.addWeight(petId, w)
       setData(await innovations.weightHistory(petId))
       setWeightInput('')
+      void hapticSuccess()
+      invalidate(`pet:${petId}`)
+      invalidate('pets')
       success(t('g.wt.saved', { w }))
     } catch (e: unknown) {
+      void hapticError()
       error(e instanceof Error ? e.message : t('g.misc.errSave'))
     } finally { setAdding(false) }
   }
@@ -65,17 +71,19 @@ export function WeightChart({ petId }: WeightChartProps) {
     return { lo, hi, px, py, pts, iw, ih }
   }, [entries, band])
 
-  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-surface-400" /></div>
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-surface-500 dark:text-surface-400" /></div>
   if (!data) return null
 
   // tendência (atual vs primeiro registro)
   const trend = entries.length >= 2 ? entries.at(-1)!.weight_kg - entries[0].weight_kg : 0
   const trendPct = entries.length >= 2 && entries[0].weight_kg ? (trend / entries[0].weight_kg) * 100 : 0
   const TrendIcon = Math.abs(trend) < 0.05 ? Minus : trend > 0 ? TrendingUp : TrendingDown
+  const nf = (v: number, d = 1) => v.toLocaleString(localeTag(), { minimumFractionDigits: 0, maximumFractionDigits: d })
+  const fixDecimals = (msg: string) => localeTag().startsWith('en') ? msg : msg.replace(/(\d)\.(\d)/g, '$1,$2')
   const fmtDate = (s: string) => new Date(s).toLocaleDateString(localeTag(), { day: '2-digit', month: 'short' })
 
   return (
-    <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
+    <div className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200/70 dark:border-surface-800 p-5">
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
           <h3 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
@@ -84,7 +92,7 @@ export function WeightChart({ petId }: WeightChartProps) {
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {data.current_weight != null && (
               <span className="text-sm text-surface-500 dark:text-surface-400">
-                {t('g.wt.current')} <strong className="text-surface-900 dark:text-white tabular-nums">{data.current_weight} kg</strong>
+                {t('g.wt.current')} <strong className="text-surface-900 dark:text-white tabular-nums">{nf(data.current_weight)}&nbsp;kg</strong>
               </span>
             )}
             {entries.length >= 2 && (
@@ -92,28 +100,28 @@ export function WeightChart({ petId }: WeightChartProps) {
                 Math.abs(trend) < 0.05
                   ? 'bg-surface-100 text-surface-500 dark:bg-surface-700 dark:text-surface-300'
                   : trend > 0
-                    ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300'
-                    : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300'
+                    ? 'bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                    : 'bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
               }`}>
                 <TrendIcon className="w-3 h-3" />
-                {trend > 0 ? '+' : ''}{trend.toFixed(1)} kg
-                {Math.abs(trendPct) >= 1 && <span className="opacity-70">({trendPct > 0 ? '+' : ''}{trendPct.toFixed(0)}%)</span>}
+                {trend > 0 ? '+' : ''}{nf(trend)}&nbsp;kg
+                {Math.abs(trendPct) >= 1 && <span className="opacity-80">({trendPct > 0 ? '+' : ''}{trendPct.toFixed(0)}%)</span>}
               </span>
             )}
             {data.breed_weight_range && (
-              <span className="text-xs text-surface-400 dark:text-surface-500">{t('g.wt.breedRange', { range: data.breed_weight_range })}</span>
+              <span className="text-xs text-surface-500 dark:text-surface-400">{t('g.wt.breedRange', { range: data.breed_weight_range })}</span>
             )}
           </div>
         </div>
         <div className="flex gap-2">
           <input
-            type="text" inputMode="decimal" placeholder={t('g.wt.inputPh')} value={weightInput}
+            type="text" inputMode="decimal" aria-label={t('pw.pet.weight')} placeholder={t('g.wt.inputPh')} value={weightInput}
             onChange={e => setWeightInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') addWeight() }}
-            className="w-24 px-3 py-2 text-sm border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-24 px-3 min-h-[44px] text-[15px] bg-white border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
           <button onClick={addWeight} disabled={adding || !weightInput}
-            className="flex items-center gap-1 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-3 py-2 rounded-xl disabled:opacity-60">
+            className="pressable flex items-center gap-1 min-h-[44px] bg-primary-700 hover:bg-primary-800 text-white dark:bg-primary-500 dark:text-surface-950 text-sm font-semibold px-3.5 rounded-xl disabled:opacity-50">
             {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} kg
           </button>
         </div>
@@ -126,15 +134,15 @@ export function WeightChart({ petId }: WeightChartProps) {
             : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
         }`}>
           {data.alert.type === 'ganho' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-          <span>{data.alert.message}</span>
+          <span>{fixDecimals(data.alert.message)}</span>
         </div>
       )}
 
       {entries.length === 0 || !geom ? (
         <div className="text-center py-10">
           <Scale className="w-9 h-9 mx-auto text-surface-300 dark:text-surface-600 mb-2" />
-          <p className="text-sm text-surface-400">{t('g.wt.empty')}</p>
-          <p className="text-xs text-surface-400 mt-0.5">{t('g.wt.emptyHint')}</p>
+          <p className="text-sm text-surface-500 dark:text-surface-400">{t('g.wt.empty')}</p>
+          <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">{t('g.wt.emptyHint')}</p>
         </div>
       ) : (
         <>
@@ -202,7 +210,7 @@ export function WeightChart({ petId }: WeightChartProps) {
               <div className="absolute -translate-x-1/2 -translate-y-full pointer-events-none z-10 whitespace-nowrap
                 bg-surface-900 dark:bg-surface-700 text-white text-xs rounded-lg px-2.5 py-1.5 shadow-lg"
                 style={{ left: `${(geom.px(hover) / VB_W) * 100}%`, top: `${(geom.py(entries[hover].weight_kg) / VB_H) * 100}%`, marginTop: -8 }}>
-                <div className="font-bold tabular-nums">{entries[hover].weight_kg} kg</div>
+                <div className="font-bold tabular-nums">{nf(entries[hover].weight_kg)} kg</div>
                 <div className="opacity-70">{new Date(entries[hover].measured_at).toLocaleDateString(localeTag())}</div>
                 {entries[hover].body_condition_score != null && <div className="opacity-70">{t('g.wt.bcs', { score: entries[hover].body_condition_score! })}</div>}
               </div>
@@ -213,7 +221,7 @@ export function WeightChart({ petId }: WeightChartProps) {
             {[...entries].reverse().slice(0, 6).map(e => (
               <div key={e.id} className="flex items-center justify-between text-xs text-surface-600 dark:text-surface-300 py-1 border-b border-surface-100 dark:border-surface-700 last:border-0">
                 <span>{new Date(e.measured_at).toLocaleDateString(localeTag())}</span>
-                <span className="font-semibold text-surface-900 dark:text-white tabular-nums">{e.weight_kg} kg</span>
+                <span className="font-semibold text-surface-900 dark:text-white tabular-nums">{nf(e.weight_kg)} kg</span>
               </div>
             ))}
           </div>

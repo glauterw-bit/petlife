@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { localeTag } from '@/lib/utils'
 import { X, UserPlus, Mail, Trash2, Loader2, Users, Copy, Check } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
 import { innovations, type PetShareEntry } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
@@ -73,24 +74,12 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
     })
   }
 
-  if (!open) return null
 
   const activeShares = shares.filter(s => !s.is_owner)
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto animate-slide-up shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100 dark:border-surface-700 sticky top-0 bg-white/95 dark:bg-surface-800/95 backdrop-blur z-10">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-cyan-500" />
-            <h2 className="font-bold text-surface-900 dark:text-white">{t('g.sh.title', { name: petName })}</h2>
-          </div>
-          <button onClick={onClose} aria-label={t('common.close')} className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-5 space-y-5">
+    <Modal open={open} onClose={onClose} title={t('g.sh.title', { name: petName })} size="lg">
+      <div className="space-y-5">
           {/* Invite form */}
           <div>
             <p className="text-sm text-surface-600 dark:text-surface-300 mb-3">
@@ -98,7 +87,7 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
             </p>
             <div className="space-y-2">
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500 dark:text-surface-400" />
                 <input
                   type="email"
                   value={email}
@@ -145,9 +134,9 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
 
           {/* Lista atual */}
           {loading ? (
-            <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-surface-400" /></div>
+            <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-surface-500 dark:text-surface-400" /></div>
           ) : activeShares.length === 0 ? (
-            <p className="text-sm text-surface-400 text-center py-6">{t('g.sh.empty', { name: petName })}</p>
+            <p className="text-sm text-surface-500 dark:text-surface-400 text-center py-6">{t('g.sh.empty', { name: petName })}</p>
           ) : (
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-wide text-surface-500 dark:text-surface-400 font-semibold">{t('g.sh.peopleWithAccess')}</p>
@@ -161,7 +150,7 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
                       {s.user_name ?? s.invite_email}
                     </p>
                     <p className="text-xs text-surface-500 dark:text-surface-400">{ROLE_LABEL_KEY[s.role] ? t(ROLE_LABEL_KEY[s.role]) : s.role}</p>
-                    <p className="text-xs text-surface-400 mt-0.5">
+                    <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">
                       {s.status === 'accepted'
                         ? t('g.sh.acceptedOn', { date: new Date(s.accepted_at!).toLocaleDateString(localeTag()) })
                         : s.status === 'pending'
@@ -195,8 +184,7 @@ export function SharePetModal({ petId, petName, open, onClose }: { petId: number
               ))}
             </div>
           )}
-        </div>
       </div>
-    </div>
+    </Modal>
   )
 }

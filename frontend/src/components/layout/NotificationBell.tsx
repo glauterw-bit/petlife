@@ -2,21 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Heart, Activity, Footprints, Image as ImageIcon, UserCheck, X, MailCheck } from 'lucide-react'
+import { Bell, Heart, Activity, Footprints, Image as ImageIcon, UserCheck, MailCheck, BellOff } from 'lucide-react'
 import { notifications as notificationsApi, type NotificationItem } from '@/lib/api'
 import { useT } from '@/contexts/LocaleContext'
-import { getDateLocale } from '@/lib/utils'
+import { getDateLocale, cn } from '@/lib/utils'
+import { Sheet } from '@/components/ui/Sheet'
+import { IconButton } from '@/components/ui/IconButton'
+import { SkeletonRow } from '@/components/ui/Skeleton'
+import { hapticLight } from '@/lib/feedback'
 
 const INTL_LOCALE = { 'pt-BR': 'pt-BR', en: 'en-US', es: 'es' } as const
 
 function iconFor(type: string) {
   switch (type) {
-    case 'kudos_received': return <Heart className="w-4 h-4 text-pink-500" />
-    case 'walk_finished': return <Footprints className="w-4 h-4 text-emerald-500" />
-    case 'weight_added': return <Activity className="w-4 h-4 text-blue-500" />
-    case 'behavior_logged': return <Activity className="w-4 h-4 text-amber-500" />
-    case 'story_created': return <ImageIcon className="w-4 h-4 text-fuchsia-500" />
-    case 'invite_accepted': return <UserCheck className="w-4 h-4 text-cyan-500" />
+    case 'kudos_received': return <Heart className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+    case 'walk_finished': return <Footprints className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+    case 'weight_added': return <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+    case 'behavior_logged': return <Activity className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+    case 'story_created': return <ImageIcon className="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400" />
+    case 'invite_accepted': return <UserCheck className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
     default: return <Bell className="w-4 h-4 text-surface-500 dark:text-surface-400" />
   }
 }
@@ -30,40 +34,70 @@ function relativeTime(iso: string, nowLabel: string): string {
   return new Date(iso).toLocaleDateString(INTL_LOCALE[getDateLocale()], { day: 'numeric', month: 'short' })
 }
 
-export function NotificationBell() {
+/**
+ * Contagem compartilhada entre as instâncias (sino fixo do shell e sino
+ * inline do PageHeader) — uma única consulta periódica, não duas.
+ */
+let sharedCount = 0
+const countListeners = new Set<(n: number) => void>()
+let pollTimer: ReturnType<typeof setInterval> | null = null
+let pollUsers = 0
+
+async function fetchSharedCount() {
+  try {
+    const { count } = await notificationsApi.unreadCount()
+    setSharedCount(count)
+  } catch { /* silencioso */ }
+}
+
+function setSharedCount(n: number) {
+  sharedCount = n
+  countListeners.forEach(fn => fn(n))
+}
+
+function useUnreadCount(): [number, (fn: (c: number) => number) => void] {
+  const [count, setCount] = useState(sharedCount)
+  useEffect(() => {
+    countListeners.add(setCount)
+    if (pollUsers++ === 0) {
+      void fetchSharedCount()
+      pollTimer = setInterval(fetchSharedCount, 45000)
+    }
+    return () => {
+      countListeners.delete(setCount)
+      if (--pollUsers === 0 && pollTimer) {
+        clearInterval(pollTimer)
+        pollTimer = null
+      }
+    }
+  }, [])
+  const update = useCallback((fn: (c: number) => number) => setSharedCount(fn(sharedCount)), [])
+  return [count, update]
+}
+
+export function NotificationBell({ variant = 'fixed' }: { variant?: 'fixed' | 'inline' } = {}) {
   const router = useRouter()
   const t = useT()
-  const [unread, setUnread] = useState(0)
+  const [unread, setUnread] = useUnreadCount()
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(false)
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  const fetchCount = useCallback(async () => {
-    try {
-      const { count } = await notificationsApi.unreadCount()
-      setUnread(count)
-    } catch { /* silencioso */ }
-  }, [])
-
-  useEffect(() => {
-    fetchCount()
-    pollRef.current = setInterval(fetchCount, 45000)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [fetchCount])
+  const loadedOnce = useRef(false)
 
   async function openSheet() {
     setOpen(true)
-    setLoading(true)
+    if (!loadedOnce.current) setLoading(true)
     try {
       const list = await notificationsApi.list({ limit: 30 })
       setItems(list)
-    } finally {
+      loadedOnce.current = true
+    } catch { /* mantém a lista anterior */ } finally {
       setLoading(false)
     }
   }
 
   async function handleClick(n: NotificationItem) {
+    void hapticLight()
     if (!n.is_read) {
       try {
         await notificationsApi.markRead(n.id)
@@ -76,111 +110,100 @@ export function NotificationBell() {
   }
 
   async function markAllRead() {
+    void hapticLight()
     try {
       await notificationsApi.markAllRead()
-      setUnread(0)
+      setUnread(() => 0)
       setItems(prev => prev.map(n => ({ ...n, is_read: true })))
     } catch { /* ignore */ }
   }
 
+  const label = unread > 0 ? t('v.notif.ariaNew', { count: unread }) : t('v.notif.title')
+
   return (
     <>
-      <button
-        onClick={openSheet}
-        aria-label={unread > 0 ? t('v.notif.ariaNew', { count: unread }) : t('v.notif.title')}
-        style={{
-          top: 'max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))',
-          right: 'max(0.75rem, env(safe-area-inset-right))',
-        }}
-        className="fixed z-40 md:top-4 md:right-5 tap-target bg-white/95 dark:bg-surface-800/95 backdrop-blur shadow-md rounded-xl border border-surface-200 dark:border-surface-700 flex items-center justify-center"
-      >
-        <Bell className="w-5 h-5 text-surface-700 dark:text-surface-200" />
-        {unread > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-pink-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md">
-            {unread > 99 ? '99+' : unread}
-          </span>
-        )}
-      </button>
-
-      {open && (
+      {variant === 'inline' ? (
+        <IconButton icon={Bell} label={label} variant="glass" badge={unread} onClick={openSheet} />
+      ) : (
         <div
-          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end sm:items-start justify-center sm:justify-end p-0 sm:p-4 sm:pt-[max(4rem,env(safe-area-inset-top))]"
-          onClick={() => setOpen(false)}
+          className="fixed z-40 md:top-4 md:right-5"
+          style={{
+            top: 'max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))',
+            right: 'max(0.75rem, env(safe-area-inset-right))',
+          }}
         >
-          <div
-            onClick={e => e.stopPropagation()}
-            className="w-full sm:max-w-sm bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-2xl shadow-2xl animate-slide-up flex flex-col max-h-[85dvh] pb-[env(safe-area-inset-bottom)] sm:pb-0"
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-surface-100 dark:border-surface-700 shrink-0">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-surface-700 dark:text-surface-200" />
-                <h2 className="text-sm font-semibold text-surface-900 dark:text-white">{t('v.notif.title')}</h2>
-                {unread > 0 && <span className="text-xs text-surface-500 dark:text-surface-400">{t('v.notif.new', { count: unread })}</span>}
-              </div>
-              <div className="flex items-center gap-1">
-                {items.some(n => !n.is_read) && (
-                  <button
-                    onClick={markAllRead}
-                    title={t('v.notif.markAll')}
-                    className="tap-target rounded-lg text-surface-500 dark:text-surface-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 flex items-center justify-center"
-                  >
-                    <MailCheck className="w-4 h-4" />
-                  </button>
-                )}
-                <button
-                  onClick={() => setOpen(false)}
-                  aria-label={t('common.close')}
-                  className="tap-target rounded-lg text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 flex items-center justify-center"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-y-auto flex-1">
-              {loading ? (
-                <div className="p-8 text-center text-sm text-surface-500 dark:text-surface-400">{t('common.loading')}</div>
-              ) : items.length === 0 ? (
-                <div className="p-8 text-center text-sm text-surface-500 dark:text-surface-400">
-                  {t('v.notif.empty')}<br />
-                  <span className="text-xs">{t('v.notif.emptyHint')}</span>
-                </div>
-              ) : (
-                <ul className="divide-y divide-surface-100 dark:divide-surface-700">
-                  {items.map(n => (
-                    <li key={n.id}>
-                      <button
-                        onClick={() => handleClick(n)}
-                        className={`w-full flex gap-3 p-3 text-left transition hover:bg-surface-50 dark:hover:bg-surface-700/40 ${
-                          !n.is_read ? 'bg-primary-50/40 dark:bg-primary-900/10' : ''
-                        }`}
-                      >
-                        <div className="w-8 h-8 rounded-xl bg-surface-100 dark:bg-surface-700 flex items-center justify-center shrink-0">
-                          {iconFor(n.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start gap-2">
-                            <p className="text-sm font-medium text-surface-900 dark:text-white flex-1 leading-snug">
-                              {n.title}
-                            </p>
-                            {!n.is_read && <span className="w-2 h-2 rounded-full bg-pink-500 shrink-0 mt-1.5" />}
-                          </div>
-                          {n.body && (
-                            <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5 line-clamp-2">
-                              {n.body}
-                            </p>
-                          )}
-                          <p className="text-[10px] text-surface-400 mt-1">{relativeTime(n.created_at, t('v.notif.now'))}</p>
-                        </div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
+          <IconButton icon={Bell} label={label} variant="glass" badge={unread} onClick={openSheet} />
         </div>
       )}
+
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t('v.notif.title')}
+        description={unread > 0 ? t('v.notif.new', { count: unread }) : undefined}
+        size="tall"
+      >
+        {items.some(n => !n.is_read) && (
+          <div className="flex justify-end -mt-1 mb-1">
+            <button
+              type="button"
+              onClick={markAllRead}
+              className="pressable inline-flex items-center gap-1.5 min-h-[44px] px-2 -mr-2 rounded-lg text-sm font-semibold text-primary-700 hover:bg-primary-50 dark:text-primary-300 dark:hover:bg-primary-500/10"
+            >
+              <MailCheck className="w-4 h-4" aria-hidden />
+              {t('v.notif.markAll')}
+            </button>
+          </div>
+        )}
+        {loading ? (
+          <div className="space-y-2 py-2" aria-busy="true">
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="py-10 text-center">
+            <span className="mx-auto mb-3 w-14 h-14 rounded-full bg-surface-100 dark:bg-surface-800 flex items-center justify-center text-surface-500 dark:text-surface-400">
+              <BellOff className="w-6 h-6" aria-hidden />
+            </span>
+            <p className="text-sm font-semibold text-surface-800 dark:text-surface-100">{t('v.notif.empty')}</p>
+            <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">{t('v.notif.emptyHint')}</p>
+          </div>
+        ) : (
+          <ul className="-mx-2 divide-y divide-surface-100 dark:divide-surface-800">
+            {items.map(n => (
+              <li key={n.id}>
+                <button
+                  type="button"
+                  onClick={() => handleClick(n)}
+                  className={cn(
+                    'w-full flex gap-3 px-2 py-3 text-left rounded-xl transition-colors hover:bg-surface-50 dark:hover:bg-surface-800/60',
+                    !n.is_read && 'bg-primary-50/50 dark:bg-primary-500/10',
+                  )}
+                >
+                  <span className="w-9 h-9 rounded-xl bg-surface-100 dark:bg-surface-800 flex items-center justify-center shrink-0">
+                    {iconFor(n.type)}
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="flex items-start gap-2">
+                      <span className="text-sm font-semibold text-surface-900 dark:text-white flex-1 leading-snug">
+                        {n.title}
+                      </span>
+                      {!n.is_read && <span className="w-2 h-2 rounded-full bg-red-600 dark:bg-red-400 shrink-0 mt-1.5" aria-hidden />}
+                    </span>
+                    {n.body && (
+                      <span className="block text-xs text-surface-600 dark:text-surface-400 mt-0.5 line-clamp-2">
+                        {n.body}
+                      </span>
+                    )}
+                    <span className="block text-[11px] text-surface-500 dark:text-surface-400 mt-1">{relativeTime(n.created_at, t('v.notif.now'))}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Sheet>
     </>
   )
 }

@@ -45,7 +45,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         corte nas bordas em telas estreitas.
       */}
       <div
-        className="fixed z-50 flex flex-col items-end gap-2 pointer-events-none"
+        className="toast-layer fixed z-50 flex flex-col items-end gap-2 pointer-events-none"
         style={{
           top: 'calc(env(safe-area-inset-top) + 3.5rem)',
           right: 'max(0.75rem, env(safe-area-inset-right))',

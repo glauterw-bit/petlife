@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Download, PawPrint } from 'lucide-react'
 import { track } from '@/lib/track'
+import { useT } from '@/contexts/LocaleContext'
+import { buttonClasses } from '@/components/ui/Button'
 
 const APP_STORE_BASE = 'https://apps.apple.com/br/app/petlife-sa%C3%BAde-do-pet/id6768136468'
 
@@ -64,6 +66,7 @@ export function DownloadCta({
   campanha?: string
   className?: string
 }) {
+  const t = useT()
   const [os, setOs] = useState<Os>('other')
   useEffect(() => {
     setOs(detectOs())
@@ -77,49 +80,40 @@ export function DownloadCta({
   const showPlayTest = os === 'android' && !play && !!playTest
   const click = (destino: string) => track('public_cta_click', { meta: `${campanha || 'publico'}:${destino}` })
 
+  const storeBtn =
+    'pressable inline-flex items-center justify-center gap-2 min-h-[48px] bg-surface-900 dark:bg-white text-white dark:text-surface-900 px-5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity'
+
   return (
     <div
-      className={`bg-white dark:bg-surface-800 rounded-3xl shadow-lg border border-surface-100 dark:border-surface-700 p-5 text-center print:hidden ${className}`}
+      className={`bg-white dark:bg-surface-900 rounded-3xl border border-surface-200/70 dark:border-surface-800 shadow-card p-5 text-center print:hidden ${className}`}
     >
       <div className="flex items-center justify-center gap-2 mb-2">
-        <div className="w-6 h-6 bg-primary-500 rounded-lg flex items-center justify-center">
-          <span className="text-white text-xs font-bold">P</span>
-        </div>
-        <span className="text-sm font-bold text-surface-700 dark:text-surface-200">PetLife</span>
+        <span className="w-7 h-7 bg-primary-700 dark:bg-primary-500 rounded-lg flex items-center justify-center">
+          <PawPrint className="w-4 h-4 text-white dark:text-surface-950" aria-hidden />
+        </span>
+        <span className="text-sm font-bold text-surface-800 dark:text-surface-100">PetLife</span>
       </div>
 
-      <p className="text-sm text-surface-700 dark:text-surface-200 font-medium">{headline}</p>
-      {sub && <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">{sub}</p>}
+      <p className="text-sm text-surface-800 dark:text-surface-100 font-semibold">{headline}</p>
+      {sub && <p className="text-xs text-surface-600 dark:text-surface-400 mt-1">{sub}</p>}
 
       <div className="flex flex-col gap-2 mt-4">
         {showApple && (
-          <a
-            href={appStoreUrl(campanha)}
-            target="_blank"
-            rel="noreferrer"
-            onClick={() => click('app_store')}
-            className="inline-flex items-center justify-center gap-2 bg-surface-900 dark:bg-white text-white dark:text-surface-900 px-5 py-3 rounded-2xl text-sm font-semibold hover:opacity-90 transition"
-          >
-            <Download className="w-4 h-4" /> Baixar na App Store
+          <a href={appStoreUrl(campanha)} target="_blank" rel="noreferrer" onClick={() => click('app_store')} className={storeBtn}>
+            <Download className="w-4 h-4" aria-hidden /> {t('pub.cta.appStore')}
           </a>
         )}
         {showPlay && play && (
-          <a
-            href={play}
-            target="_blank"
-            rel="noreferrer"
-            onClick={() => click('google_play')}
-            className="inline-flex items-center justify-center gap-2 bg-surface-900 dark:bg-white text-white dark:text-surface-900 px-5 py-3 rounded-2xl text-sm font-semibold hover:opacity-90 transition"
-          >
-            <Download className="w-4 h-4" /> Baixar no Google Play
+          <a href={play} target="_blank" rel="noreferrer" onClick={() => click('google_play')} className={storeBtn}>
+            <Download className="w-4 h-4" aria-hidden /> {t('pub.cta.googlePlay')}
           </a>
         )}
         <Link
           href="/auth/register"
           onClick={() => click('navegador')}
-          className="inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-white px-5 py-3 rounded-2xl text-sm font-semibold transition"
+          className={buttonClasses('primary', 'md', true, 'min-h-[48px]')}
         >
-          <PawPrint className="w-4 h-4" /> Usar no navegador (grátis)
+          <PawPrint className="w-4 h-4" aria-hidden /> {t('pub.cta.browser')}
         </Link>
         {showPlayTest && (
           <a
@@ -127,14 +121,14 @@ export function DownloadCta({
             target="_blank"
             rel="noreferrer"
             onClick={() => track('android_tester_cta', { meta: campanha || 'publico' })}
-            className="text-xs text-primary-600 dark:text-primary-400 underline mt-1"
+            className="flex items-center justify-center min-h-[44px] text-xs font-medium text-primary-700 dark:text-primary-300 underline underline-offset-2"
           >
-            O app para Android está em teste. Quer testar antes de todo mundo?
+            {t('pub.cta.androidTest')}
           </a>
         )}
       </div>
 
-      <p className="text-[11px] text-surface-400 mt-3">Grátis · Sem anúncios · LGPD</p>
+      <p className="text-[11px] text-surface-500 dark:text-surface-400 mt-3">{t('pub.cta.footer')}</p>
     </div>
   )
 }

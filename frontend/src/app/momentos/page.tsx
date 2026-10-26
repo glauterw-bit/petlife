@@ -14,17 +14,27 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, Share2, Trash2, Flame, Sparkles, X, Loader2 } from 'lucide-react'
+import { Camera, Share2, Trash2, Flame, Sparkles, PawPrint, ImagePlus } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { PageLoader } from '@/components/ui/LoadingSpinner'
 import { pets as petsApi, innovations, type Pet, type StoryEntry } from '@/lib/api'
 import { appStoreUrl } from '@/components/public/DownloadCta'
-import { getSpeciesEmoji, localeTag } from '@/lib/utils'
+import { localeTag, cn } from '@/lib/utils'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Sheet } from '@/components/ui/Sheet'
+import { Button } from '@/components/ui/Button'
+import { IconButton } from '@/components/ui/IconButton'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { PetAvatar } from '@/components/ui/PetAvatar'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { Stagger, StaggerItem } from '@/components/ui/Motion'
+import { useConfirm } from '@/components/ui/Confirm'
+import { hapticLight, hapticSelect, hapticSuccess } from '@/lib/feedback'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
 import { track } from '@/lib/track'
 import { trackHappyMoment } from '@/lib/review'
 import { celebrateBadge } from '@/lib/feedback'
+import { useCached } from '@/lib/cache'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
 
@@ -53,6 +63,7 @@ function fotoUrl(m: StoryEntry): string {
 export default function MomentosPage() {
   const t = useT()
   const { success, error } = useToast()
+  const confirm = useConfirm()
   const [petList, setPetList] = useState<Pet[]>([])
   const [momentos, setMomentos] = useState<Momento[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,11 +76,15 @@ export default function MomentosPage() {
   const [sharingId, setSharingId] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // Mesma chave do shell: a lista de pets chega na hora.
+  const petsQ = useCached<Pet[]>('pets', () => petsApi.list())
+  const petsReady = petsQ.data !== undefined || !!petsQ.error
+  useEffect(() => { track('momentos_view') }, [])
   useEffect(() => {
-    track('momentos_view')
+    if (!petsReady) return
     async function load() {
       try {
-        const ps = await petsApi.list()
+        const ps = petsQ.data ?? []
         setPetList(ps)
         if (ps.length) setPetId(ps[0].id)
         const feeds = await Promise.allSettled(ps.map(p => innovations.listStories(p.id)))
@@ -83,7 +98,9 @@ export default function MomentosPage() {
       } finally { setLoading(false) }
     }
     load()
-  }, [])
+    // recarrega só quando a lista de pets chega/muda
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [petsReady, petsQ.data])
 
   const { dias, hojeFeito } = useMemo(() => calcStreak(momentos), [momentos])
 
@@ -102,6 +119,7 @@ export default function MomentosPage() {
       setMomentos(prev => [{ ...s, pet }, ...prev])
       setSheetOpen(false)
       pickFile(null); setCaption('')
+      void hapticSuccess()
       celebrateBadge()
       trackHappyMoment('momento_publicado')
       success(t('g.mo.published'))
@@ -131,153 +149,192 @@ export default function MomentosPage() {
   }
 
   async function apagar(id: number) {
-    if (!confirm(t('g.mo.deleteConfirm'))) return
+    const ok = await confirm({ title: t('g.mo.deleteConfirm'), confirmLabel: t('g.mo.delete'), tone: 'danger' })
+    if (!ok) return
     await innovations.deleteStory(id).catch(() => {})
     setMomentos(prev => prev.filter(m => m.id !== id))
   }
 
-  if (loading) return <DashboardLayout><PageLoader /></DashboardLayout>
+  const header = <PageHeader title={t('g.mo.title')} subtitle={t('g.mo.subtitle')} />
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        {header}
+        <div aria-busy="true">
+          <Skeleton className="h-[132px] rounded-3xl mb-6" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[0, 1].map(i => <Skeleton key={i} className="aspect-square rounded-2xl" />)}
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  function openSheet() {
+    void hapticLight()
+    setSheetOpen(true)
+  }
 
   return (
     <DashboardLayout>
-      <div className="mb-5 md:mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">{t('g.mo.title')}</h1>
-        <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">{t('g.mo.subtitle')}</p>
-      </div>
+      {header}
 
-      {/* Hero: foto do dia + streak */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-500 p-6 text-white mb-6">
-        <div className="absolute -right-4 -top-6 text-[110px] opacity-10 select-none" aria-hidden>📸</div>
+      {/* Hero: foto do dia + sequência */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-700 via-primary-700 to-emerald-700 p-5 text-white mb-6 shadow-card">
+        <Camera className="absolute -right-5 -top-5 w-36 h-36 opacity-10" aria-hidden strokeWidth={1.5} />
         <div className="relative flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-2.5">
-            <Flame className={`w-6 h-6 ${dias > 0 ? 'text-amber-300' : 'text-white/50'}`} />
+          <div className="flex items-center gap-2 bg-white/15 rounded-2xl px-4 py-2.5">
+            <Flame className={cn('w-6 h-6', dias > 0 ? 'text-amber-300' : 'text-white/60')} aria-hidden />
             <div>
               <div className="text-2xl font-extrabold leading-none tabular-nums">{dias}</div>
-              <div className="text-[11px] text-white/80">{t('g.mo.streakLabel')}</div>
+              <div className="text-[11px] text-white/85">{t('g.mo.streakLabel')}</div>
             </div>
           </div>
           <div className="flex-1 min-w-[180px]">
             <p className="font-bold text-lg leading-snug">
               {hojeFeito ? t('g.mo.doneToday') : dias > 0 ? t('g.mo.keepStreak', { n: dias }) : t('g.mo.startToday')}
             </p>
-            <p className="text-white/80 text-sm">{t('g.mo.heroSub')}</p>
+            <p className="text-white/85 text-sm">{t('g.mo.heroSub')}</p>
           </div>
           {!hojeFeito && petList.length > 0 && (
             <button
-              onClick={() => setSheetOpen(true)}
-              className="flex items-center gap-2 bg-white text-primary-700 font-bold px-5 py-3 rounded-2xl shadow-lg hover:scale-[1.02] transition"
+              type="button"
+              onClick={openSheet}
+              className="pressable flex items-center gap-2 min-h-[48px] bg-white text-primary-800 font-bold px-5 rounded-xl shadow-sm"
             >
-              <Camera className="w-5 h-5" /> {t('g.mo.cta')}
+              <Camera className="w-5 h-5" aria-hidden /> {t('g.mo.cta')}
             </button>
           )}
         </div>
       </div>
 
       {petList.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
-          <div className="text-5xl mb-3">🐾</div>
-          <p className="text-surface-600 dark:text-surface-300 mb-3">{t('g.mo.noPets')}</p>
-          <a href="/pets/new" className="text-primary-600 font-semibold hover:underline">{t('g.rt.registerPet')}</a>
-        </div>
+        <EmptyState icon={PawPrint} title={t('g.mo.noPets')} ctaLabel={t('g.rt.registerPet')} ctaHref="/pets/new" />
       ) : momentos.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
-          <div className="text-5xl mb-3">✨</div>
-          <p className="text-surface-700 dark:text-surface-200 font-medium mb-1">{t('g.mo.emptyTitle')}</p>
-          <p className="text-sm text-surface-500 dark:text-surface-400">{t('g.mo.emptyText')}</p>
-        </div>
+        <EmptyState
+          icon={Camera}
+          title={t('g.mo.emptyTitle')}
+          text={t('g.mo.emptyText')}
+          ctaLabel={t('g.mo.cta')}
+          onCta={openSheet}
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Stagger className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {momentos.map(m => (
-            <figure key={m.id} className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 overflow-hidden group">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={fotoUrl(m)} alt={m.user_caption || m.pet.name} className="w-full aspect-square object-cover" loading="lazy" />
-              <figcaption className="p-4">
-                <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                  <span className="text-xs font-semibold bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full px-2.5 py-0.5">
-                    {getSpeciesEmoji(m.pet.species)} {m.pet.name}
-                  </span>
-                  {m.ai_emotion && (
-                    <span className="text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full px-2.5 py-0.5">
-                      <Sparkles className="w-3 h-3 inline -mt-0.5" /> {m.ai_emotion}
+            <StaggerItem key={m.id}>
+              <figure className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200/70 dark:border-surface-800 overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={fotoUrl(m)} alt={m.user_caption || m.pet.name} className="w-full aspect-square object-cover bg-surface-100 dark:bg-surface-800" loading="lazy" />
+                <figcaption className="p-4">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary-50 dark:bg-primary-500/15 text-primary-800 dark:text-primary-200 rounded-full pl-0.5 pr-2.5 py-0.5">
+                      <PetAvatar pet={m.pet} size={20} />
+                      {m.pet.name}
                     </span>
+                    {m.ai_emotion && (
+                      <span className="chip chip-warning">
+                        <Sparkles className="w-3 h-3" aria-hidden /> {m.ai_emotion}
+                      </span>
+                    )}
+                    <span className="ml-auto text-[11px] text-surface-500 dark:text-surface-400">
+                      {new Date(m.created_at).toLocaleDateString(localeTag(), { day: '2-digit', month: 'short' })}
+                    </span>
+                  </div>
+                  {(m.user_caption || m.ai_caption) && (
+                    <p className="text-sm text-surface-700 dark:text-surface-200 leading-snug">{m.user_caption || m.ai_caption}</p>
                   )}
-                  <span className="ml-auto text-[11px] text-surface-400">
-                    {new Date(m.created_at).toLocaleDateString(localeTag(), { day: '2-digit', month: 'short' })}
-                  </span>
-                </div>
-                {(m.user_caption || m.ai_caption) && (
-                  <p className="text-sm text-surface-700 dark:text-surface-200 leading-snug">{m.user_caption || m.ai_caption}</p>
-                )}
-                <div className="flex items-center gap-2 mt-3">
-                  <button
-                    onClick={() => compartilhar(m)}
-                    disabled={sharingId === m.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 rounded-xl transition disabled:opacity-60"
-                  >
-                    {sharingId === m.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
-                    {t('g.mo.share')}
-                  </button>
-                  <button
-                    onClick={() => apagar(m.id)}
-                    aria-label={t('g.mo.delete')}
-                    className="tap-target text-surface-400 hover:text-red-500 transition flex items-center justify-center rounded-xl"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </figcaption>
-            </figure>
+                  <div className="flex items-center gap-2 mt-3">
+                    <Button
+                      variant="soft"
+                      className="flex-1"
+                      leftIcon={Share2}
+                      loading={sharingId === m.id}
+                      onClick={() => compartilhar(m)}
+                    >
+                      {t('g.mo.share')}
+                    </Button>
+                    <IconButton
+                      icon={Trash2}
+                      label={t('g.mo.delete')}
+                      onClick={() => apagar(m.id)}
+                      className="hover:text-red-700 dark:hover:text-red-300"
+                    />
+                  </div>
+                </figcaption>
+              </figure>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
 
-      {/* Sheet de publicação */}
-      {sheetOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSheetOpen(false)} />
-          <div className="relative bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-lg text-surface-900 dark:text-white">{t('g.mo.sheetTitle')}</h2>
-              <button onClick={() => setSheetOpen(false)} aria-label={t('common.close')} className="tap-target text-surface-400 flex items-center justify-center"><X className="w-5 h-5" /></button>
-            </div>
-
-            {petList.length > 1 && (
-              <div className="flex gap-2 flex-wrap mb-3">
-                {petList.map(p => (
-                  <button key={p.id} onClick={() => setPetId(p.id)}
-                    className={`text-sm font-medium rounded-full px-3.5 py-1.5 border transition ${petId === p.id ? 'bg-primary-500 text-white border-primary-500' : 'border-surface-200 dark:border-surface-600 text-surface-600 dark:text-surface-300'}`}>
-                    {getSpeciesEmoji(p.species)} {p.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden
-                   onChange={e => pickFile(e.target.files?.[0] ?? null)} />
-            {preview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="" className="w-full aspect-square object-cover rounded-2xl mb-3" onClick={() => fileRef.current?.click()} />
-            ) : (
-              <button onClick={() => fileRef.current?.click()}
-                className="w-full aspect-square rounded-2xl border-2 border-dashed border-surface-300 dark:border-surface-600 flex flex-col items-center justify-center gap-2 text-surface-400 mb-3">
-                <Camera className="w-10 h-10" />
-                <span className="text-sm font-medium">{t('g.mo.pickPhoto')}</span>
-              </button>
-            )}
-
-            <input value={caption} onChange={e => setCaption(e.target.value)} maxLength={140}
-              placeholder={t('g.mo.captionPh')}
-              className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm mb-3 bg-transparent text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500" />
-
-            <button onClick={publicar} disabled={!file || publishing}
-              className="w-full flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-bold py-3.5 rounded-2xl transition disabled:opacity-50">
-              {publishing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+      {/* Folha de publicação */}
+      <Sheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title={t('g.mo.sheetTitle')}
+        footer={
+          <div>
+            <Button fullWidth size="lg" leftIcon={Sparkles} loading={publishing} disabled={!file || publishing} onClick={publicar}>
               {publishing ? t('g.mo.publishing') : t('g.mo.publish')}
-            </button>
-            <p className="text-[11px] text-surface-400 text-center mt-2">{t('g.mo.aiNote')}</p>
+            </Button>
+            <p className="text-[11px] text-surface-500 dark:text-surface-400 text-center mt-2">{t('g.mo.aiNote')}</p>
           </div>
-        </div>
-      )}
+        }
+      >
+        {petList.length > 1 && (
+          <div role="radiogroup" aria-label={t('wk.mo.whichPet')} className="flex gap-2 flex-wrap mb-3">
+            {petList.map(p => (
+              <button
+                key={p.id}
+                type="button"
+                role="radio"
+                aria-checked={petId === p.id}
+                onClick={() => { void hapticSelect(); setPetId(p.id) }}
+                className={cn(
+                  'pressable inline-flex items-center gap-2 min-h-[44px] text-sm font-medium rounded-full pl-1.5 pr-4 border transition-colors',
+                  petId === p.id
+                    ? 'bg-primary-700 text-white border-primary-700 dark:bg-primary-500 dark:text-surface-950 dark:border-primary-500'
+                    : 'border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-200',
+                )}
+              >
+                <PetAvatar pet={p} size={30} />
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden
+               onChange={e => pickFile(e.target.files?.[0] ?? null)} />
+        {preview ? (
+          <button type="button" onClick={() => fileRef.current?.click()} className="block w-full mb-3" aria-label={t('wk.mo.changePhoto')}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={preview} alt="" className="w-full aspect-square object-cover rounded-2xl" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="pressable w-full aspect-[4/3] rounded-2xl border-2 border-dashed border-surface-300 dark:border-surface-700 flex flex-col items-center justify-center gap-2 text-surface-600 dark:text-surface-400 mb-3"
+          >
+            <ImagePlus className="w-10 h-10" aria-hidden />
+            <span className="text-sm font-medium">{t('g.mo.pickPhoto')}</span>
+          </button>
+        )}
+
+        <label htmlFor="momento-caption" className="block text-sm font-semibold text-surface-800 dark:text-surface-100 mb-1.5">
+          {t('wk.mo.captionLabel')}
+        </label>
+        <input
+          id="momento-caption"
+          value={caption}
+          onChange={e => setCaption(e.target.value)}
+          maxLength={140}
+          placeholder={t('g.mo.captionPh')}
+          className="w-full min-h-[48px] px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-base bg-white dark:bg-surface-900 text-surface-900 dark:text-white placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
+      </Sheet>
     </DashboardLayout>
   )
 }

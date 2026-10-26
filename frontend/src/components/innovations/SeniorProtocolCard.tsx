@@ -17,7 +17,7 @@ export function SeniorProtocolCard({ petId }: { petId: number }) {
       .finally(() => setLoading(false))
   }, [petId])
 
-  if (loading) return <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-surface-400" /></div>
+  if (loading) return <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-surface-500 dark:text-surface-400" /></div>
   if (!data || !data.is_senior) return null
 
   return (
@@ -75,7 +75,7 @@ export function SeniorProtocolCard({ petId }: { petId: number }) {
       )}
 
       {data.disclaimer && (
-        <p className="text-[10px] text-surface-500 dark:text-surface-400 italic mt-3">{data.disclaimer}</p>
+        <p className="text-[11px] text-surface-500 dark:text-surface-400 italic mt-3">{data.disclaimer}</p>
       )}
     </div>
   )

@@ -1,23 +1,43 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Brain, Loader2, AlertCircle, Sparkles } from 'lucide-react'
-import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import {
+  Plus, Brain, Sparkles, ChevronRight, HeartCrack, CloudLightning, Zap, ShieldAlert, Hammer, Volume2, Package,
+  type LucideIcon,
+} from 'lucide-react'
 import { pets as petsApi, innovations, type Pet, type BehaviorPlanSummary, type BehaviorIssueType } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
+import { cn } from '@/lib/utils'
+import { hapticSelect, hapticSuccess } from '@/lib/feedback'
+import { useHideAssistant } from '@/components/layout/shell'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { Sheet } from '@/components/ui/Sheet'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { SkeletonList } from '@/components/ui/Skeleton'
+import { PetAvatar } from '@/components/ui/PetAvatar'
+import { cardClasses } from '@/components/ui/Card'
 
-const ISSUE_OPTIONS: Array<{ value: BehaviorIssueType; labelKey: string; emoji: string; species: 'dog' | 'cat' | 'both' }> = [
-  { value: 'separation_anxiety', labelKey: 'g.beh.issue.separationAnxiety', emoji: '😟', species: 'both' },
-  { value: 'fear', labelKey: 'g.beh.issue.fear', emoji: '😨', species: 'both' },
-  { value: 'reactivity', labelKey: 'g.beh.issue.reactivity', emoji: '⚠️', species: 'dog' },
-  { value: 'aggression', labelKey: 'g.beh.issue.aggression', emoji: '😾', species: 'both' },
-  { value: 'destruction', labelKey: 'g.beh.issue.destruction', emoji: '💥', species: 'dog' },
-  { value: 'barking', labelKey: 'g.beh.issue.barking', emoji: '🔊', species: 'dog' },
-  { value: 'cat_litter', labelKey: 'g.beh.issue.catLitter', emoji: '🚫', species: 'cat' },
+const ISSUE_OPTIONS: Array<{ value: BehaviorIssueType; labelKey: string; Icon: LucideIcon; species: 'dog' | 'cat' | 'both' }> = [
+  { value: 'separation_anxiety', labelKey: 'g.beh.issue.separationAnxiety', Icon: HeartCrack, species: 'both' },
+  { value: 'fear', labelKey: 'g.beh.issue.fear', Icon: CloudLightning, species: 'both' },
+  { value: 'reactivity', labelKey: 'g.beh.issue.reactivity', Icon: Zap, species: 'dog' },
+  { value: 'aggression', labelKey: 'g.beh.issue.aggression', Icon: ShieldAlert, species: 'both' },
+  { value: 'destruction', labelKey: 'g.beh.issue.destruction', Icon: Hammer, species: 'dog' },
+  { value: 'barking', labelKey: 'g.beh.issue.barking', Icon: Volume2, species: 'dog' },
+  { value: 'cat_litter', labelKey: 'g.beh.issue.catLitter', Icon: Package, species: 'cat' },
 ]
+
+const optionCls = (active: boolean) =>
+  cn(
+    'pressable w-full min-h-[48px] flex items-center gap-3 p-3 rounded-xl border text-left transition-colors',
+    active
+      ? 'border-primary-600 bg-primary-50 text-primary-900 dark:border-primary-400 dark:bg-primary-500/15 dark:text-primary-100'
+      : 'border-surface-200 text-surface-800 hover:bg-surface-50 dark:border-surface-700 dark:text-surface-100 dark:hover:bg-surface-800',
+  )
 
 const INTENSITY_OPTIONS = [
   { value: 'leve', labelKey: 'g.beh.int.leve', descKey: 'g.beh.int.leveDesc' },
@@ -52,6 +72,8 @@ export default function BehaviorPlansPage() {
   const [issueType, setIssueType] = useState<BehaviorIssueType | ''>('')
   const [intensity, setIntensity] = useState<'leve' | 'moderada' | 'alta' | ''>('')
   const [context, setContext] = useState('')
+  const ctxId = useId()
+  useHideAssistant(showWizard)
 
   useEffect(() => {
     Promise.all([innovations.listBehaviorPlans(), petsApi.list()])
@@ -65,6 +87,7 @@ export default function BehaviorPlansPage() {
     setCreating(true)
     try {
       const plan = await innovations.createBehaviorPlan(selectedPet, issueType, intensity, context || undefined)
+      void hapticSuccess()
       success(t('g.beh.created'))
       router.push(`/behavior/${plan.id}`)
     } catch (e: unknown) {
@@ -77,178 +100,181 @@ export default function BehaviorPlansPage() {
   const petSpecies = pets.find(p => p.id === selectedPet)?.species
   const availableIssues = ISSUE_OPTIONS.filter(o => o.species === 'both' || o.species === petSpecies)
 
+  function openWizard() {
+    if (!selectedPet && pets.length === 1) setSelectedPet(pets[0].id)
+    setShowWizard(true)
+  }
+
+  const statusChip = (status: string) =>
+    status === 'active' ? 'chip-info' : status === 'completed' ? 'chip-success' : 'chip-neutral'
+
   return (
-    <DashboardLayout>
-      <div className="flex items-start justify-between gap-3 mb-5 md:mb-6 ">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2 leading-tight">
-            <Brain className="w-6 h-6 md:w-7 md:h-7 text-purple-600 shrink-0" />
-            {t('g.beh.title')}
-          </h1>
-          <p className="text-xs md:text-sm text-surface-500 dark:text-surface-400 mt-1">{t('g.beh.subtitle')}</p>
-        </div>
-        <button
-          onClick={() => setShowWizard(true)}
-          aria-label={t('g.beh.newPlan')}
-          className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-semibold transition shadow-lg shadow-purple-500/30 shrink-0 tap-target"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden xs:inline">{t('g.beh.newPlan')}</span>
-        </button>
-      </div>
+    <>
+      <PageHeader
+        title={t('g.beh.title')}
+        subtitle={t('g.beh.subtitle')}
+        actions={
+          <Button size="sm" leftIcon={Plus} onClick={openWizard} disabled={!pets.length} aria-label={t('g.beh.newPlan')}>
+            <span className="hidden xs:inline">{t('g.beh.newPlan')}</span>
+          </Button>
+        }
+      />
 
       {loading ? (
-        <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-purple-500" /></div>
+        <SkeletonList count={2} />
       ) : plans.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
-          <Brain className="w-12 h-12 text-purple-300 mx-auto mb-3" />
-          <h3 className="font-bold text-surface-900 dark:text-white mb-1">{t('g.beh.emptyTitle')}</h3>
-          <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">{t('g.beh.emptyText')}</p>
-          <button
-            onClick={() => setShowWizard(true)}
-            className="bg-purple-500 hover:bg-purple-600 text-white px-5 py-2.5 rounded-xl font-semibold"
-          >
-            {t('g.beh.emptyCta')}
-          </button>
-        </div>
+        <EmptyState
+          icon={Brain}
+          title={t('g.beh.emptyTitle')}
+          text={t('g.beh.emptyText')}
+          ctaLabel={pets.length ? t('g.beh.emptyCta') : undefined}
+          onCta={openWizard}
+        />
       ) : (
-        <div className="grid sm:grid-cols-2 gap-4">
+        <ul className="grid sm:grid-cols-2 gap-3 pb-6">
           {plans.map(p => {
             const issue = ISSUE_OPTIONS.find(o => o.value === p.issue_type)
+            const Icon = issue?.Icon ?? Brain
             return (
-              <Link
-                key={p.id}
-                href={`/behavior/${p.id}`}
-                className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5 hover:border-purple-300 dark:hover:border-purple-700 transition"
-              >
-                <div className="flex items-start gap-3 mb-3">
-                  <span className="text-3xl">{issue?.emoji}</span>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-surface-900 dark:text-white">{p.pet_name}</h3>
-                    <p className="text-sm text-surface-500 dark:text-surface-400">{issue ? t(issue.labelKey) : null}</p>
+              <li key={p.id} className="list-none">
+                <Link href={`/behavior/${p.id}`} className={cardClasses({ interactive: true, padding: 'md' })}>
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="w-11 h-11 rounded-xl bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300 flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5" aria-hidden />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-surface-900 dark:text-white">{p.pet_name}</h3>
+                      <p className="text-sm text-surface-600 dark:text-surface-400">{issue ? t(issue.labelKey) : null}</p>
+                    </div>
+                    <span className={cn('chip', statusChip(p.status))}>{STATUS_KEY[p.status] ? t(STATUS_KEY[p.status]) : p.status}</span>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    p.status === 'active' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300' :
-                    p.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                    'bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300'
-                  }`}>{STATUS_KEY[p.status] ? t(STATUS_KEY[p.status]) : p.status}</span>
-                </div>
-                <div className="text-xs text-surface-500 dark:text-surface-400 space-y-1">
-                  <div>{t('g.beh.intensity')} <strong className="capitalize">{INTENSITY_KEY[p.intensity] ? t(INTENSITY_KEY[p.intensity]) : p.intensity}</strong></div>
-                  <div>{t('g.beh.checkins')} <strong>{p.check_ins_count}/{p.duration_weeks * 7}</strong></div>
-                  {p.average_progress !== null && (
-                    <div>{t('g.beh.avgProgress')} <strong>{p.average_progress.toFixed(1)}/10</strong></div>
-                  )}
-                </div>
-              </Link>
+                  <dl className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <dt className="text-surface-500 dark:text-surface-400">{t('g.beh.intensity')}</dt>
+                      <dd className="font-semibold text-surface-800 dark:text-surface-100 capitalize">{INTENSITY_KEY[p.intensity] ? t(INTENSITY_KEY[p.intensity]) : p.intensity}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-surface-500 dark:text-surface-400">{t('g.beh.checkins')}</dt>
+                      <dd className="font-semibold text-surface-800 dark:text-surface-100 tabular-nums">{p.check_ins_count}/{p.duration_weeks * 7}</dd>
+                    </div>
+                    {p.average_progress !== null && (
+                      <div>
+                        <dt className="text-surface-500 dark:text-surface-400">{t('g.beh.avgProgress')}</dt>
+                        <dd className="font-semibold text-surface-800 dark:text-surface-100 tabular-nums">{p.average_progress.toFixed(1)}/10</dd>
+                      </div>
+                    )}
+                  </dl>
+                </Link>
+              </li>
             )
           })}
-        </div>
+        </ul>
       )}
 
-      {/* Wizard modal */}
-      {showWizard && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowWizard(false)}>
-          <div className="bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto animate-slide-up shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-surface-100 dark:border-surface-700 sticky top-0 bg-white/95 dark:bg-surface-800/95 backdrop-blur z-10">
-              <h2 className="font-bold text-surface-900 dark:text-white">{t('g.beh.wizTitle')}</h2>
-              <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">{t('g.beh.wizSubtitle')}</p>
-            </div>
-            <div className="p-5 space-y-5">
-              <div>
-                <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizPet')}</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {pets.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => { setSelectedPet(p.id); setIssueType('') }}
-                      className={`p-3 rounded-xl border text-left transition ${
-                        selectedPet === p.id
-                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                          : 'border-surface-200 dark:border-surface-700 hover:border-surface-300'
-                      }`}
-                    >
-                      <p className="font-semibold text-sm">{p.name}</p>
-                      <p className="text-xs text-surface-500 dark:text-surface-400">{p.species === 'dog' ? '🐕' : '🐈'} {p.breed?.name ?? t('g.misc.srd')}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {selectedPet && (
-                <div>
-                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizIssue')}</label>
-                  <div className="space-y-1.5">
-                    {availableIssues.map(o => (
-                      <button
-                        key={o.value}
-                        onClick={() => setIssueType(o.value)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition ${
-                          issueType === o.value
-                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
-                            : 'border-surface-200 dark:border-surface-700 hover:border-surface-300'
-                        }`}
-                      >
-                        <span className="text-xl">{o.emoji}</span>
-                        <span className="text-sm font-medium">{t(o.labelKey)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {issueType && (
-                <div>
-                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizIntensity')}</label>
-                  <div className="space-y-1.5">
-                    {INTENSITY_OPTIONS.map(o => (
-                      <button
-                        key={o.value}
-                        onClick={() => setIntensity(o.value)}
-                        className={`w-full p-3 rounded-xl border text-left transition ${
-                          intensity === o.value
-                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
-                            : 'border-surface-200 dark:border-surface-700 hover:border-surface-300'
-                        }`}
-                      >
-                        <p className="font-semibold text-sm">{t(o.labelKey)}</p>
-                        <p className="text-xs text-surface-500 dark:text-surface-400">{t(o.descKey)}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {intensity && (
-                <div>
-                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizContext')}</label>
-                  <textarea
-                    value={context}
-                    onChange={e => setContext(e.target.value)}
-                    rows={3}
-                    placeholder={t('g.beh.wizContextPh')}
-                    className="w-full p-3 border border-surface-200 dark:border-surface-700 dark:bg-surface-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                  />
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-2">
-                <button onClick={() => setShowWizard(false)} className="flex-1 py-3 rounded-xl bg-surface-100 dark:bg-surface-700 font-semibold text-surface-700 dark:text-surface-200">
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={createPlan}
-                  disabled={!selectedPet || !issueType || !intensity || creating}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-semibold disabled:opacity-60 shadow-lg shadow-purple-500/30"
-                >
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  {creating ? t('g.beh.generating') : t('g.beh.createPlan')}
-                </button>
-              </div>
-            </div>
+      <Sheet
+        open={showWizard}
+        onClose={() => setShowWizard(false)}
+        title={t('g.beh.wizTitle')}
+        description={t('g.beh.wizSubtitle')}
+        size="tall"
+        footer={
+          <div className="flex gap-2">
+            <Button variant="secondary" fullWidth onClick={() => setShowWizard(false)}>{t('common.cancel')}</Button>
+            <Button
+              fullWidth
+              leftIcon={Sparkles}
+              loading={creating}
+              disabled={!selectedPet || !issueType || !intensity}
+              onClick={createPlan}
+            >
+              {creating ? t('g.beh.generating') : t('g.beh.createPlan')}
+            </Button>
           </div>
+        }
+      >
+        <div className="space-y-5 pb-1">
+          <fieldset>
+            <legend className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizPet')}</legend>
+            <div role="radiogroup" className="grid grid-cols-2 gap-2">
+              {pets.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selectedPet === p.id}
+                  onClick={() => { void hapticSelect(); setSelectedPet(p.id); setIssueType('') }}
+                  className={optionCls(selectedPet === p.id)}
+                >
+                  <PetAvatar pet={p} size={36} />
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-sm truncate">{p.name}</span>
+                    <span className="block text-xs text-surface-600 dark:text-surface-400 truncate">{p.breed?.name ?? t('g.misc.srd')}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          {selectedPet && (
+            <fieldset>
+              <legend className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizIssue')}</legend>
+              <div role="radiogroup" className="space-y-1.5">
+                {availableIssues.map(o => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={issueType === o.value}
+                    onClick={() => { void hapticSelect(); setIssueType(o.value) }}
+                    className={optionCls(issueType === o.value)}
+                  >
+                    <o.Icon className="w-5 h-5 shrink-0 text-violet-700 dark:text-violet-300" aria-hidden />
+                    <span className="flex-1 text-sm font-medium">{t(o.labelKey)}</span>
+                    <ChevronRight className="w-4 h-4 text-surface-400" aria-hidden />
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
+          {issueType && (
+            <fieldset>
+              <legend className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizIntensity')}</legend>
+              <div role="radiogroup" className="space-y-1.5">
+                {INTENSITY_OPTIONS.map(o => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={intensity === o.value}
+                    onClick={() => { void hapticSelect(); setIntensity(o.value) }}
+                    className={optionCls(intensity === o.value)}
+                  >
+                    <span className="flex flex-col">
+                      <span className="font-semibold text-sm">{t(o.labelKey)}</span>
+                      <span className="text-xs text-surface-600 dark:text-surface-400">{t(o.descKey)}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
+          {intensity && (
+            <div>
+              <label htmlFor={ctxId} className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.beh.wizContext')}</label>
+              <textarea
+                id={ctxId}
+                value={context}
+                onChange={e => setContext(e.target.value)}
+                rows={3}
+                placeholder={t('g.beh.wizContextPh')}
+                className="w-full p-3 border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 text-surface-900 dark:text-white rounded-xl text-[15px] focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              />
+            </div>
+          )}
         </div>
-      )}
-    </DashboardLayout>
+      </Sheet>
+    </>
   )
 }

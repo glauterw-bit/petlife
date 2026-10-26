@@ -69,7 +69,7 @@ export function OnboardingChecklist({
       done: hasVaccine,
       label: t('onb.step.vaccine'),
       desc: t('onb.step.vaccineDesc'),
-      href: '/health/vaccines',
+      href: `/health/vaccines?pet=${pet.id}&scan=1`,
       icon: <Syringe className="w-4 h-4" />,
     },
     {
@@ -96,7 +96,7 @@ export function OnboardingChecklist({
   }
 
   return (
-    <div className="relative rounded-3xl border border-primary-100 dark:border-primary-900/40 bg-gradient-to-br from-primary-50 to-accent-50 dark:from-surface-800 dark:to-surface-800 p-5 mb-6 overflow-hidden">
+    <div className="relative rounded-2xl border tone-brand-bg p-4 mb-6 overflow-hidden">
       <div
         className="pointer-events-none absolute -top-16 -right-12 w-48 h-48 rounded-full bg-primary-400 opacity-[0.10] blur-3xl"
         aria-hidden
@@ -105,7 +105,7 @@ export function OnboardingChecklist({
       <div className="relative flex items-start justify-between gap-2 mb-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-primary-500 shrink-0" />
+            <Sparkles className="w-4 h-4 text-primary-700 dark:text-primary-300 shrink-0" aria-hidden />
             <h2 className="font-display text-base font-bold text-surface-900 dark:text-white truncate">
               {t('onb.title', { name: firstName ? `, ${firstName}` : '' })}
             </h2>
@@ -117,7 +117,7 @@ export function OnboardingChecklist({
         <button
           onClick={dismiss}
           aria-label={t('onb.dismiss')}
-          className="tap-target -mt-1 -mr-1 rounded-lg text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 hover:bg-white/60 dark:hover:bg-surface-700/60 flex items-center justify-center shrink-0"
+          className="tap-target min-w-[44px] min-h-[44px] -mt-2 -mr-2 rounded-lg text-surface-500 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-white/60 dark:hover:bg-surface-700/60 flex items-center justify-center shrink-0"
         >
           <X className="w-4 h-4" />
         </button>
@@ -126,20 +126,21 @@ export function OnboardingChecklist({
       {/* barra de progresso */}
       <div className="relative h-1.5 bg-white/70 dark:bg-surface-700 rounded-full overflow-hidden mb-4">
         <div
-          className="h-full rounded-full bg-primary-500 transition-[width] duration-700 ease-out"
+          className="h-full rounded-full bg-primary-600 dark:bg-primary-400 transition-[width] duration-700 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>
 
       {/* passos */}
       <div className="relative space-y-2">
-        {steps.map(step => {
+        {/* Só os passos pendentes — o progresso já mostra o que foi feito. */}
+        {steps.filter(s => !s.done).map(step => {
           const inner = (
             <>
               <span
                 className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition ${
                   step.done
-                    ? 'bg-primary-500 text-white'
+                    ? 'bg-primary-700 text-white dark:bg-primary-500 dark:text-surface-950'
                     : 'bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-300 border border-primary-100 dark:border-surface-600'
                 }`}
               >
@@ -149,7 +150,7 @@ export function OnboardingChecklist({
                 <div
                   className={`text-sm font-semibold leading-snug ${
                     step.done
-                      ? 'text-surface-400 dark:text-surface-500 line-through'
+                      ? 'text-surface-500 dark:text-surface-400 line-through'
                       : 'text-surface-900 dark:text-white'
                   }`}
                 >
@@ -160,7 +161,7 @@ export function OnboardingChecklist({
                 )}
               </div>
               {!step.done && step.href && (
-                <ArrowRight className="w-4 h-4 text-primary-400 shrink-0 group-hover:translate-x-0.5 transition" />
+                <ArrowRight className="w-4 h-4 text-primary-700 dark:text-primary-300 shrink-0 group-hover:translate-x-0.5 transition" />
               )}
             </>
           )
@@ -178,7 +179,7 @@ export function OnboardingChecklist({
             <Link
               key={step.key}
               href={step.href}
-              className={`group pressable ${base} bg-white/60 dark:bg-surface-700/40 hover:bg-white dark:hover:bg-surface-700 transition`}
+              className={`group pressable ${base} bg-white/70 dark:bg-surface-900/60 hover:bg-white dark:hover:bg-surface-900 min-h-[44px] transition`}
             >
               {inner}
             </Link>

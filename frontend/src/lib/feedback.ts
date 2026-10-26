@@ -69,7 +69,14 @@ export async function hapticError() {
 export async function hapticSelect() {
   if (isNative()) {
     try { await Haptics.selectionChanged() } catch {}
+  } else if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    navigator.vibrate?.(5)
   }
+}
+
+/** Apelido de hapticLight — toque leve em botões. */
+export function hapticTap() {
+  return hapticLight()
 }
 
 // ── Confetti ──────────────────────────────────────────

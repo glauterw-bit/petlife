@@ -4,13 +4,23 @@ import { requestSoftUpsell } from '@/lib/softUpsell'
 
 import { useState, useEffect, useRef, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { Camera, Search, ChevronDown, AlertCircle, PawPrint, Sparkles, X } from 'lucide-react'
+import Link from 'next/link'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Camera, Search, ChevronDown, AlertCircle, PawPrint, Sparkles, Dog, Cat, Keyboard } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { pets as petsApi, breeds as breedsApi, type Breed } from '@/lib/api'
+import { pets as petsApi, breeds as breedsApi, type Breed, type Pet } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
-import { celebratePets, hapticError } from '@/lib/feedback'
+import { celebratePets, hapticError, hapticSuccess } from '@/lib/feedback'
 import { useT } from '@/contexts/LocaleContext'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { Sheet } from '@/components/ui/Sheet'
+import { SuccessCheck } from '@/components/ui/SuccessCheck'
+import { invalidate } from '@/lib/cache'
+import { useShell } from '@/components/layout/shell'
+import { variants, dur, easeOut, spring } from '@/lib/motion'
+import { formatDate, cn } from '@/lib/utils'
 
 interface BreedCandidate {
   breed: string
@@ -20,37 +30,62 @@ interface BreedCandidate {
   breed_id: number | null
 }
 
+type Species = 'dog' | 'cat' | 'other'
+type Sex = 'unknown' | 'male' | 'female'
+
+const INPUT =
+  'w-full px-4 min-h-[48px] py-3 bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl text-[15px] text-surface-900 dark:text-surface-100 focus:outline-none focus:ring-2 focus:ring-primary-500'
+const LABEL = 'block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5'
+
+function isoDate(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/** Data aproximada a partir de anos + meses (dia 1 do mês resultante). */
+function approxBirthDate(years: number, months: number): string | null {
+  const total = Math.max(0, Math.floor(years) * 12 + Math.floor(months))
+  if (total <= 0) return null
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() - total)
+  return isoDate(d)
+}
+
 export default function NewPetPage() {
   const t = useT()
   const router = useRouter()
-  const { success, error } = useToast()
+  const shell = useShell()
+  const { error } = useToast()
 
   const [form, setForm] = useState({
     name: '',
-    species: 'dog' as 'dog' | 'cat' | 'other',
+    species: 'dog' as Species,
     breed_id: undefined as number | undefined,
     birth_date: '',
     weight: '',
     color: '',
-    gender: '' as 'male' | 'female' | '',
+    gender: 'unknown' as Sex,
     neutered: false,
     microchip: '',
     bio: '',
   })
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [unknownBirth, setUnknownBirth] = useState(false)
+  const [ageYears, setAgeYears] = useState('')
+  const [ageMonths, setAgeMonths] = useState('')
 
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
-  // Breed-from-photo (IA Vision)
+  // Raça pela foto (IA Vision)
   const [identifyOpen, setIdentifyOpen] = useState(false)
   const [identifyFile, setIdentifyFile] = useState<File | null>(null)
   const [identifyPreview, setIdentifyPreview] = useState<string | null>(null)
   const [identifyLoading, setIdentifyLoading] = useState(false)
-  const [identifyResult, setIdentifyResult] = useState<{
-    candidates: BreedCandidate[]
-    notes: string
-    is_mixed_likely: boolean
-  } | null>(null)
+  const [identifyResult, setIdentifyResult] = useState<{ candidates: BreedCandidate[]; notes: string; is_mixed_likely: boolean } | null>(null)
   const [identifyError, setIdentifyError] = useState<string | null>(null)
   const [breedSearch, setBreedSearch] = useState('')
   const [breedOptions, setBreedOptions] = useState<Breed[]>([])
@@ -58,22 +93,19 @@ export default function NewPetPage() {
   const [breedOpen, setBreedOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [loadingBreeds, setLoadingBreeds] = useState(false)
+  const [created, setCreated] = useState<Pet | null>(null)
   const breedRef = useRef<HTMLDivElement>(null)
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (breedRef.current && !breedRef.current.contains(e.target as Node)) {
-        setBreedOpen(false)
-      }
+      if (breedRef.current && !breedRef.current.contains(e.target as Node)) setBreedOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Search breeds
   useEffect(() => {
-    if (breedSearch.length < 2) { setBreedOptions([]); return }
+    if (breedSearch.length < 2 || selectedBreed?.name === breedSearch) { setBreedOptions([]); return }
     const timer = setTimeout(async () => {
       setLoadingBreeds(true)
       try {
@@ -81,13 +113,15 @@ export default function NewPetPage() {
         setBreedOptions(results.slice(0, 8))
         setBreedOpen(true)
       } catch {
-        // ignore
+        /* busca é opcional */
       } finally {
         setLoadingBreeds(false)
       }
     }, 400)
     return () => clearTimeout(timer)
-  }, [breedSearch, form.species])
+  }, [breedSearch, form.species, selectedBreed])
+
+  const approx = unknownBirth ? approxBirthDate(Number(ageYears) || 0, Number(ageMonths) || 0) : null
 
   function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -96,15 +130,21 @@ export default function NewPetPage() {
     setPhotoPreview(URL.createObjectURL(file))
   }
 
+  function setSpecies(s: Species) {
+    setSelectedBreed(null)
+    setBreedSearch('')
+    setForm(f => ({ ...f, species: s, breed_id: undefined }))
+  }
+
   function selectBreed(b: Breed) {
     setSelectedBreed(b)
-    // Candidato da identificação por foto pode ser de outra espécie que a marcada no formulário.
+    // candidato da identificação por foto pode ser de outra espécie que a marcada
     setForm(f => ({ ...f, breed_id: b.id, species: b.species === 'dog' || b.species === 'cat' ? b.species : f.species }))
     setBreedSearch(b.name)
     setBreedOpen(false)
   }
 
-  async function pickIdentifyFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function pickIdentifyFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setIdentifyFile(file)
@@ -118,8 +158,7 @@ export default function NewPetPage() {
     setIdentifyLoading(true)
     setIdentifyError(null)
     try {
-      const res = await breedsApi.identifyFromPhoto(identifyFile)
-      setIdentifyResult(res)
+      setIdentifyResult(await breedsApi.identifyFromPhoto(identifyFile))
     } catch (e: unknown) {
       setIdentifyError(e instanceof Error ? e.message : t('pw.newPet.identifyError'))
     } finally {
@@ -129,19 +168,16 @@ export default function NewPetPage() {
 
   async function pickCandidate(c: BreedCandidate) {
     if (c.breed_id) {
-      // Já existe no catálogo — busca o registro completo e seleciona
       try {
-        const breed = await breedsApi.getById(c.breed_id)
-        selectBreed(breed)
+        selectBreed(await breedsApi.getById(c.breed_id))
       } catch {
         setBreedSearch(c.breed)
         setForm(f => ({ ...f, breed_id: c.breed_id ?? undefined }))
       }
     } else {
-      // Sem match no catálogo — só preenche o nome
       setBreedSearch(c.breed)
     }
-    // Reusa a foto da identificação como foto do pet (se ainda não tem)
+    // reaproveita a foto da identificação como foto do pet
     if (identifyFile && !photoFile) {
       setPhotoFile(identifyFile)
       setPhotoPreview(identifyPreview)
@@ -160,33 +196,40 @@ export default function NewPetPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!form.name.trim()) { error(t('pw.newPet.nameRequired')); return }
+    if (!form.name.trim()) { void hapticError(); error(t('pw.newPet.nameRequired')); return }
     setLoading(true)
     try {
-      const payload = {
-        name: form.name,
+      const birth = unknownBirth ? approx : form.birth_date || null
+      const pet = await petsApi.create({
+        name: form.name.trim(),
         species: form.species,
         breed_id: form.breed_id,
-        birth_date: form.birth_date || undefined,
-        weight: form.weight ? parseFloat(form.weight) : undefined,
+        birth_date: birth || undefined,
+        weight: form.weight ? parseFloat(form.weight.replace(',', '.')) : undefined,
         color: form.color || undefined,
-        gender: form.gender || undefined,
+        gender: form.gender === 'unknown' ? undefined : form.gender,
         neutered: form.neutered,
         microchip: form.microchip || undefined,
         bio: form.bio || undefined,
-      }
-      const pet = await petsApi.create(payload)
-      petsApi.list().then(l => { if (l.length >= 3) requestSoftUpsell('pet3') }).catch(() => {})
+      })
+      let withPhoto = pet
       if (photoFile) {
-        await petsApi.uploadPhoto(pet.id, photoFile).catch(() => {})
+        const r = await petsApi.uploadPhoto(pet.id, photoFile).catch(() => null)
+        if (r) withPhoto = { ...pet, photo_url: r.photo_url }
       }
-      celebratePets()
-      success(t('pw.newPet.created', { name: pet.name }))
-      // Pequeno delay pra o usuário ver o confetti antes da transição
-      // Vai direto pra carteirinha em vez do perfil: registrar a 1ª vacina é
-      // o passo que revela o valor do app. Antes o tutor caía no perfil e
-      // parava ali — só 1 de 110 chegava a cadastrar uma vacina.
-      setTimeout(() => router.push(`/health/vaccines?novo=1&pet=${pet.id}`), 600)
+      invalidate('pets')
+      void shell?.refreshPets()
+      petsApi
+        .list()
+        .then(l => {
+          if (l.length >= 3) requestSoftUpsell('pet3')
+          // confete só no 1º pet: é um marco real
+          if (l.length === 1) celebratePets()
+        })
+        .catch(() => {})
+      void hapticSuccess()
+      setCreated(withPhoto)
+      window.scrollTo({ top: 0 })
     } catch (err: unknown) {
       void hapticError()
       error(err instanceof Error ? err.message : t('pw.newPet.createError'))
@@ -198,373 +241,382 @@ export default function NewPetPage() {
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [field]: e.target.value }))
 
+  // ── Tela de sucesso: o próximo passo é a carteirinha ────────────────
+  if (created) {
+    const female = created.gender === 'female'
+    return (
+      <DashboardLayout>
+        <motion.div
+          variants={variants.scaleIn}
+          initial="hidden"
+          animate="show"
+          transition={spring.soft}
+          className="max-w-md mx-auto min-h-[70dvh] flex flex-col items-center justify-center text-center pt-6"
+        >
+          <SuccessCheck size={84} />
+          <h1 className="mt-5 text-[28px] leading-tight font-display font-extrabold tracking-tight text-surface-900 dark:text-white">
+            {t(female ? 'petx.new.doneF' : 'petx.new.doneM', { name: created.name })}
+          </h1>
+          <p className="mt-1 text-[17px] text-surface-600 dark:text-surface-400">{t(female ? 'petx.new.doneSubF' : 'petx.new.doneSubM')}</p>
+
+          <div className="w-full mt-8 space-y-3">
+            <Button
+              fullWidth
+              size="lg"
+              leftIcon={Camera}
+              href={`/health/vaccines?novo=1&pet=${created.id}&scan=1`}
+            >
+              {t('petx.new.scan')}
+            </Button>
+            <p className="text-[13px] text-surface-600 dark:text-surface-400">{t('petx.new.scanHint')}</p>
+            <Button fullWidth variant="secondary" leftIcon={Keyboard} href={`/health/vaccines?novo=1&pet=${created.id}&add=1`}>
+              {t('petx.new.type')}
+            </Button>
+          </div>
+          <Link
+            href={`/pets/${created.id}`}
+            className="mt-4 inline-flex items-center min-h-[44px] px-4 text-[15px] font-medium text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white"
+          >
+            {t('petx.new.later')}
+          </Link>
+        </motion.div>
+      </DashboardLayout>
+    )
+  }
+
+  const SpeciesIcon = form.species === 'dog' ? Dog : form.species === 'cat' ? Cat : PawPrint
+  const submitLabel = form.name.trim() ? t('petx.new.submit', { name: form.name.trim() }) : t('petx.new.submitEmpty')
+
   return (
     <DashboardLayout>
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-surface-900 dark:text-white">{t('pet.new')}</h1>
-          <p className="text-surface-500 dark:text-surface-400 mt-1">{t('pw.newPet.subtitle')}</p>
+      <PageHeader title={t('petx.new.title')} subtitle={t('petx.new.subtitle')} back showBell={false} />
+
+      <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-5" noValidate>
+        {/* Foto (opcional) */}
+        <div className="flex flex-col items-center">
+          <div className="relative">
+            <label className="pressable relative w-28 h-28 rounded-full cursor-pointer overflow-hidden flex items-center justify-center bg-primary-50 dark:bg-primary-500/15 text-primary-700 dark:text-primary-300 border-2 border-dashed border-primary-300 dark:border-primary-500/40 focus-within:ring-2 focus-within:ring-primary-500">
+              {photoPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={photoPreview} alt={t('pw.newPet.previewAlt')} className="w-full h-full object-cover" />
+              ) : (
+                <SpeciesIcon className="w-11 h-11" aria-hidden strokeWidth={1.7} />
+              )}
+              <span className="sr-only">{photoPreview ? t('petx.new.photoChange') : t('petx.new.photoAdd')}</span>
+              <input type="file" accept="image/*" className="sr-only" onChange={handlePhoto} />
+            </label>
+            <span aria-hidden className="pointer-events-none absolute -bottom-0.5 -right-0.5 w-9 h-9 rounded-full bg-primary-700 text-white dark:bg-primary-500 dark:text-surface-950 flex items-center justify-center ring-4 ring-surface-50 dark:ring-surface-950">
+              <Camera className="w-4 h-4" />
+            </span>
+          </div>
+          <span className="mt-2 text-[13px] text-surface-600 dark:text-surface-400">{t('petx.new.photoOptional')}</span>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Photo */}
-          <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
-            <h2 className="text-base font-semibold text-surface-900 dark:text-white mb-4">{t('pw.newPet.photoSection')}</h2>
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary-50 to-accent-50 flex items-center justify-center overflow-hidden border-2 border-surface-200 dark:border-surface-700">
-                  {photoPreview ? (
-                    <Image src={photoPreview} alt={t('pw.newPet.previewAlt')} width={96} height={96} className="object-cover w-full h-full" />
-                  ) : (
-                    <span className="text-4xl">{form.species === 'dog' ? '🐕' : form.species === 'cat' ? '🐈' : '🐾'}</span>
-                  )}
-                </div>
-                <label className="absolute -bottom-2 -right-2 bg-primary-500 text-white rounded-xl p-1.5 cursor-pointer hover:bg-primary-600 transition">
-                  <Camera className="w-4 h-4" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-                </label>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-surface-700 dark:text-surface-200">{t('pw.newPet.photoLabel')}</p>
-                <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">{t('pw.newPet.photoHint')}</p>
-                <label className="mt-2 inline-block cursor-pointer text-xs text-primary-600 hover:underline font-medium">
-                  {t('pw.newPet.chooseFile')}
-                  <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-                </label>
-              </div>
-            </div>
-          </div>
+        {/* Nome */}
+        <div>
+          <label htmlFor="pet-name" className={LABEL}>
+            {t('pet.name')} <span className="text-surface-500 dark:text-surface-400 font-normal">({t('petx.new.required')})</span>
+          </label>
+          <input
+            id="pet-name"
+            type="text"
+            required
+            autoComplete="off"
+            autoCapitalize="words"
+            enterKeyHint="done"
+            maxLength={60}
+            value={form.name}
+            onChange={set('name')}
+            placeholder={t('pw.newPet.namePlaceholder')}
+            className={cn(INPUT, 'text-[17px]')}
+          />
+        </div>
 
-          {/* Basic info */}
-          <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-6">
-            <h2 className="text-base font-semibold text-surface-900 dark:text-white mb-4">{t('pw.newPet.basicSection')}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.name')} *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.name}
-                  onChange={set('name')}
-                  placeholder={t('pw.newPet.namePlaceholder')}
-                  className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
+        {/* Espécie */}
+        <div>
+          <span id="species-label" className={LABEL}>
+            {t('pet.species')} <span className="text-surface-500 dark:text-surface-400 font-normal">({t('petx.new.required')})</span>
+          </span>
+          <SegmentedControl<Species>
+            ariaLabel={t('petx.new.speciesAria')}
+            value={form.species}
+            onChange={setSpecies}
+            options={[
+              { value: 'dog', label: t('pet.dog'), icon: Dog },
+              { value: 'cat', label: t('pet.cat'), icon: Cat },
+              { value: 'other', label: t('pw.newPet.speciesOther'), icon: PawPrint },
+            ]}
+          />
+        </div>
 
-              <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.species')} *</label>
-                <select
-                  value={form.species}
-                  onChange={e => { set('species')(e); setSelectedBreed(null); setBreedSearch(''); setForm(f => ({ ...f, species: e.target.value as 'dog'|'cat'|'other', breed_id: undefined })) }}
-                  className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800"
-                >
-                  <option value="dog">🐕 {t('pet.dog')}</option>
-                  <option value="cat">🐈 {t('pet.cat')}</option>
-                  <option value="other">🐾 {t('pw.newPet.speciesOther')}</option>
-                </select>
-              </div>
-
-              {/* Breed selector */}
-              {form.species !== 'other' && (
-                <div className="relative" ref={breedRef}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-medium text-surface-700 dark:text-surface-200">{t('pet.breed')}</label>
-                    <button
-                      type="button"
-                      onClick={() => setIdentifyOpen(true)}
-                      className="flex items-center gap-1 text-xs text-primary-700 bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-full font-semibold transition"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      {t('pw.newPet.identifyCta')}
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input
-                      type="text"
-                      value={breedSearch}
-                      onChange={e => { setBreedSearch(e.target.value); if (!e.target.value) { setSelectedBreed(null); setForm(f => ({ ...f, breed_id: undefined })) } }}
-                      placeholder={t('pw.newPet.breedSearchPlaceholder')}
-                      className="w-full pl-9 pr-8 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                    {loadingBreeds && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
-                    )}
-                    {!loadingBreeds && <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />}
-                  </div>
-                  {breedOpen && breedOptions.length > 0 && (
-                    <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl shadow-lg overflow-hidden">
-                      {breedOptions.map(b => (
+        {/* Mais detalhes (opcional) */}
+        <div className="rounded-2xl bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800">
+          <button
+            type="button"
+            aria-expanded={moreOpen}
+            aria-controls="more-details"
+            onClick={() => setMoreOpen(o => !o)}
+            className="pressable w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left rounded-2xl"
+          >
+            <span className="flex-1 min-w-0">
+              <span className="block text-[15px] font-semibold text-surface-900 dark:text-white">{t('petx.new.more')}</span>
+              <span className="block text-[13px] text-surface-600 dark:text-surface-400 truncate">{t('petx.new.moreHint')}</span>
+            </span>
+            <ChevronDown className={cn('w-5 h-5 text-surface-500 transition-transform duration-200', moreOpen && 'rotate-180')} aria-hidden />
+          </button>
+          <AnimatePresence initial={false}>
+            {moreOpen && (
+              <motion.div
+                id="more-details"
+                key="more"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: dur.base, ease: easeOut }}
+                className="overflow-hidden"
+              >
+                <div className="px-4 pb-4 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Raça */}
+                  {form.species !== 'other' && (
+                    <div className="relative sm:col-span-2" ref={breedRef}>
+                      <div className="flex items-center justify-between mb-1.5 gap-2">
+                        <label htmlFor="pet-breed" className="block text-sm font-medium text-surface-700 dark:text-surface-200">{t('pet.breed')}</label>
                         <button
-                          key={b.id}
                           type="button"
-                          onClick={() => selectBreed(b)}
-                          className="w-full px-4 py-2.5 text-left text-sm hover:bg-primary-50 flex items-center gap-2 transition"
+                          onClick={() => setIdentifyOpen(true)}
+                          className="pressable inline-flex items-center gap-1.5 min-h-[36px] text-[13px] text-primary-800 bg-primary-50 hover:bg-primary-100 dark:bg-primary-500/15 dark:text-primary-200 dark:hover:bg-primary-500/25 px-3 rounded-full font-semibold transition relative before:absolute before:-inset-y-1 before:inset-x-0 before:content-['']"
                         >
-                          <span>{b.species === 'dog' ? '🐕' : '🐈'}</span>
-                          <span className="font-medium text-surface-900 dark:text-white">{b.name}</span>
-                          {b.size && <span className="ml-auto text-xs text-surface-500 dark:text-surface-400">{b.size}</span>}
+                          <Sparkles className="w-3.5 h-3.5" aria-hidden />
+                          {t('pw.newPet.identifyCta')}
                         </button>
-                      ))}
+                      </div>
+                      <div className="relative">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500 dark:text-surface-400 pointer-events-none" aria-hidden />
+                        <input
+                          id="pet-breed"
+                          type="text"
+                          role="combobox"
+                          aria-expanded={breedOpen && breedOptions.length > 0}
+                          aria-controls="breed-options"
+                          autoComplete="off"
+                          value={breedSearch}
+                          onChange={e => {
+                            setBreedSearch(e.target.value)
+                            if (selectedBreed && e.target.value !== selectedBreed.name) {
+                              setSelectedBreed(null)
+                              setForm(f => ({ ...f, breed_id: undefined }))
+                            }
+                          }}
+                          placeholder={t('pw.newPet.breedSearchPlaceholder')}
+                          className={cn(INPUT, 'pl-10 pr-10')}
+                        />
+                        {loadingBreeds ? (
+                          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary-300 border-t-primary-700 rounded-full animate-spin" aria-hidden />
+                        ) : (
+                          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500 dark:text-surface-400 pointer-events-none" aria-hidden />
+                        )}
+                      </div>
+                      {breedOpen && breedOptions.length > 0 && (
+                        <ul id="breed-options" role="listbox" className="absolute z-20 left-0 right-0 top-full mt-1 bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl shadow-float overflow-hidden">
+                          {breedOptions.map(b => (
+                            <li key={b.id} role="option" aria-selected={selectedBreed?.id === b.id}>
+                              <button
+                                type="button"
+                                onClick={() => selectBreed(b)}
+                                className="w-full px-4 min-h-[44px] text-left text-[15px] hover:bg-primary-50 dark:hover:bg-primary-500/10 flex items-center gap-2 transition"
+                              >
+                                {b.species === 'dog' ? <Dog className="w-4 h-4 text-surface-500" aria-hidden /> : <Cat className="w-4 h-4 text-surface-500" aria-hidden />}
+                                <span className="font-medium text-surface-900 dark:text-white">{b.name}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Nascimento ou idade aproximada */}
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center justify-between mb-1.5 gap-2">
+                      <label htmlFor={unknownBirth ? 'pet-age-years' : 'pet-birth'} className="block text-sm font-medium text-surface-700 dark:text-surface-200">
+                        {unknownBirth ? t('petx.new.approxAge') : t('pet.birth')}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setUnknownBirth(u => !u)}
+                        className="min-h-[36px] px-2 text-[13px] font-semibold text-primary-700 dark:text-primary-300 relative before:absolute before:-inset-y-1 before:inset-x-0 before:content-['']"
+                      >
+                        {unknownBirth ? t('petx.new.knownBirth') : t('petx.new.unknownBirth')}
+                      </button>
+                    </div>
+                    {unknownBirth ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label htmlFor="pet-age-years" className="sr-only">{t('petx.new.ageYears')}</label>
+                            <div className="relative">
+                              <input id="pet-age-years" type="number" inputMode="numeric" min={0} max={30} value={ageYears} onChange={e => setAgeYears(e.target.value)} className={cn(INPUT, 'pr-16')} />
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-surface-500 dark:text-surface-400 pointer-events-none">{t('petx.new.ageYears')}</span>
+                            </div>
+                          </div>
+                          <div>
+                            <label htmlFor="pet-age-months" className="sr-only">{t('petx.new.ageMonths')}</label>
+                            <div className="relative">
+                              <input id="pet-age-months" type="number" inputMode="numeric" min={0} max={11} value={ageMonths} onChange={e => setAgeMonths(e.target.value)} className={cn(INPUT, 'pr-16')} />
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-surface-500 dark:text-surface-400 pointer-events-none">{t('petx.new.ageMonths')}</span>
+                            </div>
+                          </div>
+                        </div>
+                        {approx && (
+                          <p className="mt-1.5 text-[13px] text-surface-600 dark:text-surface-400" aria-live="polite">
+                            {t('petx.new.approxNote', { date: formatDate(approx, 'MM/yyyy') })}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <input id="pet-birth" type="date" value={form.birth_date} onChange={set('birth_date')} max={isoDate(new Date())} className={INPUT} />
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="pet-weight" className={LABEL}>{t('pet.weight')}</label>
+                    <input id="pet-weight" type="text" inputMode="decimal" value={form.weight} onChange={set('weight')} placeholder={t('pw.newPet.weightPlaceholder')} className={INPUT} />
+                  </div>
+                  <div>
+                    <label htmlFor="pet-color" className={LABEL}>{t('pet.color')}</label>
+                    <input id="pet-color" type="text" value={form.color} onChange={set('color')} placeholder={t('pw.newPet.colorPlaceholder')} className={INPUT} />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <span className={LABEL}>{t('pet.gender')}</span>
+                    <SegmentedControl<Sex>
+                      ariaLabel={t('pet.gender')}
+                      value={form.gender}
+                      onChange={g => setForm(f => ({ ...f, gender: g }))}
+                      options={[
+                        { value: 'unknown', label: t('petx.new.sexUnknown') },
+                        { value: 'male', label: t('pet.male') },
+                        { value: 'female', label: t('pet.female') },
+                      ]}
+                    />
+                  </div>
+
+                  <label htmlFor="neutered" className="sm:col-span-2 flex items-center gap-3 min-h-[44px] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="neutered"
+                      checked={form.neutered}
+                      onChange={e => setForm(f => ({ ...f, neutered: e.target.checked }))}
+                      className="w-5 h-5 rounded accent-primary-600"
+                    />
+                    <span className="text-[15px] text-surface-800 dark:text-surface-200">{t('pw.newPet.neuteredLabel')}</span>
+                  </label>
+
+                  <div className="sm:col-span-2">
+                    <label htmlFor="pet-microchip" className={LABEL}>{t('pet.microchip')}</label>
+                    <input id="pet-microchip" type="text" inputMode="numeric" value={form.microchip} onChange={set('microchip')} placeholder={t('pw.newPet.microchipPlaceholder')} className={INPUT} />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label htmlFor="pet-bio" className={LABEL}>{t('pet.bio')}</label>
+                    <textarea id="pet-bio" value={form.bio} onChange={set('bio')} rows={3} placeholder={t('pw.newPet.bioPlaceholder')} className={cn(INPUT, 'resize-none')} />
+                  </div>
+
+                  {selectedBreed && (
+                    <div className="sm:col-span-2 rounded-2xl border tone-brand-bg p-4">
+                      <h3 className="font-semibold text-primary-900 dark:text-primary-200 mb-2 flex items-center gap-2">
+                        <PawPrint className="w-4 h-4" aria-hidden />
+                        {t('pw.newPet.breedInfo', { name: selectedBreed.name })}
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2 text-sm text-primary-900 dark:text-primary-200">
+                        {selectedBreed.energy_level && <div><span className="font-medium">{t('pw.breed.energy')}:</span> {selectedBreed.energy_level}/5</div>}
+                        {selectedBreed.life_expectancy_min && (
+                          <div><span className="font-medium">{t('pw.breed.lifeExpectancy')}:</span> {selectedBreed.life_expectancy_min}–{selectedBreed.life_expectancy_max} {t('pw.breed.years')}</div>
+                        )}
+                        {selectedBreed.weight_min && (
+                          <div><span className="font-medium">{t('pw.breed.avgWeight')}:</span> {selectedBreed.weight_min}–{selectedBreed.weight_max} kg</div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
-              )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-              <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.birth')}</label>
-                <input
-                  type="date"
-                  value={form.birth_date}
-                  onChange={set('birth_date')}
-                  max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800"
-                />
+        <Button type="submit" fullWidth size="lg" loading={loading} leftIcon={PawPrint}>
+          {loading ? t('pet.submitting') : submitLabel}
+        </Button>
+      </form>
+
+      {/* Identificar raça por foto */}
+      <Sheet open={identifyOpen} onClose={closeIdentify} title={t('pw.newPet.identifyTitle')} description={t('pw.newPet.identifyIntro')}>
+        <div className="space-y-4 pb-1">
+          {!identifyPreview ? (
+            <label className="block cursor-pointer">
+              <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={pickIdentifyFile} />
+              <div className="border-2 border-dashed border-primary-300 dark:border-primary-500/40 hover:bg-primary-50 dark:hover:bg-primary-500/10 rounded-2xl p-8 text-center transition">
+                <Camera className="w-10 h-10 mx-auto text-primary-700 dark:text-primary-300 mb-2" aria-hidden />
+                <p className="text-[15px] font-semibold text-surface-900 dark:text-surface-100">{t('pw.newPet.takeOrChoose')}</p>
+                <p className="text-[13px] text-surface-600 dark:text-surface-400 mt-1">{t('pw.newPet.identifyHint')}</p>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.weight')}</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={form.weight}
-                  onChange={set('weight')}
-                  placeholder={t('pw.newPet.weightPlaceholder')}
-                  className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.color')}</label>
-                <input
-                  type="text"
-                  value={form.color}
-                  onChange={set('color')}
-                  placeholder={t('pw.newPet.colorPlaceholder')}
-                  className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.gender')}</label>
-                <select
-                  value={form.gender}
-                  onChange={set('gender')}
-                  className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-surface-800"
-                >
-                  <option value="">{t('pw.newPet.notInformed')}</option>
-                  <option value="male">♂ {t('pet.male')}</option>
-                  <option value="female">♀ {t('pet.female')}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.microchip')}</label>
-                <input
-                  type="text"
-                  value={form.microchip}
-                  onChange={set('microchip')}
-                  placeholder={t('pw.newPet.microchipPlaceholder')}
-                  className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div className="sm:col-span-2 flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="neutered"
-                  checked={form.neutered}
-                  onChange={e => setForm(f => ({ ...f, neutered: e.target.checked }))}
-                  className="w-5 h-5 rounded accent-primary-500"
-                />
-                <label htmlFor="neutered" className="text-sm text-surface-700 dark:text-surface-200 cursor-pointer">
-                  {t('pw.newPet.neuteredLabel')}
+            </label>
+          ) : (
+            <div className="space-y-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={identifyPreview} alt={t('pw.newPet.petAlt')} className="w-full rounded-2xl object-cover max-h-64 border border-surface-200 dark:border-surface-700" />
+              <div className="grid grid-cols-2 gap-2">
+                <label className="pressable cursor-pointer inline-flex items-center justify-center min-h-[44px] text-sm font-semibold text-surface-800 dark:text-surface-200 bg-surface-100 dark:bg-surface-800 rounded-xl">
+                  <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={pickIdentifyFile} />
+                  {t('pw.newPet.changePhoto')}
                 </label>
+                <Button leftIcon={Sparkles} loading={identifyLoading} disabled={!!identifyResult} onClick={runIdentify}>
+                  {identifyResult ? t('pw.newPet.analyzed') : t('pw.newPet.identify')}
+                </Button>
               </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">{t('pet.bio')}</label>
-                <textarea
-                  value={form.bio}
-                  onChange={set('bio')}
-                  rows={3}
-                  placeholder={t('pw.newPet.bioPlaceholder')}
-                  className="w-full px-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Breed info preview */}
-          {selectedBreed && (
-            <div className="bg-primary-50 rounded-2xl border border-primary-200 p-5">
-              <h3 className="font-semibold text-primary-800 mb-2 flex items-center gap-2">
-                <PawPrint className="w-4 h-4" />
-                {t('pw.newPet.breedInfo', { name: selectedBreed.name })}
-              </h3>
-              <div className="grid grid-cols-2 gap-3 text-sm text-primary-700">
-                {selectedBreed.size && <div><span className="font-medium">{t('pw.breed.size')}:</span> {selectedBreed.size}</div>}
-                {selectedBreed.energy_level && <div><span className="font-medium">{t('pw.breed.energy')}:</span> {selectedBreed.energy_level}/5</div>}
-                {selectedBreed.life_expectancy_min && (
-                  <div><span className="font-medium">{t('pw.breed.lifeExpectancy')}:</span> {selectedBreed.life_expectancy_min}–{selectedBreed.life_expectancy_max} {t('pw.breed.years')}</div>
-                )}
-                {selectedBreed.weight_min && (
-                  <div><span className="font-medium">{t('pw.breed.avgWeight')}:</span> {selectedBreed.weight_min}–{selectedBreed.weight_max} kg</div>
-                )}
-              </div>
-              {selectedBreed.temperament && selectedBreed.temperament.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {selectedBreed.temperament.map((temp, i) => (
-                    <span key={i} className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">{temp}</span>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="flex-1 py-3.5 border border-surface-200 dark:border-surface-700 rounded-xl text-sm font-medium text-surface-700 dark:text-surface-200 hover:bg-surface-50 dark:hover:bg-surface-700/40 transition"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-primary-500 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-60 transition flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <PawPrint className="w-5 h-5" />
-              )}
-              {loading ? t('pet.submitting') : t('pet.submit')}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Modal: identificar raça por foto */}
-      {identifyOpen && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
-          onClick={closeIdentify}
-        >
-          <div
-            className="bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto animate-slide-up"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100 dark:border-surface-700 sticky top-0 bg-white dark:bg-surface-800">
-              <h2 className="font-bold text-surface-900 dark:text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary-600" />
-                {t('pw.newPet.identifyTitle')}
-              </h2>
-              <button
-                type="button"
-                onClick={closeIdentify}
-                aria-label={t('common.close')}
-                className="p-1.5 rounded-lg hover:bg-surface-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
+          {identifyError && (
+            <div role="alert" className="flex items-center gap-2 border tone-danger-bg text-red-800 dark:text-red-200 rounded-xl p-3 text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0" aria-hidden />
+              {identifyError}
             </div>
+          )}
 
-            <div className="p-5 space-y-4">
-              <p className="text-sm text-surface-600 dark:text-surface-300">
-                {t('pw.newPet.identifyIntro')}
+          {identifyResult && identifyResult.candidates.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-surface-600 dark:text-surface-400">
+                {t('pw.newPet.candidates')}{' '}
+                {identifyResult.is_mixed_likely && <span className="ml-1 text-amber-800 dark:text-amber-300 normal-case">{t('pw.newPet.mixedLikely')}</span>}
               </p>
-
-              {!identifyPreview ? (
-                <label className="block">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={pickIdentifyFile}
-                  />
-                  <div className="border-2 border-dashed border-primary-200 hover:border-primary-400 hover:bg-primary-50 rounded-2xl p-8 text-center cursor-pointer transition">
-                    <Camera className="w-10 h-10 mx-auto text-primary-500 mb-2" />
-                    <p className="text-sm font-semibold text-surface-800 dark:text-surface-100">{t('pw.newPet.takeOrChoose')}</p>
-                    <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">{t('pw.newPet.identifyHint')}</p>
+              {identifyResult.candidates.map((c, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => pickCandidate(c)}
+                  className="pressable w-full text-left bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 hover:border-primary-300 rounded-xl p-3 transition"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-surface-900 dark:text-white">{c.breed}</span>
+                    <span className="chip chip-success">{Math.round((c.confidence ?? 0) * 100)}%</span>
                   </div>
-                </label>
-              ) : (
-                <div className="space-y-3">
-                  <img
-                    src={identifyPreview}
-                    alt={t('pw.newPet.petAlt')}
-                    className="w-full rounded-2xl object-cover max-h-64 border border-surface-200 dark:border-surface-700"
-                  />
-                  <div className="flex gap-2">
-                    <label className="flex-1 cursor-pointer text-center text-sm text-surface-700 dark:text-surface-200 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 px-3 py-2 rounded-xl transition">
-                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={pickIdentifyFile} />
-                      {t('pw.newPet.changePhoto')}
-                    </label>
-                    <button
-                      type="button"
-                      onClick={runIdentify}
-                      disabled={identifyLoading || !!identifyResult}
-                      className="flex-1 flex items-center justify-center gap-1.5 text-sm bg-primary-500 text-white px-3 py-2 rounded-xl hover:bg-primary-600 disabled:opacity-60 transition"
-                    >
-                      {identifyLoading ? (
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
-                      {identifyLoading ? t('pw.newPet.analyzing') : identifyResult ? t('pw.newPet.analyzed') : t('pw.newPet.identify')}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {identifyError && (
-                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  {identifyError}
-                </div>
-              )}
-
-              {identifyResult && identifyResult.candidates.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">
-                    {t('pw.newPet.candidates')} {identifyResult.is_mixed_likely && <span className="ml-1 text-amber-600">{t('pw.newPet.mixedLikely')}</span>}
-                  </p>
-                  {identifyResult.candidates.map((c, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => pickCandidate(c)}
-                      className="w-full text-left bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 hover:border-primary-300 hover:bg-primary-50 rounded-xl p-3 transition group"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-surface-900 dark:text-white group-hover:text-primary-700">{c.breed}</span>
-                        <span className="text-xs font-bold text-primary-600 bg-primary-50 group-hover:bg-white px-2 py-0.5 rounded-full">
-                          {Math.round((c.confidence ?? 0) * 100)}%
-                        </span>
-                      </div>
-                      {c.reasoning && <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">{c.reasoning}</p>}
-                      {!c.breed_id && <p className="text-[10px] text-amber-600 mt-1">{t('pw.newPet.notInCatalog')}</p>}
-                    </button>
-                  ))}
-                  {identifyResult.notes && (
-                    <p className="text-xs text-surface-500 dark:text-surface-400 italic mt-2">{identifyResult.notes}</p>
-                  )}
-                </div>
-              )}
-
-              {identifyResult && identifyResult.candidates.length === 0 && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-sm">
-                  {t('pw.newPet.noBreedFound')} {identifyResult.notes}
-                </div>
-              )}
+                  {c.reasoning && <p className="text-[13px] text-surface-600 dark:text-surface-400 mt-1">{c.reasoning}</p>}
+                  {!c.breed_id && <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">{t('pw.newPet.notInCatalog')}</p>}
+                </button>
+              ))}
+              {identifyResult.notes && <p className="text-[13px] text-surface-600 dark:text-surface-400 italic mt-2">{identifyResult.notes}</p>}
             </div>
-          </div>
+          )}
+
+          {identifyResult && identifyResult.candidates.length === 0 && (
+            <div className="border tone-warning-bg text-amber-900 dark:text-amber-200 rounded-xl p-3 text-sm">
+              {t('pw.newPet.noBreedFound')} {identifyResult.notes}
+            </div>
+          )}
         </div>
-      )}
+      </Sheet>
     </DashboardLayout>
   )
 }

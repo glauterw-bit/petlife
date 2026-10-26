@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { hapticLight } from '@/lib/feedback'
+import { setNavDirection } from '@/lib/motion'
 import { useT } from '@/contexts/LocaleContext'
 
 // Páginas abertas pelo menu "Mais" (e sub-rotas) que não são abas da barra
@@ -27,6 +28,7 @@ export function MobileBackBar() {
 
   function back() {
     void hapticLight()
+    setNavDirection('back')
     if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back()
     } else {
@@ -41,7 +43,7 @@ export function MobileBackBar() {
         aria-label={t('nav.back')}
         className="pressable inline-flex items-center gap-1.5 text-sm font-medium text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white -ml-1 pr-3 py-1.5 rounded-lg tap-target"
       >
-        <ArrowLeft className="w-5 h-5" />
+        <ArrowLeft className="w-5 h-5" aria-hidden />
         {t('nav.back')}
       </button>
     </div>

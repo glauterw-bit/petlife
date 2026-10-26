@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Star, X } from 'lucide-react'
+import { Star } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 import { feedback as feedbackApi } from '@/lib/api'
 import { openReviewPage } from '@/lib/review'
 import { track } from '@/lib/track'
@@ -85,46 +87,25 @@ export function StoreInvite() {
     close()
   }
 
-  if (!open) return null
-
   return (
-    <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
-      <div className="relative bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md animate-slide-up shadow-2xl pb-[env(safe-area-inset-bottom)]">
-        <button
-          onClick={later}
-          aria-label={t('common.close')}
-          className="absolute right-3 top-3 p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-700 transition z-10"
-        >
-          <X className="w-4 h-4 text-surface-500 dark:text-surface-400" />
-        </button>
-
-        <div className="bg-gradient-to-br from-amber-100 to-primary-50 dark:from-amber-900/30 dark:to-primary-900/20 p-7 pt-10 text-center rounded-t-3xl">
-          <div className="w-16 h-16 mx-auto bg-white dark:bg-surface-700 rounded-3xl shadow-lg flex items-center justify-center mb-3">
-            <Star className="w-8 h-8 text-amber-500 fill-amber-400" />
-          </div>
-          <h2 className="font-display text-xl font-bold text-surface-900 dark:text-white mb-1.5">
-            {t('si.title')}
-          </h2>
-          <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed">
-            {days ? t('si.body', { n: days }) : t('si.bodyNoCount')}
-          </p>
+    <Modal open={open} onClose={later} size="md">
+      <div className="-mx-4 -mt-4 sm:-mx-6 sm:-mt-6 bg-gradient-to-br from-amber-100 to-primary-50 dark:from-amber-500/15 dark:to-surface-900 px-7 pb-7 pt-10 text-center">
+        <div className="w-16 h-16 mx-auto bg-white dark:bg-surface-800 rounded-3xl shadow-card flex items-center justify-center mb-3">
+          <Star className="w-8 h-8 text-amber-500 fill-amber-400" aria-hidden />
         </div>
-
-        <div className="p-6 space-y-2.5">
-          <button
-            onClick={rate}
-            className="w-full px-4 py-3.5 rounded-xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition shadow-md shadow-primary-500/30"
-          >
-            {t('si.cta')}
-          </button>
-          <button
-            onClick={later}
-            className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 transition"
-          >
-            {t('si.later')}
-          </button>
-        </div>
+        <h2 className="font-display text-xl font-extrabold text-surface-900 dark:text-white mb-1.5">{t('si.title')}</h2>
+        <p className="text-[15px] text-surface-700 dark:text-surface-300 leading-relaxed">
+          {days ? t('si.body', { n: days }) : t('si.bodyNoCount')}
+        </p>
       </div>
-    </div>
+      <div className="pt-5 space-y-2">
+        <Button size="lg" fullWidth leftIcon={Star} onClick={rate}>
+          {t('si.cta')}
+        </Button>
+        <Button variant="ghost" fullWidth onClick={later}>
+          {t('si.later')}
+        </Button>
+      </div>
+    </Modal>
   )
 }

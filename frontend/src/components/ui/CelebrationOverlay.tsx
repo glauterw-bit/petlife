@@ -64,23 +64,24 @@ export function CelebrationOverlay() {
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/55 backdrop-blur-sm p-5 animate-fade-in" onClick={() => setDetail(null)}>
       <div
-        className="w-full max-w-sm bg-white dark:bg-surface-800 rounded-3xl p-6 text-center shadow-2xl animate-slide-up"
+        role="dialog" aria-modal="true" aria-labelledby="celebration-title"
+        className="relative w-full max-w-sm bg-white dark:bg-surface-900 rounded-3xl p-6 pt-8 text-center shadow-2xl animate-slide-up border border-transparent dark:border-surface-800"
         onClick={e => e.stopPropagation()}
       >
-        <button onClick={() => setDetail(null)} aria-label={t('common.close')}
-          className="absolute-top-right float-right -mt-2 -mr-2 p-1.5 rounded-lg text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700">
-          <X className="w-5 h-5" />
+        <button type="button" onClick={() => setDetail(null)} aria-label={t('common.close')}
+          className="pressable absolute top-2 right-2 w-11 h-11 rounded-full flex items-center justify-center text-surface-500 hover:bg-surface-100 hover:text-surface-700 dark:text-surface-400 dark:hover:bg-surface-700 dark:hover:text-surface-200">
+          <X className="w-5 h-5" aria-hidden />
         </button>
         <div className="flex justify-center mb-3"><VyronAvatar size={84} state="celebrating" /></div>
-        <h3 className="text-xl font-extrabold text-surface-900 dark:text-white">{detail.title}</h3>
+        <h3 id="celebration-title" className="font-display text-xl font-extrabold text-surface-900 dark:text-white">{detail.title}</h3>
         {detail.message && <p className="text-sm text-surface-500 dark:text-surface-400 mt-1.5">{detail.message}</p>}
         {detail.card && (
           <button onClick={doShare} disabled={sharing}
-            className="pressable mt-5 w-full py-3 rounded-xl bg-primary-500 hover:bg-primary-600 text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60">
+            className="pressable mt-5 w-full min-h-[48px] rounded-xl bg-primary-700 hover:bg-primary-800 text-white dark:bg-primary-500 dark:text-surface-950 dark:hover:bg-primary-400 font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60">
             <Share2 className="w-4 h-4" /> {sharing ? t('v.ui.generatingCard') : t('v.ui.shareCta')}
           </button>
         )}
-        <button onClick={() => setDetail(null)} className="mt-2 w-full py-2.5 text-sm font-medium text-surface-500 dark:text-surface-400">
+        <button type="button" onClick={() => setDetail(null)} className="mt-2 w-full min-h-[44px] rounded-xl text-sm font-medium text-surface-600 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800">
           {t('common.close')}
         </button>
       </div>

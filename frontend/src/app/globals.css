@@ -19,7 +19,11 @@
   }
 
   html {
-    scroll-behavior: smooth;
+    /* sem scroll-behavior:smooth global: atrapalha a volta da rolagem ao navegar
+       (o Next já trata a classe scroll-smooth do <html> nas trocas de rota) */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     /* clip (não hidden): no iOS Safari, overflow-x:hidden no body ainda permite
        arrasto horizontal; clip corta de verdade sem criar container de scroll. */
     overflow-x: clip;
@@ -43,6 +47,32 @@
     touch-action: pan-y;
   }
 
+  html, body {
+    /* sem "elástico" vertical da página inteira: parece app, não site */
+    overscroll-behavior-y: none;
+  }
+
+  /* ── Modo escuro na raiz ─────────────────────────────────────────── */
+  .dark { color-scheme: dark; }
+  .dark body { @apply bg-surface-950 text-surface-100; }
+
+  /* Acabamento nativo: sem menu de pressão longa nem seleção em controles.
+     Campos de texto continuam selecionáveis. */
+  button, a, nav, [role='button'], [role='tab'], label {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Campos escuros globais. :where() zera a especificidade, então qualquer
+     classe utilitária (bg-panel do CRM, bg-white explícito…) continua vencendo. */
+  :where(.dark) :where(input, textarea, select):where(:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type='color'])) {
+    background-color: theme('colors.surface.900');
+    color: theme('colors.surface.100');
+    border-color: theme('colors.surface.700');
+  }
+  :where(.dark) ::placeholder { color: theme('colors.surface.500'); }
+
   /* Carrosséis/áreas roláveis horizontalmente reabilitam o gesto lateral */
   .overflow-x-auto,
   .overflow-x-scroll,
@@ -53,13 +83,57 @@
   }
 }
 
+@layer components {
+  /* ── Chips semânticos (sempre com par escuro) ─────────────────────── */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold leading-none whitespace-nowrap;
+  }
+  .chip-success { @apply bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300; }
+  .chip-warning { @apply bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300; }
+  .chip-danger { @apply bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300; }
+  .chip-info { @apply bg-sky-50 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300; }
+  .chip-neutral { @apply bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-300; }
+
+  /* Fundos de cartão por tom (fundo + borda) */
+  .tone-success-bg { @apply bg-emerald-50/70 border-emerald-200/80 dark:bg-emerald-500/10 dark:border-emerald-500/25; }
+  .tone-warning-bg { @apply bg-amber-50/70 border-amber-200/80 dark:bg-amber-500/10 dark:border-amber-500/25; }
+  .tone-danger-bg { @apply bg-red-50/70 border-red-200/80 dark:bg-red-500/10 dark:border-red-500/25; }
+  .tone-brand-bg { @apply bg-primary-50/70 border-primary-200/80 dark:bg-primary-500/10 dark:border-primary-500/25; }
+
+  .text-muted { @apply text-surface-500 dark:text-surface-400; }
+
+  /* Botão principal para quem não usa <Button> — contraste AA nos dois temas */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl font-semibold
+      bg-primary-700 text-white hover:bg-primary-800
+      dark:bg-primary-500 dark:text-surface-950 dark:hover:bg-primary-400
+      transition-colors disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  /* Esqueleto com brilho suave */
+  .skeleton {
+    @apply bg-surface-200/80 dark:bg-surface-800;
+    background-image: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.55) 50%, transparent 100%);
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+  .dark .skeleton {
+    background-image: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.06) 50%, transparent 100%);
+  }
+}
+
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
+    animation: fadeIn 0.22s ease-out;
+  }
+
+  .animate-fade-out {
+    animation: fadeOut 0.18s ease-in forwards;
   }
 
   .animate-slide-up {
-    animation: slideUp 0.4s ease-out;
+    animation: slideUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
   .animate-pulse-soft {
@@ -100,6 +174,16 @@
   to   { opacity: 1; }
 }
 
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes shimmer {
+  from { background-position: 150% 0; }
+  to   { background-position: -50% 0; }
+}
+
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
@@ -126,7 +210,7 @@
 }
 /* Revelação em cascata: defina --i (índice) no elemento */
 .reveal {
-  animation: fadeUp 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation: fadeUp 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   animation-delay: calc(var(--i, 0) * 60ms);
 }
 .animate-sheet-up {
@@ -141,6 +225,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal, .animate-sheet-up { animation: none !important; }
+  .skeleton { animation: none !important; background-image: none !important; }
   .pressable:active { transform: none; }
 }
 /* "Reduzir movimento" do sistema: nenhuma animação de entrada, deslize ou pulso.
@@ -168,11 +253,20 @@
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-primary-400;
 }
+.dark ::-webkit-scrollbar-track { @apply bg-surface-950; }
+.dark ::-webkit-scrollbar-thumb { @apply bg-surface-700; }
+.dark ::-webkit-scrollbar-thumb:hover { @apply bg-surface-600; }
 
 /* Focus ring */
 *:focus-visible {
   @apply outline-none ring-2 ring-primary-500 ring-offset-2;
 }
+.dark *:focus-visible {
+  @apply ring-primary-400 ring-offset-surface-950;
+}
+
+/* Avisos (toasts) acima das folhas de baixo (z-70). O CRM tem regra própria, mais específica. */
+.toast-layer.fixed.z-50 { z-index: 90; }
 
 /* Custom checkbox */
 input[type='checkbox'] {

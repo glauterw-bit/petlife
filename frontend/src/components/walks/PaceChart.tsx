@@ -45,10 +45,10 @@ export function PaceChart({ points }: { points: RoutePoint[] }) {
   const cor = palette[1] // azul — distinto do emerald do mapa
 
   return (
-    <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-4">
+    <div className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200/70 dark:border-surface-800 p-4">
       <div className="flex items-baseline justify-between mb-1">
         <h3 className="font-bold text-sm text-surface-900 dark:text-white">{t('pw.chart.paceTitle')}</h3>
-        <span className="text-[11px] text-surface-400">{t('pw.chart.paceSub')}</span>
+        <span className="text-[11px] text-surface-500 dark:text-surface-400">{t('pw.chart.paceSub')}</span>
       </div>
       <div className="relative">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full block">

@@ -3,7 +3,10 @@
 import { useState, FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Mail, AlertCircle, Copy, Check, PawPrint } from 'lucide-react'
+import { ChevronLeft, Mail, Copy, Check, MessageCircle } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { AuthFrame, AuthField, Notice, TextLink } from '@/components/auth/AuthUI'
+import { hapticError, hapticSuccess } from '@/lib/feedback'
 import { auth } from '@/lib/api'
 import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
@@ -24,8 +27,10 @@ export default function ForgotPasswordPage() {
     try {
       const res = await auth.forgotPassword(email.trim().toLowerCase())
       track('forgot_requested')
+      void hapticSuccess()
       setResult({ message: res.message, code: res.code, emailConfigured: res.email_configured !== false })
     } catch (err: unknown) {
+      void hapticError()
       setError(err instanceof Error ? err.message : t('ac.forgot.err'))
     } finally {
       setLoading(false)
@@ -45,116 +50,81 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-slide-up">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex flex-col items-center gap-3">
-            <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200">
-              <PawPrint className="w-9 h-9 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-surface-900 dark:text-white">PetLife</span>
-          </Link>
-          <h1 className="text-xl font-semibold text-surface-700 dark:text-surface-200 mt-4">{t('ac.forgot.title')}</h1>
-          <p className="text-surface-500 dark:text-surface-400 text-sm mt-1">{t('ac.forgot.subtitle')}</p>
-        </div>
+    <AuthFrame title={t('ac.forgot.title')} subtitle={t('ac.forgot.subtitle')}>
+      <Link
+        href="/auth/login"
+        className="inline-flex items-center gap-1 min-h-[44px] -ml-1 -mt-2 mb-3 pr-2 rounded-xl text-sm font-semibold text-primary-700 dark:text-primary-300"
+      >
+        <ChevronLeft className="w-5 h-5" aria-hidden />
+        {t('ac.forgot.backToLogin')}
+      </Link>
 
-        <div className="bg-white dark:bg-surface-800 rounded-3xl shadow-xl border border-surface-100 dark:border-surface-700 p-6 sm:p-8">
-          <Link href="/auth/login" className="inline-flex items-center gap-1.5 text-sm text-surface-500 dark:text-surface-400 hover:text-surface-700 mb-6">
-            <ArrowLeft className="w-4 h-4" />
-            {t('ac.forgot.backToLogin')}
-          </Link>
+      {error && <Notice tone="danger" className="mb-5">{error}</Notice>}
 
-          {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-6 text-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              {error}
-            </div>
-          )}
+      {!result ? (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <AuthField
+            id="forgot-email"
+            label={t('ac.forgot.emailLabel')}
+            icon={Mail}
+            type="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoComplete="username"
+            required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder={t('ac.field.emailPlaceholder')}
+            autoFocus
+          />
+          <Button type="submit" size="lg" fullWidth loading={loading}>
+            {loading ? t('ac.forgot.submitting') : t('ac.forgot.submit')}
+          </Button>
+          <p className="text-sm text-surface-600 dark:text-surface-400 text-center leading-snug">
+            {t('ac.forgot.appleHint')}{' '}
+            <TextLink href="/auth/login">{t('ac.forgot.appleHintLink')}</TextLink>
+          </p>
+        </form>
+      ) : (
+        <div className="space-y-4">
+          <Notice tone={result.emailConfigured ? 'success' : 'warning'}>{result.message}</Notice>
 
-          {!result ? (
-            <form onSubmit={handleSubmit} className="space-y-5">
+          {!result.emailConfigured && (
+            <div className="rounded-xl bg-surface-50 dark:bg-surface-800/70 p-4 text-sm text-surface-700 dark:text-surface-300 flex gap-3">
+              <MessageCircle className="w-5 h-5 text-primary-700 dark:text-primary-300 shrink-0 mt-0.5" aria-hidden />
               <div>
-                <label className="block text-sm font-medium text-surface-700 dark:text-surface-200 mb-1.5">
-                  {t('ac.forgot.emailLabel')}
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder={t('ac.field.emailPlaceholder')}
-                    autoFocus
-                    className="w-full pl-10 pr-4 py-3 border border-surface-200 dark:border-surface-700 rounded-xl text-sm text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                  />
-                </div>
+                <p className="font-semibold text-surface-900 dark:text-surface-100 mb-1">{t('ac.forgot.nextTitle')}</p>
+                <p>{t('ac.forgot.nextBody1')}<b>WhatsApp</b>{t('ac.forgot.nextBody2')}</p>
               </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="pressable w-full bg-primary-500 text-white font-semibold py-3.5 rounded-xl hover:bg-primary-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-primary-200 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : null}
-                {loading ? t('ac.forgot.submitting') : t('ac.forgot.submit')}
-              </button>
-              <p className="text-xs text-surface-500 dark:text-surface-400 text-center leading-snug">
-                {t('ac.forgot.appleHint')}{' '}
-                <Link href="/auth/login" className="text-primary-600 font-semibold">{t('ac.forgot.appleHintLink')}</Link>
-              </p>
-            </form>
-          ) : (
-            <div className="space-y-4">
-              <div className={`rounded-xl p-4 text-sm border ${
-                result.emailConfigured
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                  : 'bg-amber-50 border-amber-200 text-amber-800'
-              }`}>
-                {result.message}
-              </div>
-
-              {!result.emailConfigured && (
-                <div className="rounded-xl bg-surface-50 dark:bg-surface-700/40 p-4 text-sm text-surface-600 dark:text-surface-300">
-                  <p className="font-semibold text-surface-800 dark:text-surface-100 mb-1">{t('ac.forgot.nextTitle')}</p>
-                  <p>{t('ac.forgot.nextBody1')}<b>WhatsApp</b>{t('ac.forgot.nextBody2')}</p>
-                </div>
-              )}
-
-              {result.code && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                  <p className="text-xs uppercase font-semibold tracking-wide text-amber-700 mb-2">
-                    {t('ac.forgot.devMode')}
-                  </p>
-                  <div className="flex items-center justify-between gap-3 bg-white dark:bg-surface-800 rounded-lg border border-amber-200 px-4 py-3">
-                    <span className="text-2xl font-mono font-bold text-surface-900 dark:text-white tracking-widest">
-                      {result.code}
-                    </span>
-                    <button
-                      onClick={copyCode}
-                      className="flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900 font-medium"
-                    >
-                      {copied ? <><Check className="w-4 h-4" /> {t('ac.forgot.copied')}</> : <><Copy className="w-4 h-4" /> {t('ac.forgot.copy')}</>}
-                    </button>
-                  </div>
-                  <p className="text-xs text-amber-700 mt-2">
-                    {t('ac.forgot.devNote')}
-                  </p>
-                </div>
-              )}
-
-              <button
-                onClick={goReset}
-                className="pressable w-full bg-primary-500 text-white font-semibold py-3.5 rounded-xl hover:bg-primary-600 transition-all hover:shadow-lg hover:shadow-primary-200"
-              >
-                {t('ac.forgot.continue')}
-              </button>
             </div>
           )}
+
+          {result.code && (
+            <div className="tone-warning-bg border rounded-xl p-4">
+              <p className="text-xs uppercase font-semibold tracking-wide text-amber-900 dark:text-amber-200 mb-2">
+                {t('ac.forgot.devMode')}
+              </p>
+              <div className="flex items-center justify-between gap-3 bg-white dark:bg-surface-950 rounded-lg border border-amber-200 dark:border-amber-500/25 pl-4 pr-1 py-1">
+                <span className="text-2xl font-mono font-bold text-surface-900 dark:text-white tracking-widest">
+                  {result.code}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyCode}
+                  className="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-amber-900 hover:bg-amber-50 dark:text-amber-200 dark:hover:bg-amber-500/10"
+                >
+                  {copied ? <><Check className="w-4 h-4" aria-hidden /> {t('ac.forgot.copied')}</> : <><Copy className="w-4 h-4" aria-hidden /> {t('ac.forgot.copy')}</>}
+                </button>
+              </div>
+              <p className="text-xs text-amber-900 dark:text-amber-200 mt-2">{t('ac.forgot.devNote')}</p>
+            </div>
+          )}
+
+          <Button size="lg" fullWidth onClick={goReset}>
+            {t('ac.forgot.continue')}
+          </Button>
         </div>
-      </div>
-    </div>
+      )}
+    </AuthFrame>
   )
 }

@@ -82,7 +82,7 @@ export function PublicProfileModal({
           }`}
         >
           <span className="flex items-center gap-3">
-            <Globe className={`w-5 h-5 ${isPublic ? 'text-emerald-600' : 'text-surface-400'}`} />
+            <Globe className={`w-5 h-5 ${isPublic ? 'text-emerald-600' : 'text-surface-500 dark:text-surface-400'}`} />
             <span className="text-sm font-semibold text-surface-900 dark:text-white">
               {isPublic ? t('g.pp.on') : t('g.pp.off')}
             </span>
@@ -109,7 +109,7 @@ export function PublicProfileModal({
               <button
                 onClick={copy}
                 aria-label={t('g.pp.copyAria')}
-                className="pressable shrink-0 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 rounded-xl p-2.5"
+                className="pressable shrink-0 bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 rounded-xl p-2.5"
               >
                 {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-surface-600 dark:text-surface-300" />}
               </button>
@@ -117,7 +117,7 @@ export function PublicProfileModal({
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={share}
-                className="pressable flex items-center justify-center gap-2 bg-primary-500 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-primary-600 transition"
+                className="pressable flex items-center justify-center gap-2 bg-primary-700 text-white dark:bg-primary-500 dark:text-surface-950 rounded-xl min-h-[44px] text-sm font-semibold hover:bg-primary-800 transition"
               >
                 <Share2 className="w-4 h-4" /> {t('g.misc.share')}
               </button>
@@ -130,7 +130,7 @@ export function PublicProfileModal({
                 <ExternalLink className="w-4 h-4" /> {t('g.pp.viewPage')}
               </a>
             </div>
-            <p className="text-[11px] text-surface-400 text-center">
+            <p className="text-[11px] text-surface-500 dark:text-surface-400 text-center">
               {t('g.pp.tip', { name: pet.name })}
             </p>
           </div>

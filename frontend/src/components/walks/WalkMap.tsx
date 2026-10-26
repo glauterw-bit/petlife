@@ -13,6 +13,8 @@ interface WalkMapProps {
   height?: number
   /** Se true, segue a posição atual centralizando o mapa */
   follow?: boolean
+  /** Sem borda nem cantos: para ficar dentro de um cartão (boletim). */
+  bare?: boolean
 }
 
 /** Corrige o bug clássico do Leaflet em container que carrega via dynamic import /
@@ -66,7 +68,7 @@ function FollowOrFit({
   return null
 }
 
-export default function WalkMap({ points, currentLat, currentLng, height = 420, follow = true }: WalkMapProps) {
+export default function WalkMap({ points, currentLat, currentLng, height = 420, follow = true, bare = false }: WalkMapProps) {
   const ref = useRef<L.Map | null>(null)
 
   // Centro inicial fallback: SP
@@ -82,7 +84,14 @@ export default function WalkMap({ points, currentLat, currentLng, height = 420, 
   )
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-sm" style={{ height }}>
+    // isolate: os painéis do Leaflet têm z-index 400+; sem um contexto próprio
+    // o mapa passava por cima do cabeçalho fixo e das folhas ao rolar.
+    <div
+      className={bare
+        ? 'relative isolate z-0 overflow-hidden bg-surface-100 dark:bg-surface-900'
+        : 'relative isolate z-0 rounded-2xl overflow-hidden border border-surface-200/70 dark:border-surface-800 bg-surface-100 dark:bg-surface-900 shadow-sm'}
+      style={{ height }}
+    >
       <MapContainer
         ref={ref as never}
         center={initialCenter}

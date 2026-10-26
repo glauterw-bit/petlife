@@ -9,6 +9,7 @@ import { shareCardImage } from '@/lib/shareCard'
 import { track } from '@/lib/track'
 import { requestSoftUpsell } from '@/lib/softUpsell'
 import { useT } from '@/contexts/LocaleContext'
+import { localeTag } from '@/lib/utils'
 
 function brl(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -37,7 +38,7 @@ export function RecapCard({ petId }: { petId: number }) {
   async function share() {
     if (!data) return
     const stats = [
-      data.walks > 0 && { label: t('g.rec.walks'), value: `${data.walks} · ${data.distance_km} km` },
+      data.walks > 0 && { label: data.walks === 1 ? t('g.rec.walkOne') : t('g.rec.walkMany', { n: data.walks }), value: `${Number(data.distance_km).toLocaleString(localeTag(), { maximumFractionDigits: 1 })} km` },
       data.active_minutes > 0 && { label: t('g.rec.activeMin'), value: String(data.active_minutes) },
       data.stories > 0 && { label: t('g.rec.moments'), value: String(data.stories) },
       data.vaccines > 0 && { label: t('g.rec.vaccinesOk'), value: String(data.vaccines) },
@@ -59,7 +60,7 @@ export function RecapCard({ petId }: { petId: number }) {
   }
 
   const stats = [
-    data.walks > 0 && { Icon: Footprints, label: t('g.rec.walks'), value: `${data.walks} · ${data.distance_km} km` },
+    data.walks > 0 && { Icon: Footprints, label: data.walks === 1 ? t('g.rec.walkOne') : t('g.rec.walkMany', { n: data.walks }), value: `${Number(data.distance_km).toLocaleString(localeTag(), { maximumFractionDigits: 1 })} km` },
     data.active_minutes > 0 && { Icon: Clock, label: t('g.rec.activeMin'), value: String(data.active_minutes) },
     data.stories > 0 && { Icon: Camera, label: t('g.rec.moments'), value: String(data.stories) },
     data.vaccines > 0 && { Icon: Syringe, label: t('g.rec.vaccines'), value: String(data.vaccines) },
@@ -77,7 +78,7 @@ export function RecapCard({ petId }: { petId: number }) {
         </div>
         <button
           onClick={share}
-          className="pressable flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur text-white text-xs font-bold px-3 py-2 rounded-xl"
+          className="pressable flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur text-white text-xs font-bold px-3 min-h-[44px] rounded-xl"
         >
           <Share2 className="w-3.5 h-3.5" /> {t('g.misc.share')}
         </button>
@@ -87,7 +88,7 @@ export function RecapCard({ petId }: { petId: number }) {
           <div key={label} className="reveal bg-white/15 backdrop-blur rounded-xl p-2.5" style={{ ['--i' as string]: i }}>
             <Icon className="w-4 h-4 text-primary-100 mb-1" />
             <div className="font-bold text-sm tabular-nums leading-tight">{value}</div>
-            <div className="text-[10px] text-primary-100">{label}</div>
+            <div className="text-[11px] text-primary-100">{label}</div>
           </div>
         ))}
       </div>

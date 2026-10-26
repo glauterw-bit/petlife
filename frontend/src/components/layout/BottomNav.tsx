@@ -3,40 +3,50 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { motion } from 'framer-motion'
 import {
-  Home, PawPrint, Footprints, ShieldCheck, LayoutGrid, X,
+  Home, PawPrint, Footprints, ShieldCheck, LayoutGrid,
   Trophy, Route, MapPin, Brain, MailOpen, Crown, FlaskConical, Camera,
-  Settings, CreditCard, MessageCircleHeart,
+  Settings, MessageCircleHeart, type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
+import { hapticLight, hapticSelect } from '@/lib/feedback'
+import { spring } from '@/lib/motion'
+import { Sheet } from '@/components/ui/Sheet'
 
 /**
- * Navegação mobile completa: 4 abas principais + "Mais" (sheet com o resto).
- * Nenhuma tela depende da sidebar no celular — tudo a um toque do polegar.
+ * Navegação mobile: 4 abas principais + "Mais" (folha com o resto).
+ * Vive no TutorShell (montada uma vez), então a pílula da aba ativa desliza
+ * de uma aba para outra em vez de reaparecer.
  */
-const TABS = [
-  { href: '/dashboard', labelKey: 'nav.home', Icon: Home, match: (p: string) => p === '/dashboard' },
-  { href: '/pets', labelKey: 'nav.pets', Icon: PawPrint, match: (p: string) => p.startsWith('/pets') },
-  { href: '/walks', labelKey: 'nav.walks', Icon: Footprints, match: (p: string) => p.startsWith('/walks') },
-  { href: '/health/vaccines', labelKey: 'nav.health', Icon: ShieldCheck, match: (p: string) => p.startsWith('/health') },
+const TABS: { href: string; labelKey: string; Icon: LucideIcon; match: (p: string) => boolean }[] = [
+  { href: '/dashboard', labelKey: 'nav.home', Icon: Home, match: p => p === '/dashboard' },
+  { href: '/pets', labelKey: 'nav.pets', Icon: PawPrint, match: p => p.startsWith('/pets') },
+  { href: '/walks', labelKey: 'nav.walks', Icon: Footprints, match: p => p.startsWith('/walks') },
+  {
+    href: '/health/vaccines',
+    labelKey: 'nav.health',
+    Icon: ShieldCheck,
+    match: p => p.startsWith('/health') && !p.startsWith('/health/exams'),
+  },
 ]
 
-const MORE = [
-  { href: '/challenges', label: 'Desafios', Icon: Trophy, tint: 'text-accent-600 bg-accent-50 dark:text-accent-300 dark:bg-accent-500/15' },
-  { href: '/routines', label: 'Rotinas', Icon: Route, tint: 'text-blue-600 bg-blue-50 dark:text-blue-300 dark:bg-blue-500/15' },
-  { href: '/nearby', label: 'Clínicas', Icon: MapPin, tint: 'text-emerald-600 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-500/15' },
-  { href: '/behavior', label: 'Comportamento', Icon: Brain, tint: 'text-purple-600 bg-purple-50 dark:text-purple-300 dark:bg-purple-500/15' },
-  { href: '/health/exams', label: 'Exames', Icon: FlaskConical, tint: 'text-sky-600 bg-sky-50 dark:text-sky-300 dark:bg-sky-500/15' },
-  { href: '/convites', label: 'Convites', Icon: MailOpen, tint: 'text-pink-600 bg-pink-50 dark:text-pink-300 dark:bg-pink-500/15' },
-  { href: '/momentos', label: 'Momentos', Icon: Camera, tint: 'text-pink-600 bg-pink-50 dark:text-pink-300 dark:bg-pink-500/15' },
-  { href: '/suporte', label: 'Suporte', Icon: MessageCircleHeart, tint: 'text-teal-600 bg-teal-50 dark:text-teal-300 dark:bg-teal-500/15' },
-  { href: '/plans', label: 'Planos', Icon: Crown, tint: 'text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15' },
-  { href: '/settings', label: 'Perfil', Icon: Settings, tint: 'text-surface-600 bg-surface-100 dark:text-surface-300 dark:bg-surface-700' },
+const MORE: { href: string; labelKey: string; Icon: LucideIcon }[] = [
+  { href: '/challenges', labelKey: 'nav.challenges', Icon: Trophy },
+  { href: '/routines', labelKey: 'nav.routines', Icon: Route },
+  { href: '/nearby', labelKey: 'nav.clinics', Icon: MapPin },
+  { href: '/behavior', labelKey: 'nav.behavior', Icon: Brain },
+  { href: '/health/exams', labelKey: 'nav.exams', Icon: FlaskConical },
+  { href: '/convites', labelKey: 'nav.invites', Icon: MailOpen },
+  { href: '/momentos', labelKey: 'nav.moments', Icon: Camera },
+  { href: '/suporte', labelKey: 'nav.support', Icon: MessageCircleHeart },
+  { href: '/plans', labelKey: 'nav.plans', Icon: Crown },
+  { href: '/settings', labelKey: 'nav.profile', Icon: Settings },
 ]
 
-const ADMIN_ITEM = { href: '/admin', label: 'Admin', Icon: LayoutGrid, tint: 'text-primary-700 bg-primary-100 dark:text-primary-300 dark:bg-primary-500/20' }
+const ADMIN_ITEM = { href: '/admin', labelKey: '', label: 'Admin', Icon: LayoutGrid }
 
 export function BottomNav() {
   const pathname = usePathname() ?? ''
@@ -46,99 +56,120 @@ export function BottomNav() {
   const moreItems = isAdmin ? [...MORE, ADMIN_ITEM] : MORE
   const [moreOpen, setMoreOpen] = useState(false)
 
-  // fecha o sheet ao navegar e trava o scroll enquanto aberto
-  useEffect(() => { setMoreOpen(false) }, [pathname])
-  useEffect(() => {
-    document.body.style.overflow = moreOpen ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [moreOpen])
+  // Aba tocada, antes da rota terminar de carregar: a pílula desliza na hora do toque.
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
 
-  const moreActive = moreItems.some(m => pathname.startsWith(m.href))
+  // fecha a folha e limpa a aba pendente ao navegar
+  useEffect(() => { setMoreOpen(false); setPendingHref(null) }, [pathname])
+
+  const moreActive = moreItems.some(m => pathname === m.href || pathname.startsWith(m.href + '/'))
+  const activeIndex = TABS.findIndex(tab => tab.match(pathname))
+  const activeKey = moreOpen ? 'more' : pendingHref ?? (activeIndex >= 0 ? TABS[activeIndex].href : moreActive ? 'more' : null)
 
   return (
     <>
-      {/* Sheet "Mais" */}
-      {moreOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm animate-fade-in"
-          onClick={() => setMoreOpen(false)}
-        >
-          <div
-            className="absolute bottom-0 inset-x-0 bg-white dark:bg-surface-800 rounded-t-3xl p-5 pb-[calc(4.5rem+env(safe-area-inset-bottom)+0.75rem)] shadow-2xl animate-sheet-up"
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-label="Mais seções"
-          >
-            <div className="w-10 h-1 rounded-full bg-surface-200 dark:bg-surface-600 mx-auto mb-4" aria-hidden />
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-surface-900 dark:text-white">Tudo do PetLife</h3>
-              <button
-                onClick={() => setMoreOpen(false)}
-                className="p-1.5 rounded-lg text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 tap-target"
-                aria-label="Fechar"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="grid grid-cols-4 gap-3">
-              {moreItems.map(({ href, label, Icon, tint }, i) => (
+      <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title={t('nav.moreTitle')} ariaLabel={t('nav.moreAria')}>
+        <ul className="grid grid-cols-4 gap-x-2 gap-y-3 pt-1 pb-1">
+          {moreItems.map(({ href, labelKey, Icon, ...rest }) => {
+            const label = labelKey ? t(labelKey) : (rest as { label?: string }).label ?? ''
+            const active = pathname === href || pathname.startsWith(href + '/')
+            return (
+              <li key={href}>
                 <Link
-                  key={href}
                   href={href}
-                  className="pressable reveal flex flex-col items-center gap-1.5 py-2 rounded-2xl"
-                  style={{ ['--i' as string]: i }}
+                  onClick={() => void hapticLight()}
+                  aria-current={active ? 'page' : undefined}
+                  className="pressable flex flex-col items-center gap-1.5 py-1.5 rounded-2xl min-h-[44px]"
                 >
-                  <span className={cn('w-12 h-12 rounded-2xl flex items-center justify-center', tint)}>
-                    <Icon className="w-5 h-5" />
+                  <span
+                    className={cn(
+                      'w-14 h-14 rounded-2xl flex items-center justify-center transition-colors',
+                      active
+                        ? 'bg-primary-100 text-primary-800 dark:bg-primary-500/20 dark:text-primary-200'
+                        : 'bg-surface-100 text-primary-700 dark:bg-surface-800 dark:text-primary-300',
+                    )}
+                  >
+                    <Icon className="w-6 h-6" aria-hidden strokeWidth={1.9} />
                   </span>
-                  <span className="text-[11px] font-medium text-surface-700 dark:text-surface-200 text-center leading-tight">
+                  <span className="text-[12px] font-medium text-surface-700 dark:text-surface-200 text-center leading-tight">
                     {label}
                   </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <nav
-        aria-label="Navegação principal"
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 dark:bg-surface-900/95 backdrop-blur border-t border-surface-200 dark:border-surface-700 pb-[env(safe-area-inset-bottom)]"
-      >
-        <ul className="grid grid-cols-5">
-          {TABS.map(({ href, labelKey, Icon, match }) => {
-            const active = match(pathname)
-            return (
-              <li key={href} className="relative">
-                <Link
-                  href={href}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'pressable flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 min-h-[60px] tap-target transition',
-                    active ? 'text-primary-600' : 'text-surface-500 dark:text-surface-400 hover:text-surface-800',
-                  )}
-                >
-                  <Icon className={cn('w-5 h-5 transition-transform', active && 'scale-110 fill-primary-100/40')} aria-hidden />
-                  <span className={cn('text-[10px] font-medium leading-tight', active && 'font-semibold')}>
-                    {t(labelKey)}
-                  </span>
-                  {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" aria-hidden />}
                 </Link>
               </li>
             )
           })}
-          <li className="relative">
+        </ul>
+      </Sheet>
+
+      <nav
+        aria-label={t('nav.mainAria')}
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/80 dark:bg-surface-950/80 backdrop-blur-xl backdrop-saturate-150 border-t border-surface-200/80 dark:border-surface-800 pb-[env(safe-area-inset-bottom)]"
+      >
+        <ul className="grid grid-cols-5">
+          {TABS.map(({ href, labelKey, Icon }) => {
+            const active = activeKey === href
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  aria-current={active ? 'page' : undefined}
+                  onClick={() => {
+                    if (active) return
+                    void hapticSelect()
+                    setPendingHref(href)
+                  }}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 px-1 min-h-[58px] transition-colors active:opacity-70',
+                    active ? 'text-primary-700 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400 hover:text-surface-800 dark:hover:text-surface-200',
+                  )}
+                >
+                  <span className="relative flex items-center justify-center w-14 h-8">
+                    {active && (
+                      <motion.span
+                        layoutId="tabPill"
+                        transition={spring.snappy}
+                        className="absolute inset-0 rounded-full bg-primary-100 dark:bg-primary-500/20"
+                        aria-hidden
+                      />
+                    )}
+                    <Icon className="relative w-[22px] h-[22px]" aria-hidden strokeWidth={active ? 2.3 : 1.9} />
+                  </span>
+                  <span className={cn('text-[11px] leading-none', active ? 'font-semibold' : 'font-medium')}>
+                    {t(labelKey)}
+                  </span>
+                </Link>
+              </li>
+            )
+          })}
+          <li>
             <button
-              onClick={() => setMoreOpen(v => !v)}
+              type="button"
+              onClick={() => {
+                void hapticLight()
+                setMoreOpen(v => !v)
+              }}
               aria-expanded={moreOpen}
+              aria-haspopup="dialog"
+              aria-label={t('nav.moreAria')}
               className={cn(
-                'pressable w-full flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 min-h-[60px] tap-target transition',
-                moreActive || moreOpen ? 'text-primary-600' : 'text-surface-500 dark:text-surface-400 hover:text-surface-800',
+                'w-full flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 px-1 min-h-[58px] transition-colors active:opacity-70',
+                moreActive || moreOpen ? 'text-primary-700 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400 hover:text-surface-800 dark:hover:text-surface-200',
               )}
             >
-              <LayoutGrid className={cn('w-5 h-5 transition-transform', moreOpen && 'rotate-90 scale-110')} aria-hidden />
-              <span className={cn('text-[10px] font-medium leading-tight', (moreActive || moreOpen) && 'font-semibold')}>{t('nav.more')}</span>
-              {moreActive && !moreOpen && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" aria-hidden />}
+              <span className="relative flex items-center justify-center w-14 h-8">
+                {activeKey === 'more' && (
+                  <motion.span
+                    layoutId="tabPill"
+                    transition={spring.snappy}
+                    className="absolute inset-0 rounded-full bg-primary-100 dark:bg-primary-500/20"
+                    aria-hidden
+                  />
+                )}
+                <LayoutGrid className="relative w-[22px] h-[22px]" aria-hidden strokeWidth={moreActive || moreOpen ? 2.3 : 1.9} />
+              </span>
+              <span className={cn('text-[11px] leading-none', moreActive || moreOpen ? 'font-semibold' : 'font-medium')}>
+                {t('nav.more')}
+              </span>
             </button>
           </li>
         </ul>

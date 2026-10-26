@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, Sparkles, Loader2 } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
 import { innovations, type BehaviorLogEntry } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
@@ -60,19 +61,10 @@ export function BehaviorLogModal({ petId, petName, open, onClose, onSaved }: Pro
     }
   }
 
-  if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" onClick={onClose}>
-      <div className="bg-white dark:bg-surface-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto animate-slide-up shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100 dark:border-surface-700 sticky top-0 bg-white/95 dark:bg-surface-800/95 backdrop-blur z-10">
-          <h2 className="font-bold text-surface-900 dark:text-white">{t('g.blog.title', { name: petName })}</h2>
-          <button onClick={onClose} aria-label={t('common.close')} className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-5 space-y-5">
+    <Modal open={open} onClose={onClose} title={t('g.blog.title', { name: petName })} size="lg">
+      <div className="space-y-5">
           {/* Humor */}
           <div>
             <p className="text-sm font-semibold text-surface-700 dark:text-surface-200 mb-2">{t('g.blog.mood')}</p>
@@ -88,7 +80,7 @@ export function BehaviorLogModal({ petId, petName, open, onClose, onSaved }: Pro
                   }`}
                 >
                   <div className="text-xl">{o.emoji}</div>
-                  <p className="text-[10px] mt-0.5 font-medium">{t(o.labelKey)}</p>
+                  <p className="text-[11px] mt-0.5 font-medium">{t(o.labelKey)}</p>
                 </button>
               ))}
             </div>
@@ -184,7 +176,7 @@ export function BehaviorLogModal({ petId, petName, open, onClose, onSaved }: Pro
           <button
             onClick={save}
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-semibold py-3 rounded-xl transition disabled:opacity-60 shadow-lg shadow-primary-500/30"
+            className="w-full flex items-center justify-center gap-2 bg-primary-700 hover:bg-primary-800 text-white dark:bg-primary-500 dark:text-surface-950 dark:hover:bg-primary-400 font-semibold py-3 rounded-xl transition disabled:opacity-60 "
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
             {saving ? t('g.misc.saving') : t('g.blog.save')}
@@ -193,8 +185,7 @@ export function BehaviorLogModal({ petId, petName, open, onClose, onSaved }: Pro
           <p className="text-xs text-surface-500 dark:text-surface-400 text-center">
             {t('g.blog.hint')}
           </p>
-        </div>
       </div>
-    </div>
+    </Modal>
   )
 }

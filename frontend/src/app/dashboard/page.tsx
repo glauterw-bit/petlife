@@ -1,377 +1,257 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import {
-  PawPrint, Syringe, FlaskConical, Trophy, Plus, ArrowRight,
-  Bell, Shield, Star, TrendingUp, Clock, CheckCircle, Footprints
-} from 'lucide-react'
+import { PawPrint, MessageCircle, ChevronRight, CheckCircle2, Circle } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
-import { pets as petsApi, vaccines as vaccinesApi, walks as walksApi, gamification, reminders as remindersApi, heatCycles as heatCyclesApi, type Pet, type Vaccine, type Reminder, type UserPoints } from '@/lib/api'
-import { formatDate, formatAge, getSpeciesEmoji, getVaccineStatus, getLevelName, getBadgeColor } from '@/lib/utils'
-import { PageLoader } from '@/components/ui/LoadingSpinner'
-import { HealthScoreCard } from '@/components/health/HealthScoreCard'
-import { DailyCheckin } from '@/components/health/DailyCheckin'
-import { ProtectionCard } from '@/components/health/ProtectionCard'
-import { SupportAnnouncement } from '@/components/growth/SupportAnnouncement'
-import { support as supportApi } from '@/lib/api'
-import { StreakFlame } from '@/components/health/StreakFlame'
+import { useT } from '@/contexts/LocaleContext'
+import {
+  pets as petsApi,
+  vaccines as vaccinesApi,
+  walks as walksApi,
+  reminders as remindersApi,
+  heatCycles as heatCyclesApi,
+  protections as protectionsApi,
+  support as supportApi,
+} from '@/lib/api'
+import { useCached, invalidate } from '@/lib/cache'
+import { buildCareSummaries, overallState, type CareKind } from '@/lib/care'
+import { formatDate } from '@/lib/utils'
 import { syncHealthNotifications } from '@/lib/notifications'
 import { initPush } from '@/lib/push'
 import { trackHappyMoment } from '@/lib/review'
-import { PetHero } from '@/components/pets/PetHero'
-import { ReferralCard } from '@/components/growth/ReferralCard'
-import { OnboardingChecklist } from '@/components/growth/OnboardingChecklist'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { PullToRefresh } from '@/components/ui/PullToRefresh'
+import { SkeletonHero, SkeletonRow } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { useT } from '@/contexts/LocaleContext'
+import { Section } from '@/components/ui/Section'
+import { Card } from '@/components/ui/Card'
+import { Stagger, StaggerItem } from '@/components/ui/Motion'
+import { useRingCelebrate } from '@/components/ui/ProtectionRing'
+import { DailyCheckin } from '@/components/health/DailyCheckin'
+import { ProtectionCard, type ProtectionCardHandle } from '@/components/health/ProtectionCard'
+import { SupportAnnouncement } from '@/components/growth/SupportAnnouncement'
+import { OnboardingChecklist } from '@/components/growth/OnboardingChecklist'
+import { HomeHero } from '@/components/home/HomeHero'
+import { AttentionList } from '@/components/home/AttentionList'
+import { PushCard } from '@/components/home/PushCard'
+import { QuickActions } from '@/components/home/QuickActions'
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const t = useT()
-  const [pets, setPets] = useState<Pet[]>([])
-  const [upcomingVaccines, setUpcomingVaccines] = useState<Vaccine[]>([])
-  const [upcomingReminders, setUpcomingReminders] = useState<Reminder[]>([])
-  const [points, setPoints] = useState<UserPoints | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [scoreRefresh, setScoreRefresh] = useState(0)
-  const [hasVaccine, setHasVaccine] = useState(false)
-  const [hasWalk, setHasWalk] = useState(false)
+  const firstName = user?.name?.split(' ')[0]
+
+  const petsQ = useCached('pets', () => petsApi.list())
+  const vaxQ = useCached('vaccines', () => vaccinesApi.list())
+  const protQ = useCached('protections', () => protectionsApi.summary())
+  const remQ = useCached('reminders:upcoming', () => remindersApi.getUpcoming(7))
+
+  const pets = useMemo(() => petsQ.data ?? [], [petsQ.data])
+  const vaccines = useMemo(() => vaxQ.data ?? [], [vaxQ.data])
+  const reminders = remQ.data ?? []
+
+  // Situação por pet, pior primeiro — só a dose mais recente de cada vacina
+  // (corrige as vencidas que sumiam: a rota "upcoming" filtra next_due >= hoje).
+  const summaries = useMemo(
+    () => buildCareSummaries(pets, vaccines, protQ.data?.pets ?? []),
+    [pets, vaccines, protQ.data],
+  )
+  const overall = overallState(summaries)
+
   const [supUnread, setSupUnread] = useState(0)
+  const [hasWalk, setHasWalk] = useState(false)
+  const protRef = useRef<ProtectionCardHandle>(null)
+  const ring = useRingCelebrate()
+  const [pulsePet, setPulsePet] = useState<number | null>(null)
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [p, v, r, pts, allVax, recentWalks, heats] = await Promise.allSettled([
-          petsApi.list(),
-          vaccinesApi.getUpcoming(30),
-          remindersApi.getUpcoming(7),
-          gamification.getUserPoints(),
-          vaccinesApi.list(),
-          walksApi.list({ limit: 1 }),
-          heatCyclesApi.upcoming(),
-        ])
-        if (p.status === 'fulfilled') setPets(p.value)
-        if (v.status === 'fulfilled') setUpcomingVaccines(v.value)
-        if (r.status === 'fulfilled') setUpcomingReminders(r.value)
-        if (pts.status === 'fulfilled') setPoints(pts.value)
-        if (allVax.status === 'fulfilled') setHasVaccine((allVax.value?.length ?? 0) > 0)
-        if (recentWalks.status === 'fulfilled') setHasWalk((recentWalks.value?.length ?? 0) > 0)
-        // Push do servidor: alcança quem parou de abrir — a local, não.
-        void initPush()
-        supportApi.unread().then(r => setSupUnread(r.unread)).catch(() => {})
-        // Agenda notificações locais (no-op fora do app nativo)
-        void syncHealthNotifications(
-          v.status === 'fulfilled' ? v.value : [],
-          r.status === 'fulfilled' ? r.value : [],
-          p.status === 'fulfilled' ? p.value : [],
-          allVax.status === 'fulfilled' ? (allVax.value?.length ?? 0) > 0 : true,
-          heats.status === 'fulfilled' ? heats.value : [],
-        )
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
+    supportApi.unread().then(r => setSupUnread(r.unread)).catch(() => {})
+    walksApi.list({ limit: 1 }).then(w => setHasWalk((w?.length ?? 0) > 0)).catch(() => {})
   }, [])
 
-  if (loading) return <DashboardLayout><PageLoader /></DashboardLayout>
+  // Avisos: registra o push só se já permitido e agenda os locais — sem pedir
+  // permissão a frio (o pedido vem com contexto, pelo PushPrimer).
+  const synced = useRef(false)
+  const vaxSettled = vaxQ.data !== undefined || !!vaxQ.error
+  const remSettled = remQ.data !== undefined || !!remQ.error
+  useEffect(() => {
+    if (synced.current || !petsQ.data || !vaxSettled || !remSettled) return
+    synced.current = true
+    void initPush()
+    const hasAny = vaxQ.data ? vaxQ.data.length > 0 : true
+    void Promise.allSettled([vaccinesApi.getUpcoming(30), heatCyclesApi.upcoming()]).then(([up, heats]) =>
+      syncHealthNotifications(
+        up.status === 'fulfilled' ? up.value : [],
+        remQ.data ?? [],
+        petsQ.data ?? [],
+        hasAny,
+        heats.status === 'fulfilled' ? heats.value : [],
+      ),
+    )
+  }, [petsQ.data, vaxSettled, remSettled, vaxQ.data, remQ.data])
 
-  const overdueVaccines = upcomingVaccines.filter(v => getVaccineStatus(v.next_due) === 'overdue')
-  const levelName = points ? getLevelName(points.level) : 'Iniciante'
-  const progressPct = points
-    ? Math.min(100, ((points.total_points % 1000) / 10))
-    : 0
+  const onRefresh = useCallback(async () => {
+    invalidate('vaccines')
+    invalidate('protections')
+    invalidate('pets')
+    invalidate('reminders:upcoming')
+    await Promise.all([petsQ.refresh(), vaxQ.refresh(), protQ.refresh(), remQ.refresh()])
+  }, [petsQ, vaxQ, protQ, remQ])
+
+  const onRegister = useCallback((petId: number, kind: 'vermifugo' | 'antipulgas') => {
+    protRef.current?.openRegister(petId, kind)
+  }, [])
+
+  const onProtectionSaved = useCallback(
+    (petId: number, kind: CareKind) => {
+      setPulsePet(petId)
+      ring.celebrate(kind)
+    },
+    [ring],
+  )
+
+  const loading = petsQ.loading || (pets.length > 0 && (vaxQ.loading || protQ.loading))
+
+  // Subtítulo honesto: nunca "Tudo em dia" com pendência.
+  const subtitle = (() => {
+    if (loading) return undefined
+    if (pets.length === 0) return t('home.sub.noPets')
+    if (overall === 'overdue') {
+      const late = summaries.filter(s => s.worst === 'overdue')
+      return late.length === 1 ? t('home.sub.overduePet', { name: late[0].pet.name }) : t('home.sub.overdueMany', { n: late.length })
+    }
+    if (overall === 'soon') return t('home.sub.soon')
+    if (overall === 'never') return t('home.sub.never')
+    return t('home.sub.allOk')
+  })()
+
+  const top = summaries[0]
+  const exclude = top?.next ? { petId: top.pet.id, kind: top.next.kind, vaccineId: top.next.vaccineId } : null
+  const pushTarget = summaries.find(s => s.items[0].vaccineName && (s.items[0].state === 'overdue' || s.items[0].state === 'soon')) ?? top
+  const pulse = ring.pulseKind && pulsePet != null ? { petId: pulsePet, kind: ring.pulseKind } : null
 
   return (
     <DashboardLayout>
-      {/* Herói: o pet domina a tela (anel de status + streak). Sem pets, saudação simples. */}
-      {pets.length > 0 ? (
-        <PetHero
-          pet={pets[0]}
-          vaccines={upcomingVaccines}
-          userName={user?.name?.split(' ')[0]}
-          refreshKey={scoreRefresh}
-        />
-      ) : (
-        <div className="mb-6 md:mb-8">
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-surface-900 dark:text-white leading-tight">
-            {t('dash.greeting', { name: user?.name?.split(' ')[0] ?? t('v.dash.defaultUser') })}
-          </h1>
-          <p className="text-sm md:text-base text-surface-500 dark:text-surface-400 mt-1">
-            {t('dash.addFirstPet')}
-          </p>
-        </div>
-      )}
+      <PageHeader title={firstName ? t('home.hello', { name: firstName }) : t('home.helloNoName')} subtitle={subtitle} />
 
-      {/* Primeiros passos — guia de ativação (some sozinho quando concluído/dispensado) */}
-      {pets.length > 0 && (
-        <OnboardingChecklist
-          pet={pets[0]}
-          hasVaccine={hasVaccine}
-          hasWalk={hasWalk}
-          firstName={user?.name?.split(' ')[0]}
-        />
-      )}
-
-      {/* Daily check-in + Health Score + Streak — engajamento diário */}
-      {pets.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          <div className="lg:col-span-2 reveal">
-            <HealthScoreCard key={scoreRefresh} pet={pets[0]} />
+      <PullToRefresh onRefresh={onRefresh}>
+        {loading ? (
+          <div role="status" aria-busy="true" className="space-y-3">
+            <span className="sr-only">{t('home.loading')}</span>
+            <SkeletonHero />
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
           </div>
-          <div className="lg:col-span-1 space-y-4 reveal" style={{ ['--i' as string]: 1 }}>
-            <StreakFlame key={`streak-${scoreRefresh}`} pet={pets[0]} refreshKey={scoreRefresh} />
-            <DailyCheckin pet={pets[0]} onDone={() => { setScoreRefresh(n => n + 1); trackHappyMoment('checkin') }} />
-          </div>
-        </div>
-      )}
-
-      {/* Anúncio único: canal de suporte nasceu dos feedbacks */}
-      <SupportAnnouncement />
-
-      {/* Resposta do suporte esperando — o aviso mais importante da home */}
-      {supUnread > 0 && (
-        <Link
-          href="/suporte"
-          className="flex items-center gap-3 mb-6 rounded-2xl border border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/25 p-4 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition"
-        >
-          <span className="text-2xl">💬</span>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-primary-800 dark:text-primary-200">{t('g.sup.replyBanner')}</div>
-            <div className="text-xs text-primary-700/80 dark:text-primary-300/80">{t('g.sup.replyCta')}</div>
-          </div>
-          <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center tabular-nums shrink-0">{supUnread}</span>
-        </Link>
-      )}
-
-      {/* Proteção em dia — a recorrência real (30-90d) que traz o tutor de volta */}
-      {pets.length > 0 && <ProtectionCard pets={pets} />}
-
-      {/* Stats — cartões unificados (superfície neutra + chip de ícone colorido) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-        {[
-          {
-            icon: <PawPrint className="w-5 h-5" />,
-            label: t('dash.totalPets'),
-            value: pets.length,
-            tint: 'text-primary-600 bg-primary-50 dark:text-primary-300 dark:bg-primary-500/15',
-          },
-          {
-            icon: <Syringe className="w-5 h-5" />,
-            label: t('dash.upcomingVaccines'),
-            value: upcomingVaccines.filter(v => getVaccineStatus(v.next_due) === 'upcoming').length,
-            tint: 'text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15',
-            alert: overdueVaccines.length > 0,
-          },
-          {
-            icon: <Bell className="w-5 h-5" />,
-            label: t('dash.reminders7d'),
-            value: upcomingReminders.length,
-            tint: 'text-blue-600 bg-blue-50 dark:text-blue-300 dark:bg-blue-500/15',
-          },
-          {
-            icon: <Trophy className="w-5 h-5" />,
-            label: t('dash.points'),
-            value: points?.total_points ?? 0,
-            tint: 'text-accent-600 bg-accent-50 dark:text-accent-300 dark:bg-accent-500/15',
-          },
-        ].map((s, i) => (
-          <div key={i} className="reveal pressable bg-white dark:bg-surface-800 rounded-2xl p-3 md:p-4 border border-surface-100 dark:border-surface-700 relative" style={{ ['--i' as string]: i }}>
-            {s.alert && (
-              <span className="absolute top-3 right-3 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-              </span>
-            )}
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.tint}`}>{s.icon}</div>
-            <div className="text-xl md:text-2xl font-bold text-surface-900 dark:text-white mt-2 leading-tight tabular-nums">{s.value}</div>
-            <div className="text-xs md:text-sm text-surface-500 dark:text-surface-400 leading-tight">{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Left column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Pet cards */}
-          <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-surface-900 dark:text-white">{t('dash.myPets')}</h2>
-              <Link href="/pets" className="text-sm text-primary-600 hover:underline flex items-center gap-1">
-                {t('common.seeAll')} <ArrowRight className="w-4 h-4" />
+        ) : pets.length === 0 ? (
+          <Card padding="lg" className="rounded-3xl">
+            <EmptyState
+              icon={PawPrint}
+              title={t('home.empty.title')}
+              text={t('home.empty.text')}
+              ctaLabel={t('home.empty.cta')}
+              ctaHref="/pets/new"
+            />
+          </Card>
+        ) : (
+          <>
+            {/* Resposta do suporte esperando — o aviso mais importante */}
+            {supUnread > 0 && (
+              <Link
+                href="/suporte"
+                className="pressable flex items-center gap-3 mb-4 rounded-2xl border tone-brand-bg p-3 min-h-[56px]"
+              >
+                <span className="w-10 h-10 rounded-xl bg-white text-primary-700 dark:bg-surface-900 dark:text-primary-300 flex items-center justify-center shrink-0">
+                  <MessageCircle className="w-5 h-5" aria-hidden />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-bold text-primary-900 dark:text-primary-100">{t('g.sup.replyBanner')}</span>
+                  <span className="block text-xs text-primary-800 dark:text-primary-200">{t('g.sup.replyCta')}</span>
+                </span>
+                <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center tabular-nums shrink-0">
+                  {supUnread}
+                </span>
+                <ChevronRight className="w-4 h-4 text-primary-700 dark:text-primary-300 shrink-0" aria-hidden />
               </Link>
-            </div>
-            {pets.length === 0 ? (
-              <EmptyState
-                title={t('dash.emptyPetsTitle')}
-                text={t('dash.emptyPetsText')}
-                ctaLabel={t('dash.emptyPetsCta')}
-                ctaHref="/pets/new"
-              />
-            ) : (
-              <div className="space-y-3">
-                {pets.slice(0, 3).map(pet => (
-                  <Link
-                    key={pet.id}
-                    href={`/pets/${pet.id}`}
-                    className="pressable flex items-center gap-4 p-3 rounded-xl dark:hover:bg-surface-700/40 hover:bg-surface-50 transition group"
-                  >
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-50 to-accent-50 flex items-center justify-center text-3xl shrink-0 overflow-hidden">
-                      {pet.photo_url ? (
-                        <Image src={pet.photo_url} alt={pet.name} width={56} height={56} className="object-cover w-full h-full rounded-2xl" />
-                      ) : (
-                        getSpeciesEmoji(pet.species)
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-surface-900 dark:text-white group-hover:text-primary-600 transition">{pet.name}</div>
-                      <div className="text-sm text-surface-500 dark:text-surface-400">{pet.breed?.name ?? '—'} • {formatAge(pet.birth_date)}</div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-surface-300 group-hover:text-primary-500 group-hover:translate-x-1 transition" />
-                  </Link>
-                ))}
-                {pets.length > 3 && (
-                  <Link href="/pets" className="block text-center text-sm text-primary-600 hover:underline py-2">
-                    {t('v.dash.morePets', { count: pets.length - 3 })}
-                  </Link>
-                )}
-              </div>
             )}
-          </div>
 
-          {/* Upcoming vaccines */}
-          {upcomingVaccines.length > 0 && (
-            <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-surface-900 dark:text-white flex items-center gap-2">
-                  <Syringe className="w-5 h-5 text-yellow-500" />
-                  {t('dash.vaccinesAttention')}
-                </h2>
-                <Link href="/health/vaccines" className="text-sm text-primary-600 hover:underline flex items-center gap-1">
-                  {t('v.dash.seeAllF')} <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-              <div className="space-y-2">
-                {upcomingVaccines.slice(0, 4).map(v => {
-                  const status = getVaccineStatus(v.next_due)
-                  const isOverdue = status === 'overdue'
-                  return (
-                    <div key={v.id} className={`flex items-center gap-3 p-3 rounded-xl ${isOverdue ? 'bg-red-50 border border-red-100' : 'bg-yellow-50 border border-yellow-100'}`}>
-                      <Shield className={`w-5 h-5 ${isOverdue ? 'text-red-500' : 'text-yellow-500'}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-surface-900 dark:text-white">{v.name}</div>
-                        <div className="text-xs text-surface-500 dark:text-surface-400">{v.pet?.name ?? ''} • {t('vaccine.due')}: {formatDate(v.next_due)}</div>
-                      </div>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {isOverdue ? t('vaccine.badgeOverdue') : t('vaccine.badgeUpcoming')}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+            <HomeHero summaries={summaries} pulse={pulse} onRegister={onRegister} />
 
-          {/* Quick actions */}
-          <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
-            <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-4">{t('dash.quickActions')}</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {[
-                { href: '/walks/active', icon: <Footprints className="w-5 h-5" />, label: t('dash.walkNow'), color: 'text-primary-600 bg-primary-50 hover:bg-primary-100' },
-                { href: '/health/vaccines', icon: <Syringe className="w-5 h-5" />, label: t('dash.newVaccine'), color: 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' },
-                { href: '/health/exams', icon: <FlaskConical className="w-5 h-5" />, label: t('dash.newExam'), color: 'text-blue-600 bg-blue-50 hover:bg-blue-100' },
-                { href: '/challenges', icon: <Trophy className="w-5 h-5" />, label: t('dash.challenges'), color: 'text-accent-600 bg-accent-50 hover:bg-accent-100' },
-                { href: '/pets/new', icon: <PawPrint className="w-5 h-5" />, label: t('dash.newPet'), color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
-                { href: '/nearby', icon: <TrendingUp className="w-5 h-5" />, label: t('dash.nearbyClinics'), color: 'text-green-600 bg-green-50 hover:bg-green-100' },
-              ].map(a => (
-                <Link
-                  key={a.href}
-                  href={a.href}
-                  className={`pressable flex flex-col items-center gap-2 p-3 rounded-xl transition text-center ${a.color}`}
-                >
-                  {a.icon}
-                  <span className="text-xs font-medium">{a.label}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
+            <Stagger gap={0.05}>
+              <StaggerItem>
+                <AttentionList summaries={summaries} vaccines={vaccines} exclude={exclude} onRegister={onRegister} />
+              </StaggerItem>
 
-        {/* Right column */}
-        <div className="space-y-6">
-          {/* Convide & Ganhe — recompensa dupla */}
-          <ReferralCard />
-          {/* Gamification */}
-          {points && (
-            <div className="bg-gradient-to-br from-accent-500 to-accent-600 rounded-2xl p-5 text-white">
-              <div className="flex items-center gap-2 mb-3">
-                <Trophy className="w-5 h-5" />
-                <span className="font-semibold">{t('v.dash.gamification')}</span>
-              </div>
-              <div className="text-3xl font-bold mb-0.5">{points.total_points} pts</div>
-              <div className="text-accent-100 text-sm mb-4">{t('v.dash.level', { level: points.level, name: levelName })}</div>
-
-              <div className="mb-1 flex justify-between text-xs text-accent-100">
-                <span>{t('v.dash.progress')}</span>
-                <span>{points.total_points % 1000}/1000 pts</span>
-              </div>
-              <div className="w-full bg-white/20 rounded-full h-2 mb-4">
-                <div
-                  className="bg-white dark:bg-surface-800 h-2 rounded-full transition-all"
-                  style={{ width: `${progressPct}%` }}
+              <StaggerItem>
+                <PushCard
+                  hasVaccine={vaccines.length > 0}
+                  petName={pushTarget?.pet.name ?? ''}
+                  vaccineName={pushTarget?.items[0].vaccineName}
                 />
-              </div>
+              </StaggerItem>
 
-              {points.badges_earned && points.badges_earned.length > 0 && (
-                <div>
-                  <p className="text-xs text-accent-100 mb-2">{t('v.dash.badges')}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {points.badges_earned.map((b, i) => (
-                      <span key={i} className="text-xs bg-white/20 rounded-full px-2.5 py-0.5">{b}</span>
-                    ))}
-                  </div>
-                </div>
+              {top && (
+                <StaggerItem className="mb-5">
+                  <DailyCheckin key={top.pet.id} pet={top.pet} onDone={() => trackHappyMoment('checkin')} />
+                </StaggerItem>
               )}
 
-              <Link
-                href="/challenges"
-                className="mt-4 block text-center text-sm font-semibold bg-white/20 hover:bg-white/30 transition rounded-xl py-2"
-              >
-                {t('v.dash.seeChallenges')} <Star className="inline w-4 h-4 ml-1" />
-              </Link>
-            </div>
-          )}
+              <StaggerItem>
+                <ProtectionCard ref={protRef} pets={pets} onSaved={onProtectionSaved} />
+              </StaggerItem>
 
-          {/* Reminders */}
-          <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-surface-900 dark:text-white flex items-center gap-2">
-                <Bell className="w-4 h-4 text-blue-500" />
-                {t('v.dash.reminders')}
-              </h2>
-            </div>
-            {upcomingReminders.length === 0 ? (
-              <p className="text-sm text-surface-400 text-center py-4">{t('dash.noReminders')}</p>
-            ) : (
-              <div className="space-y-2">
-                {upcomingReminders.slice(0, 5).map(r => (
-                  <div key={r.id} className="flex items-center gap-2 text-sm">
-                    <CheckCircle className={`w-4 h-4 shrink-0 ${r.is_completed ? 'text-green-400' : 'text-surface-300'}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className={`font-medium truncate ${r.is_completed ? 'line-through text-surface-400' : 'text-surface-800 dark:text-surface-100'}`}>
-                        {r.title}
-                      </div>
-                      <div className="text-xs text-surface-500 dark:text-surface-400">{formatDate(r.due_date)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+              <StaggerItem>
+                <Section title={t('home.rem.title')} className="mb-5">
+                  {reminders.length === 0 ? (
+                    <p className="text-sm text-surface-600 dark:text-surface-400 -mt-1">{t('home.rem.empty')}</p>
+                  ) : (
+                    <Card padding="none">
+                      <ul className="divide-y divide-surface-100 dark:divide-surface-800">
+                        {reminders.slice(0, 5).map(r => {
+                          const Icon = r.is_completed ? CheckCircle2 : Circle
+                          return (
+                            <li key={r.id} className="flex items-center gap-3 px-4 py-2.5 min-h-[52px]">
+                              <Icon
+                                className={r.is_completed ? 'w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400' : 'w-5 h-5 shrink-0 text-surface-400 dark:text-surface-500'}
+                                aria-hidden
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className={r.is_completed ? 'text-sm font-medium truncate line-through text-surface-500 dark:text-surface-400' : 'text-sm font-medium truncate text-surface-900 dark:text-surface-100'}>
+                                  {r.title}
+                                </div>
+                                <div className="text-xs text-surface-600 dark:text-surface-400">
+                                  {[r.pet?.name, formatDate(r.due_date)].filter(Boolean).join(' · ')}
+                                </div>
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </Card>
+                  )}
+                </Section>
+              </StaggerItem>
+
+              {top && (
+                <StaggerItem>
+                  <OnboardingChecklist pet={pets[0]} hasVaccine={vaccines.length > 0} hasWalk={hasWalk} firstName={firstName} />
+                </StaggerItem>
+              )}
+
+              {top && (
+                <StaggerItem>
+                  <QuickActions petId={top.pet.id} />
+                </StaggerItem>
+              )}
+            </Stagger>
+          </>
+        )}
+      </PullToRefresh>
+
+      {/* Anúncio único do canal de suporte (1x por aparelho) */}
+      <SupportAnnouncement />
     </DashboardLayout>
   )
 }

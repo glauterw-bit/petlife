@@ -33,12 +33,12 @@ export function examTypeLabel(type: string, t: (key: string) => string): string 
 }
 
 const examTypeColors: Record<string, string> = {
-  'hemograma': 'bg-red-50 text-red-700',
-  'urina': 'bg-yellow-50 text-yellow-700',
-  'raio-x': 'bg-blue-50 text-blue-700',
-  'ultrassom': 'bg-purple-50 text-purple-700',
-  'fezes': 'bg-amber-50 text-amber-700',
-  'default': 'bg-surface-100 dark:bg-surface-700 text-surface-600 dark:text-surface-300',
+  'hemograma': 'chip-neutral',
+  'urina': 'chip-neutral',
+  'raio-x': 'chip-info',
+  'ultrassom': 'chip-info',
+  'fezes': 'chip-neutral',
+  'default': 'chip-neutral',
 }
 
 export function ExamCard({ exam, onDelete }: ExamCardProps) {
@@ -47,27 +47,27 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
   const colorClass = examTypeColors[colorKey]
 
   return (
-    <div className="bg-white dark:bg-surface-800 rounded-xl border border-surface-100 dark:border-surface-700 p-4 hover:border-primary-200 hover:shadow-sm transition-all">
+    <div className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200/70 dark:border-surface-800 p-4">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center shrink-0">
-          <FileText className="w-5 h-5 text-primary-600" />
+        <div className="w-10 h-10 bg-primary-50 dark:bg-primary-500/15 rounded-xl flex items-center justify-center shrink-0">
+          <FileText className="w-5 h-5 text-primary-700 dark:text-primary-300" aria-hidden />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <h4 className="font-semibold text-surface-900 dark:text-white">{exam.name}</h4>
-            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${colorClass}`}>
+            <span className={`chip ${colorClass}`}>
               {examTypeLabel(exam.type, t)}
             </span>
           </div>
 
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
             <div className="flex items-center gap-1.5 text-xs text-surface-500 dark:text-surface-400">
-              <Calendar className="w-3.5 h-3.5" />
+              <Calendar className="w-3.5 h-3.5" aria-hidden />
               {formatDate(exam.date)}
             </div>
             {exam.veterinarian && (
               <div className="flex items-center gap-1.5 text-xs text-surface-500 dark:text-surface-400">
-                <User className="w-3.5 h-3.5" />
+                <User className="w-3.5 h-3.5" aria-hidden />
                 {t('h.vac.doctor', { name: exam.veterinarian })}
               </div>
             )}
@@ -84,24 +84,25 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
             <p className="mt-2 text-xs text-surface-500 dark:text-surface-400 italic">{exam.notes}</p>
           )}
 
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-1 flex items-center gap-3">
             {exam.file_path && (
               <a
                 href={exam.file_path}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium transition"
+                className="inline-flex items-center gap-1.5 min-h-[44px] text-[13px] text-primary-700 dark:text-primary-300 hover:underline font-semibold"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-4 h-4" aria-hidden />
                 {t('h.exams.download')}
               </a>
             )}
             {onDelete && (
               <button
+                type="button"
                 onClick={() => onDelete(exam.id)}
-                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition ml-auto"
+                className="pressable inline-flex items-center gap-1.5 min-h-[44px] px-2 -mr-2 rounded-xl text-[13px] font-semibold text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/10 ml-auto"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" aria-hidden />
                 {t('common.delete')}
               </button>
             )}

@@ -7,7 +7,10 @@
  */
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Crown, X } from 'lucide-react'
+import { Crown } from 'lucide-react'
+import { Sheet } from '@/components/ui/Sheet'
+import { Button } from '@/components/ui/Button'
+import { hapticWarning } from '@/lib/feedback'
 import { track } from '@/lib/track'
 import { useT } from '@/contexts/LocaleContext'
 
@@ -15,59 +18,45 @@ export function QuotaUpsellModal() {
   const router = useRouter()
   const t = useT()
   const [message, setMessage] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     const onQuota = (e: Event) => {
       const detail = (e as CustomEvent<{ message?: string }>).detail
       setMessage(detail?.message || t('ac.quota.defaultMsg'))
+      setOpen(true)
       track('paywall_shown')
+      void hapticWarning()
     }
     window.addEventListener('petlife:quota', onQuota)
     return () => window.removeEventListener('petlife:quota', onQuota)
   }, [t])
 
-  if (!message) return null
+  // A mensagem fica guardada durante a animação de saída da folha.
+  const close = () => setOpen(false)
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-      onClick={() => setMessage(null)}
-    >
-      <div
-        className="w-full max-w-sm bg-white dark:bg-surface-800 rounded-3xl border border-surface-100 dark:border-surface-700 p-6 shadow-2xl animate-slide-up"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between mb-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-500/15 flex items-center justify-center">
-            <Crown className="w-6 h-6 text-amber-500" />
-          </div>
-          <button
-            onClick={() => setMessage(null)}
-            className="p-1.5 rounded-lg text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700"
-            aria-label={t('common.close')}
-          >
-            <X className="w-5 h-5" />
-          </button>
+    <Sheet
+      open={open}
+      onClose={close}
+      title={t('ac.quota.title')}
+      footer={
+        <div className="space-y-2">
+          <Button size="lg" fullWidth leftIcon={Crown} onClick={() => { close(); router.push('/plans') }}>
+            {t('ac.quota.cta')}
+          </Button>
+          <Button variant="ghost" fullWidth onClick={close}>
+            {t('ac.quota.later')}
+          </Button>
         </div>
-
-        <h3 className="text-lg font-bold text-surface-900 dark:text-white mb-1">
-          {t('ac.quota.title')}
-        </h3>
-        <p className="text-sm text-surface-500 dark:text-surface-400 mb-5">{message}</p>
-
-        <button
-          onClick={() => { setMessage(null); router.push('/plans') }}
-          className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm mb-2"
-        >
-          {t('ac.quota.cta')}
-        </button>
-        <button
-          onClick={() => setMessage(null)}
-          className="w-full py-2.5 rounded-xl text-sm font-medium text-surface-500 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-700/40"
-        >
-          {t('ac.quota.later')}
-        </button>
+      }
+    >
+      <div className="flex items-start gap-3">
+        <span className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-500/15 flex items-center justify-center shrink-0">
+          <Crown className="w-6 h-6 text-amber-600 dark:text-amber-400" aria-hidden />
+        </span>
+        <p className="text-[15px] text-surface-700 dark:text-surface-300 leading-relaxed">{message}</p>
       </div>
-    </div>
+    </Sheet>
   )
 }
