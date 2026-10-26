@@ -2,6 +2,9 @@ import type { Config } from 'tailwindcss'
 
 const config: Config = {
   darkMode: 'class',
+  // hover: só onde existe ponteiro de verdade. No iPhone o :hover "gruda"
+  // depois do toque (a aba tocada da barra inferior ficava escura).
+  future: { hoverOnlyWhenSupported: true },
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
