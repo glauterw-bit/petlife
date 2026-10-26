@@ -451,7 +451,7 @@ export default function AdminPage() {
                   <span className="text-[10px] text-surface-400 shrink-0">{new Date(th.last_at + (th.last_at.endsWith('Z') ? '' : 'Z')).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 <div className="text-xs text-surface-500 dark:text-surface-400 truncate">
-                  {th.last_sender === 'admin' ? 'Você: ' : ''}{th.last_body}
+                  {th.last_sender === 'admin' ? 'Você: ' : th.last_sender === 'assistant' ? 'Assistente: ' : ''}{th.last_body}
                 </div>
               </button>
             ))}
@@ -472,10 +472,11 @@ export default function AdminPage() {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
               {chat.messages.map(m => (
-                <div key={m.id} className={`flex ${m.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${m.sender === 'admin' ? 'bg-primary-500 text-white rounded-br-md' : 'bg-surface-100 dark:bg-surface-700 text-surface-800 dark:text-surface-100 rounded-bl-md'}`}>
+                <div key={m.id} className={`flex ${m.sender !== 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${m.sender === 'admin' ? 'bg-primary-500 text-white rounded-br-md' : m.sender === 'assistant' ? 'bg-teal-600 text-white rounded-br-md' : 'bg-surface-100 dark:bg-surface-700 text-surface-800 dark:text-surface-100 rounded-bl-md'}`}>
+                    {m.sender === 'assistant' && <div className="text-[10px] font-semibold text-white/80 mb-0.5">Assistente automático</div>}
                     {m.body}
-                    <div className={`text-[10px] mt-0.5 ${m.sender === 'admin' ? 'text-white/70' : 'text-surface-400'}`}>{new Date(m.created_at + (m.created_at.endsWith('Z') ? '' : 'Z')).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                    <div className={`text-[10px] mt-0.5 ${m.sender !== 'user' ? 'text-white/70' : 'text-surface-400'}`}>{new Date(m.created_at + (m.created_at.endsWith('Z') ? '' : 'Z')).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                   </div>
                 </div>
               ))}

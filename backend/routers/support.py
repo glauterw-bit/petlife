@@ -28,6 +28,8 @@ _limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/support", tags=["Suporte"])
 
 APP_URL = "https://petlife-frontend-production.up.railway.app"
+_BG_TASKS: set = set()  # referência às respostas automáticas em andamento
+REPLY_SENDERS = ("admin", "assistant")
 
 
 class MessageIn(BaseModel):
@@ -92,7 +94,7 @@ async def my_messages(
         update(SupportMessage)
         .where(
             SupportMessage.user_id == current_user.id,
-            SupportMessage.sender == "admin",
+            SupportMessage.sender.in_(REPLY_SENDERS),
             SupportMessage.read_at.is_(None),
         )
         .values(read_at=datetime.utcnow())
@@ -117,6 +119,12 @@ async def send_message(
     from admin_alerts import notify_admins
     await notify_admins(db, f"sup:{msg.id}", "adm_suporte",
                         f"💬 {(current_user.name or 'Tutor').split(' ')[0]} escreveu no suporte", msg.body[:140])
+    # Assistente automático (responde em segundo plano se ninguém da equipe responder antes)
+    import support_ai
+    if support_ai.enabled():
+        task = asyncio.create_task(support_ai.handle_new_message(current_user.id, msg.id))
+        _BG_TASKS.add(task)
+        task.add_done_callback(_BG_TASKS.discard)
     return msg
 
 
@@ -128,7 +136,7 @@ async def my_unread(
     n = (await db.execute(
         select(func.count(SupportMessage.id)).where(
             SupportMessage.user_id == current_user.id,
-            SupportMessage.sender == "admin",
+            SupportMessage.sender.in_(REPLY_SENDERS),
             SupportMessage.read_at.is_(None),
         )
     )).scalar() or 0

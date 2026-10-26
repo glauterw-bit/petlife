@@ -104,6 +104,11 @@ export default function SuportePage() {
                       {t('g.sup.adminName')}
                     </div>
                   )}
+                  {m.sender === 'assistant' && (
+                    <div className="text-[11px] font-semibold text-primary-700 dark:text-primary-300 mb-0.5">
+                      {t('g.sup.botName')}
+                    </div>
+                  )}
                   {m.body}
                   <div className={`text-[11px] mt-1 ${mine ? 'text-white/80 dark:text-surface-950/70' : 'text-surface-500 dark:text-surface-400'}`}>
                     {fmtTime(m.created_at)}

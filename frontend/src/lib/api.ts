@@ -1972,7 +1972,7 @@ export const protections = {
 
 export interface SupportMsg {
   id: number
-  sender: 'user' | 'admin'
+  sender: 'user' | 'admin' | 'assistant'
   body: string
   created_at: string
 }
