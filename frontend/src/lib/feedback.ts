@@ -156,8 +156,10 @@ const PETLIFE_COLORS = ['#10b981', '#34d399', '#f59e0b', '#fbbf24', '#a7f3d0']
 
 /** Burst from center — generic celebration */
 export function celebrate(intensity: 'small' | 'medium' | 'large' = 'medium') {
+  // Vibra mesmo com menos movimento (vibração não é animação). A trava de
+  // 60 ms do haptic() descarta a duplicata quando a tela também vibra.
+  haptic('milestone')
   if (prefersReducedMotion()) return
-  void hapticSuccess()
   const count = intensity === 'large' ? 200 : intensity === 'medium' ? 100 : 50
   void loadConfetti().then(confetti => {
     confetti({
@@ -171,8 +173,10 @@ export function celebrate(intensity: 'small' | 'medium' | 'large' = 'medium') {
 
 /** Side-cannon style — for screen-edge celebrations */
 export function celebrateFromSides() {
+  // Vibra mesmo com menos movimento (vibração não é animação). A trava de
+  // 60 ms do haptic() descarta a duplicata quando a tela também vibra.
+  haptic('milestone')
   if (prefersReducedMotion()) return
-  void hapticSuccess()
   void loadConfetti().then(confetti => {
     const end = Date.now() + 800
     const frame = () => {
@@ -186,8 +190,10 @@ export function celebrateFromSides() {
 
 /** Paw-print emoji confetti for pet-related moments */
 export function celebratePets() {
+  // Vibra mesmo com menos movimento (vibração não é animação). A trava de
+  // 60 ms do haptic() descarta a duplicata quando a tela também vibra.
+  haptic('milestone')
   if (prefersReducedMotion()) return
-  void hapticSuccess()
   void loadConfetti().then(confetti => {
     const scalar = 2.5
     const paw = confetti.shapeFromText({ text: '🐾', scalar })
@@ -203,8 +209,10 @@ export function celebratePets() {
 
 /** Trophy + stars — gamification badge unlock */
 export function celebrateBadge() {
+  // Vibra mesmo com menos movimento (vibração não é animação). A trava de
+  // 60 ms do haptic() descarta a duplicata quando a tela também vibra.
+  haptic('milestone')
   if (prefersReducedMotion()) return
-  void hapticSuccess()
   void loadConfetti().then(confetti => {
     const trophy = confetti.shapeFromText({ text: '🏆', scalar: 2.2 })
     const star = confetti.shapeFromText({ text: '⭐', scalar: 1.8 })

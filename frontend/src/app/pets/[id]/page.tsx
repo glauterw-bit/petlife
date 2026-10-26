@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Edit2, Camera, PawPrint, Heart, Route, Stethoscope, Sparkles, Plus, AlertTriangle, CheckCircle,
   AlertCircle, Info, Syringe, IdCard, Share2, Ellipsis, History, Image as ImageIcon, GitFork,
-  Utensils, Activity, Scissors, GraduationCap, Microscope, Dog, ClipboardList, Dna, Pill, Bug, ChevronDown, ChevronRight, type LucideIcon,
+  Utensils, Activity, Scissors, GraduationCap, Microscope, Dog, ClipboardList, Dna, Pill, Bug, ChevronDown, ChevronRight, BellRing, type LucideIcon,
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { VaccineTimeline } from '@/components/health/VaccineTimeline'
@@ -35,6 +35,8 @@ import { ExpensesCard } from '@/components/innovations/ExpensesCard'
 import { EditPetModal } from '@/components/pets/EditPetModal'
 import { LostPetCard } from '@/components/pets/LostPetCard'
 import { PetTimeline } from '@/components/pets/PetTimeline'
+import { HumanAgeChip, vaccineAddHref } from '@/components/pets/PetHero'
+import { EmergencyContactsCard } from '@/components/pets/EmergencyContactsCard'
 import { PetActionsSheet, type PetAction } from '@/components/pets/PetActionsSheet'
 import { track } from '@/lib/track'
 import { requestSoftUpsell } from '@/lib/softUpsell'
@@ -45,19 +47,20 @@ import { petExport } from '@/lib/api'
 import { trackHappyMoment } from '@/lib/review'
 import { useT } from '@/contexts/LocaleContext'
 import { useCached, invalidate } from '@/lib/cache'
-import type { CareItem, CareKind, PetCareSummary } from '@/lib/care'
-import { variants, spring } from '@/lib/motion'
+import { reconcileSuggestion, daysUntil, type CareItem, type CareKind, type CareState, type PetCareSummary } from '@/lib/care'
+import { spring } from '@/lib/motion'
 import { haptic } from '@/lib/feedback'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { IconButton } from '@/components/ui/IconButton'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Tabs } from '@/components/ui/Tabs'
+import { Tabs, tabPanelProps } from '@/components/ui/Tabs'
+import { StatusBadge, careStateShort } from '@/components/ui/StatusBadge'
 import { PetAvatar } from '@/components/ui/PetAvatar'
 import { ProtectionRing, useRingCelebrate } from '@/components/ui/ProtectionRing'
 import { CareStatusList } from '@/components/ui/CareStatusList'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { SkeletonHero, SkeletonTile, Skeleton } from '@/components/ui/Skeleton'
+import { Skeleton, FADE_IN } from '@/components/ui/Skeleton'
 import { useConfirm } from '@/components/ui/Confirm'
 import { useShell } from '@/components/layout/shell'
 import { useCareData } from '../useCareData'
@@ -82,6 +85,18 @@ const URGENCY_TONE: Record<'alta' | 'media' | 'baixa', { chip: string; dot: stri
 }
 
 const URGENCY_RANK = { alta: 0, media: 1, baixa: 2 } as const
+
+/**
+ * Ordem das sugestões depois de casar com o estado real (reconcileSuggestion):
+ * vencido no topo, depois "vence em breve", depois as que dependem só da
+ * prioridade do servidor, e o que já está em dia por último.
+ */
+function suggestionRank(state: CareState | null, u: 'alta' | 'media' | 'baixa'): number {
+  if (state === 'overdue') return 0
+  if (state === 'soon') return 1
+  if (state === 'ok') return 9
+  return 2 + URGENCY_RANK[u]
+}
 const SUGGESTIONS_PREVIEW = 3
 
 const INPUT =
@@ -331,15 +346,7 @@ export default function PetProfilePage() {
     return (
       <DashboardLayout>
         <PageHeader title="" back="/pets" large={false} />
-        <div className="space-y-4" aria-busy="true" aria-label={t('ui.loading')}>
-          <SkeletonHero />
-          <div className="grid grid-cols-4 gap-2">
-            <SkeletonTile />
-            <SkeletonTile />
-            <SkeletonTile />
-            <SkeletonTile />
-          </div>
-        </div>
+        <PetProfileSkeleton label={t('ui.loading')} />
       </DashboardLayout>
     )
   }
@@ -363,14 +370,22 @@ export default function PetProfilePage() {
   }
 
   const subtitle = [pet.breed?.name, pet.birth_date ? formatAge(pet.birth_date) : null].filter(Boolean).join(' · ')
+  const showMetaRow = !!subtitle || !pet.breed
 
-  // prioridade alta primeiro; mostra 3 e o resto sob demanda
+  // Cada sugestão é casada com o que o pet já tem registrado: vencido sobe e
+  // ganha "Registrar"; em dia vai para o fim; "Prioridade" só quando o app
+  // não sabe o estado real. Mostra 3 e o resto sob demanda.
   const rankedSuggestions = (suggestions?.suggestions ?? [])
     .map((s, idx) => {
       const u: 'alta' | 'media' | 'baixa' = s.urgency === 'alta' || s.urgency === 'media' ? s.urgency : 'baixa'
-      return { s, u, idx }
+      const rec = summary ? reconcileSuggestion(s, summary, vaccines) : { state: null }
+      return { s, u, idx, rec }
     })
-    .sort((a, b) => URGENCY_RANK[a.u] - URGENCY_RANK[b.u] || a.idx - b.idx)
+    .sort((a, b) => suggestionRank(a.rec.state, a.u) - suggestionRank(b.rec.state, b.u) || a.idx - b.idx)
+  function daysLeftOf(vaccineId?: number): number | null {
+    const v = vaccineId != null ? vaccines.find(x => x.id === vaccineId) : undefined
+    return v?.next_due ? daysUntil(v.next_due) : null
+  }
   const visibleSuggestions = allSuggestions ? rankedSuggestions : rankedSuggestions.slice(0, SUGGESTIONS_PREVIEW)
 
   const profileFacts: { label: string; value: string; mono?: boolean }[] = [
@@ -441,12 +456,8 @@ export default function PetProfilePage() {
       )}
 
       {/* ── Herói: anel de proteção + próxima ação ───────────────────── */}
-      <motion.section
-        variants={variants.scaleIn}
-        initial="hidden"
-        animate="show"
-        transition={spring.soft}
-        className="rounded-3xl bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 shadow-card p-5 mb-3"
+      <section
+        className={cn('rounded-3xl bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 shadow-card p-5 mb-3', FADE_IN)}
         aria-labelledby="pet-hero-name"
       >
         <div className="flex flex-col items-center text-center">
@@ -477,7 +488,7 @@ export default function PetProfilePage() {
           <h2 id="pet-hero-name" className="mt-3 text-[26px] leading-tight font-display font-extrabold tracking-tight text-surface-900 dark:text-white">
             {pet.name}
           </h2>
-          {(subtitle || !pet.breed) && (
+          {showMetaRow && (
             <div className="mt-0.5 flex flex-wrap items-center justify-center gap-x-2 text-[15px] text-surface-600 dark:text-surface-400">
               {subtitle && <span>{subtitle}</span>}
               {subtitle && !pet.breed && <span aria-hidden>·</span>}
@@ -494,6 +505,10 @@ export default function PetProfilePage() {
               )}
             </div>
           )}
+          {/* ≈ anos humanos: só cão com 1 ano ou mais (o chip some sozinho nos outros casos) */}
+          <div className="mt-1 empty:hidden flex justify-center">
+            <HumanAgeChip pet={pet} />
+          </div>
           {uploadingPhoto && <p role="status" className="mt-1 text-xs text-surface-600 dark:text-surface-400">{t('petx.photoUploading')}</p>}
         </div>
 
@@ -501,9 +516,9 @@ export default function PetProfilePage() {
           {summary ? (
             <CareStatusList summary={summary} onItemClick={(i: CareItem) => openCareItem(i.kind)} />
           ) : (
-            <div className="space-y-3 py-1" aria-hidden>
+            <div className="-my-1 divide-y divide-transparent" aria-hidden>
               {[0, 1, 2].map(i => (
-                <div key={i} className="flex items-center gap-3">
+                <div key={i} className="flex items-center gap-3 min-h-[60px] py-2.5">
                   <Skeleton className="w-10 h-10 rounded-xl" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-3.5 w-1/3 rounded-md" />
@@ -516,7 +531,7 @@ export default function PetProfilePage() {
         </div>
 
         {summary && <NextAction summary={summary} petId={petId} onProtection={k => setProtKind(k)} />}
-      </motion.section>
+      </section>
 
       {/* Ações principais */}
       <div className="grid grid-cols-4 gap-2 mb-4">
@@ -536,11 +551,12 @@ export default function PetProfilePage() {
           variant="pill"
           scrollable
           layoutId="petTabs"
+          idBase="pet"
         />
       </div>
 
       {tab === 'overview' && (
-        <div className="space-y-4 animate-fade-in">
+        <div {...tabPanelProps('pet', 'overview')} className="space-y-4 animate-fade-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60">
           {pet.bio && (
             <p className="text-[15px] text-surface-700 dark:text-surface-300 italic leading-relaxed">{pet.bio}</p>
           )}
@@ -561,17 +577,67 @@ export default function PetProfilePage() {
                 </div>
               </div>
               <ul className="divide-y divide-surface-100 dark:divide-surface-800 border-t border-surface-100 dark:border-surface-800">
-                {visibleSuggestions.map(({ s, u }, i) => {
+                {visibleSuggestions.map(({ s, u, rec }) => {
+                  const st = rec.state
+                  const recDays = rec.kind === 'vaccines' ? daysLeftOf(rec.vaccineId) : summary?.items.find(i => i.kind === rec.kind)?.daysLeft ?? null
+                  // "Registrar" quando falta registro ou venceu
+                  const canRegister = (st === 'overdue' || st === 'never' || st === 'soon') && !!rec.kind
+                  const regHref =
+                    rec.kind === 'vaccines'
+                      ? vaccineAddHref(petId, st === 'never' ? undefined : rec.vaccineName)
+                      : undefined
                   return (
-                    <li key={i} className="px-4 py-2.5">
+                    <li key={`${s.category}-${s.title}`} className={cn('px-4 py-2.5', st === 'ok' && 'opacity-90')}>
                       <div className="flex items-start justify-between gap-3">
-                        <span className="font-semibold text-[15px] text-surface-900 dark:text-white">{s.title}</span>
-                        <span className={cn('shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold', URGENCY_TONE[u].chip)}>
-                          <span className={cn('w-2 h-2 rounded-full', URGENCY_TONE[u].dot)} aria-hidden />
-                          {t(`pet2.urg.${u}`)}
+                        <span className={cn('font-semibold text-[15px]', st === 'ok' ? 'text-surface-700 dark:text-surface-200' : 'text-surface-900 dark:text-white')}>
+                          {s.title}
+                        </span>
+                        <span className="shrink-0">
+                          {st === 'overdue' ? (
+                            <StatusBadge state="overdue">{careStateShort(t, 'overdue', recDays)}</StatusBadge>
+                          ) : st === 'soon' ? (
+                            <StatusBadge state="soon">{careStateShort(t, 'soon', recDays)}</StatusBadge>
+                          ) : st === 'never' ? (
+                            <StatusBadge state="never" />
+                          ) : st === 'ok' ? (
+                            <StatusBadge state="neutral" showIcon={false}>
+                              <span className="inline-flex items-center gap-1">
+                                <CheckCircle className="w-3.5 h-3.5" aria-hidden strokeWidth={2.4} />
+                                {t('ui.status.ok')}
+                              </span>
+                            </StatusBadge>
+                          ) : (
+                            <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold', URGENCY_TONE[u].chip)}>
+                              <span className={cn('w-2 h-2 rounded-full', URGENCY_TONE[u].dot)} aria-hidden />
+                              {t(`pet2.urg.${u}`)}
+                            </span>
+                          )}
                         </span>
                       </div>
                       <p className="mt-1 text-[13px] text-surface-600 dark:text-surface-300 leading-relaxed">{s.description}</p>
+                      {canRegister && (
+                        regHref ? (
+                          <Link
+                            href={regHref}
+                            aria-label={t('pet3.rec.registerAria', { title: s.title })}
+                            onClick={() => haptic('tap')}
+                            className="pressable mt-0.5 -ml-1 inline-flex items-center gap-1 min-h-[44px] px-1 text-sm font-semibold text-primary-700 dark:text-primary-300"
+                          >
+                            <Plus className="w-4 h-4" aria-hidden />
+                            {t('pet3.rec.register')}
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label={t('pet3.rec.registerAria', { title: s.title })}
+                            onClick={() => setProtKind(rec.kind as 'vermifugo' | 'antipulgas')}
+                            className="pressable mt-0.5 -ml-1 inline-flex items-center gap-1 min-h-[44px] px-1 text-sm font-semibold text-primary-700 dark:text-primary-300"
+                          >
+                            <Plus className="w-4 h-4" aria-hidden />
+                            {t('pet3.rec.register')}
+                          </button>
+                        )
+                      )}
                     </li>
                   )
                 })}
@@ -648,6 +714,7 @@ export default function PetProfilePage() {
                 >
                   <LostPetCard petId={petId} petName={pet.name} petPhoto={pet.photo_url} />
                 </div>
+                <EmergencyContactsCard />
 
                 <Card>
                   <h3 className="font-display font-bold text-surface-900 dark:text-white mb-3">{t('pet2.profile')}</h3>
@@ -691,13 +758,13 @@ export default function PetProfilePage() {
       )}
 
       {tab === 'timeline' && (
-        <div className="animate-fade-in">
+        <div {...tabPanelProps('pet', 'timeline')} className="animate-fade-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60">
           <PetTimeline pet={pet} />
         </div>
       )}
 
       {tab === 'health' && (
-        <div className="space-y-6 animate-fade-in">
+        <div {...tabPanelProps('pet', 'health')} className="space-y-6 animate-fade-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-display font-bold text-surface-900 dark:text-white">{t('pw.pet.vaccines')}</h2>
             <Button variant="ghost" size="sm" leftIcon={Plus} href={`/health/vaccines?pet=${petId}&add=1`} className="text-primary-700 dark:text-primary-300">
@@ -745,7 +812,17 @@ export default function PetProfilePage() {
       )}
 
       {tab === 'routine' && (
-        <div className="animate-fade-in">
+        <div {...tabPanelProps('pet', 'routine')} className="animate-fade-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60">
+          <Card href={`/reminders?pet=${petId}`} padding="none" className="pressable-card flex items-center gap-3 px-4 py-3 min-h-[64px] mb-5">
+            <span className="w-10 h-10 shrink-0 rounded-xl bg-primary-50 dark:bg-primary-500/15 flex items-center justify-center text-primary-700 dark:text-primary-300">
+              <BellRing className="w-5 h-5" aria-hidden />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block font-semibold text-[15px] text-surface-900 dark:text-white">{t('pet3.rem.link', { name: pet.name })}</span>
+              <span className="block text-[13px] text-surface-600 dark:text-surface-300 truncate">{t('pet3.rem.linkSub')}</span>
+            </span>
+            <ChevronRight className="w-5 h-5 text-surface-400 dark:text-surface-500 shrink-0" aria-hidden />
+          </Card>
           <div className="flex items-center justify-between gap-3 mb-5">
             <h2 className="text-xl font-display font-bold text-surface-900 dark:text-white">{t('pw.pet.walkRoutines')}</h2>
             <Button size="sm" leftIcon={Sparkles} loading={generatingRoutine} onClick={handleGenerateRoutine}>
@@ -805,7 +882,7 @@ export default function PetProfilePage() {
       )}
 
       {tab === 'anamnesis' && (
-        <div className="animate-fade-in">
+        <div {...tabPanelProps('pet', 'anamnesis')} className="animate-fade-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60">
           <h2 className="text-xl font-display font-bold text-surface-900 dark:text-white mb-1">{t('pw.pet.newAnam')}</h2>
           <p className="text-surface-600 dark:text-surface-400 text-sm mb-5">{t('pw.pet.newAnamSubtitle')}</p>
 
@@ -937,7 +1014,7 @@ export default function PetProfilePage() {
       )}
 
       {tab === 'stories' && (
-        <div className="animate-fade-in">
+        <div {...tabPanelProps('pet', 'stories')} className="animate-fade-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60">
           <div className="mb-5">
             <h2 className="text-xl font-display font-bold text-surface-900 dark:text-white">{t('pw.pet.storiesOf', { name: pet.name })}</h2>
             <p className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">{t('pw.pet.storiesSubtitle')}</p>
@@ -947,7 +1024,7 @@ export default function PetProfilePage() {
       )}
 
       {tab === 'family' && (
-        <div className="animate-fade-in">
+        <div {...tabPanelProps('pet', 'family')} className="animate-fade-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60">
           <div className="mb-5">
             <h2 className="text-xl font-display font-bold text-surface-900 dark:text-white">{t('pw.pet.familyOf', { name: pet.name })}</h2>
             <p className="text-surface-600 dark:text-surface-400 text-sm mt-0.5">{t('pw.pet.familySubtitle')}</p>
@@ -957,7 +1034,7 @@ export default function PetProfilePage() {
       )}
 
       {tab === 'care' && (
-        <div className="animate-fade-in">
+        <div {...tabPanelProps('pet', 'care')} className="animate-fade-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60">
           <div className="flex items-start justify-between gap-3 mb-5">
             <div>
               <h2 className="text-xl font-display font-bold text-surface-900 dark:text-white">{t('pw.pet.careGuideTitle')}</h2>
@@ -1097,6 +1174,43 @@ function BreedRow({ label, value, spread, mono }: { label: string; value: string
       <span className={cn(spread ? 'font-semibold text-surface-900 dark:text-white' : 'text-surface-600 dark:text-surface-300', mono && 'font-mono text-xs')}>
         {value}
       </span>
+    </div>
+  )
+}
+
+/**
+ * Esqueleto com as MESMAS alturas da ficha (herói com anel de 156 px, nome,
+ * 3 linhas de 60 px e o botão; atalhos de 76 px; abas) — a troca para o
+ * conteúdo não empurra a tela (CLS).
+ */
+function PetProfileSkeleton({ label }: { label: string }) {
+  return (
+    <div aria-busy="true" aria-label={label}>
+      <div className="rounded-3xl bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 shadow-card p-5 mb-3" aria-hidden>
+        <div className="flex flex-col items-center">
+          <Skeleton className="w-[156px] h-[156px] rounded-full" />
+          <Skeleton className="mt-3 h-[30px] w-36 rounded-lg" />
+          <Skeleton className="mt-1.5 h-[18px] w-44 rounded-md" />
+        </div>
+        <div className="mt-4 -my-1">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="flex items-center gap-3 min-h-[60px] py-2.5">
+              <Skeleton className="w-10 h-10 rounded-xl" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3.5 w-1/3 rounded-md" />
+                <Skeleton className="h-3 w-1/2 rounded-md" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <Skeleton className="mt-5 h-[52px] w-full rounded-xl" />
+      </div>
+      <div className="grid grid-cols-4 gap-2 mb-4" aria-hidden>
+        {[0, 1, 2, 3].map(i => (
+          <Skeleton key={i} className="h-[76px] rounded-2xl" />
+        ))}
+      </div>
+      <Skeleton className="h-11 w-full rounded-full mb-4" />
     </div>
   )
 }

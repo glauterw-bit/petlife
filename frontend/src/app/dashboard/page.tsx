@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { PawPrint, MessageCircle, ChevronRight, CheckCircle2, Circle } from 'lucide-react'
+import { PawPrint, MessageCircle, ChevronRight } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
@@ -21,7 +21,6 @@ import { useProtectionsQuery } from '@/lib/queries'
 import { useFirstVisit } from '@/lib/motion'
 import { useShell } from '@/components/layout/shell'
 import { buildCareSummaries, overallState, type CareKind } from '@/lib/care'
-import { formatDate } from '@/lib/utils'
 import { syncHealthNotifications } from '@/lib/notifications'
 import { initPush } from '@/lib/push'
 import { trackHappyMoment } from '@/lib/review'
@@ -38,7 +37,7 @@ import { ProtectionCard, type ProtectionCardHandle } from '@/components/health/P
 import { SupportAnnouncement } from '@/components/growth/SupportAnnouncement'
 import { OnboardingChecklist } from '@/components/growth/OnboardingChecklist'
 import { HomeHero } from '@/components/home/HomeHero'
-import { AttentionList } from '@/components/home/AttentionList'
+import { AttentionList, WeekList, splitCareRows } from '@/components/home/AttentionList'
 import { PushCard } from '@/components/home/PushCard'
 import { QuickActions } from '@/components/home/QuickActions'
 
@@ -53,7 +52,9 @@ export default function DashboardPage() {
   const vaxQ = useCached('vaccines', () => vaccinesApi.list())
   // 'protections' guarda sempre a resposta inteira ({ pets }) — ver lib/queries.
   const protQ = useProtectionsQuery()
-  const remQ = useCached('reminders:upcoming', () => remindersApi.getUpcoming(7))
+  // Com vencidos: um lembrete atrasado nunca some da semana (servidores
+  // antigos ignoram o parâmetro e devolvem só os próximos).
+  const remQ = useCached('reminders:upcoming', () => remindersApi.getUpcoming(7, { includeOverdue: true }))
 
   const pets = useMemo(() => petsQ.data ?? [], [petsQ.data])
   const vaccines = useMemo(() => vaxQ.data ?? [], [vaxQ.data])
@@ -173,6 +174,23 @@ export default function DashboardPage() {
   const exclude = top?.next ? { petId: top.pet.id, kind: top.next.kind, vaccineId: top.next.vaccineId } : null
   const pushTarget = summaries.find(s => s.items[0].vaccineName && (s.items[0].state === 'overdue' || s.items[0].state === 'soon')) ?? top
   const pulse = ring.pulseKind && pulsePet != null ? { petId: pulsePet, kind: ring.pulseKind } : null
+  // Sem contradição: o que já venceu ou vence em até 7 dias e não coube no
+  // herói nem no "Precisa de atenção" entra em "Esta semana".
+  const careSplit = useMemo(() => splitCareRows(summaries, vaccines, t, exclude), [summaries, vaccines, t, exclude?.petId, exclude?.kind, exclude?.vaccineId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const hasAbove = !!top?.next || careSplit.attention.length > 0
+  const topHasVaccine = !!top && top.items[0].state !== 'never'
+
+  // O guia de primeiros passos (mesma regra do OnboardingChecklist): enquanto
+  // estiver na tela, a faixa de Desafios / Convide e ganhe fica escondida.
+  const [onbDismissed, setOnbDismissed] = useState(true)
+  useEffect(() => {
+    try { setOnbDismissed(localStorage.getItem('petlife_onboarding_v1_dismissed') === '1') } catch { setOnbDismissed(false) }
+  }, [])
+  const checklistActive = !!pets[0] && !onbDismissed && !(!!pets[0].photo_url && vaccines.length > 0 && hasWalk)
+
+  // Troca esqueleto → conteúdo com um fade curto, só quando houve esqueleto.
+  const sawSkeleton = useRef(false)
+  if (loading) sawSkeleton.current = true
 
   return (
     <DashboardLayout>
@@ -198,7 +216,7 @@ export default function DashboardPage() {
             />
           </Card>
         ) : (
-          <>
+          <div className={sawSkeleton.current ? 'animate-fade-in' : undefined}>
             {/* Resposta do suporte esperando — o aviso mais importante */}
             {supUnread > 0 && (
               <Link
@@ -235,6 +253,17 @@ export default function DashboardPage() {
               </StaggerItem>
 
               <StaggerItem>
+                <WeekList
+                  summaries={summaries}
+                  careRows={careSplit.week}
+                  reminders={reminders}
+                  hasAbove={hasAbove}
+                  newHref={top ? `/reminders?new=1&pet=${top.pet.id}` : '/reminders?new=1'}
+                  onRegister={onRegister}
+                />
+              </StaggerItem>
+
+              <StaggerItem>
                 <PushCard
                   hasVaccine={vaccines.length > 0}
                   petName={pushTarget?.pet.name ?? ''}
@@ -249,38 +278,6 @@ export default function DashboardPage() {
               )}
 
 
-              <StaggerItem>
-                <Section title={t('home.rem.title')} className="mb-5">
-                  {reminders.length === 0 ? (
-                    <p className="text-sm text-surface-600 dark:text-surface-400 -mt-1">{t('home.rem.empty')}</p>
-                  ) : (
-                    <Card padding="none">
-                      <ul className="divide-y divide-surface-100 dark:divide-surface-800">
-                        {reminders.slice(0, 5).map(r => {
-                          const Icon = r.is_completed ? CheckCircle2 : Circle
-                          return (
-                            <li key={r.id} className="flex items-center gap-3 px-4 py-2.5 min-h-[52px]">
-                              <Icon
-                                className={r.is_completed ? 'w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400' : 'w-5 h-5 shrink-0 text-surface-400 dark:text-surface-500'}
-                                aria-hidden
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className={r.is_completed ? 'text-sm font-medium truncate line-through text-surface-500 dark:text-surface-400' : 'text-sm font-medium truncate text-surface-900 dark:text-surface-100'}>
-                                  {r.title}
-                                </div>
-                                <div className="text-xs text-surface-600 dark:text-surface-400">
-                                  {[r.pet?.name, formatDate(r.due_date)].filter(Boolean).join(' · ')}
-                                </div>
-                              </div>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </Card>
-                  )}
-                </Section>
-              </StaggerItem>
-
               {top && (
                 <StaggerItem>
                   <OnboardingChecklist pet={pets[0]} hasVaccine={vaccines.length > 0} hasWalk={hasWalk} firstName={firstName} />
@@ -289,11 +286,11 @@ export default function DashboardPage() {
 
               {top && (
                 <StaggerItem>
-                  <QuickActions petId={top.pet.id} />
+                  <QuickActions petId={top.pet.id} petName={top.pet.name} hasVaccine={topHasVaccine} showExtras={!checklistActive} />
                 </StaggerItem>
               )}
             </motion.div>
-          </>
+          </div>
         )}
       </PullToRefresh>
 

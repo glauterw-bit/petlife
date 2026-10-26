@@ -14,7 +14,9 @@ import { ConfirmProvider } from '@/components/ui/Confirm'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 // Display arredondada só para títulos — o "fofo" que o nicho pet pede,
 // mantendo Inter no corpo pra seriedade médica.
-const nunito = Nunito({ subsets: ['latin'], weight: ['700', '800'], variable: '--font-display' })
+// Sem `weight`: carrega a fonte VARIÁVEL (um arquivo só cobre 200–1000), o que
+// libera o 900 dos números em destaque (.num-hero) sem baixar outro peso.
+const nunito = Nunito({ subsets: ['latin'], variable: '--font-display' })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://petlife-frontend-production.up.railway.app'),
@@ -68,8 +70,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Prevenir flash de tema errado: lê preferência antes do React hidratar */}
         <script
           dangerouslySetInnerHTML={{
-            // Igual ao ThemeContext: claro é o padrão; só 'dark' explícito vira escuro.
-            __html: `(function(){try{if(localStorage.getItem('petlife_theme')==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`,
+            // Igual ao ThemeContext: claro é o padrão; 'dark' explícito vira escuro e
+            // 'auto' (Automático, escolha do usuário) segue o aparelho.
+            __html: `(function(){try{var t=localStorage.getItem('petlife_theme');if(t==='dark'||(t==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');}catch(e){}})();`,
           }}
         />
         <ThemeProvider>

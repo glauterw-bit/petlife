@@ -14,7 +14,7 @@ import { latestDoses, sortByUrgency, vaccineState } from '@/lib/care'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Skeleton, SkeletonText } from '@/components/ui/Skeleton'
+import { FADE_IN, Skeleton, SkeletonText } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import {
   WalletPass, carteirinhaPublicUrl, carteirinhaVaccines, rabiesInfo, type CarteirinhaData,
@@ -163,7 +163,7 @@ export default function CarteirinhaPage() {
     <>
       {header}
 
-      <div id="carteirinha-print" className="pb-8 pt-1">
+      <div id="carteirinha-print" className={cn('pb-8 pt-1', FADE_IN)}>
         <WalletPass data={data} flyKey={flyKey} />
 
         {showTravelTip && (

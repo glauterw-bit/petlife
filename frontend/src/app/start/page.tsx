@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { PawPrint, Syringe, Bell, FileText, ArrowRight, ChevronLeft, Dog, Cat, QrCode, CircleDashed } from 'lucide-react'
+import { PawPrint, Syringe, IdCard, ArrowRight, ChevronLeft, Dog, Cat, QrCode, CircleDashed } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
@@ -11,6 +11,7 @@ import { savePetDraft, loadPetDraft } from '@/lib/petDraft'
 import { track } from '@/lib/track'
 import { hapticLight } from '@/lib/feedback'
 import { Button } from '@/components/ui/Button'
+import { VyronAvatar } from '@/components/ai/VyronAvatar'
 import { spring, dur, easeOut, usePrefersReducedMotion } from '@/lib/motion'
 
 /**
@@ -29,6 +30,9 @@ export default function StartPage() {
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [hoverSpecies, setHoverSpecies] = useState<'dog' | 'cat' | null>(null)
+  // Vyron comemora no toque do botão principal das boas-vindas.
+  const [cheering, setCheering] = useState(false)
+  const cheerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!isLoading && user) router.replace(isVetUser ? '/clinica' : '/dashboard')
@@ -43,6 +47,22 @@ export default function StartPage() {
     void hapticLight()
     track('start_step', { meta: `passo ${step + 1}` })
     setStep(s => s + 1)
+  }
+
+  useEffect(() => () => { if (cheerTimer.current) clearTimeout(cheerTimer.current) }, [])
+  // Voltou para as boas-vindas: o Vyron volta ao normal e o botão destrava.
+  useEffect(() => { if (step === 0) setCheering(false) }, [step])
+
+  /** Boas-vindas → nome: o Vyron pula antes de a tela trocar (sem atraso com reduced motion). */
+  function startFlow() {
+    if (cheering) return
+    setCheering(true)
+    if (reduced) { next(); return }
+    void hapticLight()
+    cheerTimer.current = setTimeout(() => {
+      track('start_step', { meta: 'passo 1' })
+      setStep(1)
+    }, 320)
   }
 
   function choose(species: 'dog' | 'cat') {
@@ -76,7 +96,7 @@ export default function StartPage() {
         <span className="w-11" />
       </div>
 
-      <div className="flex-1 flex flex-col justify-center max-w-md w-full mx-auto py-4">
+      <div className={`flex-1 flex flex-col max-w-md w-full mx-auto ${step === 0 ? 'justify-start pt-2 pb-4' : 'justify-center py-4'}`}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={step}
@@ -85,31 +105,7 @@ export default function StartPage() {
             exit={{ opacity: 0, x: reduced ? 0 : -14 }}
             transition={{ duration: reduced ? 0.12 : dur.base, ease: easeOut }}
           >
-            {step === 0 && (
-              <>
-                <div className="w-16 h-16 bg-primary-700 dark:bg-primary-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-700/25 mb-6">
-                  <PawPrint className="w-9 h-9 text-white dark:text-surface-950" aria-hidden />
-                </div>
-                <h1 className="font-display text-[30px] font-extrabold tracking-tight text-surface-900 dark:text-white leading-tight mb-3">
-                  {t('st.welcomeTitle')}
-                </h1>
-                <p className="text-[15px] text-surface-600 dark:text-surface-300 mb-7">{t('st.welcomeBody')}</p>
-                <ul className="space-y-3">
-                  {([
-                    [Syringe, t('st.b1')],
-                    [Bell, t('st.b2')],
-                    [FileText, t('st.b3')],
-                  ] as const).map(([Icon, label]) => (
-                    <li key={label} className="flex items-center gap-3">
-                      <span className="w-10 h-10 rounded-xl bg-white dark:bg-surface-800 border border-surface-200/70 dark:border-surface-700 flex items-center justify-center shrink-0">
-                        <Icon className="w-5 h-5 text-primary-700 dark:text-primary-300" aria-hidden />
-                      </span>
-                      <span className="text-[15px] font-medium text-surface-800 dark:text-surface-100">{label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+            {step === 0 && <Welcome cheering={cheering} reduced={reduced} />}
 
             {step === 1 && (
               <>
@@ -165,7 +161,7 @@ export default function StartPage() {
       <div className="max-w-md w-full mx-auto space-y-2">
         {step === 0 && (
           <>
-            <Button onClick={next} size="lg" fullWidth rightIcon={ArrowRight}>
+            <Button onClick={startFlow} size="lg" fullWidth rightIcon={ArrowRight}>
               {t('st.cta')}
             </Button>
             <Link
@@ -183,6 +179,62 @@ export default function StartPage() {
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Boas-vindas: o Vyron recebe o tutor e os 3 passos reais do começo
+ * (cadastrar o pet, registrar a 1ª vacina, ter carteirinha e lembretes).
+ * Entrada escalonada só com motion permitido; com reduced motion, aparece
+ * tudo de uma vez.
+ */
+function Welcome({ cheering, reduced }: { cheering: boolean; reduced: boolean }) {
+  const t = useT()
+  const steps = [
+    { Icon: PawPrint, title: t('st.s1t'), desc: t('st.s1d') },
+    { Icon: Syringe, title: t('st.s2t'), desc: t('st.s2d') },
+    { Icon: IdCard, title: t('st.s3t'), desc: t('st.s3d') },
+  ]
+  const item = reduced
+    ? { hidden: { opacity: 1, y: 0 }, show: { opacity: 1, y: 0 } }
+    : { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: dur.base, ease: easeOut } } }
+  return (
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={{ hidden: {}, show: { transition: reduced ? {} : { staggerChildren: 0.06, delayChildren: 0.04 } } }}
+    >
+      <motion.div variants={item} className="flex justify-start mb-4">
+        <span className="relative inline-flex items-center justify-center w-[104px] h-[104px] rounded-full bg-primary-100/70 dark:bg-primary-500/15">
+          <VyronAvatar size={88} state={cheering ? 'celebrating' : 'idle'} />
+        </span>
+      </motion.div>
+      <motion.h1 variants={item} className="font-display text-[30px] font-extrabold tracking-tight text-surface-900 dark:text-white leading-tight mb-2">
+        {t('st.welcomeTitle')}
+      </motion.h1>
+      <motion.p variants={item} className="text-[15px] leading-relaxed text-surface-600 dark:text-surface-300 mb-6">
+        {t('st.welcomeBody')}
+      </motion.p>
+      <ol aria-label={t('st.howAria')} className="relative">
+        {steps.map(({ Icon, title, desc }, i) => (
+          <motion.li key={title} variants={item} className="relative flex gap-3.5 pb-5 last:pb-0">
+            {i < steps.length - 1 && (
+              <span aria-hidden className="absolute left-[21px] top-12 bottom-1 w-0.5 rounded-full bg-primary-200 dark:bg-primary-500/25" />
+            )}
+            <span className="relative w-11 h-11 rounded-2xl bg-white dark:bg-surface-800 border border-surface-200/80 dark:border-surface-700 shadow-sm flex items-center justify-center shrink-0">
+              <Icon className="w-5 h-5 text-primary-700 dark:text-primary-300" aria-hidden />
+              <span aria-hidden className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-primary-700 dark:bg-primary-400 text-white dark:text-surface-950 text-[11px] font-bold tabular-nums flex items-center justify-center ring-2 ring-white dark:ring-surface-950">
+                {i + 1}
+              </span>
+            </span>
+            <div className="min-w-0 pt-0.5">
+              <p className="text-[15px] font-bold text-surface-900 dark:text-white leading-snug">{title}</p>
+              <p className="text-sm text-surface-600 dark:text-surface-300 leading-snug mt-0.5">{desc}</p>
+            </div>
+          </motion.li>
+        ))}
+      </ol>
+    </motion.div>
   )
 }
 

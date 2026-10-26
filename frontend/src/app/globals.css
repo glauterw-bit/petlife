@@ -7,9 +7,13 @@
     --primary: #10b981;
     --accent: #f59e0b;
     --surface: #f5f5f4;
-    /* Altura da barra inferior (sem a área segura). Usada por .pb-nav e
+    /* Altura da cápsula da barra inferior EXPANDIDA (sem a área segura e sem
+       a margem de 8 px até a borda). Fica fixa mesmo quando a barra encolhe
+       ao rolar, para o padding das telas não pular. Usada por .pb-nav,
        .bottom-nav e pelo lançador do Vyron. */
-    --bottom-nav-h: 4.5rem;
+    --bottom-nav-h: 58px;
+    /* Margem entre a cápsula flutuante e a área segura. */
+    --bottom-nav-gap: 8px;
   }
 
   * {
@@ -113,22 +117,97 @@
       transition-colors disabled:opacity-50 disabled:pointer-events-none;
   }
 
-  /* Esqueleto com brilho suave */
+  /* Esqueleto com brilho suave. O brilho é um ::after que anda por
+     transform (compositor) — animar background-position repinta a cada quadro. */
   .skeleton {
     @apply bg-surface-200/80 dark:bg-surface-800;
-    background-image: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.55) 50%, transparent 100%);
-    background-size: 200% 100%;
-    background-repeat: no-repeat;
-    animation: shimmer 1.4s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
   }
-  .dark .skeleton {
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.55) 50%, transparent 100%);
+    animation: shimmerX 1.4s ease-in-out infinite;
+    will-change: transform;
+    pointer-events: none;
+  }
+  .dark .skeleton::after {
     background-image: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.06) 50%, transparent 100%);
+  }
+
+  /* Números em destaque: display arredondada (Nunito variável) no peso 900,
+     algarismos de largura fixa para não "dançar" ao contar. */
+  .num-hero {
+    font-family: var(--font-display), Inter, system-ui, sans-serif;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* ── Barra de abas flutuante (BottomNav) ─────────────────────────── */
+  .tabbar {
+    bottom: calc(env(safe-area-inset-bottom) + var(--bottom-nav-gap));
+    @apply bg-white/85 dark:bg-surface-900/85 backdrop-blur-xl backdrop-saturate-150;
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .tabbar { @apply bg-white dark:bg-surface-900; }
+  }
+  .tabbar-row {
+    height: var(--bottom-nav-h);
+    transition: height 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .tabbar[data-compact='true'] .tabbar-row { height: 46px; }
+  .tabbar-label {
+    transition: opacity 0.16s ease, max-height 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+    max-height: 14px;
+    overflow: hidden;
+  }
+  .tabbar[data-compact='true'] .tabbar-label { opacity: 0; max-height: 0; }
+  .tabbar-pill {
+    transition: transform 0.34s cubic-bezier(0.2, 0.9, 0.3, 1);
+    transition: transform 0.34s linear(0, 0.129 4.2%, 0.402 10.4%, 0.643 17.5%, 0.811 25%, 0.912 33%, 0.964 41.7%, 0.988 51.7%, 0.997 63%, 1);
+    will-change: transform;
+  }
+  .icon-pop { animation: iconPop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+
+  /* Lançador do Vyron: sempre 8 px acima da cápsula; some ao rolar para baixo. */
+  .vyron-launcher {
+    bottom: calc(var(--bottom-nav-h) + var(--bottom-nav-gap) + 8px + env(safe-area-inset-bottom));
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .vyron-launcher[data-hidden='true'] {
+    opacity: 0;
+    transform: scale(0.85);
+    pointer-events: none;
+  }
+  @media (min-width: 768px) {
+    .vyron-launcher { bottom: 1.5rem; }
+  }
+
+  /* Faixa rolável na horizontal com fade nas bordas que ainda têm conteúdo
+     (Tabs e ScrollHint ligam data-fade-start/end conforme a rolagem). */
+  .scroll-fade[data-fade-start='true'][data-fade-end='true'] {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  }
+  .scroll-fade[data-fade-start='true']:not([data-fade-end='true']) {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px);
+    mask-image: linear-gradient(90deg, transparent 0, #000 24px);
+  }
+  .scroll-fade[data-fade-end='true']:not([data-fade-start='true']) {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent 100%);
   }
 }
 
 @layer utilities {
+  /* Troca de esqueleto para conteúdo (180 ms; desligada com menos movimento). */
   .animate-fade-in {
-    animation: fadeIn 0.22s ease-out;
+    animation: fadeIn 0.18s ease-out;
   }
 
   .animate-fade-out {
@@ -153,11 +232,12 @@
   .safe-left { padding-left: max(0.5rem, env(safe-area-inset-left)); }
   .safe-right { padding-right: max(0.5rem, env(safe-area-inset-right)); }
   .top-safe { top: max(0.75rem, env(safe-area-inset-top)); }
-  /* Folga do rodapé: barra de navegação (4.5rem) + o botão flutuante do
-     Vyron, que fica logo acima dela. Sem contar o Vyron, ele cobria o último
-     card e botões como "Cadastrar" no fim da página. */
-  .pb-nav { padding-bottom: calc(var(--bottom-nav-h) + 76px + env(safe-area-inset-bottom)); }
-  .bottom-nav { bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom)); }
+  /* Folga do rodapé: cápsula (58 px) + margem de 8 px + lançador do Vyron
+     (52 px) + 8 px entre eles. No fim da página o Vyron reaparece, então ele
+     entra na conta — sem isso cobria o último card e botões como "Cadastrar". */
+  .pb-nav { padding-bottom: calc(var(--bottom-nav-h) + var(--bottom-nav-gap) + 60px + env(safe-area-inset-bottom)); }
+  /* Topo da cápsula: para barras e avisos que ficam logo acima dela. */
+  .bottom-nav { bottom: calc(var(--bottom-nav-h) + var(--bottom-nav-gap) + env(safe-area-inset-bottom)); }
   /* Avoid being hidden behind iOS keyboard */
   .pb-keyboard { padding-bottom: env(keyboard-inset-height, 0px); }
   .bottom-keyboard { bottom: env(keyboard-inset-height, 0px); }
@@ -186,6 +266,34 @@
   from { background-position: 150% 0; }
   to   { background-position: -50% 0; }
 }
+
+@keyframes shimmerX {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+@keyframes iconPop {
+  0%   { transform: scale(0.82); }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* Troca de tela (app/template.tsx). `backwards` aplica o 1º quadro antes de
+   começar e, no fim, não sobra transform — fixed/sticky dos filhos funcionam. */
+@keyframes pageIn {
+  from { opacity: 0; transform: translate3d(var(--dx, 14px), 0, 0); }
+  to   { opacity: 1; transform: none; }
+}
+.page-in { animation: pageIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+.page-fade { animation: fadeIn 0.14s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+
+/* Sinal de "indo": a aba foi tocada e a tela nova ainda está montando. */
+html[data-nav-pending] main {
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 0.12s ease 0.09s;
+}
+
 
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
@@ -220,7 +328,7 @@
   animation: sheetUp 0.28s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 /* Feedback de toque em 3 intensidades:
-   .pressable       botões e ícones — afunda 4%
+   .pressable       botões e ícones — afunda 3% (igual ao <Pressable>)
    .pressable-card  cartões inteiros tocáveis — afunda 1,5% (cartão grande
                     afundando 4% parece "pulo")
    .pressable-row   linhas de lista — só escurece o fundo, sem escala */
@@ -228,7 +336,7 @@
   transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.14s ease;
 }
 .pressable:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 .pressable-card {
   transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.14s ease;
@@ -247,7 +355,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal, .animate-sheet-up { animation: none !important; }
-  .skeleton { animation: none !important; background-image: none !important; }
+  .skeleton::after { animation: none !important; display: none; }
+  .icon-pop, .page-in, .page-fade, .animate-fade-in { animation: none !important; }
+  .tabbar-row, .tabbar-label, .tabbar-pill, .vyron-launcher { transition: none !important; }
   .pressable:active, .pressable-card:active { transform: none; }
 }
 /* "Reduzir movimento" do sistema: nenhuma animação de entrada, deslize ou pulso.

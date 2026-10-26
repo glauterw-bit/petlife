@@ -45,18 +45,52 @@ const BADGE_ICONS: Record<string, LucideIcon> = {
 
 type TFn = (key: string, vars?: Record<string, string | number>) => string
 
-/** "Faltam 3 passeios" / "Faltam 4,2 km" — calculado com o progresso real que a API devolve. */
-function remainingLabel(t: TFn, b: WalkBadge): string {
-  const left = Math.max(0, b.target - b.current)
-  if (b.key.startsWith('distance_')) {
-    const km = left.toLocaleString(localeTag(), { maximumFractionDigits: 1, minimumFractionDigits: left % 1 ? 1 : 0 })
-    return t('wk.badge.leftKm', { n: km })
+/** Nome e meta traduzidos (a API manda só em português); sem chave, cai no texto da API. */
+function badgeText(t: TFn, b: WalkBadge): { name: string; goal: string } {
+  const pick = (k: string, fallback: string) => { const v = t(k); return v === k ? fallback : v }
+  return {
+    name: pick(`wk3.badge.${b.key}.name`, b.name),
+    goal: pick(`wk3.badge.${b.key}.goal`, b.description),
   }
+}
+
+type BadgeUnit = 'km' | 'walks' | 'days' | 'photos' | null
+
+/** Unidade da contagem; conquistas de "sim ou não" (1º passeio, compartilhar, horário) não têm contador. */
+function unitOf(b: WalkBadge): BadgeUnit {
+  if (b.target <= 1) return null
+  if (b.key.startsWith('distance_')) return 'km'
+  if (b.key.startsWith('walks_')) return 'walks'
+  if (b.key.startsWith('streak_')) return 'days'
+  if (b.key === 'photographer') return 'photos'
+  return null
+}
+
+const fmtKm = (n: number) => n.toLocaleString(localeTag(), { maximumFractionDigits: 1, minimumFractionDigits: n % 1 ? 1 : 0 })
+
+/** Progresso real: "2,4 de 10 km" — separado do nome e da meta do selo. */
+function progressLabel(t: TFn, b: WalkBadge): string | null {
+  const unit = unitOf(b)
+  if (!unit) return null
+  const done = unit === 'km' ? fmtKm(Math.min(b.current, b.target)) : String(Math.floor(Math.min(b.current, b.target)))
+  return t(`wk3.progress.${unit}`, { done, target: unit === 'km' ? fmtKm(b.target) : b.target })
+}
+
+/** "faltam 7,6 km" / "falta 1 passeio" — calculado com o progresso real que a API devolve. */
+function remainingLabel(t: TFn, b: WalkBadge): string | null {
+  const left = Math.max(0, b.target - b.current)
+  if (b.key.startsWith('distance_')) return t('wk3.left.km', { n: fmtKm(left) })
   const n = Math.ceil(left)
-  if (b.key === 'first_walk' || b.key.startsWith('walks_')) return n === 1 ? t('wk.badge.leftWalkOne') : t('wk.badge.leftWalks', { n })
-  if (b.key.startsWith('streak_')) return n === 1 ? t('wk.badge.leftDayOne') : t('wk.badge.leftDays', { n })
-  if (b.key === 'photographer') return n === 1 ? t('wk.badge.leftPhotoOne') : t('wk.badge.leftPhotos', { n })
-  return b.description
+  if (b.key === 'first_walk' || b.key.startsWith('walks_')) return n === 1 ? t('wk3.left.walkOne') : t('wk3.left.walks', { n })
+  if (b.key.startsWith('streak_')) return n === 1 ? t('wk3.left.dayOne') : t('wk3.left.days', { n })
+  if (b.key === 'photographer') return n === 1 ? t('wk3.left.photoOne') : t('wk3.left.photos', { n })
+  return null
+}
+
+/** "2,4 de 10 km · faltam 7,6 km" (ou só o que existir). */
+function statusLine(t: TFn, b: WalkBadge): string | null {
+  const parts = [progressLabel(t, b), remainingLabel(t, b)].filter(Boolean)
+  return parts.length ? parts.join(' · ') : null
 }
 
 /** A conquista em andamento mais perto de sair; empate fica com a primeira da lista. */
@@ -198,9 +232,14 @@ export default function WalksPage() {
 
               {items.length > 0 && (
                 <Section title={t('wk.history')}>
-                  <Stagger as="ul" className="space-y-3">
+                  <Stagger as="ul" once="walks-list" className="space-y-3">
                     {items.map(w => (
-                      <StaggerItem as="li" key={w.id}>
+                      <StaggerItem
+                        as="li"
+                        key={w.id}
+                        // Lista longa: o navegador pula o layout/pintura dos itens fora da tela.
+                        className="[content-visibility:auto] [contain-intrinsic-size:auto_88px]"
+                      >
                         <WalkCard walk={w} />
                       </StaggerItem>
                     ))}
@@ -244,14 +283,17 @@ function BadgeIcon({ badge, size = 'md' }: { badge: WalkBadge; size?: 'md' | 'lg
   )
 }
 
-function ProgressBar({ value, label }: { value: number; label: string }) {
-  const pct = Math.round(Math.max(0, Math.min(1, value)) * 100)
+function ProgressBar({ badge, label, valueText }: { badge: WalkBadge; label: string; valueText?: string | null }) {
+  const target = Math.max(1, badge.target)
+  const now = Math.max(0, Math.min(target, badge.current))
+  const pct = Math.round((now / target) * 100)
   return (
     <div
       role="progressbar"
       aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={pct}
+      aria-valuemax={target}
+      aria-valuenow={Math.round(now * 10) / 10}
+      aria-valuetext={valueText ?? `${pct}%`}
       aria-label={label}
       className="h-2 rounded-full bg-surface-200 dark:bg-surface-800 overflow-hidden"
     >
@@ -262,20 +304,23 @@ function ProgressBar({ value, label }: { value: number; label: string }) {
 
 function NextBadgeCard({ badge, earned, total }: { badge: WalkBadge; earned: number; total: number }) {
   const t = useT()
+  const { name, goal } = badgeText(t, badge)
+  const status = statusLine(t, badge)
   return (
     <Card padding="md">
       <div className="flex items-center gap-3">
         <BadgeIcon badge={badge} size="lg" />
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-surface-900 dark:text-white leading-tight">{badge.name}</p>
-          <p className="text-sm text-surface-600 dark:text-surface-400 leading-snug mt-0.5">{badge.description}</p>
+          {/* Nome e meta do selo (o que é) — o progresso fica embaixo, separado */}
+          <p className="font-semibold text-surface-900 dark:text-white leading-tight">{name}</p>
+          <p className="text-sm text-surface-600 dark:text-surface-400 leading-snug mt-0.5">{goal}</p>
         </div>
       </div>
       <div className="mt-3">
-        <ProgressBar value={badge.progress} label={badge.name} />
-        <div className="flex items-center justify-between mt-1.5 text-xs">
-          <span className="font-semibold text-primary-800 dark:text-primary-300">{remainingLabel(t, badge)}</span>
-          <span className="text-surface-500 dark:text-surface-400">{t('pw.walks.badgeProgress', { done: earned, total })}</span>
+        <ProgressBar badge={badge} label={name} valueText={status} />
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 mt-1.5 text-xs">
+          {status && <span className="font-semibold text-primary-800 dark:text-primary-300 tabular-nums">{status}</span>}
+          <span className="text-surface-600 dark:text-surface-400">{t('wk3.earned', { done: earned, total })}</span>
         </div>
       </div>
     </Card>
@@ -284,6 +329,8 @@ function NextBadgeCard({ badge, earned, total }: { badge: WalkBadge; earned: num
 
 function BadgeTile({ badge }: { badge: WalkBadge }) {
   const t = useT()
+  const { name, goal } = badgeText(t, badge)
+  const status = statusLine(t, badge)
   return (
     <li
       className={cn(
@@ -303,13 +350,13 @@ function BadgeTile({ badge }: { badge: WalkBadge }) {
         )}
       </div>
       <div>
-        <p className="text-sm font-semibold text-surface-900 dark:text-white leading-tight">{badge.name}</p>
-        <p className="text-xs text-surface-600 dark:text-surface-400 leading-snug mt-0.5">{badge.description}</p>
+        <p className="text-sm font-semibold text-surface-900 dark:text-white leading-tight">{name}</p>
+        <p className="text-xs text-surface-600 dark:text-surface-400 leading-snug mt-0.5">{goal}</p>
       </div>
       {!badge.unlocked && (
         <div className="mt-auto">
-          <ProgressBar value={badge.progress} label={badge.name} />
-          <p className="text-[11px] font-medium text-surface-600 dark:text-surface-400 mt-1">{remainingLabel(t, badge)}</p>
+          <ProgressBar badge={badge} label={name} valueText={status} />
+          {status && <p className="text-[11px] font-medium text-surface-600 dark:text-surface-400 mt-1 tabular-nums">{status}</p>}
         </div>
       )}
     </li>
@@ -323,7 +370,7 @@ function SummaryCard({ icon: Icon, label, value, sub }: { icon: LucideIcon; labe
         <Icon className="w-4 h-4 text-primary-700 dark:text-primary-300" aria-hidden />
         <span className="truncate">{label}</span>
       </div>
-      <div className="text-lg md:text-xl font-bold text-surface-900 dark:text-white leading-tight tabular-nums">{value}</div>
+      <div className="num-hero text-xl md:text-2xl text-surface-900 dark:text-white leading-tight">{value}</div>
       <div className="text-[11px] text-surface-500 dark:text-surface-400">{sub}</div>
     </Card>
   )

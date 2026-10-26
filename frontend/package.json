@@ -41,6 +41,7 @@
     "lucide-react": "^0.456.0",
     "next": "^14.2.35",
     "postcss": "^8.4.47",
+    "qrcode-generator": "1.4.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",

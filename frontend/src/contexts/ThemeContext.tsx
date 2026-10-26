@@ -1,24 +1,45 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react'
 
 /**
  * Tema do PetLife: CLARO é o padrão do app; escuro é escolha explícita do
- * usuário nas Configurações. Não seguimos mais o tema do sistema — usuários
- * com o celular no escuro reclamavam do app "mudar sozinho".
+ * usuário nas Configurações. Não seguimos o tema do sistema por padrão —
+ * usuários com o celular no escuro reclamavam do app "mudar sozinho".
+ *
+ * "Automático" ('system') existe, mas só vale se o usuário escolher: aí o
+ * app acompanha o aparelho (matchMedia + listener de mudança) e
+ * `resolvedTheme` diz qual está em uso.
+ *
+ * Armazenamento (localStorage 'petlife_theme'): 'light' | 'dark' | 'auto'.
+ * O valor antigo 'system' (de antes do padrão claro) NÃO é a escolha nova:
+ * continua migrando para claro. Por isso a escolha nova grava 'auto'.
  */
-type Theme = 'light' | 'dark'
+export type Theme = 'light' | 'dark' | 'system'
+export type ResolvedTheme = 'light' | 'dark'
 
 interface ThemeContextValue {
   theme: Theme
-  resolvedTheme: Theme
+  resolvedTheme: ResolvedTheme
   setTheme: (t: Theme) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
+const STORAGE_KEY = 'petlife_theme'
+const STORED_SYSTEM = 'auto'
+const DARK_QUERY = '(prefers-color-scheme: dark)'
+
+function systemTheme(): ResolvedTheme {
+  try {
+    return window.matchMedia(DARK_QUERY).matches ? 'dark' : 'light'
+  } catch {
+    return 'light'
+  }
+}
+
 /** Aplica o tema no <html> e acerta a cor dos ícones da barra de status no app nativo. */
-function applyTheme(t: Theme) {
+function applyTheme(t: ResolvedTheme) {
   document.documentElement.classList.toggle('dark', t === 'dark')
   void (async () => {
     try {
@@ -33,29 +54,54 @@ function applyTheme(t: Theme) {
   })()
 }
 
+function readStored(): Theme {
+  let stored: string | null = null
+  try { stored = localStorage.getItem(STORAGE_KEY) } catch {}
+  if (stored === 'dark') return 'dark'
+  if (stored === STORED_SYSTEM) return 'system'
+  return 'light'
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light')
+  const [resolvedTheme, setResolved] = useState<ResolvedTheme>('light')
 
   useEffect(() => {
-    let stored: string | null = null
-    try { stored = localStorage.getItem('petlife_theme') } catch {}
-    // Migração: quem tinha 'system' passa a claro (novo padrão). Só 'dark' explícito persiste.
-    const initial: Theme = stored === 'dark' ? 'dark' : 'light'
+    const initial = readStored()
     setThemeState(initial)
-    applyTheme(initial)
-    if (stored !== 'dark' && stored !== 'light') {
-      try { localStorage.setItem('petlife_theme', initial) } catch {}
-    }
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      // Migração: qualquer valor desconhecido (inclusive o 'system' antigo) vira claro.
+      if (stored !== 'dark' && stored !== 'light' && stored !== STORED_SYSTEM) localStorage.setItem(STORAGE_KEY, 'light')
+    } catch {}
   }, [])
 
-  const setTheme = (t: Theme) => {
+  // Resolve e aplica; no Automático, acompanha a troca do aparelho.
+  useEffect(() => {
+    if (theme !== 'system') {
+      setResolved(theme)
+      applyTheme(theme)
+      return
+    }
+    const sync = () => {
+      const r = systemTheme()
+      setResolved(r)
+      applyTheme(r)
+    }
+    sync()
+    let mq: MediaQueryList | null = null
+    try { mq = window.matchMedia(DARK_QUERY) } catch {}
+    mq?.addEventListener('change', sync)
+    return () => mq?.removeEventListener('change', sync)
+  }, [theme])
+
+  const setTheme = useCallback((t: Theme) => {
     setThemeState(t)
-    try { localStorage.setItem('petlife_theme', t) } catch {}
-    applyTheme(t)
-  }
+    try { localStorage.setItem(STORAGE_KEY, t === 'system' ? STORED_SYSTEM : t) } catch {}
+  }, [])
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme: theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   )

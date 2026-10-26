@@ -16,7 +16,7 @@ import { formatDate } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
 import { EditVaccineModal } from '@/components/health/EditVaccineModal'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { StatusBadge } from '@/components/ui/StatusBadge'
+import { StatusBadge, careStateLabel } from '@/components/ui/StatusBadge'
 import { IconButton } from '@/components/ui/IconButton'
 import { Button } from '@/components/ui/Button'
 import { Sheet } from '@/components/ui/Sheet'
@@ -54,14 +54,13 @@ interface VaccineTimelineProps {
   emptyCta?: { label: string; onClick: () => void }
 }
 
-/** "Venceu há 3 dias" · "Vence em 12 dias" · "Vence hoje" — neutro em gênero. */
+/**
+ * "Venceu há 3 dias" · "Vence em 12 dias" · "Vence hoje" — o léxico único de
+ * estado (careStateLabel, sem gênero), o mesmo do Início e da ficha do pet.
+ */
 export function vaccineDueLabel(t: TFn, v: Vaccine): string | null {
   if (!v.next_due) return null
-  const d = daysUntil(v.next_due)
-  if (d < 0) return d === -1 ? t('care.overdueOne') : t('care.overdueBy', { n: Math.abs(d) })
-  if (d === 0) return t('care.dueToday')
-  if (d === 1) return t('care.dueOne')
-  return t('care.dueIn', { n: d })
+  return careStateLabel(t, vaccineState(v), daysUntil(v.next_due))
 }
 
 const LEAD_TONE: Record<RowState, string> = {
@@ -144,14 +143,35 @@ function VaccineCard({
         )}
       </div>
 
-      <div className={'mt-3 pl-[52px] flex flex-wrap gap-x-3 gap-y-1 text-xs'}>
-        <span className="text-surface-600 dark:text-surface-400">{t('care.applied', { date: formatDate(v.date_given) })}</span>
-        <span className="text-surface-600 dark:text-surface-400">
-          {v.next_due ? t('care.next', { date: formatDate(v.next_due) }) : t('care.noNext')}
-        </span>
-        {v.lot_number && <span className="text-surface-500 dark:text-surface-500">{t('care.lot', { lot: v.lot_number })}</span>}
-        {vet && <span className="text-surface-500 dark:text-surface-500">{vet}</span>}
-      </div>
+      {/* Datas numa grade fixa de 2 colunas: rótulo em cima, valor embaixo —
+          "Aplicada" e "Próxima" ficam sempre alinhadas, seja qual for o nome. */}
+      <dl className="mt-3 pl-[52px] grid grid-cols-2 gap-x-3">
+        <div className="min-w-0">
+          <dt className="text-[11px] font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">{t('care.appliedLabel')}</dt>
+          <dd className="mt-0.5 text-[13px] font-semibold tabular-nums text-surface-800 dark:text-surface-100">{formatDate(v.date_given)}</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-[11px] font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400">{t('care.nextLabel')}</dt>
+          <dd
+            className={cn(
+              'mt-0.5 text-[13px] font-semibold tabular-nums',
+              superseded || !v.next_due
+                ? 'text-surface-600 dark:text-surface-400'
+                : state === 'overdue'
+                  ? 'text-red-700 dark:text-red-300'
+                  : 'text-surface-800 dark:text-surface-100',
+            )}
+          >
+            {v.next_due ? formatDate(v.next_due) : <><span aria-hidden>—</span><span className="sr-only">{t('care.noNext')}</span></>}
+          </dd>
+        </div>
+      </dl>
+      {(v.lot_number || vet) && (
+        <p className="mt-2 pl-[52px] flex flex-wrap gap-x-3 gap-y-1 text-xs text-surface-600 dark:text-surface-400">
+          {v.lot_number && <span>{t('care.lot', { lot: v.lot_number })}</span>}
+          {vet && <span>{vet}</span>}
+        </p>
+      )}
       {v.notes && <p className="mt-1.5 pl-[52px] text-xs text-surface-500 dark:text-surface-400 italic">{v.notes}</p>}
 
       {(v.document_path || (onRegisterDose && (state === 'overdue' || state === 'soon'))) && (

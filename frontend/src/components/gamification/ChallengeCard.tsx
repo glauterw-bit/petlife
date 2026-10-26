@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  Play, Check, Clock, Star, Syringe, Footprints, Salad, Scissors, GraduationCap, Users, ShieldCheck, Camera, Trophy,
+  Play, Check, Clock, Star, Syringe, HeartPulse, BellRing, Pill, Scale, Footprints, Salad, Scissors, GraduationCap, Users, ShieldCheck, Camera, Trophy,
   Loader2, type LucideIcon,
 } from 'lucide-react'
 import { type Challenge, type UserChallenge } from '@/lib/api'
@@ -51,6 +51,19 @@ export const CATEGORY_ICONS: Record<CategoryId, LucideIcon> = {
   other: Trophy,
 }
 
+/** Ícone do desafio: dentro de Saúde, o tema do desafio (vacina, lembrete,
+ *  vermífugo, peso) ganha o próprio ícone; o resto usa o da categoria. */
+export function challengeIcon(c: Challenge): LucideIcon {
+  const cat = categoryOf(c)
+  if (cat !== 'health') return CATEGORY_ICONS[cat]
+  const k = normKey(`${c.title ?? ''} ${c.description ?? ''}`)
+  if (/vacin|vaccin|antirrab|rabies/.test(k)) return Syringe
+  if (/lembrete|reminder|recordatorio/.test(k)) return BellRing
+  if (/vermif|deworm|desparasit|antipulga|flea|pulga/.test(k)) return Pill
+  if (/peso|weight|pesar|pesagem/.test(k)) return Scale
+  return HeartPulse
+}
+
 export function categoryOf(c: Challenge): CategoryId {
   return CATEGORY_ALIASES[normKey(c.category)] ?? 'other'
 }
@@ -79,7 +92,7 @@ export function ChallengeCard({ challenge, userChallenge, onStart, onComplete, l
   const text = useChallengeText()
   const title = text.title(challenge)
   const cat = categoryOf(challenge)
-  const Icon = CATEGORY_ICONS[cat]
+  const Icon = challengeIcon(challenge)
   const diff = difficultyOf(challenge)
 
   const isActive = userChallenge?.status === 'in_progress'

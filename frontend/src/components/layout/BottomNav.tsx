@@ -1,26 +1,32 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion } from 'framer-motion'
 import {
   Home, PawPrint, Footprints, ShieldCheck, LayoutGrid,
   Trophy, Route, MapPin, Brain, MailOpen, Crown, FlaskConical, Camera,
-  Settings, MessageCircleHeart, type LucideIcon,
+  Settings, MessageCircleHeart, BellRing, type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
 import { haptic } from '@/lib/feedback'
-import { spring } from '@/lib/motion'
+import { useScrollDirection } from '@/lib/motion'
 import { Sheet } from '@/components/ui/Sheet'
 import { TAB_ROOTS } from './shell'
 
 /**
  * Navegação mobile: 4 abas principais (hrefs = TAB_ROOTS de ./shell) + "Mais" (folha com o resto).
- * Vive no TutorShell (montada uma vez), então a pílula da aba ativa desliza
- * de uma aba para outra em vez de reaparecer.
+ *
+ * Cápsula flutuante de vidro, 8 px acima da área segura. Vive no TutorShell
+ * (montada uma vez), então a pílula da aba ativa desliza de uma aba para
+ * outra — em CSS transform (compositor), com a curva linear() da mola snappy.
+ *
+ * Ao rolar para baixo os rótulos somem e a cápsula vai de 58 para 46 px
+ * (alvos continuam ≥ 44 px); volta ao rolar para cima, no topo e no fim.
+ * Com menos movimento, nunca encolhe. --bottom-nav-h fica no valor
+ * expandido, então o padding das telas não pula.
  */
 const [HOME, PETS, WALKS, HEALTH] = TAB_ROOTS
 const TABS: { href: string; labelKey: string; Icon: LucideIcon; match: (p: string) => boolean }[] = [
@@ -36,6 +42,7 @@ const TABS: { href: string; labelKey: string; Icon: LucideIcon; match: (p: strin
 ]
 
 const MORE: { href: string; labelKey: string; Icon: LucideIcon }[] = [
+  { href: '/reminders', labelKey: 'nav.reminders', Icon: BellRing },
   { href: '/challenges', labelKey: 'nav.challenges', Icon: Trophy },
   { href: '/routines', labelKey: 'nav.routines', Icon: Route },
   { href: '/nearby', labelKey: 'nav.clinics', Icon: MapPin },
@@ -62,11 +69,35 @@ export function BottomNav() {
   const [pendingHref, setPendingHref] = useState<string | null>(null)
 
   // fecha a folha e limpa a aba pendente ao navegar
-  useEffect(() => { setMoreOpen(false); setPendingHref(null) }, [pathname])
+  useEffect(() => {
+    setMoreOpen(false)
+    setPendingHref(null)
+    document.documentElement.removeAttribute('data-nav-pending')
+  }, [pathname])
+
+  // Sinal de "indo": html[data-nav-pending] esmaece o main (após 90 ms, no
+  // CSS) até a rota trocar. Trava de segurança: some em 2 s de qualquer jeito.
+  const pendingTimer = useRef<ReturnType<typeof setTimeout>>()
+  function markPending() {
+    document.documentElement.setAttribute('data-nav-pending', '')
+    clearTimeout(pendingTimer.current)
+    pendingTimer.current = setTimeout(() => document.documentElement.removeAttribute('data-nav-pending'), 2000)
+  }
+  useEffect(
+    () => () => {
+      clearTimeout(pendingTimer.current)
+      document.documentElement.removeAttribute('data-nav-pending')
+    },
+    [],
+  )
+
+  const scrollDir = useScrollDirection()
+  const compact = scrollDir === 'down' && !moreOpen
 
   const moreActive = moreItems.some(m => pathname === m.href || pathname.startsWith(m.href + '/'))
   const activeIndex = TABS.findIndex(tab => tab.match(pathname))
   const activeKey = moreOpen ? 'more' : pendingHref ?? (activeIndex >= 0 ? TABS[activeIndex].href : moreActive ? 'more' : null)
+  const pillIndex = activeKey === 'more' ? TABS.length : TABS.findIndex(tab => tab.href === activeKey)
 
   return (
     <>
@@ -105,45 +136,55 @@ export function BottomNav() {
 
       <nav
         aria-label={t('nav.mainAria')}
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/[0.92] dark:bg-surface-950/[0.92] backdrop-blur-xl backdrop-saturate-150 border-t border-surface-200/80 dark:border-surface-800 pb-[env(safe-area-inset-bottom)]"
+        data-compact={compact ? 'true' : 'false'}
+        className="tabbar md:hidden fixed inset-x-3 z-50 rounded-[28px] border border-surface-200/70 dark:border-white/10 shadow-float"
       >
-        <ul className="grid grid-cols-5">
+        <ul className="tabbar-row relative grid grid-cols-5 px-1">
+          {/* Pílula única: anda por transform de uma aba para outra (1/5 da largura cada). */}
+          {pillIndex >= 0 && (
+            <li
+              aria-hidden
+              className="tabbar-pill pointer-events-none absolute inset-y-0 left-1 flex items-center justify-center"
+              style={{ width: 'calc((100% - 0.5rem) / 5)', transform: `translate3d(${pillIndex * 100}%, 0, 0)` } as CSSProperties}
+            >
+              <span className={cn('block rounded-full bg-primary-100 dark:bg-primary-500/20 w-14 transition-transform duration-200', compact ? 'h-8 -translate-y-[2px]' : 'h-8 -translate-y-[9px]')} />
+            </li>
+          )}
           {TABS.map(({ href, labelKey, Icon }) => {
             const active = activeKey === href
             return (
-              <li key={href}>
+              <li key={href} className="relative">
                 <Link
                   href={href}
                   aria-current={active ? 'page' : undefined}
+                  aria-label={compact ? t(labelKey) : undefined}
                   onClick={() => {
                     if (active) return
                     haptic('tab')
                     setPendingHref(href)
+                    markPending()
                   }}
                   className={cn(
-                    'flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 px-1 min-h-[58px] transition-colors active:opacity-70',
-                    active ? 'text-primary-700 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400 hover:text-surface-800 dark:hover:text-surface-200',
+                    'h-full flex flex-col items-center justify-center gap-1 px-1 min-h-[44px] transition-colors active:opacity-70',
+                    active ? 'text-primary-700 dark:text-primary-300' : 'text-surface-600 dark:text-surface-300 hover:text-surface-800 dark:hover:text-surface-100',
                   )}
                 >
                   <span className="relative flex items-center justify-center w-14 h-8">
-                    {active && (
-                      <motion.span
-                        layoutId="tabPill"
-                        transition={spring.snappy}
-                        className="absolute inset-0 rounded-full bg-primary-100 dark:bg-primary-500/20"
-                        aria-hidden
-                      />
-                    )}
-                    <Icon className="relative w-[22px] h-[22px]" aria-hidden strokeWidth={active ? 2.3 : 1.9} />
+                    <Icon
+                      key={active ? 'on' : 'off'}
+                      className={cn('relative w-[22px] h-[22px]', active && 'icon-pop')}
+                      aria-hidden
+                      strokeWidth={active ? 2.3 : 1.9}
+                    />
                   </span>
-                  <span className={cn('text-[11px] leading-none', active ? 'font-semibold' : 'font-medium')}>
+                  <span className={cn('tabbar-label text-[11px] leading-[14px]', active ? 'font-semibold' : 'font-medium')} aria-hidden={compact || undefined}>
                     {t(labelKey)}
                   </span>
                 </Link>
               </li>
             )
           })}
-          <li>
+          <li className="relative">
             <button
               type="button"
               onClick={() => {
@@ -154,22 +195,19 @@ export function BottomNav() {
               aria-haspopup="dialog"
               aria-label={t('nav.moreAria')}
               className={cn(
-                'w-full flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 px-1 min-h-[58px] transition-colors active:opacity-70',
-                moreActive || moreOpen ? 'text-primary-700 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400 hover:text-surface-800 dark:hover:text-surface-200',
+                'w-full h-full flex flex-col items-center justify-center gap-1 px-1 min-h-[44px] transition-colors active:opacity-70',
+                moreActive || moreOpen ? 'text-primary-700 dark:text-primary-300' : 'text-surface-600 dark:text-surface-300 hover:text-surface-800 dark:hover:text-surface-100',
               )}
             >
               <span className="relative flex items-center justify-center w-14 h-8">
-                {activeKey === 'more' && (
-                  <motion.span
-                    layoutId="tabPill"
-                    transition={spring.snappy}
-                    className="absolute inset-0 rounded-full bg-primary-100 dark:bg-primary-500/20"
-                    aria-hidden
-                  />
-                )}
-                <LayoutGrid className="relative w-[22px] h-[22px]" aria-hidden strokeWidth={moreActive || moreOpen ? 2.3 : 1.9} />
+                <LayoutGrid
+                  key={activeKey === 'more' ? 'on' : 'off'}
+                  className={cn('relative w-[22px] h-[22px]', activeKey === 'more' && 'icon-pop')}
+                  aria-hidden
+                  strokeWidth={moreActive || moreOpen ? 2.3 : 1.9}
+                />
               </span>
-              <span className={cn('text-[11px] leading-none', moreActive || moreOpen ? 'font-semibold' : 'font-medium')}>
+              <span className={cn('tabbar-label text-[11px] leading-[14px]', moreActive || moreOpen ? 'font-semibold' : 'font-medium')}>
                 {t('nav.more')}
               </span>
             </button>

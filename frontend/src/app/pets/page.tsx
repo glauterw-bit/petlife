@@ -13,6 +13,7 @@ import { PullToRefresh } from '@/components/ui/PullToRefresh'
 import { SkeletonRow } from '@/components/ui/Skeleton'
 import { Stagger, StaggerItem } from '@/components/ui/Motion'
 import { useT } from '@/contexts/LocaleContext'
+import { useFirstVisit } from '@/lib/motion'
 import { useCareData } from './useCareData'
 
 export default function PetsPage() {
@@ -20,6 +21,8 @@ export default function PetsPage() {
   const router = useRouter()
   const { pets, petsLoading, summaries, byPetId, refreshAll } = useCareData()
   const [search, setSearch] = useState('')
+  // os arcos se desenham só na 1ª visita da sessão; nas voltas já aparecem prontos
+  const drawRings = useFirstVisit('ring_pets-list')
 
   const petList = pets ?? []
   // pior situação primeiro (quando já há resumo); senão, a ordem da API
@@ -80,10 +83,10 @@ export default function PetsPage() {
         ) : filtered.length === 0 ? (
           <p className="text-center py-10 text-surface-600 dark:text-surface-400">{t('pw.pets.noResults', { query: search })}</p>
         ) : (
-          <Stagger as="ul" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          <Stagger as="ul" once="pets-list" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {filtered.map(pet => (
               <StaggerItem as="li" key={pet.id}>
-                <PetCard pet={pet} summary={byPetId.get(pet.id) ?? null} />
+                <PetCard pet={pet} summary={byPetId.get(pet.id) ?? null} animateRing={drawRings} />
               </StaggerItem>
             ))}
             <StaggerItem as="li">

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from typing import Optional, List, Any
 from datetime import datetime
 from enum import Enum
@@ -400,6 +400,8 @@ class ReminderCreate(BaseModel):
     title: str
     description: Optional[str] = None
     due_date: datetime
+    repeat_days: Optional[int] = Field(None, ge=1, le=365)
+    repeat_until: Optional[datetime] = None
 
 
 class ReminderUpdate(BaseModel):
@@ -408,6 +410,8 @@ class ReminderUpdate(BaseModel):
     description: Optional[str] = None
     due_date: Optional[datetime] = None
     is_completed: Optional[bool] = None
+    repeat_days: Optional[int] = Field(None, ge=1, le=365)
+    repeat_until: Optional[datetime] = None
 
 
 class ReminderResponse(BaseModel):
@@ -420,6 +424,8 @@ class ReminderResponse(BaseModel):
     due_date: datetime
     is_completed: bool
     created_at: datetime
+    repeat_days: Optional[int] = None
+    repeat_until: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

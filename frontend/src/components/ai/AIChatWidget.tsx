@@ -9,7 +9,7 @@ import { ai, billing, type Pet } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
 import { haptic } from '@/lib/feedback'
-import { spring, dur, easeOut } from '@/lib/motion'
+import { spring, dur, easeOut, useScrollDirection } from '@/lib/motion'
 
 /**
  * Regra do lançador: nada do Vyron fica parado por cima do conteúdo. O botão
@@ -40,40 +40,6 @@ function useKeyboardOpen(): boolean {
   return open
 }
 
-/**
- * true enquanto o usuário rola para baixo: o lançador sai da frente do
- * conteúdo. Volta ao rolar para cima ou depois de 1,2 s parado.
- */
-function useLauncherTucked(): boolean {
-  const [tucked, setTucked] = useState(false)
-  useEffect(() => {
-    let last = window.scrollY
-    let ticking = false
-    let idle: ReturnType<typeof setTimeout> | undefined
-    const onScroll = () => {
-      if (ticking) return
-      ticking = true
-      requestAnimationFrame(() => {
-        const y = window.scrollY
-        const dy = y - last
-        if (Math.abs(dy) > 6) {
-          setTucked(dy > 0 && y > 40)
-          last = y
-        }
-        clearTimeout(idle)
-        idle = setTimeout(() => setTucked(false), 1200)
-        ticking = false
-      })
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      clearTimeout(idle)
-    }
-  }, [])
-  return tucked
-}
-
 interface Message {
   upsell?: boolean
   id: string
@@ -101,7 +67,7 @@ export function AIChatWidget({ pets, hidden = false }: AIChatWidgetProps) {
   const t = useT()
   const pathname = usePathname() ?? ''
   const keyboardOpen = useKeyboardOpen()
-  const tucked = useLauncherTucked()
+  const tucked = useScrollDirection() === 'down'
   const reduced = useReducedMotion()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
@@ -215,30 +181,31 @@ export function AIChatWidget({ pets, hidden = false }: AIChatWidgetProps) {
       {/* Botão flutuante: só o Vyron, 52 px */}
       <AnimatePresence>
         {showButton && (
-          <motion.button
+          // Contêiner fixo: posição e o "sumir ao rolar" em CSS (.vyron-launcher,
+          // sempre 8 px acima da cápsula). O botão dentro só anima entrada/saída.
+          <div
             key="vyron-fab"
-            type="button"
-            onClick={() => { haptic('tap'); setOpen(true) }}
-            aria-label={t('shell.assistant')}
-            // Rolando para baixo: sai da frente (sem foco/toque enquanto escondido).
-            tabIndex={tucked ? -1 : undefined}
+            className="vyron-launcher fixed z-40 origin-bottom-right"
+            data-hidden={tucked ? 'true' : 'false'}
             aria-hidden={tucked || undefined}
-            style={{ right: 'max(1rem, env(safe-area-inset-right))', pointerEvents: tucked ? 'none' : undefined }}
-            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
-            animate={
-              tucked
-                ? reduced
-                  ? { opacity: 0, transition: { duration: dur.fast } }
-                  : { opacity: 0, y: 24, scale: 1, transition: { duration: dur.fast, ease: easeOut as unknown as [number, number, number, number] } }
-                : { opacity: 1, y: 0, scale: 1 }
-            }
-            exit={{ opacity: 0, scale: reduced ? 1 : 0.6, transition: { duration: dur.fast } }}
-            whileTap={reduced ? undefined : { scale: 0.92 }}
-            transition={spring.pop}
-            className="fixed bottom-nav md:bottom-6 z-40 w-[52px] h-[52px] rounded-full flex items-center justify-center bg-white dark:bg-surface-800 border border-primary-200 dark:border-primary-500/30 shadow-float origin-bottom-right"
+            style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
           >
-            <VyronAvatar size={40} state="idle" />
-          </motion.button>
+            <motion.button
+              type="button"
+              onClick={() => { haptic('tap'); setOpen(true) }}
+              aria-label={t('shell.assistant')}
+              // Rolando para baixo: sai da frente (sem foco/toque enquanto escondido).
+              tabIndex={tucked ? -1 : undefined}
+              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: reduced ? 1 : 0.6, transition: { duration: dur.fast } }}
+              whileTap={reduced ? undefined : { scale: 0.92 }}
+              transition={spring.pop}
+              className="w-[52px] h-[52px] rounded-full flex items-center justify-center bg-white dark:bg-surface-800 border border-primary-200 dark:border-primary-500/30 shadow-float origin-bottom-right"
+            >
+              <VyronAvatar size={40} state="idle" />
+            </motion.button>
+          </div>
         )}
       </AnimatePresence>
 

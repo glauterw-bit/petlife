@@ -42,7 +42,10 @@ export function StatusBadge({
 
 type TFn = (key: string, vars?: Record<string, string | number>) => string
 
-/** "Protegido" · "Vence em 12 dias" · "Vence amanhã" · "Vence hoje" · "Atrasado há 3 dias" · "Sem registro". */
+/**
+ * Léxico único de estado (sem gênero): "Em dia" · "Vence em 12 dias" ·
+ * "Vence amanhã" · "Vence hoje" · "Venceu ontem" · "Venceu há 3 dias" · "Sem registro".
+ */
 export function careStateLabel(t: TFn, state: CareState, daysLeft: number | null): string {
   if (state === 'never') return t('ui.care.never')
   if (daysLeft == null) return state === 'overdue' ? t('ui.status.overdue') : t('ui.care.protected')
@@ -56,4 +59,22 @@ export function careStateLabel(t: TFn, state: CareState, daysLeft: number | null
     return t('ui.care.dueIn', { n: daysLeft })
   }
   return t('ui.care.protected')
+}
+
+/**
+ * Versão de 1 linha para espaços curtos: "Venceu · 16 d" · "Vence · 5 d" ·
+ * "Em dia" · "Sem registro". Usa o mesmo léxico de careStateLabel.
+ */
+export function careStateShort(t: TFn, state: CareState, daysLeft: number | null): string {
+  if (state === 'never') return t('ui.care.never')
+  if (state === 'overdue' || (daysLeft != null && daysLeft < 0)) {
+    if (daysLeft == null) return t('ui.status.overdue')
+    return `${t('ui.care.shortOverdue')} · ${t('ui.care.unitDays', { n: Math.abs(daysLeft) })}`
+  }
+  if (state === 'soon') {
+    if (daysLeft == null) return t('ui.status.soon')
+    if (daysLeft === 0) return t('ui.care.dueToday')
+    return `${t('ui.care.shortSoon')} · ${t('ui.care.unitDays', { n: daysLeft })}`
+  }
+  return t('ui.status.ok')
 }

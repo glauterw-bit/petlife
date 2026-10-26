@@ -89,7 +89,7 @@ const config: Config = {
       },
       animation: {
         'crm-shimmer': 'crm-shimmer 1.4s infinite',
-        'fade-in': 'fadeIn 0.22s ease-out',
+        'fade-in': 'fadeIn 0.18s ease-out',
         'fade-out': 'fadeOut 0.18s ease-in forwards',
         shimmer: 'shimmer 1.4s ease-in-out infinite',
         'slide-up': 'slideUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)',

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/Button'
 import { Sheet } from '@/components/ui/Sheet'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { PetAvatar } from '@/components/ui/PetAvatar'
-import { careStateLabel } from '@/components/ui/StatusBadge'
+import { careStateLabel, careStateShort } from '@/components/ui/StatusBadge'
 
 /**
  * Proteção em dia — vermífugo e antipulgas por pet.
@@ -219,7 +219,7 @@ export const ProtectionCard = forwardRef<
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="block text-xs font-semibold text-surface-900 dark:text-white truncate">{t(KIND_META[kind].labelKey)}</span>
-                              <span className="block text-[11px] text-surface-600 dark:text-surface-400 truncate">{careStateLabel(t, state, kindDays(k))}</span>
+                              <span className="block text-[11px] text-surface-600 dark:text-surface-400 truncate" aria-hidden>{careStateShort(t, state, kindDays(k))}</span>
                             </span>
                             <ChevronRight className="w-3.5 h-3.5 text-surface-400 shrink-0" aria-hidden />
                           </button>

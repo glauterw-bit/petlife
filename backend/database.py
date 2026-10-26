@@ -203,6 +203,9 @@ async def _run_migrations():
         "ALTER TABLE pets ADD COLUMN is_public BOOLEAN DEFAULT FALSE NOT NULL",
         "ALTER TABLE pets ADD COLUMN public_slug VARCHAR(80)",
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_pets_public_slug ON pets(public_slug)",
+        # Lembretes com repetição (remédios, banho, consulta): nulos = sem repetir
+        "ALTER TABLE reminders ADD COLUMN repeat_days INTEGER",
+        f"ALTER TABLE reminders ADD COLUMN repeat_until {timestamp_type}",
         # Cio (pet_heat_cycles é criada por create_all)
         "CREATE INDEX IF NOT EXISTS ix_pet_heat_cycles_pet_started ON pet_heat_cycles(pet_id, started_at)",
         # Link público com código aleatório (antes dava para ver qualquer pet trocando o número)

@@ -4,8 +4,11 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { AlertCircle, CheckCircle2, CircleDashed, Clock, Syringe, Camera, CreditCard, Pill, Bug, Loader2, type LucideIcon } from 'lucide-react'
+import { AlertCircle, CheckCircle2, CircleDashed, Clock, Syringe, Camera, CreditCard, Pill, Bug, Loader2, ExternalLink, type LucideIcon } from 'lucide-react'
 import type { CareItem, CareKind, CareState, PetCareSummary } from '@/lib/care'
+import { dogHumanAge } from '@/lib/care'
+import type { Pet } from '@/lib/api'
+import { Sheet } from '@/components/ui/Sheet'
 import { pets as petsApi } from '@/lib/api'
 import { invalidate } from '@/lib/cache'
 import { formatAge, cn } from '@/lib/utils'
@@ -14,7 +17,7 @@ import { homeChoreo } from '@/lib/motion'
 import { useT } from '@/contexts/LocaleContext'
 import { useToast } from '@/components/ui/ToastContext'
 import { ProtectionRing } from '@/components/ui/ProtectionRing'
-import { careStateLabel } from '@/components/ui/StatusBadge'
+import { careStateLabel, careStateShort } from '@/components/ui/StatusBadge'
 import { CareStatusList } from '@/components/ui/CareStatusList'
 import { buttonClasses } from '@/components/ui/Button'
 import { StreakFlame } from '@/components/health/StreakFlame'
@@ -89,6 +92,62 @@ export function nextActionFor(summary: PetCareSummary, t: TFn): NextAction {
   }
 }
 
+/** DOI do estudo usado em dogHumanAge (Wang et al., Cell Systems 2020). */
+export const DOG_AGE_DOI_URL = 'https://doi.org/10.1016/j.cels.2020.06.006'
+
+/**
+ * Chip "≈ N anos humanos" (só cães com 1 ano ou mais — dogHumanAge devolve
+ * null nos outros casos e o chip não aparece). O toque abre a explicação
+ * com a fonte e a ressalva: é estimativa, feita com Labradores.
+ */
+export function HumanAgeChip({ pet, className }: { pet: Pick<Pet, 'name' | 'species' | 'birth_date'>; className?: string }) {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+  const n = dogHumanAge(pet)
+  if (n == null) return null
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          haptic('tap')
+          setOpen(true)
+        }}
+        aria-label={t('pet3.age.chipAria', { n })}
+        aria-haspopup="dialog"
+        className={cn(
+          // alvo de 44 px com o chip visual menor
+          'pressable relative inline-flex items-center min-h-[44px] -my-2.5 px-0.5',
+          className,
+        )}
+      >
+        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[13px] font-semibold tabular-nums bg-primary-50 text-primary-800 dark:bg-primary-500/15 dark:text-primary-200">
+          {t('pet3.age.chip', { n })}
+        </span>
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={t('pet3.age.title')}>
+        <div className="space-y-3 pb-2 text-[15px] leading-relaxed text-surface-700 dark:text-surface-200">
+          <p className="font-display text-xl font-extrabold text-surface-900 dark:text-white">
+            {t('pet3.age.lead', { name: pet.name, n })}
+          </p>
+          <p>{t('pet3.age.how')}</p>
+          <p>{t('pet3.age.caveat')}</p>
+          <p className="text-[13px] text-surface-600 dark:text-surface-400">{t('pet3.age.from1')}</p>
+          <a
+            href={DOG_AGE_DOI_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 min-h-[44px] font-semibold text-primary-700 dark:text-primary-300"
+          >
+            <ExternalLink className="w-4 h-4" aria-hidden />
+            {t('pet3.age.source')}
+          </a>
+        </div>
+      </Sheet>
+    </>
+  )
+}
+
 const HEADLINE: Record<CareState, { Icon: LucideIcon; text: string }> = {
   overdue: { Icon: AlertCircle, text: 'text-red-700 dark:text-red-300' },
   soon: { Icon: Clock, text: 'text-amber-800 dark:text-amber-300' },
@@ -97,12 +156,15 @@ const HEADLINE: Record<CareState, { Icon: LucideIcon; text: string }> = {
 }
 
 /** A frase de status do cartão: a linha mais grave (o quê + quando). */
-function statusLine(summary: PetCareSummary, t: TFn): { what?: string; state: string } {
+function statusLine(summary: PetCareSummary, t: TFn): { what?: string; state: string; short?: string } {
   const worstItem = summary.next ?? summary.items.find(i => i.state === summary.worst) ?? summary.items[0]
   if (summary.worst === 'overdue' || summary.worst === 'soon') {
     return {
       what: worstItem.vaccineName ?? t(KIND_LABEL[worstItem.kind]),
       state: careStateLabel(t, worstItem.state, worstItem.daysLeft),
+      // Coluna estreita ao lado do anel: forma curta numa linha só; a frase
+      // completa fica para o VoiceOver e na lista logo abaixo.
+      short: careStateShort(t, worstItem.state, worstItem.daysLeft),
     }
   }
   return { state: t(`home.hero.state.${summary.worst}`) }
@@ -217,7 +279,14 @@ export function PetHero({
             <head.Icon className="w-4 h-4 mt-[2px] shrink-0" aria-hidden strokeWidth={2.4} />
             <span>
               {status.what && <span className="block">{status.what}</span>}
-              <span className={cn('block', status.what && 'font-medium')}>{status.state}</span>
+              {status.short ? (
+                <>
+                  <span className="block font-medium whitespace-nowrap" aria-hidden>{status.short}</span>
+                  <span className="sr-only">{status.state}</span>
+                </>
+              ) : (
+                <span className="block">{status.state}</span>
+              )}
             </span>
           </p>
           <div className="mt-2 empty:hidden flex">

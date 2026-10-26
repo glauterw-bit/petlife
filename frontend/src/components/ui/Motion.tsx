@@ -2,24 +2,31 @@
 
 import { forwardRef, type ReactNode } from 'react'
 import { motion, type HTMLMotionProps } from 'framer-motion'
-import { variants, spring } from '@/lib/motion'
+import { variants, spring, useFirstVisit } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
-/** Revela os filhos (StaggerItem) em cascata curta. */
+/**
+ * Revela os filhos (StaggerItem) em cascata curta.
+ * Com `once="<nome>"`, a cascata toca só na primeira visita da sessão; nas
+ * voltas o conteúdo já aparece no lugar (a tela não "dança" toda vez).
+ */
 export function Stagger({
   children,
   gap = 0.05,
   className,
   as = 'div',
+  once,
 }: {
   children: ReactNode
   gap?: number
   className?: string
   as?: 'div' | 'ul'
+  once?: string
 }) {
   const Comp = as === 'ul' ? motion.ul : motion.div
+  const first = useFirstVisit(once ? `stagger_${once}` : '')
   return (
-    <Comp className={className} variants={variants.stagger(gap)} initial="hidden" animate="show">
+    <Comp className={className} variants={variants.stagger(gap)} initial={first ? 'hidden' : false} animate="show">
       {children}
     </Comp>
   )

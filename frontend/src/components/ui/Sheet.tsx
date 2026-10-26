@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, MotionConfig, motion, useDragControls, type PanInfo } from 'framer-motion'
+import { AnimatePresence, MotionConfig, motion, useDragControls, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
@@ -120,6 +120,9 @@ function FramePanel({
   const t = useT()
   const panelRef = useRef<HTMLDivElement>(null)
   const controls = useDragControls()
+  // Arraste para baixo: o fundo escurecido clareia junto (1 → .15 em 360 px).
+  const dragY = useMotionValue(0)
+  const dimOpacity = useTransform(dragY, [0, 360], [1, 0.15])
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
@@ -176,21 +179,31 @@ function FramePanel({
     controls.start(e)
   }
 
+  function onDrag(_: unknown, info: PanInfo) {
+    dragY.set(Math.max(0, info.offset.y))
+  }
+
   function onDragEnd(_: unknown, info: PanInfo) {
-    if (info.offset.y > 120 || info.velocity.y > 500) requestClose()
+    if (info.offset.y > 120 || info.velocity.y > 500) {
+      requestClose()
+      return
+    }
+    animate(dragY, 0, spring.snappy)
   }
 
   return (
     <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4">
       <motion.div
         aria-hidden
-        className="absolute inset-0 bg-black/45 dark:bg-black/60"
+        className="absolute inset-0"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: dur.fast, ease: easeOut }}
         onClick={requestClose}
-      />
+      >
+        <motion.div className="absolute inset-0 bg-black/45 dark:bg-black/60" style={{ opacity: dimOpacity }} />
+      </motion.div>
       <motion.div
         ref={panelRef}
         role="dialog"
@@ -216,7 +229,9 @@ function FramePanel({
         dragControls={controls}
         dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0, bottom: 0.7 }}
+        // Leve resistência para cima (folha "elástica"), solta para baixo.
+        dragElastic={{ top: 0.06, bottom: 0.7 }}
+        onDrag={onDrag}
         onDragEnd={onDragEnd}
       >
         <div onPointerDown={startDrag} className="shrink-0 touch-none sm:touch-auto">

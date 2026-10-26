@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import {
-  User, Mail, Phone, Lock, KeyRound, Building2, ChevronRight, Check, Sun, Moon, BellRing,
+  User, Mail, Phone, Lock, KeyRound, Building2, ChevronRight, Check, Sun, Moon, Smartphone, BellRing,
   LifeBuoy, Star, LogOut, Trash2, Languages, Save, Settings as SettingsIcon,
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -478,14 +478,15 @@ function ThemeGroup() {
   return (
     <Group title={t('ac.set.appearance')} id="set-theme" footer={t('ac.set.appearanceDesc')}>
       <div className="p-3">
-        {/* Só claro e escuro: decisão de produto registrada no ThemeContext */}
+        {/* Claro é o padrão (decisão registrada no ThemeContext); Automático só vale se o usuário escolher. */}
         <SegmentedControl
           ariaLabel={t('ac.set.appearance')}
-          value={theme as 'light' | 'dark'}
+          value={theme}
           onChange={v => setTheme(v)}
           options={[
             { value: 'light', label: t('ac.set.themeLight'), icon: Sun },
             { value: 'dark', label: t('ac.set.themeDark'), icon: Moon },
+            { value: 'system', label: t('ac.set.themeSystem'), icon: Smartphone },
           ]}
         />
       </div>

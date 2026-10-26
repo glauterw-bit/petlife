@@ -66,14 +66,25 @@ export function Sidebar({ pets = [], activePetId, onPetChange }: SidebarProps) {
   const [petSelectOpen, setPetSelectOpen] = useState(false)
   const [supUnread, setSupUnread] = useState(0)
 
+  // A barra lateral só aparece a partir de 768 px: no celular não consulta
+  // /support/unread (economiza uma requisição por minuto à toa).
   useEffect(() => {
+    const mq = window.matchMedia('(min-width:768px)')
     let alive = true
+    let iv: ReturnType<typeof setInterval> | undefined
     async function poll() {
       try { const { unread } = await supportApi.unread(); if (alive) setSupUnread(unread) } catch {}
     }
-    poll()
-    const iv = setInterval(poll, 60_000)
-    return () => { alive = false; clearInterval(iv) }
+    function sync() {
+      clearInterval(iv)
+      iv = undefined
+      if (!mq.matches) return
+      poll()
+      iv = setInterval(poll, 60_000)
+    }
+    sync()
+    mq.addEventListener('change', sync)
+    return () => { alive = false; clearInterval(iv); mq.removeEventListener('change', sync) }
   }, [])
 
   const activePet = pets.find(p => p.id === activePetId) ?? pets[0]

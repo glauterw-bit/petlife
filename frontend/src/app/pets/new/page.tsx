@@ -2,7 +2,7 @@
 
 import { requestSoftUpsell } from '@/lib/softUpsell'
 
-import { useState, useEffect, useRef, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent, type KeyboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -10,13 +10,14 @@ import { Camera, Search, ChevronDown, AlertCircle, PawPrint, Sparkles, Dog, Cat,
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { pets as petsApi, breeds as breedsApi, type Breed, type Pet } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
-import { celebratePets, hapticError, hapticSuccess } from '@/lib/feedback'
+import { celebratePets, hapticError, hapticSuccess, hapticSelect } from '@/lib/feedback'
 import { useT } from '@/contexts/LocaleContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { VyronAvatar } from '@/components/ai/VyronAvatar'
+import { dogHumanAge } from '@/lib/care'
 import { Sheet } from '@/components/ui/Sheet'
-import { SuccessCheck } from '@/components/ui/SuccessCheck'
 import { invalidate } from '@/lib/cache'
 import { useShell } from '@/components/layout/shell'
 import { variants, dur, easeOut, spring } from '@/lib/motion'
@@ -95,6 +96,7 @@ export default function NewPetPage() {
   const [loadingBreeds, setLoadingBreeds] = useState(false)
   const [created, setCreated] = useState<Pet | null>(null)
   const breedRef = useRef<HTMLDivElement>(null)
+  const photoInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -244,6 +246,8 @@ export default function NewPetPage() {
   // ── Tela de sucesso: o próximo passo é a carteirinha ────────────────
   if (created) {
     const female = created.gender === 'female'
+    // Wang et al. 2020 — só cães com 1 ano ou mais (null nos outros casos)
+    const humanAge = dogHumanAge(created)
     return (
       <DashboardLayout>
         <motion.div
@@ -253,11 +257,19 @@ export default function NewPetPage() {
           transition={spring.soft}
           className="max-w-md mx-auto min-h-[70dvh] flex flex-col items-center justify-center text-center pt-6"
         >
-          <SuccessCheck size={84} />
+          <VyronAvatar size={96} state="celebrating" />
           <h1 className="mt-5 text-[28px] leading-tight font-display font-extrabold tracking-tight text-surface-900 dark:text-white">
             {t(female ? 'petx.new.doneF' : 'petx.new.doneM', { name: created.name })}
           </h1>
           <p className="mt-1 text-[17px] text-surface-600 dark:text-surface-400">{t(female ? 'petx.new.doneSubF' : 'petx.new.doneSubM')}</p>
+          {humanAge != null && (
+            <div className="mt-5 w-full rounded-2xl border border-surface-200/70 dark:border-surface-800 bg-white dark:bg-surface-900 px-4 py-3 text-left">
+              <p className="font-semibold text-[15px] text-surface-900 dark:text-white">
+                {t('pet3.age.newDone', { name: created.name, n: humanAge })}
+              </p>
+              <p className="mt-0.5 text-[13px] text-surface-600 dark:text-surface-300">{t('pet3.age.short')}</p>
+            </div>
+          )}
 
           <div className="w-full mt-8 space-y-3">
             <Button
@@ -289,27 +301,43 @@ export default function NewPetPage() {
 
   return (
     <DashboardLayout>
-      <PageHeader title={t('petx.new.title')} subtitle={t('petx.new.subtitle')} back showBell={false} />
+      <PageHeader title={t('petx.new.title')} back showBell={false} />
 
       <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-5" noValidate>
+        {/* Vyron apresenta o formulário (vira "comemorando" ao salvar) */}
+        <div className="flex items-end gap-3">
+          <VyronAvatar size={56} state={loading ? 'celebrating' : 'idle'} className="shrink-0" />
+          <p className="relative flex-1 rounded-2xl rounded-bl-md bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 px-4 py-2.5 text-[14px] leading-snug text-surface-700 dark:text-surface-200">
+            {t('petx.new.subtitle')}
+          </p>
+        </div>
+
         {/* Foto (opcional) */}
         <div className="flex flex-col items-center">
           <div className="relative">
-            <label className="pressable relative w-28 h-28 rounded-full cursor-pointer overflow-hidden flex items-center justify-center bg-primary-50 dark:bg-primary-500/15 text-primary-700 dark:text-primary-300 border-2 border-dashed border-primary-300 dark:border-primary-500/40 focus-within:ring-2 focus-within:ring-primary-500">
+            {/* Um só ponto de foco: o botão. O input fica fora da ordem do Tab. */}
+            <button
+              type="button"
+              onClick={() => photoInput.current?.click()}
+              aria-label={photoPreview ? t('petx.new.photoChange') : t('petx.new.photoAdd')}
+              className="pressable relative w-28 h-28 rounded-full overflow-hidden flex items-center justify-center bg-primary-50 dark:bg-primary-500/15 text-primary-700 dark:text-primary-300 border-2 border-dashed border-primary-300 dark:border-primary-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-surface-950"
+            >
               {photoPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={photoPreview} alt={t('pw.newPet.previewAlt')} className="w-full h-full object-cover" />
+                <img src={photoPreview} alt="" className="w-full h-full object-cover" />
               ) : (
                 <SpeciesIcon className="w-11 h-11" aria-hidden strokeWidth={1.7} />
               )}
-              <span className="sr-only">{photoPreview ? t('petx.new.photoChange') : t('petx.new.photoAdd')}</span>
-              <input type="file" accept="image/*" className="sr-only" onChange={handlePhoto} />
-            </label>
+            </button>
+            <input id="pet-photo" ref={photoInput} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-hidden onChange={handlePhoto} />
             <span aria-hidden className="pointer-events-none absolute -bottom-0.5 -right-0.5 w-9 h-9 rounded-full bg-primary-700 text-white dark:bg-primary-500 dark:text-surface-950 flex items-center justify-center ring-4 ring-surface-50 dark:ring-surface-950">
               <Camera className="w-4 h-4" />
             </span>
           </div>
-          <span className="mt-2 text-[13px] text-surface-600 dark:text-surface-400">{t('petx.new.photoOptional')}</span>
+          {/* o rótulo visível também abre a escolha da foto */}
+          <label htmlFor="pet-photo" className="mt-1 inline-flex items-center min-h-[44px] px-2 cursor-pointer text-[13px] font-medium text-surface-600 dark:text-surface-400">
+            {t('petx.new.photoOptional')}
+          </label>
         </div>
 
         {/* Nome */}
@@ -337,8 +365,8 @@ export default function NewPetPage() {
           <span id="species-label" className={LABEL}>
             {t('pet.species')} <span className="text-surface-500 dark:text-surface-400 font-normal">({t('petx.new.required')})</span>
           </span>
-          <SegmentedControl<Species>
-            ariaLabel={t('petx.new.speciesAria')}
+          <SpeciesRadio
+            labelledBy="species-label"
             value={form.species}
             onChange={setSpecies}
             options={[
@@ -618,5 +646,89 @@ export default function NewPetPage() {
         </div>
       </Sheet>
     </DashboardLayout>
+  )
+}
+
+/**
+ * Espécie como radiogroup de verdade (padrão WAI-ARIA): um só ponto de Tab
+ * (o selecionado), setas mudam e selecionam, Home/End vão às pontas.
+ */
+function SpeciesRadio({
+  options,
+  value,
+  onChange,
+  labelledBy,
+}: {
+  options: { value: Species; label: string; icon: typeof Dog }[]
+  value: Species
+  onChange: (v: Species) => void
+  labelledBy: string
+}) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([])
+
+  function select(i: number) {
+    const o = options[(i + options.length) % options.length]
+    refs.current[(i + options.length) % options.length]?.focus()
+    if (o.value !== value) {
+      void hapticSelect()
+      onChange(o.value)
+    }
+  }
+
+  function onKey(e: KeyboardEvent<HTMLButtonElement>, i: number) {
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        e.preventDefault()
+        return select(i + 1)
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        e.preventDefault()
+        return select(i - 1)
+      case 'Home':
+        e.preventDefault()
+        return select(0)
+      case 'End':
+        e.preventDefault()
+        return select(options.length - 1)
+    }
+  }
+
+  return (
+    <div
+      role="radiogroup"
+      aria-labelledby={labelledBy}
+      aria-required="true"
+      className="grid grid-cols-3 gap-2"
+    >
+      {options.map((o, i) => {
+        const active = o.value === value
+        const Icon = o.icon
+        return (
+          <button
+            key={o.value}
+            ref={el => {
+              refs.current[i] = el
+            }}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            tabIndex={active ? 0 : -1}
+            onClick={() => select(i)}
+            onKeyDown={e => onKey(e, i)}
+            className={cn(
+              'pressable flex flex-col items-center justify-center gap-1 min-h-[72px] rounded-2xl border-2 text-sm font-semibold transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-surface-950',
+              active
+                ? 'border-primary-600 bg-primary-50 text-primary-800 dark:border-primary-400 dark:bg-primary-500/15 dark:text-primary-100'
+                : 'border-surface-200 bg-white text-surface-700 hover:border-surface-300 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-200',
+            )}
+          >
+            <Icon className="w-6 h-6" aria-hidden strokeWidth={active ? 2.2 : 1.8} />
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
   )
 }

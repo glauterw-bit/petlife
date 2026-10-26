@@ -7,6 +7,21 @@ import { cn } from '@/lib/utils'
 import { haptic } from '@/lib/feedback'
 import { spring } from '@/lib/motion'
 
+/**
+ * Props do painel ligado a uma aba: `<div {...tabPanelProps('pet', 'overview')}>`.
+ * Use o mesmo idBase passado ao <Tabs>.
+ */
+export function tabPanelProps(idBase: string, id: string) {
+  return {
+    id: `${idBase}-panel-${id}`,
+    role: 'tabpanel' as const,
+    'aria-labelledby': `${idBase}-tab-${id}`,
+    tabIndex: 0,
+  }
+}
+
+export { ScrollHint } from './ScrollHint'
+
 export function Tabs<T extends string>({
   items,
   value,
@@ -15,6 +30,7 @@ export function Tabs<T extends string>({
   variant = 'pill',
   scrollable = false,
   layoutId,
+  idBase,
 }: {
   items: { id: T; label: string; icon?: LucideIcon; badge?: number }[]
   value: T
@@ -23,6 +39,11 @@ export function Tabs<T extends string>({
   variant?: 'pill' | 'underline'
   scrollable?: boolean
   layoutId?: string
+  /**
+   * Liga cada aba ao seu painel: aba `${idBase}-tab-${id}` com aria-controls
+   * para `${idBase}-panel-${id}` (use tabPanelProps no painel).
+   */
+  idBase?: string
 }) {
   const autoId = useId()
   const pillId = layoutId ?? `tabs-${autoId}`
@@ -115,6 +136,8 @@ export function Tabs<T extends string>({
               key={id}
               type="button"
               role="tab"
+              id={idBase ? `${idBase}-tab-${id}` : undefined}
+              aria-controls={idBase ? `${idBase}-panel-${id}` : undefined}
               aria-selected={active}
               tabIndex={active ? 0 : -1}
               onClick={() => select(id)}
@@ -126,7 +149,7 @@ export function Tabs<T extends string>({
                   ? pill
                     ? 'text-surface-900 dark:text-white'
                     : 'text-primary-700 dark:text-primary-300'
-                  : 'text-surface-500 hover:text-surface-800 dark:text-surface-400 dark:hover:text-surface-200',
+                  : 'text-surface-600 hover:text-surface-800 dark:text-surface-300 dark:hover:text-surface-100',
               )}
             >
               {active && (

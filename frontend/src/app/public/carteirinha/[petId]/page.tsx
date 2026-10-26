@@ -10,7 +10,7 @@ import { formatAge, getSpeciesLabel, localeTag, cn } from '@/lib/utils'
 import { normalizeVaccineName, daysUntil, SOON_DAYS } from '@/lib/care'
 import { DownloadCta } from '@/components/public/DownloadCta'
 import { usePublicColorScheme } from '@/components/public/usePublicColorScheme'
-import { StatusBadge } from '@/components/ui/StatusBadge'
+import { StatusBadge, careStateLabel } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useT } from '@/contexts/LocaleContext'
 import { variants, spring } from '@/lib/motion'
@@ -238,8 +238,12 @@ export default function PublicCarteirinhaPage() {
                 ? <ShieldAlert className="w-5 h-5 shrink-0" aria-hidden />
                 : <ShieldCheck className="w-5 h-5 shrink-0" aria-hidden />}
               <p className="text-sm font-semibold leading-tight">
-                {rabiesState === 'overdue'
-                  ? t('pub.card.rabiesOverdue', { date: fmtDate(rabies.next_due) })
+                {/* Léxico único: "Antirrábica · Venceu há 16 dias (10 de out. de 2026)" / "· Vence em 5 dias (…)" */}
+                {(rabiesState === 'overdue' || rabiesState === 'soon') && rabies.next_due
+                  ? t('pub.card.rabiesOverdue', {
+                      status: careStateLabel(t, rabiesState, daysUntil(rabies.next_due)),
+                      date: fmtDate(rabies.next_due),
+                    })
                   : rabies.next_due
                     ? t('pub.card.rabiesOk', { date: fmtDate(rabies.next_due) })
                     : t('pub.card.rabiesGiven', { date: fmtDate(rabies.date_given) })}
@@ -331,7 +335,9 @@ function VaccineRow({ v, state }: { v: CardVaccine; state: VState | 'superseded'
     <li className="rounded-xl border border-surface-200/70 dark:border-surface-800 bg-surface-50/60 dark:bg-surface-800/40 p-3.5">
       <div className="flex items-start justify-between gap-2">
         <span className="font-semibold text-sm text-surface-900 dark:text-white">{v.name}</span>
-        <StatusBadge state={state} />
+        <StatusBadge state={state}>
+          {state !== 'superseded' && v.next_due ? careStateLabel(t, state, daysUntil(v.next_due)) : undefined}
+        </StatusBadge>
       </div>
       <dl className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-xs text-surface-600 dark:text-surface-400">
         <div className="flex gap-1">

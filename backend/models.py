@@ -318,6 +318,10 @@ class Reminder(Base):
     due_date = Column(DateTime, nullable=False)
     is_completed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    # Repetição: ao concluir, nasce a próxima ocorrência em due_date + repeat_days
+    # (enquanto não passar de repeat_until). Nulos = lembrete único.
+    repeat_days = Column(Integer, nullable=True)
+    repeat_until = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="reminders")
     pet = relationship("Pet", back_populates="reminders")

@@ -152,10 +152,11 @@ export const homeChoreo = {
 /**
  * True só na primeira vez que a chave é vista nesta sessão (sessionStorage
  * 'pl_seen_<key>'). Decide uma vez por montagem; sem storage, devolve false
- * (melhor não animar do que animar sempre).
+ * (melhor não animar do que animar sempre). Chave vazia → sempre true.
  */
 export function useFirstVisit(key: string): boolean {
   const [first] = useState<boolean>(() => {
+    if (!key) return true // sem chave: não há "segunda visita" a lembrar
     if (typeof window === 'undefined') return false
     try {
       const k = `pl_seen_${key}`
@@ -190,3 +191,90 @@ export function consumeNavDirection(): NavDirection {
 export function peekNavDirection(): NavDirection {
   return _navDirection
 }
+
+// ── Direção da rolagem (barra que encolhe, Vyron que some) ───────────────
+/**
+ * A raiz de rolagem das telas do tutor é a JANELA (TutorShell não cria
+ * contêiner com overflow; PullToRefresh e a restauração de rolagem também
+ * leem window.scrollY). As capturas de página inteira "cortadas" vinham da
+ * barra fixa, não de um contêiner.
+ *
+ * Singleton: um listener passivo só, com throttle por rAF, compartilhado por
+ * todos os componentes que usam o hook.
+ */
+export type ScrollDirection = 'up' | 'down'
+
+/** Passou deste ponto (px) pode encolher; mais perto do topo, sempre 'up'. */
+const SCROLL_MIN_Y = 48
+/** Movimento mínimo (px) para trocar de direção — evita tremor. */
+const SCROLL_DELTA = 8
+
+let _scrollDir: ScrollDirection = 'up'
+let _scrollLastY = 0
+let _scrollRaf = 0
+const _scrollSubs = new Set<(d: ScrollDirection) => void>()
+
+function _readScroll() {
+  _scrollRaf = 0
+  const y = Math.max(0, window.scrollY)
+  const max = document.documentElement.scrollHeight - window.innerHeight
+  let next = _scrollDir
+  if (y <= SCROLL_MIN_Y || y >= max - 2) {
+    // No topo e no fim da página: tudo à mostra.
+    next = 'up'
+    _scrollLastY = y
+  } else if (Math.abs(y - _scrollLastY) >= SCROLL_DELTA) {
+    next = y > _scrollLastY ? 'down' : 'up'
+    _scrollLastY = y
+  }
+  if (next !== _scrollDir) {
+    _scrollDir = next
+    _scrollSubs.forEach(fn => fn(next))
+  }
+}
+
+function _onScroll() {
+  if (!_scrollRaf) _scrollRaf = requestAnimationFrame(_readScroll)
+}
+
+function _subscribeScroll(fn: (d: ScrollDirection) => void): () => void {
+  if (_scrollSubs.size === 0) {
+    _scrollLastY = Math.max(0, window.scrollY)
+    window.addEventListener('scroll', _onScroll, { passive: true })
+  }
+  _scrollSubs.add(fn)
+  return () => {
+    _scrollSubs.delete(fn)
+    if (_scrollSubs.size === 0) {
+      window.removeEventListener('scroll', _onScroll)
+      if (_scrollRaf) cancelAnimationFrame(_scrollRaf)
+      _scrollRaf = 0
+      _scrollDir = 'up'
+    }
+  }
+}
+
+/** 'down' enquanto o usuário rola para baixo (longe do topo e do fim). Com menos movimento, sempre 'up'. */
+export function useScrollDirection(): ScrollDirection {
+  const reduced = usePrefersReducedMotion()
+  const [dir, setDir] = useState<ScrollDirection>('up')
+  useEffect(() => {
+    if (reduced) {
+      setDir('up')
+      return
+    }
+    setDir(_scrollDir)
+    return _subscribeScroll(setDir)
+  }, [reduced])
+  return reduced ? 'up' : dir
+}
+
+/**
+ * Curva linear() que imita a mola `spring.snappy` (stiffness 520, damping 38,
+ * mass .8 — quase criticamente amortecida, sem quicar) para transições em CSS
+ * puro, no compositor. Use com SPRING_SNAPPY_MS; navegadores sem linear()
+ * caem no cubic-bezier declarado antes.
+ */
+export const SPRING_SNAPPY_LINEAR =
+  'linear(0, 0.129 4.2%, 0.402 10.4%, 0.643 17.5%, 0.811 25%, 0.912 33%, 0.964 41.7%, 0.988 51.7%, 0.997 63%, 1)'
+export const SPRING_SNAPPY_MS = 340

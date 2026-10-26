@@ -40,6 +40,31 @@ export function HomeHero({
   const first = useRef(true)
   const multi = summaries.length > 1
 
+  // "Anel completo": quando um pet passa de alguma pendência para os 3 itens
+  // em dia (no mesmo pet montado, nunca na 1ª renderização), anuncia por texto
+  // — o brilho e a vibração ficam no ProtectionRing. Mesma regra do anel.
+  const [announce, setAnnounce] = useState('')
+  const prevStates = useRef<Map<number, string> | null>(null)
+  const stateKey = summaries.map(s => `${s.pet.id}:${s.items.map(i => i.state).join('|')}`).join(',')
+  useEffect(() => {
+    const next = new Map(summaries.map(s => [s.pet.id, s.items.map(i => i.state).join('|')]))
+    const prev = prevStates.current
+    prevStates.current = next
+    if (!prev) return
+    const done = summaries.find(s => {
+      const before = prev.get(s.pet.id)
+      return before != null && before.split('|').some(x => x !== 'ok') && s.items.every(i => i.state === 'ok')
+    })
+    if (!done) return
+    setAnnounce(t('home2.ringDone', { name: done.pet.name }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stateKey])
+  useEffect(() => {
+    if (!announce) return
+    const id = setTimeout(() => setAnnounce(''), 4000)
+    return () => clearTimeout(id)
+  }, [announce])
+
   // Slide visível → pontos + vibração leve ao trocar.
   useEffect(() => {
     const root = scroller.current
@@ -87,6 +112,7 @@ export function HomeHero({
       variants={homeChoreo.container}
       className="mb-5"
     >
+      <p className="sr-only" role="status" aria-live="polite">{announce}</p>
       {multi ? (
         <div
           ref={scroller}

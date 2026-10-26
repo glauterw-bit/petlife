@@ -44,6 +44,8 @@ async def create_reminder(
         description=data.description,
         due_date=data.due_date,
         is_completed=False,
+        repeat_days=data.repeat_days,
+        repeat_until=data.repeat_until,
     )
     db.add(reminder)
     await db.commit()
@@ -67,18 +69,22 @@ async def list_reminders(
 @router.get("/upcoming", response_model=list[ReminderResponse])
 async def get_upcoming_reminders(
     days_ahead: int = 7,
+    include_overdue: bool = False,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Próximos lembretes não concluídos. Com include_overdue=true, inclui
+    também os vencidos (due_date < agora) — o Início não pode esconder o que
+    já passou da data."""
     now = datetime.utcnow()
     future = now + timedelta(days=days_ahead)
+    window = Reminder.due_date <= future if include_overdue else and_(Reminder.due_date >= now, Reminder.due_date <= future)
     result = await db.execute(
         select(Reminder).where(
             and_(
                 Reminder.user_id == current_user.id,
                 Reminder.is_completed == False,
-                Reminder.due_date >= now,
-                Reminder.due_date <= future,
+                window,
             )
         ).order_by(Reminder.due_date)
     )
@@ -126,8 +132,27 @@ async def complete_reminder(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Conclui o lembrete. Idempotente: concluir de novo não faz nada.
+    Com repetição, cria a próxima ocorrência (due_date + repeat_days) na mesma
+    transação, desde que não passe de repeat_until."""
     reminder = await _get_reminder_verified(reminder_id, current_user.id, db)
+    if reminder.is_completed:
+        return reminder
     reminder.is_completed = True
+    if reminder.repeat_days:
+        next_due = reminder.due_date + timedelta(days=reminder.repeat_days)
+        if reminder.repeat_until is None or next_due <= reminder.repeat_until:
+            db.add(Reminder(
+                user_id=reminder.user_id,
+                pet_id=reminder.pet_id,
+                type=reminder.type,
+                title=reminder.title,
+                description=reminder.description,
+                due_date=next_due,
+                is_completed=False,
+                repeat_days=reminder.repeat_days,
+                repeat_until=reminder.repeat_until,
+            ))
     await db.commit()
     await db.refresh(reminder)
     return reminder

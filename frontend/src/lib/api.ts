@@ -549,8 +549,20 @@ export const reminders = {
     return handleResponse<{ message: string }>(res)
   },
 
-  getUpcoming: async (days?: number) => {
-    const qs = days ? `?days=${days}` : ''
+  /**
+   * Próximos lembretes não concluídos. Com `includeOverdue`, pede também os
+   * vencidos (due_date < agora). Servidores antigos ignoram o parâmetro —
+   * para um resultado garantido com vencidos, use fetchAgenda() de lib/reminders.
+   */
+  getUpcoming: async (days?: number, opts: { includeOverdue?: boolean } = {}) => {
+    const params = new URLSearchParams()
+    // O backend lê days_ahead; 'days' fica por compatibilidade (era ignorado).
+    if (days) {
+      params.set('days', String(days))
+      params.set('days_ahead', String(days))
+    }
+    if (opts.includeOverdue) params.set('include_overdue', 'true')
+    const qs = params.toString() ? `?${params.toString()}` : ''
     const res = await fetch(`${API_URL}/reminders/upcoming${qs}`, { headers: getAuthHeaders() })
     return handleResponse<Reminder[]>(res)
   },
@@ -2415,14 +2427,24 @@ export interface Reminder {
   type: string
   is_completed: boolean
   completed_at?: string
+  /** Repete a cada N dias (1–365). Ausente em servidores antigos. */
+  repeat_days?: number | null
+  /**
+   * Última data em que a repetição ainda vale (ISO local, sem Z). O servidor
+   * compara next_due <= repeat_until: mande o fim do dia ('…T23:59:00').
+   */
+  repeat_until?: string | null
 }
 
 export interface CreateReminderData {
   pet_id?: number
   title: string
   description?: string
+  /** ISO local sem fuso ('YYYY-MM-DDTHH:mm:00') — use toNaiveISO() de lib/reminders. */
   due_date: string
   type: string
+  repeat_days?: number | null
+  repeat_until?: string | null
 }
 
 // ── Busca de clínicas direto do aparelho (plano B do /search/nearby) ─────────

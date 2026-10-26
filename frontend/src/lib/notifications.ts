@@ -14,6 +14,13 @@
  *   seguintes (vacinas, lembretes, vermífugo/antipulgas). Sem nada, sem aviso.
  * - Check-in diário (19h): só para quem já criou o hábito (sequência ≥ 3 dias).
  * - Carteirinha vazia (dias 1, 3 e 7), aniversário, cio e lembretes do tutor.
+ * - Lembretes do tutor: com hora marcada, na hora (lida como hora local, sem
+ *   conversão de fuso); os antigos, à meia-noite, continuam às 9h. Com
+ *   repetição (repeat_days), as próximas ocorrências dos 7 dias seguintes.
+ *   Remédio usa "Hora do remédio de {pet}: {título}" — a dose nunca vai no
+ *   texto da notificação (aparece na tela bloqueada).
+ * - Teto de 56 avisos nossos (o iOS guarda ~64 pendentes por app), sempre os
+ *   mais próximos primeiro.
  *
  * Todos os textos passam por tr() (idioma do aparelho) e usam o nome do pet
  * sem artigo nem pronome, para valer para qualquer pet.
@@ -25,6 +32,7 @@ import type { Vaccine, Reminder, Pet, HeatUpcoming, ProtectionPetSummary } from 
 import { tr } from './i18n/translate'
 import { isRemotePushActive } from './push'
 import { latestDoses } from './care'
+import { parseReminderDate, reminderHasTime, nextOccurrences } from './reminders'
 
 // Faixas de ID determinísticas (permitem cancelar/reagendar sem duplicar)
 const VACCINE_BASE = 100_000
@@ -32,6 +40,11 @@ const REMINDER_BASE = 500_000
 const ENGAGE_BASE = 700_000 // +0..6 check-in · +100..102 carteirinha · +200..201 resumo semanal
 const HEAT_BASE = 800_000
 const BDAY_BASE = 900_000
+/** Ocorrências de lembretes que repetem: +id*8 +0..7 (até 8 numa janela de 7 dias com repetição diária). */
+const REPEAT_BASE = 1_000_000
+const REPEAT_SLOTS = 8
+/** iOS guarda ~64 pendentes por app; deixa margem para avisos de outros recursos. */
+const MAX_PENDING = 56
 
 const DAY = 86_400_000
 
@@ -144,7 +157,32 @@ export async function syncHealthNotifications(
     // ── Lembretes do tutor ───────────────────────────────────────────────
     for (const r of reminders) {
       if (!r.due_date || r.is_completed) continue
-      push({ id: REMINDER_BASE + r.id * 2, title: tr('ntf.rem.t'), body: r.title, schedule: { at: atHour(r.due_date, 0, 9) } })
+      const name = (r.pet_id != null ? petName.get(r.pet_id) : undefined) ?? r.pet?.name
+      const body = r.type === 'medication' && name ? tr('ntf.med', { name, title: r.title }) : r.title
+      const timed = reminderHasTime(r)
+      // Com hora: na hora local marcada. Legado (meia-noite): às 9h do dia.
+      const at = (d: Date) => {
+        if (timed) return d
+        const x = new Date(d)
+        x.setHours(9, 0, 0, 0)
+        return x
+      }
+      if (r.repeat_days && r.repeat_days > 0) {
+        // Janela a partir do começo de hoje, para o aviso das 9h de um
+        // lembrete sem hora ainda contar hoje (push() descarta o que já passou).
+        const from = new Date(now)
+        from.setHours(0, 0, 0, 0)
+        nextOccurrences(r, from, 7)
+          .slice(0, REPEAT_SLOTS)
+          .forEach((d, i) => {
+            push({ id: REPEAT_BASE + r.id * REPEAT_SLOTS + i, title: tr('ntf.rem.t'), body, schedule: { at: at(d) } })
+          })
+      } else {
+        const d = parseReminderDate(r.due_date)
+        if (Number.isFinite(d.getTime())) {
+          push({ id: REMINDER_BASE + r.id * 2, title: tr('ntf.rem.t'), body, schedule: { at: at(d) } })
+        }
+      }
     }
 
     // ── Cio previsto: alguns dias antes (cadela 7, gata 2) e no dia ─────
@@ -227,10 +265,10 @@ export async function syncHealthNotifications(
       })
     }
 
-    // iOS tolera até 64 pendentes por app — mantém margem, mais próximos primeiro
+    // Teto global (iOS ~64 pendentes por app), mais próximos primeiro.
     notifs.sort((a, b) => a.schedule.at.getTime() - b.schedule.at.getTime())
     if (notifs.length) {
-      await LocalNotifications.schedule({ notifications: notifs.slice(0, 60) })
+      await LocalNotifications.schedule({ notifications: notifs.slice(0, MAX_PENDING) })
     }
     return notifs.length > 0
   } catch {

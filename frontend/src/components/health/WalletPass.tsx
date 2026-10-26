@@ -4,7 +4,7 @@
  * Carteirinha no estilo Wallet: passe verde em tela cheia.
  *
  * Frente: foto, nome, espécie · raça · idade, selo da antirrábica (a vacina
- * que hotel, creche e viagem pedem), QR do link público e a origem dos dados
+ * que hotel, creche e viagem pedem), QR do link público (gerado no aparelho) e a origem dos dados
  * ("vacinas registradas pelo tutor" — nunca "verificada").
  * Verso: a dose mais recente de cada vacina. Tocar gira o cartão em 3D;
  * com "reduzir movimento", troca com crossfade.
@@ -18,6 +18,8 @@ import { daysUntil, findRabies, latestDoses, sortByUrgency, vaccineState, SOON_D
 import { spring, usePrefersReducedMotion, dur, easeOut } from '@/lib/motion'
 import { PetAvatar } from '@/components/ui/PetAvatar'
 import { Button } from '@/components/ui/Button'
+import { careStateLabel } from '@/components/ui/StatusBadge'
+import { QrCode } from '@/components/ui/QrCode'
 import type { Vaccine } from '@/lib/api'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
@@ -166,7 +168,6 @@ function Front({ data }: { data: CarteirinhaData }) {
   const t = useT()
   const pet = data.pet
   const url = carteirinhaPublicUrl(data)
-  const qr = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=022c22&margin=0`
   const doses = sortByUrgency(latestDoses(carteirinhaVaccines(data)))
   const meta = [speciesLabel(t, pet.species), pet.breed ?? t('h.card.mixedBreed'), pet.birth_date ? formatAge(pet.birth_date) : null]
     .filter(Boolean)
@@ -188,7 +189,8 @@ function Front({ data }: { data: CarteirinhaData }) {
           className="ring-[3px] ring-white shadow-float"
         />
         <div className="min-w-0">
-          <h2 className="font-display text-[28px] leading-tight font-extrabold truncate">{pet.name}</h2>
+          {/* <p>, não heading: o título da tela (h1) já é "Carteirinha de {pet}". */}
+          <p className="font-display text-[28px] leading-tight font-extrabold truncate">{pet.name}</p>
           <p className="text-sm text-white/90 truncate">{meta}</p>
         </div>
       </div>
@@ -219,9 +221,9 @@ function Front({ data }: { data: CarteirinhaData }) {
       )}
 
       <div className="mt-auto pt-4 flex items-end gap-4">
-        <div className="bg-white rounded-2xl p-2.5 shrink-0 shadow-sm">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={qr} alt={t('wallet.qrAlt', { name: pet.name })} width={104} height={104} className="w-[104px] h-[104px]" />
+        {/* Gerado no aparelho: o link (com token) não sai para serviço externo e funciona offline. */}
+        <div className="bg-white rounded-2xl shrink-0 shadow-sm overflow-hidden">
+          <QrCode value={url} size={120} label={t('wallet.qrAlt', { name: pet.name })} className="rounded-2xl" />
         </div>
         <div className="min-w-0 pb-1">
           <p className="text-[13px] leading-snug text-white/90">{t('wallet.qrHint')}</p>
@@ -263,8 +265,15 @@ function Back({ data }: { data: CarteirinhaData }) {
                       {t('wallet.given', { date: formatDate(v.date_given) })}
                       {v.next_due ? ` · ${t('wallet.next', { date: formatDate(v.next_due) })}` : ''}
                     </p>
+                    {/* Estado em texto (léxico único) — o ícone sozinho não basta */}
+                    {st === 'ok' ? (
+                      <span className="sr-only">{t('ui.status.ok')}</span>
+                    ) : (
+                      <p className={cn('mt-0.5 text-xs font-bold', DOSE_ICON[st].cls)}>
+                        {careStateLabel(t, st, v.next_due ? daysUntil(v.next_due) : null)}
+                      </p>
+                    )}
                   </div>
-                  <span className="sr-only">{t(`ui.status.${st}`)}</span>
                 </li>
               )
             })}

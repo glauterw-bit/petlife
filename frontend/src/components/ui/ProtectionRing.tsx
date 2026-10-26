@@ -9,6 +9,14 @@
  * `showLegend` mostra abaixo do anel o que cada arco significa (bolinha +
  * nome + estado por extenso). Sem `onSegmentClick`, tocar no centro alterna
  * a legenda — exceto quando o anel está dentro de um link (o toque navega).
+ *
+ * Acessibilidade: o desenho é uma imagem só (role="img" + aria-label com os 3
+ * estados). Os arcos não recebem foco — quem dá acesso por teclado são as
+ * linhas de cuidado abaixo do anel, sem paradas de Tab duplicadas.
+ * Toque: cada arco tem uma faixa invisível larga (≥ 32 px) que aceita o dedo.
+ *
+ * "Anel completo": quando, com o mesmo pet montado, o último item pendente
+ * fica em dia, um brilho percorre o anel (600 ms) com vibração de marco.
  */
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -24,7 +32,7 @@ const STROKE: Record<CareState, string> = {
   ok: 'stroke-emerald-500',
   soon: 'stroke-amber-500',
   overdue: 'stroke-red-500',
-  never: 'stroke-surface-300 dark:stroke-surface-600',
+  never: 'stroke-surface-200 dark:stroke-surface-700',
 }
 
 const KIND_LABEL: Record<CareKind, string> = {
@@ -37,7 +45,7 @@ const DOT: Record<CareState, string> = {
   ok: 'bg-emerald-500',
   soon: 'bg-amber-500',
   overdue: 'bg-red-500',
-  never: 'border-2 border-dashed border-surface-400 dark:border-surface-500',
+  never: 'border-2 border-surface-400 dark:border-surface-500',
 }
 
 /** Espaço entre os arcos — 10° deixa claro que são 3 coisas, não uma barra. */
@@ -76,6 +84,7 @@ export function ProtectionRing({
   onSegmentClick,
   pulseKind,
   showLegend = false,
+  onComplete,
   children,
 }: {
   summary: PetCareSummary
@@ -85,6 +94,8 @@ export function ProtectionRing({
   pulseKind?: CareKind
   /** Legenda abaixo do anel (estado inicial; tocar no centro alterna). */
   showLegend?: boolean
+  /** Chamado no momento "anel completo" (para a tela anunciar por texto). */
+  onComplete?: () => void
   children?: ReactNode
 }) {
   const t = useT()
@@ -99,8 +110,37 @@ export function ProtectionRing({
   useEffect(() => {
     if (!pulseKind) return
     setNonce(n => n + 1)
-    haptic('saved')
+    // Vibra no pico do crescimento do arco, não no toque.
+    const id = setTimeout(() => haptic('saved'), 180)
+    return () => clearTimeout(id)
   }, [pulseKind])
+
+  // ── Momento "anel completo" ──
+  const stateKey = summary.items.map(i => i.state).join('|')
+  const prevRef = useRef<{ petId: number; key: string } | null>(null)
+  const [complete, setComplete] = useState(0)
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
+  useEffect(() => {
+    const prev = prevRef.current
+    prevRef.current = { petId: summary.pet.id, key: stateKey }
+    if (!prev || prev.petId !== summary.pet.id) return // nunca na 1ª renderização nem ao trocar de pet
+    const wasIncomplete = prev.key.split('|').some(s => s !== 'ok')
+    const nowComplete = summary.items.every(i => i.state === 'ok')
+    if (!wasIncomplete || !nowComplete) return
+    setComplete(n => n + 1)
+    const id = setTimeout(() => haptic('milestone'), 120)
+    onCompleteRef.current?.()
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stateKey, summary.pet.id])
+  const [haloOn, setHaloOn] = useState(false)
+  useEffect(() => {
+    if (!complete) return
+    setHaloOn(true)
+    const id = setTimeout(() => setHaloOn(false), 600)
+    return () => clearTimeout(id)
+  }, [complete])
 
   const [legend, setLegend] = useState(showLegend)
   useEffect(() => setLegend(showLegend), [showLegend])
@@ -137,21 +177,23 @@ export function ProtectionRing({
   const parts = summary.items.map(i => `${t(KIND_LABEL[i.kind])}: ${careStateLabel(t, i.state, i.daysLeft).toLowerCase()}`)
   const aria = t('ui.care.ringAria', { name: summary.pet.name, summary: parts.join('; ') })
 
-  function onKey(e: KeyboardEvent, kind: CareKind) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      onSegmentClick?.(kind)
-    }
-  }
+  const plainImg = !centerIsButton && !children
+  const circ = 2 * Math.PI * r
+  const hitWidth = Math.max(32, stroke * 3)
+  const plusSize = Math.max(12, Math.min(14, Math.round(size * 0.1)))
 
   const ringEl = (
     <div
-      role={onSegmentClick ? 'group' : 'img'}
-      aria-label={aria}
+      // Sem filhos interativos, o próprio contêiner é a imagem. Com centro
+      // interativo (botão da legenda, câmera da foto), a imagem vira um irmão
+      // — role="img" esconderia esses botões do VoiceOver.
+      role={plainImg ? 'img' : undefined}
+      aria-label={plainImg ? aria : undefined}
       className="relative inline-flex items-center justify-center shrink-0"
       style={{ width: size, height: size }}
     >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 overflow-visible" aria-hidden={!onSegmentClick}>
+      {!plainImg && <span role="img" aria-label={aria} className="absolute inset-0 rounded-full pointer-events-none" />}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 overflow-visible" aria-hidden>
         {summary.items.map((item, i) => {
           const start = i * 120 + GAP_DEG / 2
           const end = (i + 1) * 120 - GAP_DEG / 2
@@ -166,21 +208,14 @@ export function ProtectionRing({
             className: STROKE[item.state],
           }
           return (
-            <g
-              key={item.kind}
-              role={onSegmentClick ? 'button' : undefined}
-              tabIndex={onSegmentClick ? 0 : undefined}
-              aria-label={onSegmentClick ? parts[i] : undefined}
-              onClick={onSegmentClick ? () => onSegmentClick(item.kind) : undefined}
-              onKeyDown={onSegmentClick ? e => onKey(e, item.kind) : undefined}
-              className={onSegmentClick ? 'cursor-pointer outline-none focus-visible:opacity-80' : undefined}
-            >
+            <g key={item.kind} aria-hidden>
               {/* trilho suave por baixo — a forma do anel aparece mesmo antes de desenhar */}
-              <path d={d} fill="none" strokeWidth={stroke} strokeLinecap="round" className="stroke-surface-200/70 dark:stroke-surface-800" />
+              {!isNever && (
+                <path d={d} fill="none" strokeWidth={stroke} strokeLinecap="round" className="stroke-surface-200/70 dark:stroke-surface-800" />
+              )}
               {isNever ? (
                 <motion.path
                   {...common}
-                  strokeDasharray={`${stroke * 0.2} ${stroke * 1.6}`}
                   initial={draw ? { opacity: 0 } : false}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3, delay: draw ? i * 0.08 : 0 }}
@@ -198,11 +233,59 @@ export function ProtectionRing({
                   }
                 />
               )}
-              {/* área de toque mais larga (invisível) */}
-              {onSegmentClick && <path d={d} fill="none" strokeWidth={stroke + 16} stroke="transparent" />}
+              {/* "+" no meio do arco sem registro: convida a registrar */}
+              {isNever && onSegmentClick && (() => {
+                const m = polar(c, c, r, (start + end) / 2)
+                const h = plusSize / 2
+                return (
+                  <path
+                    d={`M ${m.x - h} ${m.y} H ${m.x + h} M ${m.x} ${m.y - h} V ${m.y + h}`}
+                    fill="none"
+                    strokeWidth={2.4}
+                    strokeLinecap="round"
+                    className="stroke-surface-500 dark:stroke-surface-400 pointer-events-none"
+                  />
+                )
+              })()}
+              {/* área de toque larga (invisível): o dedo não precisa acertar o traço fino */}
+              {onSegmentClick && (
+                <path
+                  d={d}
+                  fill="none"
+                  strokeWidth={hitWidth}
+                  stroke="transparent"
+                  style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                  onClick={e => {
+                    e.stopPropagation()
+                    onSegmentClick(item.kind)
+                  }}
+                />
+              )}
             </g>
           )
         })}
+        {/* brilho do "anel completo" */}
+        {complete > 0 && haloOn && (
+          reduced ? (
+            <circle cx={c} cy={c} r={r} fill="none" strokeWidth={stroke + 4} className="stroke-emerald-300/70 dark:stroke-emerald-400/60" />
+          ) : (
+            <motion.circle
+              key={`glow-${complete}`}
+              cx={c}
+              cy={c}
+              r={r}
+              fill="none"
+              strokeWidth={stroke + 2}
+              strokeLinecap="round"
+              transform={`rotate(-90 ${c} ${c})`}
+              className="stroke-emerald-200 dark:stroke-emerald-300"
+              strokeDasharray={`${circ * 0.18} ${circ}`}
+              initial={{ strokeDashoffset: circ * 0.18, opacity: 0 }}
+              animate={{ strokeDashoffset: -circ, opacity: [0, 1, 1, 0] }}
+              transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1], opacity: { duration: 0.6, times: [0, 0.15, 0.75, 1] } }}
+            />
+          )
+        )}
       </svg>
       <div
         ref={centerRef}

@@ -3,13 +3,19 @@
 /**
  * Vyron — a mascote veterinária do PetLife (lição do ADA 2026: personagem
  * com personalidade cria apego). Cachorrinho SVG com estetoscópio, olhos que
- * piscam e estados: idle (flutua), thinking (orelhas mexem + olhos pra cima)
- * e celebrating (pula). Tudo CSS puro, respeita prefers-reduced-motion.
+ * piscam e estados: idle (flutua), thinking (orelhas mexem + olhos pra cima),
+ * celebrating (pula), attention (orelhas erguidas, olhos maiores — "olha
+ * isto") e sleeping (olhos fechados em arco, respiração lenta — "nada por
+ * aqui ainda"). Tudo CSS puro, respeita prefers-reduced-motion (os estados
+ * continuam legíveis parados: orelhas erguidas e olhos fechados não dependem
+ * de animação).
  */
+
+export type VyronState = 'idle' | 'thinking' | 'celebrating' | 'attention' | 'sleeping'
 
 interface VyronAvatarProps {
   size?: number
-  state?: 'idle' | 'thinking' | 'celebrating'
+  state?: VyronState
   className?: string
 }
 
@@ -34,11 +40,16 @@ export function VyronAvatar({ size = 48, state = 'idle', className = '' }: Vyron
         <circle cx="32" cy="32" r="20" fill="#10b981" />
         <circle cx="32" cy="36" r="13" fill="#a7f3d0" opacity="0.9" />
         {/* olhos */}
-        <g className="vyron-eyes">
+        <g className="vyron-eyes vyron-open">
           <circle className="vyron-eye" cx="25" cy="29" r="3" fill="#1c1917" />
           <circle className="vyron-eye" cx="39" cy="29" r="3" fill="#1c1917" />
           <circle cx="26" cy="28" r="1" fill="#fff" />
           <circle cx="40" cy="28" r="1" fill="#fff" />
+        </g>
+        {/* olhos fechados (só dormindo) */}
+        <g className="vyron-closed" stroke="#1c1917" strokeWidth="2" fill="none" strokeLinecap="round">
+          <path d="M22 29.5 Q25 32 28 29.5" />
+          <path d="M36 29.5 Q39 32 42 29.5" />
         </g>
         {/* focinho */}
         <ellipse cx="32" cy="36.5" rx="4.2" ry="3.2" fill="#1c1917" />
@@ -79,6 +90,24 @@ export function VyronAvatar({ size = 48, state = 'idle', className = '' }: Vyron
         .vyron-thinking :global(.vyron-ear-r) { animation: vyronEarR 0.9s ease-in-out infinite alternate; transform-origin: 44px 22px; transform-box: view-box; }
         @keyframes vyronEarL { from { transform: rotate(0deg); } to { transform: rotate(-6deg); } }
         @keyframes vyronEarR { from { transform: rotate(0deg); } to { transform: rotate(6deg); } }
+        /* attention: orelhas sobem e abrem, olhos crescem (fica assim parado) */
+        .vyron-attention :global(.vyron-ear-l) { transform: translateY(-2px) rotate(-8deg); transform-origin: 20px 22px; transform-box: view-box; transition: transform 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+        .vyron-attention :global(.vyron-ear-r) { transform: translateY(-2px) rotate(8deg); transform-origin: 44px 22px; transform-box: view-box; transition: transform 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+        .vyron-attention :global(.vyron-eye) { transform: scale(1.25); }
+        .vyron-attention :global(.vyron-eye) { animation: vyronBlinkBig 4.6s infinite; }
+        @keyframes vyronBlinkBig {
+          0%, 94%, 100% { transform: scale(1.25); }
+          96%, 98% { transform: scale(1.25, 0.12); }
+        }
+        /* sleeping: olhos fechados em arco + respiração lenta */
+        .vyron :global(.vyron-closed) { opacity: 0; }
+        .vyron-sleeping :global(.vyron-closed) { opacity: 1; }
+        .vyron-sleeping :global(.vyron-open) { opacity: 0; }
+        .vyron-sleeping { animation: vyronBreath 3.6s ease-in-out infinite; transform-origin: 50% 80%; }
+        @keyframes vyronBreath {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.035); }
+        }
         .vyron :global(.vyron-tongue) { opacity: 0; }
         .vyron-celebrating :global(.vyron-tongue) { opacity: 1; }
         .vyron-celebrating :global(.vyron-mouth) { opacity: 0; }

@@ -66,14 +66,17 @@ function petAge(t: TFn, birth?: string | null): string | null {
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const pet = await getPet(params.slug)
-  if (!pet) return { title: 'Pet não encontrado — PetLife' }
+  // Mesmo idioma da página (Accept-Language): a prévia do link não sai em português para quem fala en/es.
+  const t = serverT()
+  if (!pet) return { title: t('wk2.pub.metaNotFound') }
   const emoji = pet.species === 'cat' ? '🐱' : '🐶'
+  const km = pet.stats.walks_km
   return {
     title: `${pet.name} ${emoji} — PetLife`,
-    description: `Conheça ${pet.name}${pet.breed ? `, ${pet.breed}` : ''}! Carteirinha de saúde digital no PetLife.`,
+    description: t('wk2.pub.metaDesc', { name: pet.name, breed: pet.breed ? `, ${pet.breed}` : '' }),
     openGraph: {
-      title: `${pet.name} ${emoji} está no PetLife`,
-      description: `${pet.stats.walks_km} km passeados · vacinas ${pet.stats.vaccines_ok ? 'em dia' : 'registradas'} pelo tutor · Crie a carteirinha do seu pet também!`,
+      title: t('wk2.pub.ogTitle', { name: pet.name, emoji }),
+      description: t(pet.stats.vaccines_ok ? 'wk2.pub.ogDescOk' : 'wk2.pub.ogDescReg', { km }),
       ...(pet.photo ? { images: [pet.photo] } : {}),
     },
   }

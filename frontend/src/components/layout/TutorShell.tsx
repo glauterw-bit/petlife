@@ -13,6 +13,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { MotionConfig } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
@@ -23,17 +24,20 @@ import { clearRemotePushState } from '@/lib/push'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ShellSkeleton } from '@/components/ui/Skeleton'
 import { CelebrationOverlay, celebrate } from '@/components/ui/CelebrationOverlay'
-import { OnboardingModal } from '@/components/onboarding/OnboardingModal'
-import { FeedbackModal } from '@/components/feedback/FeedbackModal'
-import { StoreInvite } from '@/components/feedback/StoreInvite'
 import { AIChatWidget } from '@/components/ai/AIChatWidget'
-import { QuotaUpsellModal } from '@/components/billing/QuotaUpsellModal'
-import { SoftUpsell } from '@/components/billing/SoftUpsell'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { MobileBackBar } from './MobileBackBar'
 import { NotificationBell } from './NotificationBell'
 import { ShellContext, isTutorRoute, type ShellContextValue } from './shell'
+
+// Modais globais que quase nunca aparecem na 1ª pintura: saem do pacote
+// inicial (carregam depois, só no cliente). Os componentes não mudam.
+const OnboardingModal = dynamic(() => import('@/components/onboarding/OnboardingModal').then(m => m.OnboardingModal), { ssr: false })
+const FeedbackModal = dynamic(() => import('@/components/feedback/FeedbackModal').then(m => m.FeedbackModal), { ssr: false })
+const StoreInvite = dynamic(() => import('@/components/feedback/StoreInvite').then(m => m.StoreInvite), { ssr: false })
+const QuotaUpsellModal = dynamic(() => import('@/components/billing/QuotaUpsellModal').then(m => m.QuotaUpsellModal), { ssr: false })
+const SoftUpsell = dynamic(() => import('@/components/billing/SoftUpsell').then(m => m.SoftUpsell), { ssr: false })
 
 const EMPTY_PETS: Pet[] = []
 
@@ -166,7 +170,7 @@ function TutorShellInner({ children }: { children: ReactNode }) {
       <MotionConfig reducedMotion="user">
         <div className="flex min-h-screen bg-surface-50 dark:bg-surface-950 w-full max-w-full overflow-x-clip">
           <Sidebar pets={pets} activePetId={activePetId} onPetChange={p => setActivePetId(p.id)} />
-          {/* pb-nav: barra inferior + 76 px do lançador do Vyron + área segura,
+          {/* pb-nav: cápsula + margem + lançador do Vyron (+8 px) + área segura,
               para o último conteúdo nunca ficar embaixo dos dois. */}
           <main className="flex-1 min-w-0 md:ml-64 min-h-screen pb-nav md:pb-0 overflow-x-clip">
             <div className="w-full max-w-7xl mx-auto px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] pb-4 md:p-8">

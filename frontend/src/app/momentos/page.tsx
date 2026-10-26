@@ -121,7 +121,8 @@ export default function MomentosPage() {
       setSheetOpen(false)
       pickFile(null); setCaption('')
       // Confete só no primeiro momento (marco); os do dia a dia ficam com a vibração.
-      if (isFirst) { haptic('milestone'); celebrateBadge() } else haptic('saved')
+      // celebrateBadge já vibra (haptic('milestone')); vibrar aqui de novo duplicaria.
+      if (isFirst) celebrateBadge(); else haptic('saved')
       trackHappyMoment('momento_publicado')
       success(t('g.mo.published'))
     } catch (e) {

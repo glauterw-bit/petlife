@@ -265,3 +265,106 @@ export function vaccineNextDueDays(birth_date?: string | null): { days: number; 
   if (w != null && w < 16) return { days: 21, puppy: true }
   return { days: 365, puppy: false }
 }
+
+// ── Sugestões coerentes com o estado real ──────────────────────────────────
+
+/**
+ * Grupos de vacina reconhecidos nos títulos das sugestões (backend
+ * health_protocols.py) e nos nomes digitados pelo tutor. Nomes comerciais
+ * variam; aqui só casamos famílias inequívocas.
+ */
+const VACCINE_GROUPS: { id: string; test: (n: string) => boolean }[] = [
+  { id: 'rabies', test: n => RABIES.some(r => n.includes(r)) },
+  // Múltipla/polivalente em pt, es e en: as sugestões em inglês chegam como
+  // "DHPP"/"FVRCP" e em espanhol como "polivalente"/"trivalente felina".
+  { id: 'multi', test: n => /\bv\s?(3|4|5|8|10)\b/.test(n) || /\b(dhpp|da2pp|dapp|dhlpp|fvrcp)\b/.test(n) || /polivalente|multipla|multiple|trivalente|triplice|quadrupla|quintupla/.test(n) },
+  { id: 'felv', test: n => n.includes('felv') || n.includes('leucemia') },
+  { id: 'giardia', test: n => n.includes('giardia') },
+  { id: 'kennel', test: n => n.includes('bordetella') || n.includes('tosse') || n.includes('gripe') || n.includes('influenza') },
+  { id: 'leish', test: n => n.includes('leish') },
+]
+
+export interface ReconciledSuggestion {
+  /** Estado real do item pedido pela sugestão; null quando não dá para casar. */
+  state: CareState | null
+  kind?: CareKind
+  vaccineName?: string
+  vaccineId?: number
+}
+
+/**
+ * Casa uma sugestão da ficha ("Reforço anual antirrábica", "Vermífugo
+ * trimestral"...) com o que o pet já tem registrado, para a ficha nunca
+ * sugerir com "prioridade" algo que está em dia, nem esconder que venceu.
+ *
+ * - 'vacina': compara pelo nome normalizado da dose MAIS RECENTE de cada
+ *   vacina do pet. Se o título cita mais de um grupo (ex.: "antirrábica +
+ *   V8/V10"), devolve o pior estado; se cita um grupo que o pet não tem,
+ *   devolve 'never'.
+ * - 'vermífugo' → item vermifugo do resumo; 'parasitas' → item antipulgas.
+ * - Qualquer outra categoria (consulta, exame...) → state null.
+ */
+export function reconcileSuggestion(
+  s: { category: string; title: string },
+  summary: PetCareSummary,
+  vaccines: Vaccine[],
+): ReconciledSuggestion {
+  const cat = normalizeVaccineName(s.category)
+  if (cat.startsWith('vermifug')) {
+    const it = summary.items.find(i => i.kind === 'vermifugo')
+    return { state: it?.state ?? 'never', kind: 'vermifugo' }
+  }
+  if (cat.startsWith('parasita')) {
+    const it = summary.items.find(i => i.kind === 'antipulgas')
+    return { state: it?.state ?? 'never', kind: 'antipulgas' }
+  }
+  if (!cat.startsWith('vacina')) return { state: null }
+
+  const title = normalizeVaccineName(s.title)
+  const wanted = VACCINE_GROUPS.filter(g => g.test(title))
+  if (!wanted.length) return { state: null, kind: 'vaccines' }
+
+  const petId = summary.pet.id
+  const latest = latestDoses(vaccines.filter(v => v.pet_id === petId))
+  let worst: { state: CareState; dose?: Vaccine } | null = null
+  for (const g of wanted) {
+    const doses = latest.filter(v => g.test(normalizeVaccineName(v.name)))
+    let cand: { state: CareState; dose?: Vaccine }
+    if (!doses.length) {
+      cand = { state: 'never' }
+    } else {
+      // Várias marcas do mesmo grupo: vale a aplicada por último.
+      const dose = doses.reduce((a, b) => (timeOf(b.date_given) > timeOf(a.date_given) ? b : a))
+      cand = { state: vaccineState(dose), dose }
+    }
+    if (!worst || SEVERITY[cand.state] > SEVERITY[worst.state]) worst = cand
+  }
+  return {
+    state: worst!.state,
+    kind: 'vaccines',
+    vaccineName: worst!.dose?.name,
+    vaccineId: worst!.dose?.id,
+  }
+}
+
+// ── Idade em "anos humanos" (só cães) ──────────────────────────────────────
+
+/**
+ * Idade aproximada em anos humanos para CÃES com 1 ano ou mais.
+ *
+ * Fonte: Wang T. et al. "Quantitative Translation of Dog-to-Human Aging by
+ * Conserved Remodeling of the DNA Methylome". Cell Systems 11, 2020.
+ * doi:10.1016/j.cels.2020.06.006 — idade humana ≈ 16·ln(idade do cão) + 31.
+ * O estudo usou Labradores; raças de outros portes envelhecem em ritmos
+ * diferentes, então a UI sempre mostra isto como aproximação, com a ressalva.
+ * Abaixo de 1 ano o ajuste do log não é confiável → null.
+ * Para gatos não há fórmula equivalente com fonte → não usamos.
+ */
+export function dogHumanAge(pet: Pick<Pet, 'species' | 'birth_date'>): number | null {
+  if (pet.species !== 'dog' || !pet.birth_date) return null
+  const b = parseDay(pet.birth_date).getTime()
+  if (!Number.isFinite(b)) return null
+  const years = (today().getTime() - b) / (365.25 * 86_400_000)
+  if (!(years >= 1)) return null
+  return Math.round(16 * Math.log(years) + 31)
+}

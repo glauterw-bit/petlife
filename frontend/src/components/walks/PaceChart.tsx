@@ -14,7 +14,7 @@ const W = 320, H = 96, PAD = 8
  */
 export function PaceChart({ points }: { points: RoutePoint[] }) {
   const t = useT()
-  const { palette, ink } = useChartTheme()
+  const { palette } = useChartTheme()
   const [hover, setHover] = useState<number | null>(null)
 
   const speeds = useMemo(() => {
@@ -39,7 +39,8 @@ export function PaceChart({ points }: { points: RoutePoint[] }) {
   if (speeds.length < 3) return null
   const max = Math.max(...speeds) * 1.15 || 1
   const px = (i: number) => PAD + (i / (speeds.length - 1)) * (W - PAD * 2)
-  const py = (v: number) => H - 18 - (v / max) * (H - 30)
+  const BASE = H - 6 // rótulos de início/fim ficam fora do SVG (texto HTML de 11 px)
+  const py = (v: number) => BASE - (v / max) * (H - 18)
   const pts = speeds.map((v, i) => [px(i), py(v)] as [number, number])
   const line = smoothPath(pts)
   const cor = palette[1] // azul — distinto do emerald do mapa
@@ -58,7 +59,7 @@ export function PaceChart({ points }: { points: RoutePoint[] }) {
               <stop offset="1" stopColor={cor} stopOpacity="0" />
             </linearGradient>
           </defs>
-          <path d={`${line} L${pts.at(-1)![0]},${H - 18} L${pts[0][0]},${H - 18} Z`} fill="url(#paceGrad)" />
+          <path d={`${line} L${pts.at(-1)![0]},${BASE} L${pts[0][0]},${BASE} Z`} fill="url(#paceGrad)" />
           <path d={line} fill="none" stroke={cor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           {hover != null && (
             <circle cx={px(hover)} cy={py(speeds[hover])} r="4" fill={cor} stroke="white" strokeWidth="2" />
@@ -69,8 +70,6 @@ export function PaceChart({ points }: { points: RoutePoint[] }) {
               onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
               onClick={() => setHover(i)} />
           ))}
-          <text x={PAD} y={H - 4} fontSize="8.5" fill={ink.axis}>{t('pw.chart.start')}</text>
-          <text x={W - PAD} y={H - 4} fontSize="8.5" fill={ink.axis} textAnchor="end">{t('pw.chart.end')}</text>
         </svg>
         {hover != null && (
           <div className="absolute -translate-x-1/2 -translate-y-full pointer-events-none bg-surface-900 dark:bg-surface-700 text-white text-[11px] rounded-lg px-2 py-1 tabular-nums"
@@ -78,6 +77,11 @@ export function PaceChart({ points }: { points: RoutePoint[] }) {
             {speeds[hover].toFixed(1)} km/h
           </div>
         )}
+      </div>
+      {/* Eixo em HTML: o SVG escala com a largura e o texto dentro dele caía para ~8 px */}
+      <div className="flex justify-between text-[11px] leading-none text-surface-600 dark:text-surface-400 mt-1" style={{ paddingInline: `${(PAD / W) * 100}%` }} aria-hidden>
+        <span>{t('pw.chart.start')}</span>
+        <span>{t('pw.chart.end')}</span>
       </div>
     </div>
   )

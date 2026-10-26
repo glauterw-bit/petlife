@@ -43,7 +43,9 @@ import { PetAvatar } from '@/components/ui/PetAvatar'
 import { PullToRefresh } from '@/components/ui/PullToRefresh'
 import { SuccessCheck } from '@/components/ui/SuccessCheck'
 import { PushPrimer, pushPrimerSeen } from '@/components/ui/PushPrimer'
-import { Skeleton, SkeletonList, SkeletonTile } from '@/components/ui/Skeleton'
+import { FADE_IN, Skeleton, SkeletonList, SkeletonTile } from '@/components/ui/Skeleton'
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber'
+import { ScrollHint } from '@/components/ui/ScrollHint'
 
 /**
  * Vacinas mais comuns no Brasil, por espécie. Existem para eliminar a digitação
@@ -129,6 +131,31 @@ function VaccinesSkeleton() {
       <Skeleton className="h-11 w-2/3 rounded-full mb-5" />
       <SkeletonList count={3} />
     </div>
+  )
+}
+
+/** Atalho para a carteirinha de um pet (no carrossel quando há mais de um). */
+function PassLink({ pet, carousel = false }: { pet: Pet; carousel?: boolean }) {
+  const t = useT()
+  return (
+    <Link
+      href={`/health/vaccines/carteirinha/${pet.id}`}
+      aria-label={t('care.cardTitle', { pet: pet.name })}
+      className={cn(
+        'pressable-card snap-start flex items-center gap-3 rounded-2xl p-3.5 pr-2 text-white bg-gradient-to-br from-primary-700 to-primary-900 shadow-card',
+        carousel ? 'shrink-0 w-[82%] max-w-[320px]' : 'w-full',
+      )}
+    >
+      <span className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0 self-start">
+        <CreditCard className="w-5 h-5" aria-hidden />
+      </span>
+      {/* Nome e subtítulo quebram linha — nunca "Ca… En…" no carrossel */}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold leading-snug break-words">{t('care.cardTitle', { pet: pet.name })}</span>
+        <span className="mt-0.5 block text-[13px] leading-snug text-white/85">{t('care.cardText')}</span>
+      </span>
+      <ChevronRight className="w-5 h-5 text-white/85 shrink-0" aria-hidden />
+    </Link>
   )
 }
 
@@ -265,7 +292,7 @@ function VaccinesPageInner() {
    */
   async function afterCreate(before: number, petName: string, vaccineName?: string) {
     if (before > 0) return
-    haptic('milestone')
+    // celebrate() já vibra (haptic 'milestone'); chamar aqui também vibrava 2x.
     celebrate('small')
     if (pushPrimerSeen()) return
     try {
@@ -474,7 +501,8 @@ function VaccinesPageInner() {
         subtitle={t('care.subtitle')}
         actions={
           <>
-            <IconButton icon={Camera} label={t('care.scanAria')} variant="header" onClick={() => openSheet({ mode: 'scan' })} disabled={!ready || !petList.length} />
+            {/* Hierarquia: "+" é a ação principal (cheio); câmera é secundária (fantasma). */}
+            <IconButton icon={Camera} label={t('care.scanAria')} variant="ghost" className="rounded-full text-surface-800 dark:text-surface-100" onClick={() => openSheet({ mode: 'scan' })} disabled={!ready || !petList.length} />
             <IconButton icon={Plus} label={t('care.addAria')} variant="header-primary" onClick={() => openSheet()} disabled={!ready || !petList.length} />
           </>
         }
@@ -491,7 +519,7 @@ function VaccinesPageInner() {
             <VaccinesSkeleton />
           )
         ) : (
-          <div className="pb-6">
+          <div className={cn('pb-6', FADE_IN)}>
             {bannerVisible && banner && (
               <Card tone="brand" padding="md" className="mb-5">
                 <div className="flex items-start gap-3">
@@ -533,9 +561,10 @@ function VaccinesPageInner() {
                     >
                       <tile.Icon className={cn('w-5 h-5', counts[k] > 0 ? tile.fg : 'text-surface-400 dark:text-surface-500')} aria-hidden />
                       <span>
-                        <span className={cn('block text-2xl font-extrabold font-display leading-none tabular-nums', counts[k] > 0 ? tile.fg : 'text-surface-500 dark:text-surface-400')}>
-                          {counts[k]}
-                        </span>
+                        <AnimatedNumber
+                          value={counts[k]}
+                          className={cn('num-hero block text-[28px] leading-none', counts[k] > 0 ? tile.fg : 'text-surface-500 dark:text-surface-400')}
+                        />
                         <span className="mt-1 block text-xs font-medium leading-tight text-surface-600 dark:text-surface-300">{label}</span>
                       </span>
                     </button>
@@ -551,31 +580,18 @@ function VaccinesPageInner() {
             )}
 
             {/* Carteirinha — o documento que o tutor envia */}
-            {cardPets.length > 0 && (
-              <div className={cn('mb-6', cardPets.length > 1 && '-mx-4 px-4 scroll-px-4 flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory')}>
-                {cardPets.map(p => (
-                  <Link
-                    key={p.id}
-                    href={`/health/vaccines/carteirinha/${p.id}`}
-                    aria-label={t('care.cardTitle', { pet: p.name })}
-                    className={cn(
-                      'pressable-card snap-start flex items-center gap-3 rounded-2xl p-3.5 pr-2 text-white bg-gradient-to-br from-primary-700 to-primary-900 shadow-card',
-                      cardPets.length > 1 ? 'shrink-0 w-[82%] max-w-[320px]' : 'w-full',
-                    )}
-                  >
-                    <span className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0 self-start">
-                      <CreditCard className="w-5 h-5" aria-hidden />
-                    </span>
-                    {/* Nome e subtítulo quebram linha — nunca "Ca… En…" no carrossel */}
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-semibold leading-snug break-words">{t('care.cardTitle', { pet: p.name })}</span>
-                      <span className="mt-0.5 block text-[13px] leading-snug text-white/85">{t('care.cardText')}</span>
-                    </span>
-                    <ChevronRight className="w-5 h-5 text-white/85 shrink-0" aria-hidden />
-                  </Link>
-                ))}
-              </div>
-            )}
+            {cardPets.length > 0 &&
+              (cardPets.length > 1 ? (
+                <ScrollHint className="mb-6 -mx-4 px-4 scroll-px-4 gap-3 snap-mandatory">
+                  {cardPets.map(p => (
+                    <PassLink key={p.id} pet={p} carousel />
+                  ))}
+                </ScrollHint>
+              ) : (
+                <div className="mb-6">
+                  <PassLink pet={cardPets[0]} />
+                </div>
+              ))}
 
             <VaccineTimeline
               vaccines={filtered}

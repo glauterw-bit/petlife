@@ -1,12 +1,19 @@
 import { cn } from '@/lib/utils'
 
+/**
+ * Classe para a troca esqueleto → conteúdo: fade de 180 ms (sem movimento;
+ * desligada com "reduzir movimento"). Ex.: <div className={FADE_IN}>…</div>
+ */
+export const FADE_IN = 'animate-fade-in'
+
 interface SkeletonProps {
   className?: string
 }
 
 /**
- * Bloco de carregamento com brilho suave (shimmer). Com "reduzir movimento",
- * o brilho para e fica só o bloco (regra global em globals.css).
+ * Bloco de carregamento com brilho suave (shimmer). O brilho é um ::after
+ * movido por transform (compositor). Com "reduzir movimento", o brilho some e
+ * fica só o bloco (regra global em globals.css).
  */
 export function Skeleton({ className }: SkeletonProps) {
   return <div aria-hidden className={cn('skeleton rounded-xl', className)} />

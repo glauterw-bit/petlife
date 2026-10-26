@@ -5,16 +5,21 @@
  * vira vidro ao rolar, título grande que some enquanto o título compacto
  * aparece na barra. Ao montar, avisa o shell para esconder o sino fixo e a
  * barra de voltar (o cabeçalho traz os dois).
+ *
+ * Acessibilidade: dá o título da aba (document.title) e, em navegação de
+ * pilha (entrar numa ficha, voltar dela), leva o foco ao h1 — o VoiceOver
+ * anuncia a tela nova em vez de ficar no botão tocado. Sempre há exatamente
+ * um h1 (sr-only quando o herói da tela faz o papel do título).
  */
-import { useEffect, useState, type ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, useMotionValueEvent } from 'framer-motion'
 import { ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
 import { hapticLight } from '@/lib/feedback'
 import { setNavDirection, usePrefersReducedMotion } from '@/lib/motion'
-import { useShell } from '@/components/layout/shell'
+import { useShell, isTabRoot } from '@/components/layout/shell'
 import { NotificationBell } from '@/components/layout/NotificationBell'
 
 export interface PageHeaderProps {
@@ -33,6 +38,10 @@ export interface PageHeaderProps {
   hideLargeTitle?: boolean
   className?: string
 }
+
+/** Já houve uma tela antes desta (para não roubar o foco na abertura do app). */
+let hadPreviousScreen = false
+let lastPath: string | null = null
 
 export function PageHeader({
   title,
@@ -55,6 +64,25 @@ export function PageHeader({
     return registerHeader()
   }, [registerHeader])
 
+  useEffect(() => {
+    document.title = `${title} · PetLife`
+  }, [title])
+
+  // Foco no título em navegação de pilha (não em troca de aba nem na abertura).
+  const pathname = usePathname() ?? ''
+  const h1Ref = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    const from = lastPath
+    lastPath = pathname
+    const first = !hadPreviousScreen
+    hadPreviousScreen = true
+    if (first || from === pathname) return
+    const tabSwitch = from != null && isTabRoot(from) && isTabRoot(pathname)
+    if (tabSwitch) return
+    const id = requestAnimationFrame(() => h1Ref.current?.focus({ preventScroll: true }))
+    return () => cancelAnimationFrame(id)
+  }, [pathname])
+
   // Com hideLargeTitle o compacto se comporta como se houvesse título grande:
   // escondido no topo, aparece ao rolar (o herói da tela faz o papel do título).
   const revealOnScroll = large || hideLargeTitle
@@ -65,8 +93,6 @@ export function PageHeader({
   const compactOpacity = useTransform(scrollY, revealOnScroll ? reveal : [0, 1], revealOnScroll ? [0, 1] : [1, 1])
   const compactY = useTransform(scrollY, reveal, [6, 0])
   const largeOpacity = useTransform(scrollY, [0, 44], [1, 0])
-  // Puxar para baixo cresce no máximo 4% (mais que isso parece zoom quebrado)
-  const largeScale = useTransform(scrollY, [-80, 0], [1.04, 1], { clamp: true })
 
   // Com "reduzir movimento": troca seca, sem interpolar.
   const [scrolled, setScrolled] = useState({ glass: false, compact: !revealOnScroll })
@@ -114,7 +140,7 @@ export function PageHeader({
                 type="button"
                 onClick={goBack}
                 aria-label={t('nav.back')}
-                className="pressable inline-flex items-center h-11 pl-1 pr-2 rounded-xl text-primary-700 dark:text-primary-300 hover:bg-surface-100 dark:hover:bg-surface-800"
+                className="pressable inline-flex items-center justify-center h-11 min-w-[44px] pl-1 pr-2 rounded-xl text-primary-700 dark:text-primary-300 hover:bg-surface-100 dark:hover:bg-surface-800"
               >
                 <ChevronLeft className="w-6 h-6" aria-hidden strokeWidth={2.4} />
                 <span className="text-[15px] font-medium md:inline hidden">{t('nav.back')}</span>
@@ -145,17 +171,17 @@ export function PageHeader({
           style={
             reduced
               ? { opacity: scrolled.compact ? 0 : 1 }
-              : { opacity: largeOpacity, scale: largeScale, transformOrigin: 'left bottom' }
+              : { opacity: largeOpacity }
           }
         >
-          <h1 className="text-[28px] leading-[1.15] font-display font-extrabold tracking-tight text-surface-900 dark:text-white">
+          <h1 ref={h1Ref} tabIndex={-1} className="outline-none focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[28px] leading-[1.15] font-display font-extrabold tracking-tight text-surface-900 dark:text-white">
             {title}
           </h1>
           {subtitle && <p className="mt-1 text-[15px] text-surface-600 dark:text-surface-400">{subtitle}</p>}
         </motion.div>
       ) : (
         <>
-          <h1 className="sr-only">{title}</h1>
+          <h1 ref={h1Ref} tabIndex={-1} className="sr-only outline-none">{title}</h1>
           {subtitle && <p className="mb-3 text-sm text-surface-600 dark:text-surface-400">{subtitle}</p>}
         </>
       )}

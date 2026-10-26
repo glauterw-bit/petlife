@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { QrCode, Siren, Printer, Image as ImageIcon, MessageCircle, Home } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { QrCode as QrIcon, Siren, Printer, Image as ImageIcon, MessageCircle, Home } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { pets as petsApi } from '@/lib/api'
 import { track } from '@/lib/track'
@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { QrCode } from '@/components/ui/QrCode'
 import { hapticSuccess, hapticError, hapticWarning } from '@/lib/feedback'
 import { variants, dur, easeOut } from '@/lib/motion'
 
@@ -38,8 +39,9 @@ export function LostPetCard({ petId, petName, petPhoto }: { petId: number; petNa
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const [publicKey, setPublicKey] = useState<string>(String(petId))
   const lostUrl = `${origin}/public/lost/${publicKey}`
-  const qr = (size: number) =>
-    `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(lostUrl)}&bgcolor=ffffff&color=1a1a2e&margin=12`
+  // QR gerado no aparelho (components/ui/QrCode). A impressão reaproveita o
+  // SVG já desenhado na tela — nada sai para serviço externo de imagem.
+  const qrWrap = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let alive = true
@@ -114,14 +116,21 @@ export function LostPetCard({ petId, petName, petPhoto }: { petId: number; petNa
   }
 
   function printTag() {
+    const svg = qrWrap.current?.querySelector('svg')
+    if (!svg) { error(t('pet3.lost.qrLoading')); return }
     track('lost_qr_print')
+    const clone = svg.cloneNode(true) as SVGSVGElement
+    clone.setAttribute('width', '170')
+    clone.setAttribute('height', '170')
+    clone.removeAttribute('class')
+    const svgMarkup = clone.outerHTML
     const w = window.open('', '_blank')
-    if (!w) { window.open(qr(600), '_blank'); return }
+    if (!w) return // janela bloqueada: nada a imprimir
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>QR ${petName.replace(/[<>&"]/g, '')}</title>
 <style>body{font-family:system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:24px;padding:24px;justify-content:center}
 .tag{border:2px dashed #999;border-radius:16px;padding:14px;text-align:center;width:200px}
-.tag img{width:170px;height:170px}.n{font-weight:700;font-size:18px;margin:6px 0 2px}.s{font-size:11px;color:#555}</style></head>
-<body>${Array.from({ length: 6 }).map(() => `<div class="tag"><div class="n">${petName.replace(/[<>&"]/g, '')}</div><img src="${qr(400)}"/><div class="s">${t('lost.tagHint')}</div></div>`).join('')}
+.tag svg{width:170px;height:170px;display:block;margin:0 auto}.n{font-weight:700;font-size:18px;margin:6px 0 2px}.s{font-size:11px;color:#555}</style></head>
+<body>${Array.from({ length: 6 }).map(() => `<div class="tag"><div class="n">${petName.replace(/[<>&"]/g, '')}</div>${svgMarkup}<div class="s">${t('lost.tagHint')}</div></div>`).join('')}
 <script>setTimeout(()=>print(),800)</script></body></html>`)
     w.document.close()
   }
@@ -170,8 +179,9 @@ export function LostPetCard({ petId, petName, petPhoto }: { petId: number; petNa
         </ol>
 
         <div className="mt-4 flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={qr(220)} alt={t('lost.qrAlt', { name: petName })} className="w-16 h-16 rounded-xl border border-surface-200 dark:border-surface-700 bg-white shrink-0" />
+          <div ref={qrWrap} className="shrink-0 rounded-xl border border-surface-200 dark:border-surface-700 bg-white">
+            <QrCode value={lostUrl} size={64} label={t('lost.qrAlt', { name: petName })} />
+          </div>
           <Button fullWidth size="lg" variant="soft" leftIcon={Home} loading={saving} onClick={() => save(false)}>
             {t('petx.lost.found')}
           </Button>
@@ -183,11 +193,12 @@ export function LostPetCard({ petId, petName, petPhoto }: { petId: number; petNa
   return (
     <Card as="section" aria-labelledby="qr-title">
       <div className="flex gap-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={qr(220)} alt={t('lost.qrAlt', { name: petName })} className="w-24 h-24 rounded-xl border border-surface-200 dark:border-surface-700 bg-white shrink-0" />
+        <div ref={qrWrap} className="shrink-0 self-start rounded-xl border border-surface-200 dark:border-surface-700 bg-white">
+          <QrCode value={lostUrl} size={96} label={t('lost.qrAlt', { name: petName })} />
+        </div>
         <div className="min-w-0 flex-1">
           <h3 id="qr-title" className="font-display font-bold text-surface-900 dark:text-white flex items-center gap-1.5">
-            <QrCode className="w-4 h-4 text-primary-700 dark:text-primary-300" aria-hidden />
+            <QrIcon className="w-4 h-4 text-primary-700 dark:text-primary-300" aria-hidden />
             {t('lost.title')}
           </h3>
           <p className="text-[13px] text-surface-600 dark:text-surface-400 mt-1 leading-snug">{t('lost.body', { name: petName })}</p>

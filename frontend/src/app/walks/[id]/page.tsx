@@ -513,22 +513,20 @@ export default function WalkDetailPage() {
 
         {/* Kudos */}
         <Card className="mt-4 flex items-center gap-3">
-          <motion.button
+          <button
             type="button"
             onClick={toggleKudos}
             aria-pressed={kudos.mine}
             aria-label={kudos.mine ? t('pw.detail.removeKudo') : t('pw.detail.giveKudo')}
-            whileTap={{ scale: 0.88 }}
-            transition={spring.pop}
             className={cn(
-              'w-12 h-12 rounded-full flex items-center justify-center transition-colors shrink-0',
+              'pressable w-12 h-12 rounded-full flex items-center justify-center transition-colors shrink-0',
               kudos.mine
                 ? 'bg-pink-600 text-white dark:bg-pink-500'
                 : 'bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300',
             )}
           >
             <Heart className={cn('w-5 h-5', kudos.mine && 'fill-current')} aria-hidden />
-          </motion.button>
+          </button>
           <div className="flex-1">
             <div className="text-sm font-semibold text-surface-900 dark:text-white">
               {kudos.count === 0

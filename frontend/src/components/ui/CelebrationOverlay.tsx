@@ -5,9 +5,16 @@
  * Dispare de qualquer lugar: window.dispatchEvent(new CustomEvent('petlife:celebrate',
  *   { detail: { title, message, card?: CardSpec, shareText? } }))
  * Share no pico emocional converte muito mais que botão frio.
+ *
+ * Entrada e saída animadas (cartão com spring.pop, fundo com dur.fast). Uma
+ * rajada só de confete, em 120 ms, junto da vibração de marco — e uma
+ * vibração só (a trava de 60 ms do haptic() descarta a duplicata).
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Share2, X } from 'lucide-react'
+import { haptic } from '@/lib/feedback'
+import { spring, dur } from '@/lib/motion'
 import { VyronAvatar } from '@/components/ai/VyronAvatar'
 import { shareCardImage, type CardSpec } from '@/lib/shareCard'
 import { track } from '@/lib/track'
@@ -30,24 +37,27 @@ export function CelebrationOverlay() {
   const [detail, setDetail] = useState<CelebrationDetail | null>(null)
   const [sharing, setSharing] = useState(false)
 
+  const burstTimer = useRef<ReturnType<typeof setTimeout>>()
   useEffect(() => {
     const on = (e: Event) => {
       const d = (e as CustomEvent<CelebrationDetail>).detail
       setDetail(d)
-      // confetti 🎉 (respeita reduced-motion)
-      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      clearTimeout(burstTimer.current)
+      burstTimer.current = setTimeout(() => {
+        haptic('milestone')
+        // confete (respeita reduced-motion)
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
         import('canvas-confetti').then(({ default: confetti }) => {
-          confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 }, colors: ['#10b981', '#f59e0b', '#3b82f6', '#ec4899'] })
-          setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 60, origin: { x: 0 } }), 250)
-          setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 60, origin: { x: 1 } }), 400)
+          confetti({ particleCount: 80, spread: 80, startVelocity: 38, origin: { y: 0.55 }, colors: ['#10b981', '#f59e0b', '#3b82f6', '#ec4899'], zIndex: 96 })
         }).catch(() => {})
-      }
+      }, 120)
     }
     window.addEventListener('petlife:celebrate', on)
-    return () => window.removeEventListener('petlife:celebrate', on)
+    return () => {
+      window.removeEventListener('petlife:celebrate', on)
+      clearTimeout(burstTimer.current)
+    }
   }, [])
-
-  if (!detail) return null
 
   async function doShare() {
     if (!detail?.card) return
@@ -62,10 +72,24 @@ export function CelebrationOverlay() {
   }
 
   return (
-    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/55 backdrop-blur-sm p-5 animate-fade-in" onClick={() => setDetail(null)}>
-      <div
+    <AnimatePresence>
+    {detail && (
+    <motion.div
+      key="celebration"
+      className="fixed inset-0 z-[95] flex items-center justify-center bg-black/55 backdrop-blur-sm p-5"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: dur.fast }}
+      onClick={() => setDetail(null)}
+    >
+      <motion.div
         role="dialog" aria-modal="true" aria-labelledby="celebration-title"
-        className="relative w-full max-w-sm bg-white dark:bg-surface-900 rounded-3xl p-6 pt-8 text-center shadow-2xl animate-slide-up border border-transparent dark:border-surface-800"
+        className="relative w-full max-w-sm bg-white dark:bg-surface-900 rounded-3xl p-6 pt-8 text-center shadow-2xl border border-transparent dark:border-surface-800"
+        initial={{ opacity: 0, scale: 0.9, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 8, transition: { duration: dur.fast } }}
+        transition={spring.pop}
         onClick={e => e.stopPropagation()}
       >
         <button type="button" onClick={() => setDetail(null)} aria-label={t('common.close')}
@@ -84,7 +108,9 @@ export function CelebrationOverlay() {
         <button type="button" onClick={() => setDetail(null)} className="mt-2 w-full min-h-[44px] rounded-xl text-sm font-medium text-surface-600 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800">
           {t('common.close')}
         </button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+    )}
+    </AnimatePresence>
   )
 }
