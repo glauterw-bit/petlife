@@ -226,9 +226,10 @@ async def admin_reply(
     if push_service.configured():
         try:
             from routers.push import _deliver
+            import push_i18n
             await _deliver(
                 db, user_id, f"support:{msg.id}", "suporte",
-                "💬 O suporte do PetLife respondeu você",
+                push_i18n.t(await push_i18n.locale_of(db, user_id), "support.title"),
                 msg.body[:150],
             )
         except Exception:

@@ -116,10 +116,12 @@ async def public_found_report(pet_key: str, data: FoundReport) -> dict:
             import push_service
             if push_service.configured():
                 from routers.push import _deliver
+                import push_i18n
+                loc = owner.locale
                 await _deliver(
                     db, owner.id, f"found:{pet.id}:{int(datetime.utcnow().timestamp())}", "pet_encontrado",
-                    f"🐾 Alguém leu o QR do {pet.name}",
-                    (msg + (f" — contato: {contato}" if contato else ""))[:150],
+                    push_i18n.t(loc, "found.title", pet=pet.name),
+                    (msg + (push_i18n.t(loc, "found.contact", c=contato) if contato else ""))[:150],
                 )
                 await db.commit()
         except Exception:

@@ -219,8 +219,10 @@ async def handle_new_message(user_id: int, message_id: int) -> None:
                 import push_service
                 if push_service.configured():
                     from routers.push import _deliver
+                    import push_i18n
                     await _deliver(db, user_id, f"support:{msg.id}", "suporte",
-                                   "💬 O suporte do PetLife respondeu você", reply[:150])
+                                   push_i18n.t(await push_i18n.locale_of(db, user_id), "support.title"),
+                                   reply[:150])
                     await db.commit()
             except Exception:
                 pass

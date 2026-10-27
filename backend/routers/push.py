@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from html import escape
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Header, status
+from fastapi import APIRouter, Depends, HTTPException, Header, Request, status
 from pydantic import BaseModel
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,6 +36,7 @@ class TokenIn(BaseModel):
 @router.post("/register", status_code=status.HTTP_204_NO_CONTENT)
 async def register_token(
     body: TokenIn,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -61,6 +62,8 @@ async def register_token(
             user_id=current_user.id, token=tok,
             platform=body.platform, environment=body.environment,
         ))
+    import push_i18n
+    push_i18n.remember(current_user, request.headers.get("accept-language"))
     await db.commit()
 
 
@@ -143,23 +146,25 @@ async def run_push_jobs(
                  "cio_previsto": 0}
 
     # ── 1 e 2: vacinas com data de reforço ────────────────────────────────
-    janelas = [(7, "vence_em_7", "Faltam 7 dias", "A {vac} de {pet} vence em 7 dias."),
-               (0, "vence_hoje", "É hoje", "A {vac} de {pet} vence hoje."),
-               (-3, "vencida", "Vacina atrasada", "A {vac} de {pet} venceu há 3 dias.")]
+    import push_i18n
+    janelas = [(7, "vence_em_7", "vac7"), (0, "vence_hoje", "vac0"), (-3, "vencida", "vacLate")]
 
-    for delta, chave, titulo, corpo in janelas:
+    for delta, chave, txt in janelas:
         alvo = hoje + timedelta(days=delta)
         q = await db.execute(
             select(Vaccine, Pet).join(Pet, Pet.id == Vaccine.pet_id)
             .where(func.date(Vaccine.next_due) == alvo)
         )
-        for vac, pet in q.all():
+        linhas = [(vac.id, vac.name, pet.user_id, pet.name) for vac, pet in q.all()]
+        locs = await push_i18n.locales_for(db, [l[2] for l in linhas])
+        for vac_id, vac_name, user_id, pet_name in linhas:
             resultado[chave] += 1
             if dry_run:
                 continue
+            loc = locs.get(user_id)
             await _deliver(
-                db, pet.user_id, f"vac:{vac.id}:{delta}", "vacina",
-                titulo, corpo.format(vac=vac.name, pet=pet.name),
+                db, user_id, f"vac:{vac_id}:{delta}", "vacina",
+                push_i18n.t(loc, f"{txt}.title"), push_i18n.t(loc, f"{txt}.body", vac=vac_name, pet=pet_name),
             )
 
     # ── 3: pet cadastrado sem nenhuma vacina ──────────────────────────────
@@ -170,14 +175,17 @@ async def run_push_jobs(
             ~Pet.id.in_(select(Vaccine.pet_id)),
         ))
     )
-    for pet in q.scalars().all():
+    sem = [(pet.id, pet.user_id, pet.name) for pet in q.scalars().all()]
+    locs = await push_i18n.locales_for(db, [s[1] for s in sem])
+    for pet_id, user_id, pet_name in sem:
         resultado["sem_vacina"] += 1
         if dry_run:
             continue
+        loc = locs.get(user_id)
         await _deliver(
-            db, pet.user_id, f"sem-vacina:{pet.id}", "sem_vacina",
-            f"{pet.name} está sem vacinas",
-            "Registre a carteirinha e a gente avisa antes de cada reforço vencer.",
+            db, user_id, f"sem-vacina:{pet_id}", "sem_vacina",
+            push_i18n.t(loc, "noVac.title", pet=pet_name),
+            push_i18n.t(loc, "noVac.body"),
         )
 
     # ── 4: cio previsto chegando ──────────────────────────────────────────
@@ -189,19 +197,23 @@ async def run_push_jobs(
          i["next_start"][:10], i["days_until"], i["lead_days"])
         for i in await heat_predictions(db)
     ]
+    locs = await push_i18n.locales_for(db, [c[0] for c in cios])
     for user_id, pet_id, nome, especie, data, dias, antecedencia in cios:
         if not 0 <= dias <= antecedencia:
             continue
         resultado["cio_previsto"] += 1
         if dry_run:
             continue
-        quando = "hoje" if dias == 0 else "amanhã" if dias == 1 else f"em {dias} dias ({data[8:10]}/{data[5:7]})"
-        dica = ("Mantenha as janelas teladas e fique de olho nos sinais." if especie == "cat"
-                else "Passeios só na guia e longe de machos não castrados.")
+        loc = locs.get(user_id)
+        quando = (push_i18n.t(loc, "heat.today") if dias == 0
+                  else push_i18n.t(loc, "heat.tomorrow") if dias == 1
+                  else push_i18n.t(loc, "heat.inDays", n=dias,
+                                   date=push_i18n.t(loc, "date", d=data[8:10], m=data[5:7])))
+        dica = push_i18n.t(loc, "heat.tipCat" if especie == "cat" else "heat.tipDog")
         await _deliver(
             db, user_id, f"cio:{pet_id}:{data}", "cio",
-            f"🌸 Cio de {nome} chegando",
-            f"O próximo cio de {nome} deve começar {quando}. {dica}",
+            push_i18n.t(loc, "heat.title", pet=nome),
+            push_i18n.t(loc, "heat.body", pet=nome, when=quando, tip=dica),
         )
 
     # ── 5: fim do teste grátis chegando ───────────────────────────────────
@@ -225,8 +237,8 @@ async def run_push_jobs(
             select(func.count(IapTransaction.id)).where(IapTransaction.user_id == u.id)
         )).scalar() or 0
         if cobrancas <= 1:  # só a transação que abriu o trial
-            em_trial.append((u.id, u.name, u.email, u.premium_tier, u.premium_expires_at))
-    for uid, nome, email, tier, expira in em_trial:
+            em_trial.append((u.id, u.name, u.email, u.premium_tier, u.premium_expires_at, u.locale))
+    for uid, nome, email, tier, expira, loc in em_trial:
         chave = f"fim-trial:{uid}:{expira.date().isoformat()}"
         if (await db.execute(select(PushLog).where(PushLog.dedupe_key == chave))).scalar_one_or_none():
             continue
@@ -238,16 +250,16 @@ async def run_push_jobs(
             select(func.count(Vaccine.id)).select_from(Vaccine)
             .join(Pet, Pet.id == Vaccine.pet_id).where(Pet.user_id == uid)
         )).scalar() or 0
-        primeiro = (nome or "").split(" ")[0] or "tutor(a)"
+        primeiro = (nome or "").split(" ")[0] or push_i18n.t(loc, "trial.fallbackName")
         plano = "PetLife Pro" if tier == "pro" else "PetLife+"
-        data_fim = expira.strftime("%d/%m")
-        linhas = [f"Oi, {primeiro}! Aqui é o Glauter, do PetLife.",
-                  f"Seu teste grátis do {plano} termina em {data_fim}."]
+        data_fim = push_i18n.fmt_date(loc, expira)
+        linhas = [push_i18n.t(loc, "trial.hi", name=primeiro).replace(", !", "!").replace("¡Hola, !", "¡Hola!"),
+                  push_i18n.t(loc, "trial.ends", plan=plano, date=data_fim)]
         if pets or vacinas:
-            linhas.append(f"Até aqui você organizou {pets} pet(s) e {vacinas} vacina(s) no app, e tudo isso continua salvo em qualquer plano.")
+            linhas.append(push_i18n.t(loc, "trial.kept", pets=pets, vacs=vacinas))
         if pets > 3:
-            linhas.append(f"Só um aviso: o plano grátis vai até 3 pets, e você tem {pets}.")
-        linhas.append("Se quiser continuar, o plano anual sai mais em conta: o PetLife+ fica em menos de R$ 12,50 por mês. Qualquer dúvida, é só responder aqui.")
+            linhas.append(push_i18n.t(loc, "trial.limit", pets=pets))
+        linhas.append(push_i18n.t(loc, "trial.annual"))
         texto = "\n\n".join(linhas)
         db.add(SupportMessage(user_id=uid, sender="admin", body=texto))
         db.add(PushLog(user_id=uid, dedupe_key=chave, kind="fim_trial",
@@ -255,15 +267,15 @@ async def run_push_jobs(
         await db.commit()
         try:
             await send_email(
-                email, f"Seu teste grátis do {plano} termina em {data_fim}",
+                email, push_i18n.t(loc, "trial.push.title", plan=plano, date=data_fim),
                 "".join(f"<p>{escape(l)}</p>" for l in linhas)
-                + "<p><a href='https://petlife-frontend-production.up.railway.app/suporte'>Responder no app</a> 🐾</p>",
+                + f"<p><a href='https://petlife-frontend-production.up.railway.app/suporte'>{push_i18n.t(loc, 'trial.reply')}</a> 🐾</p>",
             )
         except Exception:
             pass
         await _deliver(db, uid, f"{chave}:push", "fim_trial",
-                       f"Seu teste grátis do {plano} termina em {data_fim}",
-                       "Toque para ver a mensagem do Glauter no suporte.")
+                       push_i18n.t(loc, "trial.push.title", plan=plano, date=data_fim),
+                       push_i18n.t(loc, "trial.push.body"))
 
     # 6. Avaliação nova na App Store → aviso no celular do admin
     if not dry_run:

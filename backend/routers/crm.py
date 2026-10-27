@@ -803,9 +803,11 @@ async def add_record(patient_id: int, data: RecordIn, ctx: Ctx = Depends(crm_ctx
         try:
             pet = await db.get(Pet, p.petlife_pet_id)
             from routers.push import _deliver
+            import push_i18n
+            loc = await push_i18n.locale_of(db, pet.user_id)
             await _deliver(db, pet.user_id, f"crm-vac:{r.id}", "vacina_clinica",
-                           f"{ctx.clinic.name} registrou a vacina de {pet.name}",
-                           f"{data.vaccine_name} já está na carteirinha do app.")
+                           push_i18n.t(loc, "clinicVac.title", clinic=ctx.clinic.name, pet=pet.name),
+                           push_i18n.t(loc, "clinicVac.body", vac=data.vaccine_name))
         except Exception:
             pass
     return {**(await _record_one(db, r)), "sent_to_app": sent}

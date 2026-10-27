@@ -185,7 +185,16 @@ async def login(request: Request, credentials: UserLogin, db: AsyncSession = Dep
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)):
+async def get_me(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # O app chama /me ao abrir: guarda o idioma para os avisos do servidor.
+    import push_i18n
+    if push_i18n.remember(current_user, request.headers.get("accept-language")):
+        await db.commit()
+        await db.refresh(current_user)
     return current_user
 
 
