@@ -213,7 +213,7 @@ export const dict: Dict = {
   'h.card.scanHint': 'Escanea para verificar la autenticidad',
   'h.card.issuedOn': 'Emitida el',
   'h.card.tagline': 'Gestión de salud de mascotas con IA',
-  'care.subtitle': 'De la más urgente a la al día',
+  'care.subtitle': 'De la más urgente a las que están al día',
   'care.scanAria': 'Leer la cartilla con una foto',
   'care.addAria': 'Nueva vacuna',
   'care.filterAria': 'Filtrar por mascota',
