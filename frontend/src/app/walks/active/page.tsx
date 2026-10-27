@@ -21,7 +21,8 @@ import { haversineMeters, formatDistance, formatDuration, shouldAcceptPoint } fr
 import { paceClock } from '@/components/walks/pace'
 import { saveActiveWalk, clearActiveWalk, enqueueFinish } from '@/lib/walk-persistence'
 import { trackHappyMoment } from '@/lib/review'
-import { useT } from '@/contexts/LocaleContext'
+import { useT, useLocale } from '@/contexts/LocaleContext'
+import { walkActivity } from '@/lib/nativeBridge'
 
 const MapLoading = () => {
   const t = useT()
@@ -124,6 +125,30 @@ export default function ActiveWalkPage() {
       })
     }
   }, [phase, walkId, selectedPetId, startTs, pausedAccum, routePoints, distance, duration])
+
+  // Live Activity (iOS): tela de bloqueio e Dynamic Island mostram tempo e distância.
+  const { locale } = useLocale()
+  const livePetName = pets.find(p => p.id === selectedPetId)?.name ?? ''
+  const liveRef = useRef<{ on: boolean; key: string }>({ on: false, key: '' })
+  useEffect(() => {
+    const active = (phase === 'tracking' || phase === 'paused') && startTs != null
+    const state = {
+      distanceKm: Math.round(distance / 10) / 100, // passos de 10 m: não manda a cada ponto do GPS
+      pausedSeconds: pausedAccum / 1000,
+      pausedAt: phase === 'paused' ? pausedAt : null,
+    }
+    const key = `${state.distanceKm}|${state.pausedSeconds}|${state.pausedAt ?? ''}`
+    if (active && !liveRef.current.on) {
+      walkActivity.start(livePetName, startTs, locale, state)
+      liveRef.current = { on: true, key }
+    } else if (active && key !== liveRef.current.key) {
+      walkActivity.update(state)
+      liveRef.current.key = key
+    } else if (!active && liveRef.current.on) {
+      walkActivity.end(state)
+      liveRef.current = { on: false, key: '' }
+    }
+  }, [phase, startTs, pausedAccum, pausedAt, distance, livePetName, locale])
 
   // Timer
   useEffect(() => {

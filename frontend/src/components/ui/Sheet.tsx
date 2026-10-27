@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, MotionConfig, motion, useDragControls, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion'
+import { AnimatePresence, MotionConfig, m, useDragControls, useMotionValue, useTransform, animate, type PanInfo } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
@@ -193,7 +193,7 @@ function FramePanel({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4">
-      <motion.div
+      <m.div
         aria-hidden
         className="absolute inset-0"
         initial={{ opacity: 0 }}
@@ -202,9 +202,9 @@ function FramePanel({
         transition={{ duration: dur.fast, ease: easeOut }}
         onClick={requestClose}
       >
-        <motion.div className="absolute inset-0 bg-black/45 dark:bg-black/60" style={{ opacity: dimOpacity }} />
-      </motion.div>
-      <motion.div
+        <m.div className="absolute inset-0 bg-black/45 dark:bg-black/60" style={{ opacity: dimOpacity }} />
+      </m.div>
+      <m.div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
@@ -257,7 +257,7 @@ function FramePanel({
             {footer}
           </div>
         )}
-      </motion.div>
+      </m.div>
     </div>
   )
 }

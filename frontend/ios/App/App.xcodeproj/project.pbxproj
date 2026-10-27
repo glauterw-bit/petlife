@@ -7,7 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0844E6F21507A38134353646 /* ProtectionWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67289F0CB6397CC71F761282 /* ProtectionWidget.swift */; };
+		12760E5634FFD94BA1FFCF77 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B5629C91A9EEAE02C8EC3A /* WidgetKit.framework */; };
+		1B570B8280A2819CE33BFA6B /* PetLifeNativePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9FFBD76293C3D07997C764 /* PetLifeNativePlugin.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
+		35B23F2E113E2A7B14D80661 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64CECC7EB2A93B205F6E3DB2 /* SharedStore.swift */; };
+		3A887D5D006597BD6AD38703 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6ADDF0F34BD9CD52A9FF0A95 /* SwiftUI.framework */; };
+		41C02FF1920207C31C64C7A6 /* WalkActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EE73BA3DFFE8E4420A5198B /* WalkActivityAttributes.swift */; };
+		430631F6C85205197C9FC720 /* WidgetPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EFD79267C8F38CE5E539637 /* WidgetPayload.swift */; };
+		4B086A2CA369A19CCD526F49 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2BF4878BD3F1D8EE78969F21 /* Foundation.framework */; };
+		4C485D5C124579CD6BB852DD /* WidgetPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EFD79267C8F38CE5E539637 /* WidgetPayload.swift */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
@@ -15,10 +24,45 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		539150D8CF07BA060B3D7415 /* WalkLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F2D22E39374B1C1CFBCF389 /* WalkLiveActivity.swift */; };
+		652524BF3D1D9E49F52215F5 /* PetLifeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1C5B294941A377D2E6DB026E /* PetLifeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		87D13148A7E6D9F8000274A7 /* PetLifeWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F142DFDAF4C30B1B430EF9D9 /* PetLifeWidgetBundle.swift */; };
+		B4D43893D0DC973B488C48AF /* PetLifeBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 169242E0B7941B48CE220BF4 /* PetLifeBridgeViewController.swift */; };
+		F6E7AE5303DE2673905FEA11 /* WalkActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EE73BA3DFFE8E4420A5198B /* WalkActivityAttributes.swift */; };
+		FCE3B5CBB809308F522364D2 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64CECC7EB2A93B205F6E3DB2 /* SharedStore.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		B0A47C7D0DEC521DF3277EA0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4175BAAFAA50B6B8EC12EFC8;
+			remoteInfo = PetLifeWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		3CA3E50ADC4FCD465E1AE7F5 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				652524BF3D1D9E49F52215F5 /* PetLifeWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0D9FFBD76293C3D07997C764 /* PetLifeNativePlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetLifeNativePlugin.swift; sourceTree = "<group>"; };
+		169242E0B7941B48CE220BF4 /* PetLifeBridgeViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetLifeBridgeViewController.swift; sourceTree = "<group>"; };
+		1C5B294941A377D2E6DB026E /* PetLifeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; name = PetLifeWidget.appex; path = PetLifeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		2BF4878BD3F1D8EE78969F21 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
+		4EFD79267C8F38CE5E539637 /* WidgetPayload.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetPayload.swift; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -27,7 +71,16 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		64CECC7EB2A93B205F6E3DB2 /* SharedStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
+		67289F0CB6397CC71F761282 /* ProtectionWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProtectionWidget.swift; sourceTree = "<group>"; };
+		6ADDF0F34BD9CD52A9FF0A95 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		6F094827AF38532A5BBEE895 /* PetLifeWidget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = PetLifeWidget.entitlements; sourceTree = "<group>"; };
+		6F2D22E39374B1C1CFBCF389 /* WalkLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalkLiveActivity.swift; sourceTree = "<group>"; };
+		80D68630F1CDFF3A40C6A36B /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		87B5629C91A9EEAE02C8EC3A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		9EE73BA3DFFE8E4420A5198B /* WalkActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalkActivityAttributes.swift; sourceTree = "<group>"; };
+		F142DFDAF4C30B1B430EF9D9 /* PetLifeWidgetBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetLifeWidgetBundle.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,15 +92,49 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D7BBAF2F598E65BFD74ED8B5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4B086A2CA369A19CCD526F49 /* Foundation.framework in Frameworks */,
+				12760E5634FFD94BA1FFCF77 /* WidgetKit.framework in Frameworks */,
+				3A887D5D006597BD6AD38703 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1F45E574B77C996539304065 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				765F2C4E470CAC68639BA838 /* iOS */,
+				87B5629C91A9EEAE02C8EC3A /* WidgetKit.framework */,
+				6ADDF0F34BD9CD52A9FF0A95 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		33B4C1AF7B38CB685A4A8C69 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				64CECC7EB2A93B205F6E3DB2 /* SharedStore.swift */,
+				4EFD79267C8F38CE5E539637 /* WidgetPayload.swift */,
+				9EE73BA3DFFE8E4420A5198B /* WalkActivityAttributes.swift */,
+			);
+			name = Shared;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				504EC3051FED79650016851F /* Products */,
+				1F45E574B77C996539304065 /* Frameworks */,
+				33B4C1AF7B38CB685A4A8C69 /* Shared */,
+				C1B507BCF6C1DF416A615F41 /* PetLifeWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -55,6 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				1C5B294941A377D2E6DB026E /* PetLifeWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,13 +158,53 @@
 				504EC3131FED79650016851F /* Info.plist */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
+				0D9FFBD76293C3D07997C764 /* PetLifeNativePlugin.swift */,
+				169242E0B7941B48CE220BF4 /* PetLifeBridgeViewController.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		765F2C4E470CAC68639BA838 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				2BF4878BD3F1D8EE78969F21 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		C1B507BCF6C1DF416A615F41 /* PetLifeWidget */ = {
+			isa = PBXGroup;
+			children = (
+				F142DFDAF4C30B1B430EF9D9 /* PetLifeWidgetBundle.swift */,
+				67289F0CB6397CC71F761282 /* ProtectionWidget.swift */,
+				6F2D22E39374B1C1CFBCF389 /* WalkLiveActivity.swift */,
+				80D68630F1CDFF3A40C6A36B /* Info.plist */,
+				6F094827AF38532A5BBEE895 /* PetLifeWidget.entitlements */,
+			);
+			name = PetLifeWidget;
+			path = PetLifeWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		4175BAAFAA50B6B8EC12EFC8 /* PetLifeWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D33D7F2CB348A8EDC813E013 /* Build configuration list for PBXNativeTarget "PetLifeWidget" */;
+			buildPhases = (
+				1DDC4AE394B629F6F4D00E95 /* Sources */,
+				D7BBAF2F598E65BFD74ED8B5 /* Frameworks */,
+				83ED2902901CC3C6B91BB48A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PetLifeWidget;
+			productName = PetLifeWidget;
+			productReference = 1C5B294941A377D2E6DB026E /* PetLifeWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		504EC3031FED79650016851F /* App */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 504EC3161FED79650016851F /* Build configuration list for PBXNativeTarget "App" */;
@@ -84,10 +212,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				3CA3E50ADC4FCD465E1AE7F5 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				19983364A6C68396DFAB3156 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -130,6 +260,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				4175BAAFAA50B6B8EC12EFC8 /* PetLifeWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -148,18 +279,52 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		83ED2902901CC3C6B91BB48A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1DDC4AE394B629F6F4D00E95 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				35B23F2E113E2A7B14D80661 /* SharedStore.swift in Sources */,
+				4C485D5C124579CD6BB852DD /* WidgetPayload.swift in Sources */,
+				F6E7AE5303DE2673905FEA11 /* WalkActivityAttributes.swift in Sources */,
+				87D13148A7E6D9F8000274A7 /* PetLifeWidgetBundle.swift in Sources */,
+				0844E6F21507A38134353646 /* ProtectionWidget.swift in Sources */,
+				539150D8CF07BA060B3D7415 /* WalkLiveActivity.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3001FED79650016851F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				FCE3B5CBB809308F522364D2 /* SharedStore.swift in Sources */,
+				430631F6C85205197C9FC720 /* WidgetPayload.swift in Sources */,
+				41C02FF1920207C31C64C7A6 /* WalkActivityAttributes.swift in Sources */,
+				1B570B8280A2819CE33BFA6B /* PetLifeNativePlugin.swift in Sources */,
+				B4D43893D0DC973B488C48AF /* PetLifeBridgeViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		19983364A6C68396DFAB3156 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = PetLifeWidget;
+			target = 4175BAAFAA50B6B8EC12EFC8 /* PetLifeWidget */;
+			targetProxy = B0A47C7D0DEC521DF3277EA0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -181,6 +346,36 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		2E011B69BE1A999A6D359338 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = PetLifeWidget/PetLifeWidget.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 20;
+				DEVELOPMENT_TEAM = 2WND53C953;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PetLifeWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.2.12;
+				PRODUCT_BUNDLE_IDENTIFIER = app.petlife.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "app.petlife.widget AppStore";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		504EC3141FED79650016851F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
@@ -296,10 +491,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
-				CODE_SIGN_STYLE = Manual;
-				PROVISIONING_PROFILE_SPECIFIER = "app.petlife AppStore";
 				CODE_SIGN_IDENTITY = "Apple Distribution";
-				CURRENT_PROJECT_VERSION = 19;
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 20;
 				DEVELOPMENT_TEAM = 2WND53C953;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -307,13 +501,14 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.11;
+				MARKETING_VERSION = 1.2.12;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = app.petlife;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "app.petlife AppStore";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -322,10 +517,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
-				CODE_SIGN_STYLE = Manual;
-				PROVISIONING_PROFILE_SPECIFIER = "app.petlife AppStore";
 				CODE_SIGN_IDENTITY = "Apple Distribution";
-				CURRENT_PROJECT_VERSION = 19;
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 20;
 				DEVELOPMENT_TEAM = 2WND53C953;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -333,14 +527,42 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.11;
+				MARKETING_VERSION = 1.2.12;
 				PRODUCT_BUNDLE_IDENTIFIER = app.petlife;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "app.petlife AppStore";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
+		};
+		892C094EBBBB4857A6DE3E05 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = PetLifeWidget/PetLifeWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 20;
+				DEVELOPMENT_TEAM = 2WND53C953;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PetLifeWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.2.12;
+				PRODUCT_BUNDLE_IDENTIFIER = app.petlife.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -359,6 +581,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D33D7F2CB348A8EDC813E013 /* Build configuration list for PBXNativeTarget "PetLifeWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2E011B69BE1A999A6D359338 /* Release */,
+				892C094EBBBB4857A6DE3E05 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

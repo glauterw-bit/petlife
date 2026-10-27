@@ -9,7 +9,7 @@
  * painel do vet (lista simples). Os props antigos continuam iguais.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
+import { AnimatePresence, LayoutGroup, m } from 'framer-motion'
 import { ChevronDown, FileText, MoreHorizontal, Pencil, Plus, Syringe, Trash2 } from 'lucide-react'
 import { type Pet, type Vaccine } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
@@ -285,7 +285,7 @@ export function VaccineTimeline({
   }
 
   const renderCard = (v: Vaccine, superseded: boolean, flat = false) => (
-    <motion.li
+    <m.li
       key={v.id}
       layout="position"
       layoutId={`vac-${v.id}`}
@@ -314,7 +314,7 @@ export function VaccineTimeline({
         onMore={setMenuFor}
         onRegisterDose={superseded ? undefined : onRegisterDose}
       />
-    </motion.li>
+    </m.li>
   )
 
   const section = (id: UrgencyGroup, title: string, list: Vaccine[]) =>
@@ -357,7 +357,7 @@ export function VaccineTimeline({
                 </button>
                 <AnimatePresence initial={false}>
                   {showPrevious && (
-                    <motion.div
+                    <m.div
                       id="sec-previous-list"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
@@ -369,7 +369,7 @@ export function VaccineTimeline({
                       <ul className="space-y-3 pb-1">
                         <AnimatePresence initial={false}>{groups.previous.map(v => renderCard(v, true))}</AnimatePresence>
                       </ul>
-                    </motion.div>
+                    </m.div>
                   )}
                 </AnimatePresence>
               </section>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { AlertTriangle, ChevronDown, Smartphone, Trash2, UserPlus } from 'lucide-react'
 import { useToast } from '@/components/ui/ToastContext'
 import { crm, isCrmError, type Client, type Patient, type Item, type Member, type Appt, type RecordEntry } from '@/lib/crmApi'
@@ -181,11 +181,11 @@ export function PatientModal({ open, onClose, onSaved, clientId, initial }: {
           <button type="button" onClick={() => setGroom(g => !g)} aria-expanded={groom}
             className="w-full flex items-center justify-between gap-2 h-11 px-3 text-sm font-semibold text-ink">
             Ficha de banho e tosa
-            <motion.span animate={{ rotate: groom ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown className="w-4 h-4 text-muted" strokeWidth={1.75} /></motion.span>
+            <m.span animate={{ rotate: groom ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown className="w-4 h-4 text-muted" strokeWidth={1.75} /></m.span>
           </button>
           <AnimatePresence initial={false}>
             {groom && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+              <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
                 <div className="px-3 pb-3 space-y-3">
                   <div className={grid3}>
                     <Field label="Porte"><Select value={f.size} onChange={set('size')}><option value="">Não informado</option>{Object.entries(PET_SIZE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
@@ -194,7 +194,7 @@ export function PatientModal({ open, onClose, onSaved, clientId, initial }: {
                   </div>
                   <Field label="Observações"><TextArea rows={2} value={f.grooming_notes} onChange={set('grooming_notes')} placeholder="Ex.: não usar secador" /></Field>
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
@@ -474,7 +474,7 @@ export function ApptModal({ open, onClose, onSaved, initialStart, presetClient, 
 
         <AnimatePresence>
           {conflicts && (
-            <motion.div role="alert" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.2 }}
+            <m.div role="alert" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.2 }}
               className="rounded-xl bg-amber-50 dark:bg-amber-500/10 ring-1 ring-amber-200 dark:ring-amber-500/30 p-3">
               <p className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
                 <AlertTriangle className="w-4 h-4 shrink-0" strokeWidth={1.75} /> {conflictMsg || 'Horário ocupado.'}
@@ -490,7 +490,7 @@ export function ApptModal({ open, onClose, onSaved, initialStart, presetClient, 
                 <Btn size="sm" onClick={() => save(true)} loading={busy}>Agendar como encaixe</Btn>
                 <Btn size="sm" variant="ghost" onClick={() => setConflicts(null)}>Escolher outro horário</Btn>
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>

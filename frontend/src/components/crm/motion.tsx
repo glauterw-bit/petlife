@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { animate, motion, useReducedMotion, type Transition, type Variants } from 'framer-motion'
+import { animate, m, useReducedMotion, type Transition, type Variants } from 'framer-motion'
 
 /**
  * Movimento do PetLife Clínica. Tudo curto (até 320 ms), nada bloqueia o
@@ -36,14 +36,14 @@ export const slideDay: Variants = {
 }
 
 export function MotionList({ children, className, as = 'div' }: { children: ReactNode; className?: string; as?: 'ul' | 'div' | 'ol' }) {
-  const C = as === 'ul' ? motion.ul : as === 'ol' ? motion.ol : motion.div
+  const C = as === 'ul' ? m.ul : as === 'ol' ? m.ol : m.div
   return <C className={className} variants={listStagger} initial="hidden" animate="show">{children}</C>
 }
 
 export function MotionItem({ children, className, index = 0, as = 'div', layout, onClick }: {
   children: ReactNode; className?: string; index?: number; as?: 'li' | 'div'; layout?: boolean; onClick?: () => void
 }) {
-  const C = as === 'li' ? motion.li : motion.div
+  const C = as === 'li' ? m.li : m.div
   const delay = index > 12 ? 0 : Math.min(index, 12) * 0.03
   return (
     <C
@@ -77,19 +77,19 @@ export function AnimatedNumber({ value, format = defaultFmt, className }: { valu
 
 export function CheckBurst({ size = 56 }: { size?: number }) {
   return (
-    <motion.svg width={size} height={size} viewBox="0 0 52 52" aria-hidden initial="hidden" animate="show" className="text-primary-500">
-      <motion.circle
+    <m.svg width={size} height={size} viewBox="0 0 52 52" aria-hidden initial="hidden" animate="show" className="text-primary-500">
+      <m.circle
         cx="26" cy="26" r="23" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"
         variants={{ hidden: { pathLength: 0, opacity: 0 }, show: { pathLength: 1, opacity: 1, transition: { duration: dur.slow, ease: easeOut } } }}
       />
-      <motion.path
+      <m.path
         d="M15 27 l7 7 l15 -16" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
         variants={{ hidden: { pathLength: 0 }, show: { pathLength: 1, transition: { duration: dur.base, ease: easeOut, delay: 0.12 } } }}
       />
-    </motion.svg>
+    </m.svg>
   )
 }
 
 export function PageTransition({ children }: { children: ReactNode }) {
-  return <motion.div variants={fadeUp} initial="hidden" animate="show">{children}</motion.div>
+  return <m.div variants={fadeUp} initial="hidden" animate="show">{children}</m.div>
 }

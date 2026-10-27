@@ -1,7 +1,7 @@
 'use client'
 
 import type { KeyboardEvent, ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { ChevronRight, Inbox } from 'lucide-react'
 import { MotionItem, dur } from '../motion'
 import { SkeletonRows } from './Skeleton'
@@ -44,7 +44,7 @@ export function DataList<T>({ rows, columns, rowKey, renderMobile, onRowClick, r
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <motion.tr key={rowKey(r)} {...clickable}
+              <m.tr key={rowKey(r)} {...clickable}
                 onClick={onRowClick ? () => onRowClick(r) : undefined} onKeyDown={onRowClick ? keyOpen(r) : undefined}
                 initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: dur.base, ease: easeOut, delay: i < 12 ? i * 0.03 : 0 }}
@@ -57,7 +57,7 @@ export function DataList<T>({ rows, columns, rowKey, renderMobile, onRowClick, r
                     <div className="inline-flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">{rowActions(r)}</div>
                   </td>
                 )}
-              </motion.tr>
+              </m.tr>
             ))}
           </tbody>
         </table>

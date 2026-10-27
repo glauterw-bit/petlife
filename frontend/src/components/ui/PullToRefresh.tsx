@@ -6,7 +6,7 @@
  * de 72 px, vibração leve ao cruzar o limiar e indicador até a promise acabar.
  */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
+import { m, useMotionValue, useTransform, animate } from 'framer-motion'
 import { PawPrint, Loader2 } from 'lucide-react'
 import { useT } from '@/contexts/LocaleContext'
 import { hapticLight } from '@/lib/feedback'
@@ -138,23 +138,23 @@ export function PullToRefresh({
 
   return (
     <div className="relative">
-      <motion.div
+      <m.div
         aria-hidden={!refreshing}
         role={refreshing ? 'status' : undefined}
         className="pointer-events-none absolute left-0 right-0 -top-2 flex flex-col items-center gap-1"
         style={{ opacity, y: indicatorY }}
       >
-        <motion.span
+        <m.span
           className="w-9 h-9 rounded-full bg-white dark:bg-surface-800 shadow-card border border-surface-200/70 dark:border-surface-700 flex items-center justify-center text-primary-700 dark:text-primary-300"
           style={{ rotate: refreshing ? undefined : rotate, scale }}
         >
           {refreshing ? <Loader2 className="w-[18px] h-[18px] animate-spin" /> : <PawPrint className="w-[18px] h-[18px]" />}
-        </motion.span>
+        </m.span>
         <span className="text-[11px] font-medium text-surface-500 dark:text-surface-400">
           {refreshing ? t('ui.ptr.loading') : armed ? t('ui.ptr.release') : t('ui.ptr.pull')}
         </span>
-      </motion.div>
-      <motion.div style={{ y }}>{children}</motion.div>
+      </m.div>
+      <m.div style={{ y }}>{children}</m.div>
     </div>
   )
 }

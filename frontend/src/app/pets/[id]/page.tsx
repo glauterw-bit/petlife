@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, FormEvent } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import {
   Edit2, Camera, PawPrint, Heart, Route, Stethoscope, Sparkles, Plus, AlertTriangle, CheckCircle,
   AlertCircle, Info, Syringe, IdCard, Share2, Ellipsis, History, Image as ImageIcon, GitFork,
@@ -694,7 +694,7 @@ export default function PetProfilePage() {
 
           <AnimatePresence initial={false}>
             {extraOpen && (
-              <motion.div
+              <m.div
                 id="pet-more"
                 key="pet-more"
                 initial={{ opacity: 0, y: 8 }}
@@ -751,7 +751,7 @@ export default function PetProfilePage() {
                     </div>
                   )}
                 </Card>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>

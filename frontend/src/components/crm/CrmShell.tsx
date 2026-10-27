@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { AnimatePresence, MotionConfig, motion, useMotionValueEvent, useScroll } from 'framer-motion'
+import { AnimatePresence, MotionConfig, m, useMotionValueEvent, useScroll } from 'framer-motion'
 import {
   BarChart3, Bell, CalendarDays, CalendarPlus, ClipboardList, LayoutDashboard, LogOut, Menu as MenuIcon, Moon, Package,
   PanelLeftClose, PanelLeftOpen, PawPrint, Plus, Search, ShoppingCart, Smartphone, Sun, UserCog, UserPlus, Users, Wallet,
@@ -223,7 +223,7 @@ function Frame({ me, children }: { me: CrmMe; children: ReactNode }) {
       </a>
       <div className="min-h-screen bg-bg text-ink flex">
         {/* menu lateral (computador) */}
-        <motion.aside
+        <m.aside
           initial={false}
           animate={{ width: collapsed ? 64 : 240 }}
           transition={spring.soft}
@@ -256,7 +256,7 @@ function Frame({ me, children }: { me: CrmMe; children: ReactNode }) {
                           title={collapsed ? n.label : undefined} aria-label={collapsed ? n.label : undefined}
                           className={`relative flex items-center gap-3 h-9 rounded-lg text-sm font-medium transition-colors ${collapsed ? 'justify-center px-0' : 'px-2.5'}
                             ${active ? 'text-primary-700 dark:text-primary-300' : 'text-ink/75 hover:text-ink hover:bg-panel-2'}`}>
-                          {active && <motion.span layoutId="nav-active" transition={spring.snappy} className="absolute inset-0 rounded-lg bg-primary-50 dark:bg-primary-500/15" />}
+                          {active && <m.span layoutId="nav-active" transition={spring.snappy} className="absolute inset-0 rounded-lg bg-primary-50 dark:bg-primary-500/15" />}
                           <n.Icon className="relative w-[18px] h-[18px] shrink-0" strokeWidth={1.75} aria-hidden />
                           {!collapsed && <span className="relative truncate">{n.label}</span>}
                         </Link>
@@ -291,7 +291,7 @@ function Frame({ me, children }: { me: CrmMe; children: ReactNode }) {
               {collapsed ? <PanelLeftOpen className="w-[18px] h-[18px]" strokeWidth={1.75} /> : <><PanelLeftClose className="w-[18px] h-[18px]" strokeWidth={1.75} /><span>Recolher</span></>}
             </button>
           </div>
-        </motion.aside>
+        </m.aside>
 
         <div className="flex-1 min-w-0 flex flex-col">
           {/* cabeçalho */}
@@ -323,9 +323,9 @@ function Frame({ me, children }: { me: CrmMe; children: ReactNode }) {
             <button type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} title={dark ? 'Tema claro' : 'Tema escuro'}
               className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink hover:bg-panel-2 overflow-hidden">
               <AnimatePresence mode="wait" initial={false}>
-                <motion.span key={dark ? 'sun' : 'moon'} initial={{ rotate: -60, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 60, opacity: 0 }} transition={{ duration: 0.16 }}>
+                <m.span key={dark ? 'sun' : 'moon'} initial={{ rotate: -60, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 60, opacity: 0 }} transition={{ duration: 0.16 }}>
                   {dark ? <Sun className="w-[18px] h-[18px]" strokeWidth={1.75} /> : <Moon className="w-[18px] h-[18px]" strokeWidth={1.75} />}
-                </motion.span>
+                </m.span>
               </AnimatePresence>
             </button>
             <div className="hidden md:block">
@@ -352,7 +352,7 @@ function Frame({ me, children }: { me: CrmMe; children: ReactNode }) {
                 <Link href={n.href} aria-current={active ? 'page' : undefined}
                   className={`relative h-full flex flex-col items-center justify-center gap-1 text-2xs font-semibold ${active ? 'text-primary-700 dark:text-primary-300' : 'text-muted'}`}>
                   <span className="relative inline-flex h-7 w-12 items-center justify-center">
-                    {active && <motion.span layoutId="bnav-active" transition={spring.snappy} className="absolute inset-0 rounded-full bg-primary-50 dark:bg-primary-500/15" />}
+                    {active && <m.span layoutId="bnav-active" transition={spring.snappy} className="absolute inset-0 rounded-full bg-primary-50 dark:bg-primary-500/15" />}
                     <n.Icon className="relative w-5 h-5" strokeWidth={1.75} aria-hidden />
                   </span>
                   {SHORT[n.href] ?? n.label}
@@ -364,7 +364,7 @@ function Frame({ me, children }: { me: CrmMe; children: ReactNode }) {
             <button type="button" onClick={() => setMore(true)} aria-haspopup="dialog" aria-expanded={more}
               className={`relative w-full h-full flex flex-col items-center justify-center gap-1 text-2xs font-semibold ${moreActive ? 'text-primary-700 dark:text-primary-300' : 'text-muted'}`}>
               <span className="relative inline-flex h-7 w-12 items-center justify-center">
-                {moreActive && <motion.span layoutId="bnav-active" transition={spring.snappy} className="absolute inset-0 rounded-full bg-primary-50 dark:bg-primary-500/15" />}
+                {moreActive && <m.span layoutId="bnav-active" transition={spring.snappy} className="absolute inset-0 rounded-full bg-primary-50 dark:bg-primary-500/15" />}
                 <MenuIcon className="relative w-5 h-5" strokeWidth={1.75} aria-hidden />
               </span>
               Mais

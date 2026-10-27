@@ -19,7 +19,7 @@
  * fica em dia, um brilho percorre o anel (600 ms) com vibração de marco.
  */
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
 import { usePrefersReducedMotion, spring } from '@/lib/motion'
@@ -214,14 +214,14 @@ export function ProtectionRing({
                 <path d={d} fill="none" strokeWidth={stroke} strokeLinecap="round" className="stroke-surface-200/70 dark:stroke-surface-800" />
               )}
               {isNever ? (
-                <motion.path
+                <m.path
                   {...common}
                   initial={draw ? { opacity: 0 } : false}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3, delay: draw ? i * 0.08 : 0 }}
                 />
               ) : (
-                <motion.path
+                <m.path
                   key={pulsing ? `p-${nonce}` : 'static'}
                   {...common}
                   initial={draw || pulsing ? { pathLength: 0 } : false}
@@ -269,7 +269,7 @@ export function ProtectionRing({
           reduced ? (
             <circle cx={c} cy={c} r={r} fill="none" strokeWidth={stroke + 4} className="stroke-emerald-300/70 dark:stroke-emerald-400/60" />
           ) : (
-            <motion.circle
+            <m.circle
               key={`glow-${complete}`}
               cx={c}
               cy={c}
@@ -311,7 +311,7 @@ export function ProtectionRing({
       {ringEl}
       <AnimatePresence initial={false}>
         {legend && (
-          <motion.ul
+          <m.ul
             id={legendId}
             key="legend"
             initial={reduced ? { opacity: 0 } : { opacity: 0, y: -4 }}
@@ -327,7 +327,7 @@ export function ProtectionRing({
                 <span className="text-surface-600 dark:text-surface-300">{careStateLabel(t, item.state, item.daysLeft)}</span>
               </li>
             ))}
-          </motion.ul>
+          </m.ul>
         )}
       </AnimatePresence>
     </div>

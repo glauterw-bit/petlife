@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import type { CareKind, PetCareSummary } from '@/lib/care'
 import { homeChoreo } from '@/lib/motion'
 import { haptic } from '@/lib/feedback'
@@ -105,7 +105,7 @@ export function HomeHero({
   })
 
   return (
-    <motion.section
+    <m.section
       aria-label={t('home.hero.carouselAria')}
       initial={choreo ? 'hidden' : false}
       animate="show"
@@ -120,7 +120,7 @@ export function HomeHero({
           className="no-scrollbar -mx-4 px-4 flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-4 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-visible"
         >
           {summaries.map((s, i) => (
-            <motion.div
+            <m.div
               key={s.pet.id}
               variants={homeChoreo.item}
               ref={el => { slides.current[i] = el }}
@@ -130,14 +130,14 @@ export function HomeHero({
               aria-label={`${i + 1} / ${summaries.length}: ${s.pet.name}`}
             >
               <PetHero {...heroProps(s)} />
-            </motion.div>
+            </m.div>
           ))}
         </div>
       ) : (
         summaries[0] && (
-          <motion.div variants={homeChoreo.item}>
+          <m.div variants={homeChoreo.item}>
             <PetHero {...heroProps(summaries[0])} />
-          </motion.div>
+          </m.div>
         )
       )}
 
@@ -163,6 +163,6 @@ export function HomeHero({
           ))}
         </div>
       )}
-    </motion.section>
+    </m.section>
   )
 }

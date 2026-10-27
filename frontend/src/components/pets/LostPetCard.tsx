@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { QrCode as QrIcon, Siren, Printer, Image as ImageIcon, MessageCircle, Home } from 'lucide-react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { pets as petsApi } from '@/lib/api'
 import { track } from '@/lib/track'
 import { shareCardImage } from '@/lib/shareCard'
@@ -210,7 +210,7 @@ export function LostPetCard({ petId, petName, petPhoto }: { petId: number; petNa
 
       <AnimatePresence initial={false} mode="wait">
         {editing ? (
-          <motion.div
+          <m.div
             key="form"
             variants={variants.fadeUp}
             initial="hidden"
@@ -237,14 +237,14 @@ export function LostPetCard({ petId, petName, petPhoto }: { petId: number; petNa
               <Button variant="secondary" onClick={() => setEditing(false)}>{t('common.cancel')}</Button>
               <Button variant="danger" leftIcon={Siren} loading={saving} onClick={() => save(true)}>{t('petx.lost.activate')}</Button>
             </div>
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div key="cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: dur.micro }} className="mt-4">
+          <m.div key="cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: dur.micro }} className="mt-4">
             <Button fullWidth size="lg" variant="danger" leftIcon={Siren} onClick={() => setEditing(true)}>
               {t('petx.lost.cta')}
             </Button>
             <p className="mt-2 text-center text-[13px] text-surface-600 dark:text-surface-400">{t('petx.lost.ctaHint')}</p>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </Card>

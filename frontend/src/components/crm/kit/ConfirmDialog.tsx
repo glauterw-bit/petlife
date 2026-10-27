@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { AlertTriangle } from 'lucide-react'
 import { Btn, Input, TextArea } from '../ui'
 import { useFocusTrap, useLayer } from './layers'
@@ -73,9 +73,9 @@ function Dialog({ pending, onDone }: { pending: Pending; onDone: (v: boolean | s
 
   return (
     <div className="crm-layer fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: z }}>
-      <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" aria-hidden onClick={cancel}
+      <m.div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" aria-hidden onClick={cancel}
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }} />
-      <motion.div
+      <m.div
         ref={ref} role="alertdialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}
         className="relative w-full max-w-[420px] rounded-2xl bg-panel text-ink shadow-crm-pop p-5 outline-none"
         initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }}
@@ -111,7 +111,7 @@ function Dialog({ pending, onDone }: { pending: Pending; onDone: (v: boolean | s
             </Btn>
           </div>
         </form>
-      </motion.div>
+      </m.div>
     </div>
   )
 }

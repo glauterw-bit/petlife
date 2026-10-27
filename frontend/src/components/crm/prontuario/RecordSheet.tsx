@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { BookmarkPlus, ChevronDown, FileText, Settings2, Smartphone, Sparkles, Trash2 } from 'lucide-react'
 import { useToast } from '@/components/ui/ToastContext'
 import { crm, isCrmError, type Patient, type RecordEntry, type RecordInput, type RecordTemplate } from '@/lib/crmApi'
@@ -231,7 +231,7 @@ export function RecordSheet({ open, onClose, onSaved, patient, kind: kindProp, i
           </div>
 
           <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={isVac ? 'vac' : isSoap ? 'soap' : 'note'} className="space-y-4"
+            <m.div key={isVac ? 'vac' : isSoap ? 'soap' : 'note'} className="space-y-4"
               initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: dur.fast }}>
               {isVac ? (
                 <>
@@ -253,7 +253,7 @@ export function RecordSheet({ open, onClose, onSaved, patient, kind: kindProp, i
                   </div>
                   <AnimatePresence initial={false}>
                     {protocol && suggestion && (
-                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                      <m.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: dur.base }} className="overflow-hidden">
                         <div className="flex items-start gap-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 px-3 py-2.5 text-xs text-blue-800 dark:text-blue-200">
                           <Sparkles className="w-4 h-4 shrink-0 mt-px" strokeWidth={1.75} aria-hidden />
@@ -269,7 +269,7 @@ export function RecordSheet({ open, onClose, onSaved, patient, kind: kindProp, i
                               className="shrink-0 font-semibold underline underline-offset-2">Usar</button>
                           )}
                         </div>
-                      </motion.div>
+                      </m.div>
                     )}
                   </AnimatePresence>
                   <Field label="Observações"><TextArea rows={2} value={f.body} onChange={set('body')} placeholder="Reações, local de aplicação…" /></Field>
@@ -298,13 +298,13 @@ export function RecordSheet({ open, onClose, onSaved, patient, kind: kindProp, i
                     <button type="button" onClick={() => setVitalsOpen(v => !v)} aria-expanded={vitalsOpen}
                       className="w-full flex items-center justify-between h-10 px-3 text-2xs font-semibold uppercase tracking-wider text-muted">
                       Sinais vitais
-                      <motion.span animate={{ rotate: vitalsOpen ? 180 : 0 }} transition={{ duration: dur.base }}>
+                      <m.span animate={{ rotate: vitalsOpen ? 180 : 0 }} transition={{ duration: dur.base }}>
                         <ChevronDown className="w-4 h-4" strokeWidth={1.75} aria-hidden />
-                      </motion.span>
+                      </m.span>
                     </button>
                     <AnimatePresence initial={false}>
                       {vitalsOpen && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: dur.base }} className="overflow-hidden">
                           <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 gap-3 px-3 pb-3">
                             <Field label="Peso" error={errs.weight}><DecimalInput value={f.weight} onChange={setV('weight')} suffix="kg" placeholder="0,0" /></Field>
@@ -330,7 +330,7 @@ export function RecordSheet({ open, onClose, onSaved, patient, kind: kindProp, i
                               </Select>
                             </Field>
                           </div>
-                        </motion.div>
+                        </m.div>
                       )}
                     </AnimatePresence>
                   </div>
@@ -366,7 +366,7 @@ export function RecordSheet({ open, onClose, onSaved, patient, kind: kindProp, i
                   </div>
                 </>
               )}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
       </Sheet>

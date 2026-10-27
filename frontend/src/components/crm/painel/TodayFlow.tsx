@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { LayoutGroup, motion } from 'framer-motion'
+import { LayoutGroup, m } from 'framer-motion'
 import { ArrowRight, CalendarDays, Plus, Receipt, type LucideIcon } from 'lucide-react'
 import type { Appt, ApptStatus } from '@/lib/crmApi'
 import { Badge, Btn, fmtTime, nextStep } from '@/components/crm/ui'
@@ -62,7 +62,7 @@ function FlowRow({ a, i, now, onStatus, highlight }: {
   const canFinish = IN_CLINIC.indexOf(a.status) >= 0
   const past = a.status === 'concluido' || a.status === 'cancelado' || a.status === 'faltou'
   return (
-    <motion.li
+    <m.li
       layout="position"
       layoutId={`flow-${a.id}`}
       initial={{ opacity: 0, y: 6 }}
@@ -101,7 +101,7 @@ function FlowRow({ a, i, now, onStatus, highlight }: {
           <Btn size="sm" icon={Receipt} onClick={() => router.push(`/clinica/caixa?appointment=${a.id}`)}>Finalizar</Btn>
         )}
       </div>
-    </motion.li>
+    </m.li>
   )
 }
 

@@ -7,7 +7,7 @@
  */
 import Link from 'next/link'
 import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
 import { Eye, EyeOff, PawPrint, AlertCircle, Info, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { useT } from '@/contexts/LocaleContext'
@@ -30,7 +30,7 @@ export function AuthFrame({
 }) {
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-surface-950 dark:via-surface-900 dark:to-surface-950 flex items-center justify-center px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-      <motion.div
+      <m.div
         className="w-full max-w-md"
         variants={variants.fadeUp}
         initial="hidden"
@@ -52,7 +52,7 @@ export function AuthFrame({
           {children}
         </div>
         {footer}
-      </motion.div>
+      </m.div>
     </div>
   )
 }
@@ -78,7 +78,7 @@ export function Notice({
   const { cls, Icon: DefaultIcon } = TONES[tone]
   const Icon = icon ?? DefaultIcon
   return (
-    <motion.div
+    <m.div
       role={tone === 'danger' ? 'alert' : 'status'}
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
@@ -87,7 +87,7 @@ export function Notice({
     >
       <Icon className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
       <div className="min-w-0">{children}</div>
-    </motion.div>
+    </m.div>
   )
 }
 

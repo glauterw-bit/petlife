@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
-import { motion, LayoutGroup } from 'framer-motion'
+import { m, LayoutGroup } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { haptic } from '@/lib/feedback'
@@ -153,7 +153,7 @@ export function Tabs<T extends string>({
               )}
             >
               {active && (
-                <motion.span
+                <m.span
                   layoutId={`${pillId}-indicator`}
                   transition={spring.snappy}
                   aria-hidden

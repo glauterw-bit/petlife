@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import {
   Share2, Trash2, Smile, Frown, Meh, Heart, Download, Instagram, MessageCircle, Camera, Image as ImageIcon,
   Route, Timer, Gauge, PawPrint, Flame, Check,
@@ -375,7 +375,7 @@ export default function WalkDetailPage() {
         />
 
         {/* ── Boletim do passeio ─────────────────────────── */}
-        <motion.article
+        <m.article
           aria-labelledby="walk-report-title"
           className="rounded-3xl overflow-hidden bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 shadow-card"
           initial="hidden"
@@ -444,7 +444,7 @@ export default function WalkDetailPage() {
               {reportSent ? t('wk.report.shared') : t('wk.report.share')}
             </Button>
           </div>
-        </motion.article>
+        </m.article>
 
         {(walk.route_points?.length ?? 0) >= 4 && (
           <div className="mt-4">

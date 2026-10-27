@@ -6,10 +6,12 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { LocaleProvider } from '@/contexts/LocaleContext'
 import { ToastProvider } from '@/components/ui/ToastContext'
 import { DeepLinks } from '@/components/native/DeepLinks'
+import { WidgetSync } from '@/components/native/WidgetSync'
 import { InstallPing } from '@/components/native/InstallPing'
 import { Telemetry } from '@/components/native/Telemetry'
 import { TutorShell } from '@/components/layout/TutorShell'
 import { ConfirmProvider } from '@/components/ui/Confirm'
+import { MotionProvider } from '@/components/motion/MotionProvider'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 // Display arredondada só para títulos — o "fofo" que o nicho pet pede,
@@ -76,18 +78,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <ThemeProvider>
-          <LocaleProvider>
-            <AuthProvider>
-              <ToastProvider>
-                <DeepLinks />
-                <InstallPing />
-                <Telemetry />
-                <ConfirmProvider>
-                  <TutorShell>{children}</TutorShell>
-                </ConfirmProvider>
-              </ToastProvider>
-            </AuthProvider>
-          </LocaleProvider>
+          <MotionProvider>
+            <LocaleProvider>
+              <AuthProvider>
+                <ToastProvider>
+                  <DeepLinks />
+                  <WidgetSync />
+                  <InstallPing />
+                  <Telemetry />
+                  <ConfirmProvider>
+                    <TutorShell>{children}</TutorShell>
+                  </ConfirmProvider>
+                </ToastProvider>
+              </AuthProvider>
+            </LocaleProvider>
+          </MotionProvider>
         </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{

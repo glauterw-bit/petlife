@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PawPrint, Syringe, IdCard, ArrowRight, ChevronLeft, Dog, Cat, QrCode, CircleDashed } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
 import { savePetDraft, loadPetDraft } from '@/lib/petDraft'
@@ -98,7 +98,7 @@ export default function StartPage() {
 
       <div className={`flex-1 flex flex-col max-w-md w-full mx-auto ${step === 0 ? 'justify-start pt-2 pb-4' : 'justify-center py-4'}`}>
         <AnimatePresence mode="wait" initial={false}>
-          <motion.div
+          <m.div
             key={step}
             initial={{ opacity: 0, x: reduced ? 0 : 14 }}
             animate={{ opacity: 1, x: 0 }}
@@ -154,7 +154,7 @@ export default function StartPage() {
                 </div>
               </>
             )}
-          </motion.div>
+          </m.div>
         </AnimatePresence>
       </div>
 
@@ -199,25 +199,25 @@ function Welcome({ cheering, reduced }: { cheering: boolean; reduced: boolean })
     ? { hidden: { opacity: 1, y: 0 }, show: { opacity: 1, y: 0 } }
     : { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: dur.base, ease: easeOut } } }
   return (
-    <motion.div
+    <m.div
       initial="hidden"
       animate="show"
       variants={{ hidden: {}, show: { transition: reduced ? {} : { staggerChildren: 0.06, delayChildren: 0.04 } } }}
     >
-      <motion.div variants={item} className="flex justify-start mb-4">
+      <m.div variants={item} className="flex justify-start mb-4">
         <span className="relative inline-flex items-center justify-center w-[104px] h-[104px] rounded-full bg-primary-100/70 dark:bg-primary-500/15">
           <VyronAvatar size={88} state={cheering ? 'celebrating' : 'idle'} />
         </span>
-      </motion.div>
-      <motion.h1 variants={item} className="font-display text-[30px] font-extrabold tracking-tight text-surface-900 dark:text-white leading-tight mb-2">
+      </m.div>
+      <m.h1 variants={item} className="font-display text-[30px] font-extrabold tracking-tight text-surface-900 dark:text-white leading-tight mb-2">
         {t('st.welcomeTitle')}
-      </motion.h1>
-      <motion.p variants={item} className="text-[15px] leading-relaxed text-surface-600 dark:text-surface-300 mb-6">
+      </m.h1>
+      <m.p variants={item} className="text-[15px] leading-relaxed text-surface-600 dark:text-surface-300 mb-6">
         {t('st.welcomeBody')}
-      </motion.p>
+      </m.p>
       <ol aria-label={t('st.howAria')} className="relative">
         {steps.map(({ Icon, title, desc }, i) => (
-          <motion.li key={title} variants={item} className="relative flex gap-3.5 pb-5 last:pb-0">
+          <m.li key={title} variants={item} className="relative flex gap-3.5 pb-5 last:pb-0">
             {i < steps.length - 1 && (
               <span aria-hidden className="absolute left-[21px] top-12 bottom-1 w-0.5 rounded-full bg-primary-200 dark:bg-primary-500/25" />
             )}
@@ -231,10 +231,10 @@ function Welcome({ cheering, reduced }: { cheering: boolean; reduced: boolean })
               <p className="text-[15px] font-bold text-surface-900 dark:text-white leading-snug">{title}</p>
               <p className="text-sm text-surface-600 dark:text-surface-300 leading-snug mt-0.5">{desc}</p>
             </div>
-          </motion.li>
+          </m.li>
         ))}
       </ol>
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -246,7 +246,7 @@ function PreviewCard({ name, species }: { name: string; species: 'dog' | 'cat' |
   const t = useT()
   const Icon = species === 'dog' ? Dog : species === 'cat' ? Cat : PawPrint
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 12, rotate: -2 }}
       animate={{ opacity: 1, y: 0, rotate: -1.5 }}
       transition={spring.soft}
@@ -262,7 +262,7 @@ function PreviewCard({ name, species }: { name: string; species: 'dog' | 'cat' |
       <div className="relative flex items-center gap-3 mt-4">
         <span className="w-14 h-14 rounded-full bg-white/20 ring-2 ring-white/40 flex items-center justify-center shrink-0">
           <AnimatePresence mode="popLayout" initial={false}>
-            <motion.span
+            <m.span
               key={species ?? 'none'}
               initial={{ scale: 0.6, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -271,7 +271,7 @@ function PreviewCard({ name, species }: { name: string; species: 'dog' | 'cat' |
               className="flex"
             >
               <Icon className="w-7 h-7" aria-hidden />
-            </motion.span>
+            </m.span>
           </AnimatePresence>
         </span>
         <div className="min-w-0">
@@ -290,6 +290,6 @@ function PreviewCard({ name, species }: { name: string; species: 'dog' | 'cat' |
         </span>
         <QrCode className="w-8 h-8 text-white/70" aria-hidden />
       </div>
-    </motion.div>
+    </m.div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import { X, Send, ChevronDown, Check, Dog, Cat, PawPrint } from 'lucide-react'
 import { VyronAvatar } from './VyronAvatar'
 import { ai, billing, type Pet } from '@/lib/api'
@@ -190,7 +190,7 @@ export function AIChatWidget({ pets, hidden = false }: AIChatWidgetProps) {
             aria-hidden={tucked || undefined}
             style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
           >
-            <motion.button
+            <m.button
               type="button"
               onClick={() => { haptic('tap'); setOpen(true) }}
               aria-label={t('shell.assistant')}
@@ -204,7 +204,7 @@ export function AIChatWidget({ pets, hidden = false }: AIChatWidgetProps) {
               className="w-[52px] h-[52px] rounded-full flex items-center justify-center bg-white dark:bg-surface-800 border border-primary-200 dark:border-primary-500/30 shadow-float origin-bottom-right"
             >
               <VyronAvatar size={40} state="idle" />
-            </motion.button>
+            </m.button>
           </div>
         )}
       </AnimatePresence>
@@ -212,7 +212,7 @@ export function AIChatWidget({ pets, hidden = false }: AIChatWidgetProps) {
       {/* Chat */}
       <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           key="vyron-panel"
           role="dialog"
           aria-label="Vyron"
@@ -364,7 +364,7 @@ export function AIChatWidget({ pets, hidden = false }: AIChatWidgetProps) {
               <Send className="w-4 h-4" aria-hidden />
             </button>
           </div>
-        </motion.div>
+        </m.div>
       )}
       </AnimatePresence>
     </>

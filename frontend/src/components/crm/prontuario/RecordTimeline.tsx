@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Ban, ChevronDown, Lock, MessageSquarePlus, Pencil, Plus, Smartphone, Stethoscope, Trash2 } from 'lucide-react'
 import { crm, isCrmError, type RecordEntry } from '@/lib/crmApi'
 import { useToast } from '@/components/ui/ToastContext'
@@ -127,7 +127,7 @@ export function RecordTimeline({ records, canAct, meId, isAdmin, onEdit, onNew, 
               <span aria-hidden className={`absolute left-0 top-1 h-10 w-10 rounded-full inline-flex items-center justify-center ring-4 ring-panel ${voided ? 'bg-panel-2 text-muted' : meta.cls}`}>
                 <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
               </span>
-              <motion.div layout transition={{ duration: dur.base }} className={`rounded-xl transition-colors ${open ? 'bg-panel-2/60' : 'hover:bg-panel-2/40'}`}>
+              <m.div layout transition={{ duration: dur.base }} className={`rounded-xl transition-colors ${open ? 'bg-panel-2/60' : 'hover:bg-panel-2/40'}`}>
                 <button type="button" onClick={() => setOpenId(open ? null : r.id)} aria-expanded={open}
                   className="w-full text-left px-3 py-2.5 flex items-start gap-2 rounded-xl">
                   <span className="min-w-0 flex-1">
@@ -143,13 +143,13 @@ export function RecordTimeline({ records, canAct, meId, isAdmin, onEdit, onNew, 
                     {voided && <span className="block text-xs text-red-600 dark:text-red-400 mt-0.5">Anulado: {r.void_reason}</span>}
                     {!open && !voided && preview(r) && <span className="block text-xs text-muted/90 truncate mt-0.5">{preview(r)}</span>}
                   </span>
-                  <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: dur.base }} className="mt-0.5 text-muted">
+                  <m.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: dur.base }} className="mt-0.5 text-muted">
                     <ChevronDown className="w-4 h-4" strokeWidth={1.75} aria-hidden />
-                  </motion.span>
+                  </m.span>
                 </button>
                 <AnimatePresence initial={false}>
                   {open && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                    <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: dur.base }} className="overflow-hidden">
                       <div className={`px-3 pb-3 space-y-3 ${voided ? 'opacity-60' : ''}`}>
                         {r.kind === 'vacina' && (
@@ -187,10 +187,10 @@ export function RecordTimeline({ records, canAct, meId, isAdmin, onEdit, onNew, 
                         )}
                         {!r.locked && !voided && <p className="text-2xs text-muted">Pode ser editado até 24 horas depois de criado.</p>}
                       </div>
-                    </motion.div>
+                    </m.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
+              </m.div>
             </MotionItem>
           )
         })}

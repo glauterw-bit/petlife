@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { weekRange } from '../ui'
 import { useLayer } from './layers'
@@ -94,7 +94,7 @@ function Picker({ mode, value, onClose, onPick }: { mode: 'day' | 'week' | 'mont
   }
 
   return (
-    <motion.div ref={ref} role="dialog" aria-label="Escolher data"
+    <m.div ref={ref} role="dialog" aria-label="Escolher data"
       className="absolute left-0 top-full mt-2 w-[296px] max-w-[calc(100vw-32px)] rounded-xl bg-panel p-3 shadow-crm-pop text-ink"
       style={{ zIndex: z, transformOrigin: 'top left' }}
       initial={{ opacity: 0, scale: 0.96, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: -4 }}
@@ -145,6 +145,6 @@ function Picker({ mode, value, onClose, onPick }: { mode: 'day' | 'week' | 'mont
           </div>
         </>
       )}
-    </motion.div>
+    </m.div>
   )
 }

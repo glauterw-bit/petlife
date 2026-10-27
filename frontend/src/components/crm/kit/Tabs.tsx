@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, type KeyboardEvent } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { spring } from '../motion'
 
 export function Tabs<T extends string>({ value, onChange, tabs, id, className = '' }: {
@@ -33,7 +33,7 @@ export function Tabs<T extends string>({ value, onChange, tabs, id, className = 
               {t.label}
               {t.count != null && <span className="tabular-nums text-2xs rounded-full px-1.5 bg-panel-2 text-muted">{t.count}</span>}
             </span>
-            {active && <motion.span layoutId={`tabs-${id}`} transition={spring.snappy} className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full bg-primary-500 dark:bg-primary-400" />}
+            {active && <m.span layoutId={`tabs-${id}`} transition={spring.snappy} className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full bg-primary-500 dark:bg-primary-400" />}
           </button>
         )
       })}

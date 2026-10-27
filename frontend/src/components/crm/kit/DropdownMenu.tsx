@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
 import { useLayer } from './layers'
 
@@ -108,7 +108,7 @@ function Menu({ id, anchor, items, align, ariaLabel, onClose }: {
   }
 
   return (
-    <motion.div
+    <m.div
       ref={ref} id={id} role="menu" aria-label={ariaLabel} onKeyDown={onKey}
       className="fixed min-w-[200px] max-w-[min(320px,calc(100vw-16px))] rounded-xl bg-panel p-1 shadow-crm-pop text-ink"
       style={{ zIndex: z + 1, top: pos?.top ?? -9999, left: pos?.left ?? -9999, transformOrigin: pos?.up ? 'bottom' : 'top' }}
@@ -127,6 +127,6 @@ function Menu({ id, anchor, items, align, ariaLabel, onClose }: {
             {it.hint && <span className="text-2xs text-muted shrink-0">{it.hint}</span>}
           </button>
         ))}
-    </motion.div>
+    </m.div>
   )
 }

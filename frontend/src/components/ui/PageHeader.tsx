@@ -13,7 +13,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { motion, useScroll, useTransform, useMotionValueEvent } from 'framer-motion'
+import { m, useScroll, useTransform, useMotionValueEvent } from 'framer-motion'
 import { ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useT } from '@/contexts/LocaleContext'
@@ -128,7 +128,7 @@ export function PageHeader({
         )}
       >
         {/* fundo de vidro que aparece ao rolar */}
-        <motion.div
+        <m.div
           aria-hidden
           className="absolute inset-0 bg-surface-50/[0.92] dark:bg-surface-950/[0.92] backdrop-blur-xl backdrop-saturate-150 border-b border-surface-200/70 dark:border-surface-800/80"
           style={reduced ? { opacity: scrolled.glass ? 1 : 0 } : { opacity: glass }}
@@ -147,7 +147,7 @@ export function PageHeader({
               </button>
             )}
           </div>
-          <motion.div
+          <m.div
             className="flex-1 min-w-0 text-center pointer-events-none"
             style={
               reduced
@@ -157,7 +157,7 @@ export function PageHeader({
             aria-hidden={revealOnScroll}
           >
             <span className="block truncate text-[17px] font-semibold text-surface-900 dark:text-white">{title}</span>
-          </motion.div>
+          </m.div>
           <div className={cn('flex items-center justify-end gap-1.5 min-w-[44px]', hasRight && '-mr-1')}>
             {actions}
             {showBell && <NotificationBell variant="inline" />}
@@ -166,7 +166,7 @@ export function PageHeader({
       </header>
 
       {large && !hideLargeTitle ? (
-        <motion.div
+        <m.div
           className="mb-4 mt-1"
           style={
             reduced
@@ -178,7 +178,7 @@ export function PageHeader({
             {title}
           </h1>
           {subtitle && <p className="mt-1 text-[15px] text-surface-600 dark:text-surface-400">{subtitle}</p>}
-        </motion.div>
+        </m.div>
       ) : (
         <>
           <h1 ref={h1Ref} tabIndex={-1} className="sr-only outline-none">{title}</h1>

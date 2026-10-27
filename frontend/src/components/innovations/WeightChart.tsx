@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useId, useMemo } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { m, useReducedMotion } from 'framer-motion'
 import { cn, localeTag } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Minus, Plus, Loader2, Scale } from 'lucide-react'
 import { innovations, type WeightHistory } from '@/lib/api'
@@ -262,14 +262,14 @@ export function WeightChart({ petId }: WeightChartProps) {
                   const line = smoothPath(geom.pts)
                   const base = VB_H - PAD_B
                   return <>
-                    <motion.path
+                    <m.path
                       d={`${line} L${geom.pts.at(-1)![0]},${base} L${geom.pts[0][0]},${base} Z`}
                       fill={`url(#area${gid})`}
                       initial={reduced ? false : { opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.4, delay: reduced ? 0 : 0.35 }}
                     />
-                    <motion.path
+                    <m.path
                       key={`l-${days.length}`}
                       d={line} fill="none" stroke={cor} strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round"
                       initial={reduced ? false : { pathLength: 0 }}

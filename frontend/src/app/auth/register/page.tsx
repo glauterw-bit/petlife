@@ -2,7 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Mail, Lock, User, Gift, Ticket, X, PawPrint, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useT } from '@/contexts/LocaleContext'
@@ -169,7 +169,7 @@ export default function RegisterPage() {
       <div className="mt-3">
         <AnimatePresence initial={false} mode="wait">
           {referralCode ? (
-            <motion.div
+            <m.div
               key="applied"
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -192,9 +192,9 @@ export default function RegisterPage() {
                   </button>
                 </div>
               </Notice>
-            </motion.div>
+            </m.div>
           ) : codeOpen ? (
-            <motion.div
+            <m.div
               key="form"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -222,9 +222,9 @@ export default function RegisterPage() {
                   {t('acct.reg.codeApply')}
                 </Button>
               </div>
-            </motion.div>
+            </m.div>
           ) : (
-            <motion.button
+            <m.button
               key="link"
               type="button"
               initial={{ opacity: 0 }}
@@ -235,7 +235,7 @@ export default function RegisterPage() {
             >
               <Ticket className="w-4 h-4" aria-hidden />
               {t('ac.register.haveCode')}
-            </motion.button>
+            </m.button>
           )}
         </AnimatePresence>
       </div>

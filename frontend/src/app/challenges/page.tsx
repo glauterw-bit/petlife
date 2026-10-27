@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Trophy, Star, Medal, Target, ChevronDown, Sparkles, Users, Play, Syringe, Check } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import {
@@ -333,7 +333,7 @@ export default function ChallengesPage() {
 
               <AnimatePresence initial={false}>
                 {rankingOpen && (
-                  <motion.div
+                  <m.div
                     id="ranking-panel"
                     key="ranking"
                     initial={{ opacity: 0, height: 0 }}
@@ -385,7 +385,7 @@ export default function ChallengesPage() {
                         </ol>
                       )}
                     </div>
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
             </section>

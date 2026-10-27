@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
+import { AnimatePresence, LayoutGroup, m } from 'framer-motion'
 import { Check, ChevronDown, LogIn, MessageCircle, Receipt, Stethoscope, type LucideIcon } from 'lucide-react'
 import type { Appt, ApptStatus } from '@/lib/crmApi'
 import { APPT_STATUS, Badge, Btn, fmtTime } from '@/components/crm/ui'
@@ -88,19 +88,19 @@ export function ReceptionBoard({ appts, now, isDesktop, onStatus, onNotifyReady 
         <div className="mt-4">
           <button type="button" onClick={() => setShowOff(v => !v)} aria-expanded={showOff}
             className="inline-flex items-center gap-1.5 h-9 px-2 -ml-2 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-panel-2">
-            <motion.span animate={{ rotate: showOff ? 180 : 0 }} transition={{ duration: dur.fast }} className="inline-flex">
+            <m.span animate={{ rotate: showOff ? 180 : 0 }} transition={{ duration: dur.fast }} className="inline-flex">
               <ChevronDown className="w-4 h-4" strokeWidth={1.75} aria-hidden />
-            </motion.span>
+            </m.span>
             Faltas e cancelados <span className="tabular-nums text-xs rounded-full px-1.5 bg-panel-2">{off.length}</span>
           </button>
           <AnimatePresence initial={false}>
             {showOff && (
-              <motion.div key="off" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+              <m.div key="off" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: dur.base, ease: easeOut }} className="overflow-hidden">
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 pt-2">
                   {off.map(card)}
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
@@ -130,7 +130,7 @@ function BoardCard({ a, i, now, onStatus, onNotifyReady }: {
   else if (st === 'em_atendimento') primary = { label: 'Pronto', to: 'pronto', icon: Check }
 
   return (
-    <motion.article
+    <m.article
       layout
       layoutId={`appt-${a.id}`}
       initial={{ opacity: 0, scale: 0.98 }}
@@ -193,6 +193,6 @@ function BoardCard({ a, i, now, onStatus, onNotifyReady }: {
         </div>
       )}
       </div>
-    </motion.article>
+    </m.article>
   )
 }

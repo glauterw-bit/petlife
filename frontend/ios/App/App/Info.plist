@@ -42,6 +42,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>O PetLife usa a câmera para tirar fotos do seu pet — perfil, identificação de raça por IA e registros de saúde.</string>
 	<key>NSContactsUsageDescription</key>

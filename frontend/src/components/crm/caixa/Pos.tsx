@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { CalendarCheck, ChevronRight, Minus, MoreHorizontal, Package, PenLine, Plus, Printer, ShoppingCart, Trash2, X } from 'lucide-react'
 import { crm, type Appt, type Client, type Item, type Member, type Patient, type Sale } from '@/lib/crmApi'
 import { can, emitCrmChange, useCrm } from '@/components/crm/CrmShell'
@@ -266,7 +266,7 @@ export function Pos({ cash, appointmentId, clientId, onReceipt }: {
           <ul className="divide-y divide-line rounded-xl ring-1 ring-line">
             <AnimatePresence initial={false}>
               {lines.map((l, i) => (
-                <motion.li key={l.key} layout="position"
+                <m.li key={l.key} layout="position"
                   initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: dur.base }} className="overflow-hidden">
                   <div className="px-3 py-2.5 space-y-2">
@@ -308,7 +308,7 @@ export function Pos({ cash, appointmentId, clientId, onReceipt }: {
                       </Select>
                     )}
                   </div>
-                </motion.li>
+                </m.li>
               ))}
             </AnimatePresence>
           </ul>
@@ -341,7 +341,7 @@ export function Pos({ cash, appointmentId, clientId, onReceipt }: {
 
       <AnimatePresence initial={false} mode="wait">
         {method === 'dinheiro' && (
-          <motion.div key="cash" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+          <m.div key="cash" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             transition={{ duration: dur.base }} className="overflow-hidden">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
               <Field label="Valor recebido"><MoneyInput value={received} onChange={setReceived} placeholder={moneyInput(total)} /></Field>
@@ -352,15 +352,15 @@ export function Pos({ cash, appointmentId, clientId, onReceipt }: {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
         {fiado && (
-          <motion.div key="fiado" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+          <m.div key="fiado" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             transition={{ duration: dur.base }} className="overflow-hidden">
             <Field label="Vencimento" hint={!client ? 'Escolha o cliente para lançar a receber.' : undefined}>
               <Input type="date" value={due} min={ymd(new Date())} onChange={e => setDue(e.target.value)} />
             </Field>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -385,11 +385,11 @@ export function Pos({ cash, appointmentId, clientId, onReceipt }: {
 
       <AnimatePresence>
         {last && !lines.length && (
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: dur.base }}
+          <m.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: dur.base }}
             className="flex items-center gap-3 rounded-xl bg-primary-50 dark:bg-primary-500/10 px-3 py-2.5">
             <p className="text-sm text-primary-800 dark:text-primary-200 flex-1 min-w-0">Venda nº {last.id} · <b className="tabular-nums">{brl(last.total)}</b></p>
             <Btn size="sm" variant="soft" icon={Printer} onClick={() => onReceipt(last.id, last)}>Imprimir recibo</Btn>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
@@ -426,7 +426,7 @@ export function Pos({ cash, appointmentId, clientId, onReceipt }: {
                 {shown.slice(0, 60).map(i => {
                   const n = inCart(i.id)
                   return (
-                    <motion.button key={i.id} type="button" {...pressable} onClick={() => add(i)}
+                    <m.button key={i.id} type="button" {...pressable} onClick={() => add(i)}
                       aria-label={`Adicionar ${i.name}, ${brl(i.price)}`}
                       className={`relative text-left rounded-xl p-3 min-h-[88px] flex flex-col bg-panel-2/60 hover:bg-panel-2 ring-1 transition-colors outline-none focus-visible:shadow-crm-glow
                         ${n > 0 ? 'ring-primary-400 dark:ring-primary-500/60' : 'ring-transparent'}`}>
@@ -441,21 +441,21 @@ export function Pos({ cash, appointmentId, clientId, onReceipt }: {
                       </span>
                       <AnimatePresence>
                         {n > 0 && (
-                          <motion.span key={n} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }}
+                          <m.span key={n} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }}
                             transition={{ duration: dur.fast }}
                             className="absolute top-2 right-2 min-w-5 h-5 px-1 rounded-full bg-primary-600 text-white dark:bg-primary-500 dark:text-surface-950 text-2xs font-bold tabular-nums inline-flex items-center justify-center">
                             {qtyText(n)}
-                          </motion.span>
+                          </m.span>
                         )}
                       </AnimatePresence>
-                    </motion.button>
+                    </m.button>
                   )
                 })}
-                <motion.button type="button" {...pressable} onClick={addCustom}
+                <m.button type="button" {...pressable} onClick={addCustom}
                   className="rounded-xl p-3 min-h-[88px] flex flex-col items-center justify-center gap-1 border border-dashed border-line text-muted hover:text-ink hover:border-primary-400 transition-colors outline-none focus-visible:shadow-crm-glow">
                   <PenLine className="w-4 h-4" strokeWidth={1.75} aria-hidden />
                   <span className="text-sm font-medium">Item avulso</span>
-                </motion.button>
+                </m.button>
               </div>
             )}
             {items.data && all.length > 0 && shown.length === 0 && (
@@ -482,7 +482,7 @@ export function Pos({ cash, appointmentId, clientId, onReceipt }: {
               description={count ? `${count} ${count === 1 ? 'item' : 'itens'} · ${brl(total)}` : 'Nenhum item ainda'}>
               {cart}
             </Sheet>
-            <motion.button type="button" onClick={() => setCartOpen(true)} {...pressable}
+            <m.button type="button" onClick={() => setCartOpen(true)} {...pressable}
               className="fixed z-30 left-4 right-[88px] md:right-4 bottom-[calc(76px+env(safe-area-inset-bottom))] md:bottom-4 h-14 rounded-2xl px-4 flex items-center gap-3 bg-ink text-bg shadow-crm-pop"
               aria-label={`Abrir venda: ${count} ${count === 1 ? 'item' : 'itens'}, ${brl(total)}`}>
               <ShoppingCart className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} aria-hidden />
@@ -490,21 +490,21 @@ export function Pos({ cash, appointmentId, clientId, onReceipt }: {
                 {count ? `${count} ${count === 1 ? 'item' : 'itens'} · ${brl(total)}` : 'Venda vazia'}
               </span>
               <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={1.75} aria-hidden />
-            </motion.button>
+            </m.button>
           </>
         )}
       </div>
 
       <AnimatePresence>
         {burst && (
-          <motion.div className="fixed inset-0 z-[90] pointer-events-none flex items-center justify-center" aria-hidden
+          <m.div className="fixed inset-0 z-[90] pointer-events-none flex items-center justify-center" aria-hidden
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: dur.base }}>
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ duration: dur.slow }}
+            <m.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ duration: dur.slow }}
               className="rounded-3xl bg-panel/95 backdrop-blur shadow-crm-pop p-6 flex flex-col items-center gap-2">
               <CheckBurst size={64} />
               <span className="text-sm font-semibold text-ink">Venda registrada</span>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
       {!wide && <div className="h-20" aria-hidden />}

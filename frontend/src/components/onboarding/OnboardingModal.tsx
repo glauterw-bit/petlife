@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { PawPrint, ShieldCheck, MessageCircle, Sparkles } from 'lucide-react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { dur, easeOut } from '@/lib/motion'
@@ -79,7 +79,7 @@ export function OnboardingModal({ forceOpen = false }: OnboardingModalProps) {
     <Modal open={open} onClose={dismiss} size="md">
       <div className="-mx-4 -mt-4 sm:-mx-6 sm:-mt-6 overflow-hidden">
         <AnimatePresence mode="wait" initial={false} custom={dir}>
-          <motion.div
+          <m.div
             key={step}
             custom={dir}
             initial={{ opacity: 0, x: 14 * dir }}
@@ -93,7 +93,7 @@ export function OnboardingModal({ forceOpen = false }: OnboardingModalProps) {
             </div>
             <h2 className="text-xl font-display font-extrabold text-surface-900 dark:text-white mb-2">{t(s.titleKey)}</h2>
             <p className="text-[15px] text-surface-700 dark:text-surface-300 leading-relaxed">{t(s.bodyKey)}</p>
-          </motion.div>
+          </m.div>
         </AnimatePresence>
       </div>
 

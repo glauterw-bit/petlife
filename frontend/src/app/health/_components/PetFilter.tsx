@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import type { Pet } from '@/lib/api'
 import { useT } from '@/contexts/LocaleContext'
 import { spring } from '@/lib/motion'
@@ -49,7 +49,7 @@ export function PetFilter({
             )}
           >
             {active && (
-              <motion.span
+              <m.span
                 layoutId={layoutId}
                 transition={spring.snappy}
                 aria-hidden

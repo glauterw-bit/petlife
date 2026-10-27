@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Sparkles, Clock, CheckCircle2, Route, Lightbulb, Dumbbell } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { routines as routinesApi, pets as petsApi, type Routine, type Pet } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
 import { useT } from '@/contexts/LocaleContext'
@@ -101,7 +101,7 @@ export default function RoutinesPage() {
                     )}
                   >
                     {active && (
-                      <motion.span
+                      <m.span
                         layoutId="rt-pet-pill"
                         transition={spring.snappy}
                         aria-hidden

@@ -1,7 +1,7 @@
 'use client'
 
 import { forwardRef, type ReactNode } from 'react'
-import { motion, type HTMLMotionProps } from 'framer-motion'
+import { m, type HTMLMotionProps } from 'framer-motion'
 import { variants, spring, useFirstVisit } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
@@ -23,7 +23,7 @@ export function Stagger({
   as?: 'div' | 'ul'
   once?: string
 }) {
-  const Comp = as === 'ul' ? motion.ul : motion.div
+  const Comp = as === 'ul' ? m.ul : m.div
   const first = useFirstVisit(once ? `stagger_${once}` : '')
   return (
     <Comp className={className} variants={variants.stagger(gap)} initial={first ? 'hidden' : false} animate="show">
@@ -41,7 +41,7 @@ export function StaggerItem({
   className?: string
   as?: 'div' | 'li'
 }) {
-  const Comp = as === 'li' ? motion.li : motion.div
+  const Comp = as === 'li' ? m.li : m.div
   return (
     <Comp className={className} variants={variants.fadeUp} transition={spring.soft}>
       {children}
@@ -55,7 +55,7 @@ export const Pressable = forwardRef<HTMLButtonElement, HTMLMotionProps<'button'>
   ref,
 ) {
   return (
-    <motion.button
+    <m.button
       ref={ref}
       type={type ?? 'button'}
       whileTap={{ scale: 0.97 }}

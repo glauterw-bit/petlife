@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from 'react'
-import { motion, useMotionValue, type PanInfo } from 'framer-motion'
+import { m, useMotionValue, type PanInfo } from 'framer-motion'
 import { Plus } from 'lucide-react'
 import type { Appt } from '@/lib/crmApi'
 import { APPT_STATUS } from '../ui'
@@ -235,7 +235,7 @@ function Block({ p, col, index, columns, startHour, endHour, dragEnabled, constr
   const compact = h < 44
   const roomy = h >= 76
   return (
-    <motion.button
+    <m.button
       ref={ref}
       type="button"
       aria-label={apptAria(a)}
@@ -278,6 +278,6 @@ function Block({ p, col, index, columns, startHour, endHour, dragEnabled, constr
           </>
         )}
       </span>
-    </motion.button>
+    </m.button>
   )
 }

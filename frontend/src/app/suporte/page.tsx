@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { MessageCircleHeart, Send, Loader2, Bot, UserRound } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SkeletonRow } from '@/components/ui/Skeleton'
@@ -106,11 +106,11 @@ export default function SuportePage() {
               </ul>
             </>
           ) : null}
-          {msgs.map(m => {
-            const mine = m.sender === 'user'
+          {msgs.map(msg => {
+            const mine = msg.sender === 'user'
             return (
-              <motion.div
-                key={m.id}
+              <m.div
+                key={msg.id}
                 className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
                 initial={reduced ? false : { opacity: 0, y: 8, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -121,22 +121,22 @@ export default function SuportePage() {
                     ? 'bg-primary-700 text-white dark:bg-primary-500 dark:text-surface-950 rounded-br-md'
                     : 'bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 text-surface-800 dark:text-surface-100 rounded-bl-md'
                 }`}>
-                  {m.sender === 'admin' && (
+                  {msg.sender === 'admin' && (
                     <div className="text-[11px] font-semibold text-primary-700 dark:text-primary-300 mb-0.5">
                       {t('ac2.sup.adminName')}
                     </div>
                   )}
-                  {m.sender === 'assistant' && (
+                  {msg.sender === 'assistant' && (
                     <div className="text-[11px] font-semibold text-primary-700 dark:text-primary-300 mb-0.5">
                       {t('ac2.sup.botName')}
                     </div>
                   )}
-                  {m.body}
+                  {msg.body}
                   <div className={`text-[11px] mt-1 ${mine ? 'text-white/80 dark:text-surface-950/70' : 'text-surface-500 dark:text-surface-400'}`}>
-                    {fmtTime(m.created_at)}
+                    {fmtTime(msg.created_at)}
                   </div>
                 </div>
-              </motion.div>
+              </m.div>
             )
           })}
           <div ref={endRef} />

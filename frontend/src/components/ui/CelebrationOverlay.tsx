@@ -11,7 +11,7 @@
  * vibração só (a trava de 60 ms do haptic() descarta a duplicata).
  */
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Share2, X } from 'lucide-react'
 import { haptic } from '@/lib/feedback'
 import { spring, dur } from '@/lib/motion'
@@ -74,7 +74,7 @@ export function CelebrationOverlay() {
   return (
     <AnimatePresence>
     {detail && (
-    <motion.div
+    <m.div
       key="celebration"
       className="fixed inset-0 z-[95] flex items-center justify-center bg-black/55 backdrop-blur-sm p-5"
       initial={{ opacity: 0 }}
@@ -83,7 +83,7 @@ export function CelebrationOverlay() {
       transition={{ duration: dur.fast }}
       onClick={() => setDetail(null)}
     >
-      <motion.div
+      <m.div
         role="dialog" aria-modal="true" aria-labelledby="celebration-title"
         className="relative w-full max-w-sm bg-white dark:bg-surface-900 rounded-3xl p-6 pt-8 text-center shadow-2xl border border-transparent dark:border-surface-800"
         initial={{ opacity: 0, scale: 0.9, y: 16 }}
@@ -108,8 +108,8 @@ export function CelebrationOverlay() {
         <button type="button" onClick={() => setDetail(null)} className="mt-2 w-full min-h-[44px] rounded-xl text-sm font-medium text-surface-600 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-800">
           {t('common.close')}
         </button>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
     )}
     </AnimatePresence>
   )

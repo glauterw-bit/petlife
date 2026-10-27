@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Copy, KeyRound, MoreHorizontal, Pencil, Trash2, UserPlus, Users, X } from 'lucide-react'
 import { crm, type Member, type Role } from '@/lib/crmApi'
 import { can, useCrm } from '@/components/crm/CrmShell'
@@ -107,12 +107,12 @@ function Equipe() {
         ]} />
 
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={tab} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: dur.fast }}>
+        <m.div key={tab} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: dur.fast }}>
           {tab === 'equipe' && (
             <div className="space-y-4">
               <AnimatePresence>
                 {created && (
-                  <motion.div key="pw" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: dur.base }}>
+                  <m.div key="pw" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: dur.base }}>
                     <Card className="ring-1 ring-amber-300 dark:ring-amber-500/40">
                       <div className="flex items-start gap-3">
                         <span className="h-9 w-9 shrink-0 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 inline-flex items-center justify-center">
@@ -133,7 +133,7 @@ function Equipe() {
                         </button>
                       </div>
                     </Card>
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
 
@@ -175,7 +175,7 @@ function Equipe() {
           )}
           {tab === 'comissoes' && <CommissionsPanel team={team.data} />}
           {tab === 'clinica' && <ClinicForm />}
-        </motion.div>
+        </m.div>
       </AnimatePresence>
 
       <MemberSheet open={sheet.open} member={sheet.member} onClose={() => setSheet(s => ({ ...s, open: false }))}

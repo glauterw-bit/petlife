@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Check, Smile, Meh, Frown, type LucideIcon } from 'lucide-react'
 import { innovations, type Pet } from '@/lib/api'
 import { haptic } from '@/lib/feedback'
@@ -68,7 +68,7 @@ export function DailyCheckin({ pet, onDone }: { pet: Pet; onDone?: () => void })
     <div className="rounded-2xl border bg-white dark:bg-surface-900 border-surface-200/70 dark:border-surface-800 px-4 py-3">
       <AnimatePresence mode="wait" initial={false}>
         {picked ? (
-          <motion.div
+          <m.div
             key="done"
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -86,9 +86,9 @@ export function DailyCheckin({ pet, onDone }: { pet: Pet; onDone?: () => void })
                 <span className="truncate">{t(picked.labelKey)} · {pet.name}</span>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div key="ask" exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
+          <m.div key="ask" exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
             <div id={`checkin-q-${pet.id}`} className="text-sm font-semibold text-surface-800 dark:text-surface-100 mb-2">
               {t('home2.checkin.q', { name: pet.name })}
             </div>
@@ -112,7 +112,7 @@ export function DailyCheckin({ pet, onDone }: { pet: Pet; onDone?: () => void })
                 </button>
               ))}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

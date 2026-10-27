@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { PawPrint, MessageCircle, ChevronRight } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
@@ -247,7 +247,7 @@ export default function DashboardPage() {
             />
 
             {/* O resto da tela chega depois do cartão — e só na 1ª visita. */}
-            <motion.div initial={firstVisit ? 'hidden' : false} animate="show" variants={REST_STAGGER}>
+            <m.div initial={firstVisit ? 'hidden' : false} animate="show" variants={REST_STAGGER}>
               <StaggerItem>
                 <AttentionList summaries={summaries} vaccines={vaccines} exclude={exclude} onRegister={onRegister} />
               </StaggerItem>
@@ -289,7 +289,7 @@ export default function DashboardPage() {
                   <QuickActions petId={top.pet.id} petName={top.pet.name} hasVaccine={topHasVaccine} showExtras={!checklistActive} />
                 </StaggerItem>
               )}
-            </motion.div>
+            </m.div>
           </div>
         )}
       </PullToRefresh>

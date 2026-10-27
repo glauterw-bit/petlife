@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Check, Percent, Plus, Trash2 } from 'lucide-react'
 import { crm, type CommissionRate, type Member } from '@/lib/crmApi'
 import { Btn, ROLE, Select, catLabel, parseDecimal } from '@/components/crm/ui'
@@ -84,9 +84,9 @@ function MemberRates({ member, rates, onUpsert, onDrop }: {
         <RateRow label="Padrão" hint="Para qualquer item sem percentual próprio." rate={def} userId={member.user_id} category={null} onUpsert={onUpsert} onDrop={onDrop} />
         <AnimatePresence initial={false}>
           {exceptions.map(r => (
-            <motion.li key={r.id} layout initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: dur.base }}>
+            <m.li key={r.id} layout initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: dur.base }}>
               <RateRow as="div" label={catLabel(r.category)} rate={r} userId={member.user_id} category={r.category} onUpsert={onUpsert} onDrop={onDrop} removable />
-            </motion.li>
+            </m.li>
           ))}
         </AnimatePresence>
       </ul>
@@ -159,9 +159,9 @@ function RateRow({ label, hint, rate, userId, category, onUpsert, onDrop, remova
       <span className="w-5 shrink-0 inline-flex justify-center" aria-live="polite">
         <AnimatePresence>
           {state === 'saved' && (
-            <motion.span key="ok" initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: dur.fast }}>
+            <m.span key="ok" initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: dur.fast }}>
               <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" strokeWidth={2} aria-label="Salvo" />
-            </motion.span>
+            </m.span>
           )}
         </AnimatePresence>
       </span>

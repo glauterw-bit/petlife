@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, motion, useDragControls, useIsPresent, type PanInfo } from 'framer-motion'
+import { AnimatePresence, m, useDragControls, useIsPresent, type PanInfo } from 'framer-motion'
 import { X } from 'lucide-react'
 import { dur, ease, spring } from '../motion'
 import { useFocusTrap, useLayer } from './layers'
@@ -67,12 +67,12 @@ function SheetLayer({ onClose, title, description, children, footer, size, onSub
 
   return (
     <div className={`crm-layer fixed inset-0 ${present ? '' : 'pointer-events-none'}`} style={{ zIndex: z }}>
-      <motion.div
+      <m.div
         className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
         onClick={onClose} aria-hidden
       />
-      <motion.div
+      <m.div
         ref={panelRef}
         role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descId : undefined}
         tabIndex={-1}
@@ -110,7 +110,7 @@ function SheetLayer({ onClose, title, description, children, footer, size, onSub
             {footer}
           </footer>
         )}
-      </motion.div>
+      </m.div>
     </div>
   )
 }

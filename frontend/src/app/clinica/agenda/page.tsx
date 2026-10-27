@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { CalendarDays, CalendarPlus, Columns3, List, ListTodo, Users, X } from 'lucide-react'
 import { crm, isCrmError, type Appt, type Client, type WaitItem } from '@/lib/crmApi'
 import { useToast } from '@/components/ui/ToastContext'
@@ -315,7 +315,7 @@ export default function AgendaPage() {
       {/* aviso de vaga com lista de espera */}
       <AnimatePresence>
         {waitHint && (
-          <motion.div key="hint" initial={{ opacity: 0, y: -6, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: -6, height: 0 }}
+          <m.div key="hint" initial={{ opacity: 0, y: -6, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: -6, height: 0 }}
             transition={{ duration: dur.base }} className="overflow-hidden">
             <Card className="mb-3 !py-3 flex items-center gap-3 border-l-[3px] border-amber-500 dark:border-amber-400">
               <ListTodo className="w-[18px] h-[18px] text-amber-600 dark:text-amber-300 shrink-0" strokeWidth={1.75} aria-hidden />
@@ -328,7 +328,7 @@ export default function AgendaPage() {
                 <X className="w-4 h-4" strokeWidth={1.75} />
               </button>
             </Card>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -337,7 +337,7 @@ export default function AgendaPage() {
         <Card><ErrorState message={q.error} onRetry={q.reload} /></Card>
       ) : (
         <AnimatePresence mode="wait" custom={dir} initial={false}>
-          <motion.div key={gridKey} custom={dir} variants={slideDay} initial="enter" animate="center" exit="exit">
+          <m.div key={gridKey} custom={dir} variants={slideDay} initial="enter" animate="center" exit="exit">
             {!appts ? (
               <AgendaSkeleton list={eff === 'lista'} columns={mode === 'week' ? 7 : isMobile ? 1 : 3} />
             ) : eff === 'lista' ? (
@@ -355,7 +355,7 @@ export default function AgendaPage() {
                 onMove={(a, d, sid) => { void move(a, d, sid) }}
               />
             )}
-          </motion.div>
+          </m.div>
         </AnimatePresence>
       )}
 

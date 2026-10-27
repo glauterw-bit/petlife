@@ -3,7 +3,7 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { AlertCircle, CheckCircle2, CircleDashed, Clock, Syringe, Camera, CreditCard, Pill, Bug, Loader2, ExternalLink, type LucideIcon } from 'lucide-react'
 import type { CareItem, CareKind, CareState, PetCareSummary } from '@/lib/care'
 import { dogHumanAge } from '@/lib/care'
@@ -300,7 +300,7 @@ export function PetHero({
         <CareStatusList summary={summary} compact onItemClick={onItem} />
       </div>
 
-      <motion.div className="mt-3" variants={choreo ? homeChoreo.cta : undefined}>
+      <m.div className="mt-3" variants={choreo ? homeChoreo.cta : undefined}>
         {action.href ? (
           <Link href={action.href} className={actionCls} onClick={() => haptic('tap')}>
             <ActionIcon className="w-5 h-5 shrink-0" aria-hidden />
@@ -316,7 +316,7 @@ export function PetHero({
             <span>{action.label}</span>
           </button>
         )}
-      </motion.div>
+      </m.div>
     </div>
   )
 }

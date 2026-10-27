@@ -5,7 +5,7 @@ import { requestSoftUpsell } from '@/lib/softUpsell'
 import { useState, useEffect, useRef, FormEvent, type KeyboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Camera, Search, ChevronDown, AlertCircle, PawPrint, Sparkles, Dog, Cat, Keyboard } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { pets as petsApi, breeds as breedsApi, type Breed, type Pet } from '@/lib/api'
@@ -250,7 +250,7 @@ export default function NewPetPage() {
     const humanAge = dogHumanAge(created)
     return (
       <DashboardLayout>
-        <motion.div
+        <m.div
           variants={variants.scaleIn}
           initial="hidden"
           animate="show"
@@ -291,7 +291,7 @@ export default function NewPetPage() {
           >
             {t('petx.new.later')}
           </Link>
-        </motion.div>
+        </m.div>
       </DashboardLayout>
     )
   }
@@ -394,7 +394,7 @@ export default function NewPetPage() {
           </button>
           <AnimatePresence initial={false}>
             {moreOpen && (
-              <motion.div
+              <m.div
                 id="more-details"
                 key="more"
                 initial={{ height: 0, opacity: 0 }}
@@ -568,7 +568,7 @@ export default function NewPetPage() {
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>

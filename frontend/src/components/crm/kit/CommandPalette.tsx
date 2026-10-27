@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { CalendarPlus, Clock, CornerDownLeft, Loader2, Search, ShoppingCart, User, UserPlus, type LucideIcon } from 'lucide-react'
 import { crm, type Client } from '@/lib/crmApi'
 import { NAV, can, useCrm } from '../CrmShell'
@@ -127,9 +127,9 @@ function Palette({ onClose, onAction }: { onClose: () => void; onAction: (a: 'ap
   const searching = dq.length >= 2 && (loading || q.trim() !== dq)
   return (
     <div className="crm-layer fixed inset-0 flex items-start justify-center px-3 pt-[10vh]" style={{ zIndex: z }}>
-      <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" aria-hidden onClick={onClose}
+      <m.div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" aria-hidden onClick={onClose}
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }} />
-      <motion.div ref={ref} role="dialog" aria-modal="true" aria-label="Buscar no PetLife Clínica" tabIndex={-1}
+      <m.div ref={ref} role="dialog" aria-modal="true" aria-label="Buscar no PetLife Clínica" tabIndex={-1}
         className="relative w-full max-w-[640px] rounded-2xl bg-panel text-ink shadow-crm-pop overflow-hidden outline-none"
         initial={{ opacity: 0, scale: 0.97, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, y: -8 }}
         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }} onKeyDown={onKey}>
@@ -156,7 +156,7 @@ function Palette({ onClose, onAction }: { onClose: () => void; onAction: (a: 'ap
                 <div id={`cmdk-${e.key}`} role="option" aria-selected={i === active} data-idx={i}
                   onMouseMove={() => active !== i && setActive(i)} onClick={() => e.run()}
                   className="relative flex items-center gap-3 h-11 px-3 rounded-lg cursor-pointer">
-                  {i === active && <motion.span layoutId="cmdk-active" transition={spring.snappy} className="absolute inset-0 rounded-lg bg-panel-2" />}
+                  {i === active && <m.span layoutId="cmdk-active" transition={spring.snappy} className="absolute inset-0 rounded-lg bg-panel-2" />}
                   <span className="relative h-7 w-7 shrink-0 inline-flex items-center justify-center rounded-md bg-panel-2 text-muted ring-1 ring-line">
                     {e.species ? <SpeciesIcon species={e.species} className="w-4 h-4" /> : Icon ? <Icon className="w-4 h-4" strokeWidth={1.75} aria-hidden /> : null}
                   </span>
@@ -170,7 +170,7 @@ function Palette({ onClose, onAction }: { onClose: () => void; onAction: (a: 'ap
             )
           })}
         </div>
-      </motion.div>
+      </m.div>
     </div>
   )
 }

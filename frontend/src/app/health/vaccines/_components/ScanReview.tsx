@@ -9,7 +9,7 @@
  * tudo aparece de uma vez. Todas já vêm marcadas para salvar.
  */
 import { useEffect, useId, useState } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Check } from 'lucide-react'
 import type { ScannedVaccine } from '@/lib/api'
 import { useT } from '@/contexts/LocaleContext'
@@ -67,7 +67,7 @@ export function ScanReview({
         const isTyping = typing && i === shown - 1
         const on = include[i] !== false
         return (
-          <motion.li
+          <m.li
             key={i}
             initial={reduced ? false : { opacity: 0, y: 10 }}
             animate={visible ? { opacity: on ? 1 : 0.55, y: 0 } : { opacity: 0, y: 10 }}
@@ -119,7 +119,7 @@ export function ScanReview({
                     className={cn(fieldCls, 'font-semibold')}
                   />
                 )}
-                <motion.div
+                <m.div
                   className="grid grid-cols-2 gap-2"
                   initial={reduced ? false : { opacity: 0 }}
                   animate={{ opacity: visible && !isTyping ? 1 : reduced ? 1 : 0.25 }}
@@ -149,10 +149,10 @@ export function ScanReview({
                       className={fieldCls}
                     />
                   </div>
-                </motion.div>
+                </m.div>
               </div>
             </div>
-          </motion.li>
+          </m.li>
         )
       })}
     </ul>

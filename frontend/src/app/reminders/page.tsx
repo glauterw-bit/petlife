@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -270,7 +270,7 @@ function RemindersInner() {
                 >
                   <AnimatePresence initial={false}>
                     {sections[k].map(r => (
-                      <motion.li
+                      <m.li
                         key={r.id}
                         layout={reduced ? false : 'position'}
                         exit={reduced ? { opacity: 0 } : { opacity: 0, height: 0 }}
@@ -285,7 +285,7 @@ function RemindersInner() {
                           onComplete={complete}
                           onMore={setMenuFor}
                         />
-                      </motion.li>
+                      </m.li>
                     ))}
                   </AnimatePresence>
                 </ul>

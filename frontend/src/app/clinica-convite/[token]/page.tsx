@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { motion, useReducedMotion } from 'framer-motion'
+import { m, useReducedMotion } from 'framer-motion'
 import { Building2, Check, Syringe, Bell, PawPrint, Plus, Loader2, AlertTriangle, ShieldCheck } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -278,9 +278,9 @@ function SuccessCheck() {
   const reduce = useReducedMotion()
   return (
     <svg viewBox="0 0 56 56" className="w-14 h-14 mx-auto text-primary-500" aria-hidden>
-      <motion.circle cx="28" cy="28" r="25" fill="none" stroke="currentColor" strokeWidth="3"
+      <m.circle cx="28" cy="28" r="25" fill="none" stroke="currentColor" strokeWidth="3"
         initial={reduce ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }} />
-      <motion.path d="M17 29l7 7 15-16" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+      <m.path d="M17 29l7 7 15-16" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
         initial={reduce ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.24, delay: reduce ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }} />
     </svg>
   )

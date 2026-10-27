@@ -1,7 +1,7 @@
 'use client'
 
 import { useId } from 'react'
-import { motion, LayoutGroup } from 'framer-motion'
+import { m, LayoutGroup } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { hapticSelect } from '@/lib/feedback'
@@ -49,7 +49,7 @@ export function SegmentedControl<T extends string>({
               )}
             >
               {active && (
-                <motion.span
+                <m.span
                   layoutId={`seg-${id}-pill`}
                   transition={spring.snappy}
                   aria-hidden

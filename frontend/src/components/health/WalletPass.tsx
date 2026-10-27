@@ -10,7 +10,7 @@
  * com "reduzir movimento", troca com crossfade.
  */
 import { useEffect, useState } from 'react'
-import { AnimatePresence, motion, useAnimationControls } from 'framer-motion'
+import { AnimatePresence, m, useAnimationControls } from 'framer-motion'
 import { AlertCircle, CheckCircle2, CircleDashed, Clock, PawPrint, RotateCw, ShieldAlert, ShieldCheck, ShieldQuestion, type LucideIcon } from 'lucide-react'
 import { useT } from '@/contexts/LocaleContext'
 import { formatAge, formatDate, formatServerDateTime, cn } from '@/lib/utils'
@@ -319,11 +319,11 @@ export function WalletPass({
 
   return (
     <div className="w-full max-w-sm mx-auto">
-      <motion.div animate={fly} className="relative w-full aspect-[0.66] [perspective:1200px]">
+      <m.div animate={fly} className="relative w-full aspect-[0.66] [perspective:1200px]">
         {reduced ? (
           <div className="absolute inset-0 cursor-pointer" onClick={toggle}>
             <AnimatePresence initial={false} mode="wait">
-              <motion.div
+              <m.div
                 key={back ? 'back' : 'front'}
                 className={FACE}
                 initial={{ opacity: 0 }}
@@ -332,11 +332,11 @@ export function WalletPass({
                 transition={{ duration: dur.micro }}
               >
                 {back ? <Back data={data} /> : <Front data={data} />}
-              </motion.div>
+              </m.div>
             </AnimatePresence>
           </div>
         ) : (
-          <motion.div
+          <m.div
             className="absolute inset-0 cursor-pointer [transform-style:preserve-3d]"
             animate={{ rotateY: back ? 180 : 0 }}
             transition={spring.soft}
@@ -351,9 +351,9 @@ export function WalletPass({
             >
               <Back data={data} />
             </div>
-          </motion.div>
+          </m.div>
         )}
-      </motion.div>
+      </m.div>
       <div className="mt-3 flex justify-center print:hidden">
         <Button variant="ghost" size="sm" leftIcon={RotateCw} aria-pressed={back} onClick={toggle}>
           {back ? t('wallet.flipFront') : t('wallet.flip')}

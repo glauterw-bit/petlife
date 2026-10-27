@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, FormEvent, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import {
   AlertCircle, Camera, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, CreditCard, HelpCircle, Keyboard, Plus,
   type LucideIcon,

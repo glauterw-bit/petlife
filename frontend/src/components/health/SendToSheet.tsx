@@ -10,7 +10,7 @@
  * vira um check por 1,2 s (SendFlashIcon + useSendFlash), com haptic('saved').
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import {
   Check, ChevronLeft, ChevronRight, FileText, Hotel, MessageCircle, Printer, Scissors, Send, Share2, Stethoscope,
   type LucideIcon,
@@ -74,7 +74,7 @@ export function SendFlashIcon({ sent, className }: { sent: boolean; className?: 
   return (
     <span className={cn('relative inline-flex w-4 h-4 shrink-0', className)} aria-hidden>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.span
+        <m.span
           key={sent ? 'check' : 'send'}
           initial={enter}
           animate={{ opacity: 1, scale: 1 }}
@@ -83,7 +83,7 @@ export function SendFlashIcon({ sent, className }: { sent: boolean; className?: 
           className="absolute inset-0 inline-flex"
         >
           {sent ? <Check className="w-full h-full" strokeWidth={2.75} /> : <Send className="w-full h-full" />}
-        </motion.span>
+        </m.span>
       </AnimatePresence>
     </span>
   )
@@ -219,7 +219,7 @@ export function SendToSheet({
     >
       <AnimatePresence mode="wait" initial={false}>
         {!dest ? (
-          <motion.div
+          <m.div
             key="dests"
             initial={{ opacity: 0, x: -12 }}
             animate={{ opacity: 1, x: 0 }}
@@ -243,9 +243,9 @@ export function SendToSheet({
                 </span>
               </button>
             ))}
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div
+          <m.div
             key="preview"
             initial={{ opacity: 0, x: 12 }}
             animate={{ opacity: 1, x: 0 }}
@@ -264,7 +264,7 @@ export function SendToSheet({
                 {message}
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </Sheet>

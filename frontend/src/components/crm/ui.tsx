@@ -2,7 +2,7 @@
 
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, ButtonHTMLAttributes, KeyboardEvent } from 'react'
 import Link from 'next/link'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import {
   Activity, Cat, ChevronLeft, Dog, FlaskConical, Loader2, PawPrint, Pill, Scissors, Stethoscope, StickyNote, Syringe,
   type LucideIcon,
@@ -292,12 +292,12 @@ const BTN_VARIANT: Record<BtnVariant, string> = {
 const BTN_SIZE = { sm: 'h-8 px-2.5 text-xs gap-1.5', md: 'h-9 px-3.5 text-sm gap-2', lg: 'h-11 px-5 text-[15px] gap-2' }
 
 export function Btn({ variant = 'primary', size = 'md', loading, icon: Icon, className = '', children, disabled, type, ...p }: BtnProps) {
-  // props que o motion.button tipa de outro jeito
+  // props que o m.button tipa de outro jeito
   const { onDrag, onDragStart, onDragEnd, onAnimationStart, ...rest } = p
   void onDrag; void onDragStart; void onDragEnd; void onAnimationStart
   const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'
   return (
-    <motion.button
+    <m.button
       {...rest}
       type={type ?? 'button'}
       disabled={disabled || loading}
@@ -308,7 +308,7 @@ export function Btn({ variant = 'primary', size = 'md', loading, icon: Icon, cla
     >
       {loading ? <Loader2 className={`${iconSize} animate-spin`} strokeWidth={2} aria-hidden /> : Icon ? <Icon className={iconSize} strokeWidth={1.75} aria-hidden /> : null}
       {children}
-    </motion.button>
+    </m.button>
   )
 }
 
@@ -388,7 +388,7 @@ export function StatusBadge({ status }: { status: string }) {
   return (
     <Badge cls={s.cls} dot={s.dot} pulse={status === 'em_atendimento'}>
       <AnimatePresence mode="popLayout" initial={false}>
-        <motion.span
+        <m.span
           key={status}
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
@@ -396,7 +396,7 @@ export function StatusBadge({ status }: { status: string }) {
           transition={{ duration: dur.fast }}
         >
           {s.label}
-        </motion.span>
+        </m.span>
       </AnimatePresence>
     </Badge>
   )

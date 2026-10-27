@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { X, Share2, Sparkles, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
-import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
+import { AnimatePresence, MotionConfig, m } from 'framer-motion'
 import { spring } from '@/lib/motion'
 import { hapticLight, hapticSuccess } from '@/lib/feedback'
 import { innovations, type PetLifeWrapped } from '@/lib/api'
@@ -141,7 +141,7 @@ export default function WrappedPage() {
         {/* Conteúdo: toque à direita avança, à esquerda volta (como stories) */}
         <div className="relative flex-1 flex flex-col items-center justify-center text-center p-8">
           <AnimatePresence mode="popLayout" initial={false} custom={dir}>
-            <motion.div
+            <m.div
               key={step}
               custom={dir}
               variants={{
@@ -155,7 +155,7 @@ export default function WrappedPage() {
               transition={spring.snappy}
             >
               {slide.content}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
           {step > 0 && (
             <button

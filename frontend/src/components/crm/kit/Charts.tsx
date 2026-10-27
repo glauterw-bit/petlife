@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 
 /**
  * Gráficos próprios do CRM, sem biblioteca. Cores por currentColor e classes;
@@ -37,7 +37,7 @@ export function Sparkline({ data, width = 80, height = 28, className = '' }: { d
   const last = pts[pts.length - 1]
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className={className} aria-hidden>
-      <motion.path d={d} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"
+      <m.path d={d} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"
         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.32, ease: easeOut }} />
       <circle cx={last[0]} cy={last[1]} r={2.25} fill="currentColor" />
     </svg>
@@ -71,7 +71,7 @@ export function BarChart({ data, height = 160, format = plain, className = '', h
               tabIndex={0} aria-label={`${d.label}: ${format(d.value)}${d.hint ? `, ${d.hint}` : ''}`}
               onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(i)} onBlur={() => setHover(null)}>
               <Tip show={active}>{d.label}: {format(d.value)}{d.hint ? ` · ${d.hint}` : ''}</Tip>
-              <motion.div
+              <m.div
                 className={`w-full rounded-t-[3px] origin-bottom transition-colors ${hl || active ? 'bg-primary-500 dark:bg-primary-400' : 'bg-primary-500/35 dark:bg-primary-400/35'} group-focus-visible:ring-2 group-focus-visible:ring-primary-500`}
                 style={{ height: `${h}%` }}
                 initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
@@ -113,7 +113,7 @@ export function DualBarChart({ data, labels, height = 160, format = plain }: {
             {([['a', 'bg-emerald-500 dark:bg-emerald-400'], ['b', 'bg-red-500 dark:bg-red-400']] as const).map(([k, c]) => {
               const v = d[k]
               return (
-                <motion.div key={k} className={`flex-1 rounded-t-[2px] origin-bottom ${c} ${hover === i ? 'opacity-100' : 'opacity-80'}`}
+                <m.div key={k} className={`flex-1 rounded-t-[2px] origin-bottom ${c} ${hover === i ? 'opacity-100' : 'opacity-80'}`}
                   style={{ height: `${Math.max(v > 0 ? 2 : 0, (v / max) * 100)}%` }}
                   initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
                   transition={{ duration: 0.28, ease: easeOut, delay: Math.min(i, 30) * 0.008 }} />
@@ -143,7 +143,7 @@ export function HBars({ data, format = plain, max }: { data: Array<{ label: stri
             <span className="shrink-0 tabular-nums font-semibold text-ink">{format(d.value)} <span className="text-2xs font-medium text-muted">{Math.round((d.value / total) * 100)}%</span></span>
           </div>
           <div className="mt-1.5 h-1.5 rounded-full bg-panel-2 overflow-hidden">
-            <motion.div className="h-full rounded-full bg-primary-500 dark:bg-primary-400"
+            <m.div className="h-full rounded-full bg-primary-500 dark:bg-primary-400"
               initial={{ width: 0 }} animate={{ width: `${Math.min(100, (d.value / top) * 100)}%` }}
               transition={{ duration: 0.32, ease: easeOut, delay: Math.min(i, 12) * 0.03 }} />
           </div>
@@ -184,8 +184,8 @@ export function LineChart({ points, height = 180, format = plain, xFormat = (x: 
         {[0, 0.5, 1].map(t => (
           <line key={t} x1={padL} x2={padL + iw} y1={padT + ih * t} y2={padT + ih * t} className="stroke-line" strokeDasharray="2 4" />
         ))}
-        {points.length > 1 && <motion.path d={area} fill={`url(#lg-${gid})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.32 }} />}
-        {points.length > 1 && <motion.path d={d} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+        {points.length > 1 && <m.path d={area} fill={`url(#lg-${gid})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.32 }} />}
+        {points.length > 1 && <m.path d={d} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
           initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.32, ease: easeOut }} />}
         {points.map((p, i) => (
           <g key={i} tabIndex={0} className="outline-none" aria-label={`${xFormat(p.x)}: ${format(p.y)}`}
@@ -217,7 +217,7 @@ export function StackBar({ parts, height = 8 }: { parts: Array<{ value: number; 
     <div className="flex w-full overflow-hidden rounded-full bg-panel-2 gap-px" style={{ height }} role="img"
       aria-label={parts.filter(p => p.value > 0).map(p => `${p.label}: ${p.value}`).join(', ')}>
       {parts.filter(p => p.value > 0).map((p, i) => (
-        <motion.div key={`${p.label}-${i}`} title={`${p.label}: ${p.value}`} className={`h-full ${p.className}`}
+        <m.div key={`${p.label}-${i}`} title={`${p.label}: ${p.value}`} className={`h-full ${p.className}`}
           initial={{ width: 0 }} animate={{ width: `${(p.value / total) * 100}%` }} transition={{ duration: 0.32, ease: easeOut }} />
       ))}
     </div>
@@ -228,7 +228,7 @@ export function Meter({ value, max, danger, className = '' }: { value: number; m
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : value > 0 ? 100 : 0
   return (
     <div className={`h-1.5 w-full rounded-full bg-panel-2 overflow-hidden ${className}`} role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={value}>
-      <motion.div className={`h-full rounded-full ${danger ? 'bg-red-500 dark:bg-red-400' : 'bg-primary-500 dark:bg-primary-400'}`}
+      <m.div className={`h-full rounded-full ${danger ? 'bg-red-500 dark:bg-red-400' : 'bg-primary-500 dark:bg-primary-400'}`}
         initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.32, ease: easeOut }} />
     </div>
   )

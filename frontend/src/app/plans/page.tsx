@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { Check, Crown, Sparkles, Star, RefreshCw, Info, Gift, Minus } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -310,15 +310,15 @@ export default function PlansPage() {
           <div className="h-8 mt-2 flex justify-center items-center" aria-live="polite">
             <AnimatePresence mode="wait" initial={false}>
               {cadence === 'monthly' && showTrial ? (
-                <motion.span key="trial" className="chip chip-success" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={spring.snappy}>
+                <m.span key="trial" className="chip chip-success" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={spring.snappy}>
                   <Gift className="w-3.5 h-3.5" aria-hidden />
                   {t('acct.plans.trialMonthly')}
-                </motion.span>
+                </m.span>
               ) : cadence === 'annual' ? (
-                <motion.span key="annual" className="chip chip-success" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={spring.snappy}>
+                <m.span key="annual" className="chip chip-success" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={spring.snappy}>
                   <Check className="w-3.5 h-3.5" aria-hidden />
                   {t('acct.plans.annualChip')}
-                </motion.span>
+                </m.span>
               ) : null}
             </AnimatePresence>
           </div>

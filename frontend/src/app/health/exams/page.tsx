@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useId, useState, FormEvent } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { FlaskConical, Plus, Search } from 'lucide-react'
 import { ExamCard, examTypeLabel } from '@/components/health/ExamCard'
 import { vaccineInputCls as inputCls, vaccineLabelCls as labelCls } from '@/components/health/EditVaccineModal'
@@ -183,7 +183,7 @@ export default function ExamsPage() {
         <ul className="space-y-3 pb-6">
           <AnimatePresence initial={false}>
             {filtered.map(e => (
-              <motion.li
+              <m.li
                 key={e.id}
                 layout="position"
                 initial={{ opacity: 0, y: 8 }}
@@ -193,7 +193,7 @@ export default function ExamsPage() {
                 className="list-none"
               >
                 <ExamCard exam={e} onDelete={handleDelete} />
-              </motion.li>
+              </m.li>
             ))}
           </AnimatePresence>
         </ul>

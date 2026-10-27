@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Sparkles, X } from 'lucide-react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { variants, spring } from '@/lib/motion'
 import { billing } from '@/lib/api'
@@ -145,7 +145,7 @@ export function SoftUpsell() {
     >
       <AnimatePresence>
         {reason && (
-          <motion.div
+          <m.div
             key={reason}
             role="region"
             aria-labelledby="soft-upsell-title"
@@ -181,7 +181,7 @@ export function SoftUpsell() {
                 <X className="w-4 h-4" aria-hidden />
               </button>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

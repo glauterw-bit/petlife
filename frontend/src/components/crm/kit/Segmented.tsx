@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, type KeyboardEvent } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
 import { spring } from '../motion'
 
@@ -33,7 +33,7 @@ export function Segmented<T extends string>({ value, onChange, options, id, size
           <button key={o.value} ref={el => { refs.current[i] = el }} type="button" role="tab" aria-selected={active} tabIndex={active ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={`relative ${h} shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 font-semibold transition-colors ${active ? 'text-ink' : 'text-muted hover:text-ink'}`}>
-            {active && <motion.span layoutId={`seg-${id}`} transition={spring.snappy} className="absolute inset-0 rounded-md bg-panel shadow-crm-card" />}
+            {active && <m.span layoutId={`seg-${id}`} transition={spring.snappy} className="absolute inset-0 rounded-md bg-panel shadow-crm-card" />}
             <span className="relative inline-flex items-center gap-1.5">
               {Icon && <Icon className="w-4 h-4" strokeWidth={1.75} aria-hidden />}
               {o.label}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { ArrowDownToLine, ArrowUpFromLine, ChevronRight, History, Lock, LockOpen, Store } from 'lucide-react'
 import { crm, type CashSession } from '@/lib/crmApi'
 import { emitCrmChange, useCrmChange } from '@/components/crm/CrmShell'
@@ -142,10 +142,10 @@ export function CashBar({ cash }: { cash: CashState }) {
   return (
     <section id="crm-cashbar" aria-label="Caixa do dia" className="scroll-mt-20 mb-4">
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={!cash.ready ? 'load' : s ? `open-${s.id}` : 'closed'}
+        <m.div key={!cash.ready ? 'load' : s ? `open-${s.id}` : 'closed'}
           initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: dur.base }}>
           {body}
-        </motion.div>
+        </m.div>
       </AnimatePresence>
 
       <MoveSheet kind={move} session={s} onClose={() => setMove(null)} onDone={ns => { cash.setSession(ns); setMove(null) }} />

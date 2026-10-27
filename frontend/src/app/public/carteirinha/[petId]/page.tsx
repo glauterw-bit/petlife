@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import {
   Printer, AlertCircle, Info, Syringe, ShieldCheck, ShieldAlert, Dog, Cat, PawPrint, History, ChevronDown,
 } from 'lucide-react'
@@ -190,7 +190,7 @@ export default function PublicCarteirinhaPage() {
         </div>
 
         {/* Passe: cartão verde no estilo Wallet */}
-        <motion.section
+        <m.section
           aria-labelledby="pass-name"
           initial="hidden"
           animate="show"
@@ -259,7 +259,7 @@ export default function PublicCarteirinhaPage() {
             {soon > 0 && <span className="rounded-full bg-amber-300 text-amber-950 px-3 py-1">{soon === 1 ? t('pub.card.soonOne') : t('pub.card.soonCount', { n: soon })}</span>}
             {overdue > 0 && <span className="rounded-full bg-white text-red-800 px-3 py-1">{overdue === 1 ? t('pub.card.overdueOne') : t('pub.card.overdueCount', { n: overdue })}</span>}
           </div>
-        </motion.section>
+        </m.section>
 
         {/* Dados do pet */}
         <section aria-labelledby="pet-data" className="mt-4 rounded-2xl bg-white dark:bg-surface-900 border border-surface-200/70 dark:border-surface-800 p-5">

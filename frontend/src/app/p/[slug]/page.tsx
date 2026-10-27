@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { headers } from 'next/headers'
-import { misc } from '@/lib/i18n/dict/modules/misc'
-import { coerceLocale, type Locale } from '@/lib/i18n/types'
+import { dict as miscPt } from '@/lib/i18n/dict/modules/misc/pt-BR'
+import { dict as miscEn } from '@/lib/i18n/dict/modules/misc/en'
+import { dict as miscEs } from '@/lib/i18n/dict/modules/misc/es'
+import { coerceLocale, type Dict, type Locale } from '@/lib/i18n/types'
 import { PawPrint, Syringe, Footprints, Heart, Download, CheckCircle2 } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
@@ -35,6 +37,9 @@ async function getPet(slug: string): Promise<PublicPet | null> {
     return null
   }
 }
+
+// Página de servidor: os 3 idiomas do módulo podem vir juntos (não vão ao cliente).
+const misc: Record<Locale, Dict> = { 'pt-BR': miscPt, en: miscEn, es: miscEs }
 
 type TFn = (key: string, vars?: Record<string, string | number>) => string
 

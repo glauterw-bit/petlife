@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Search, X, type LucideIcon } from 'lucide-react'
 import { spring } from '../motion'
 import { useHotkey } from './hooks'
@@ -66,13 +66,13 @@ export function SearchInput({ value, onChange, placeholder = 'Buscar', autoFocus
 
 export function Chip({ active, onClick, children, count, icon: Icon }: { active?: boolean; onClick?: () => void; children: ReactNode; count?: number; icon?: LucideIcon }) {
   return (
-    <motion.button type="button" aria-pressed={!!active} onClick={onClick} whileTap={{ scale: 0.97 }} transition={{ duration: 0.12 }}
+    <m.button type="button" aria-pressed={!!active} onClick={onClick} whileTap={{ scale: 0.97 }} transition={{ duration: 0.12 }}
       className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold whitespace-nowrap transition-colors
         ${active ? 'bg-primary-600 text-white dark:bg-primary-500 dark:text-surface-950' : 'bg-panel text-ink shadow-crm-card hover:bg-panel-2'}`}>
       {Icon && <Icon className="w-3.5 h-3.5" strokeWidth={1.75} aria-hidden />}
       {children}
       {count != null && <span className={`tabular-nums rounded-full px-1.5 text-2xs ${active ? 'bg-white/20' : 'bg-panel-2 text-muted'}`}>{count}</span>}
-    </motion.button>
+    </m.button>
   )
 }
 
@@ -81,7 +81,7 @@ export function Switch({ checked, onChange, label, hint }: { checked: boolean; o
     <label className="flex items-start gap-3 cursor-pointer select-none">
       <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
         className={`relative mt-0.5 h-6 w-10 shrink-0 rounded-full transition-colors ${checked ? 'bg-primary-600 dark:bg-primary-500' : 'bg-surface-300 dark:bg-surface-600'}`}>
-        <motion.span layout transition={spring.snappy}
+        <m.span layout transition={spring.snappy}
           className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow ${checked ? 'right-0.5' : 'left-0.5'}`} />
       </button>
       <span className="min-w-0">

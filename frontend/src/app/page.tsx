@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   Shield, Bell, MapPin, Stethoscope, ChevronRight, PawPrint, Camera,
@@ -163,7 +163,7 @@ export default function LandingPage() {
           </Stagger>
 
           {/* Ilustração da tela (exemplo) */}
-          <motion.div
+          <m.div
             className="relative max-w-sm mx-auto w-full md:max-w-md"
             variants={variants.scaleIn}
             initial="hidden"
@@ -214,7 +214,7 @@ export default function LandingPage() {
                 <div className="text-surface-500 dark:text-surface-400">PDF e link</div>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 

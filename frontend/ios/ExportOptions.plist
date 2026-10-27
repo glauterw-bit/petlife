@@ -14,6 +14,8 @@
     <dict>
         <key>app.petlife</key>
         <string>app.petlife AppStore</string>
+        <key>app.petlife.widget</key>
+        <string>app.petlife.widget AppStore</string>
     </dict>
     <key>stripSwiftSymbols</key>
     <true/>
