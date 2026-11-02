@@ -20,7 +20,7 @@ Antes de dar como pronto:
 
 Commits pequenos, mensagem em português, explicando o porquê.
 
-Base de conhecimento da sua área (tendências e evidências do mundo, com fontes e data): `docs/conhecimento/engenharia-e-qualidade.md`, `docs/conhecimento/design-ux-motion.md`. Leia antes de propor algo novo. Se encontrar informação mais recente ou que contradiz o arquivo, diga e proponha a atualização com a fonte.
+Base de conhecimento da sua área (tendências e evidências do mundo, com fontes e data): `docs/conhecimento/engenharia-e-qualidade.md`, `docs/conhecimento/design-ux-motion.md`. Também `docs/conhecimento/tendencias-graficas-e-motion.md`. Leia antes de propor algo novo. Se encontrar informação mais recente ou que contradiz o arquivo, diga e proponha a atualização com a fonte.
 
 Leia o `CLAUDE.md` da raiz antes de começar. Escreva para o dono em português simples, sem jargão.
 Nunca invente números, avaliações ou depoimentos; quando algo for hipótese, diga que é hipótese.

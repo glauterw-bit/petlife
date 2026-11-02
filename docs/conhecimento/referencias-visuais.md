@@ -1,0 +1,52 @@
+# Referências visuais: nicho pet, documentos digitais, saúde e compartilhamento
+
+Pesquisa de novembro de 2026. **[E]** = evidência com fonte. **[H]** = leitura nossa, sem estudo que prove. Complementa [design-ux-motion.md](design-ux-motion.md), que já cobre iOS 26/Liquid Glass, Material 3 Expressive e princípios de motion. Aqui o foco é *o que olhar e copiar*.
+
+## 1. Apps de pet de referência
+
+- **Fi (coleira GPS).** O app gira em volta de uma métrica diária de passos com meta, sequência (streak) e comparação com cães parecidos. O cão aparece como foto redonda e um número grande. O "Modo cão perdido" muda a tela inteira de estado. [E] [App Store](https://apps.apple.com/app/id1438036784). **Lição:** um número-herói por pet, sequência visível e um estado de alerta que se distingue à primeira vista. [H]
+- **Petcube (relançado em mar/2026).** Arquitetura "centrada no pet": um perfil por animal (idade, raça, fotos, histórico) e um "Health Check" guiado que devolve um resumo de "o que está bem / o que observar". [E] [Petcube News](https://petcube.com/news/petcube-launches-all-in-one-intelligent-pet-care-app-2/). As avaliações citam anúncios intrusivos e instabilidade. [E: fonte secundária] [Similarweb](https://www.similarweb.com/app/apple/720151500). **Lição:** o formato "bem / observar" é o mesmo do anel de proteção, e a interface cheia de anúncio mostra o que não fazer. [H]
+- **11pets.** É o mais completo em prontuário (vacinas, remédios, peso, documentos, compartilhar com o veterinário), mas visualmente é um app de formulários. As avaliações reclamam da mudança para assinatura e do acesso a dados antigos. [E] [App Store](https://apps.apple.com/us/app/11pets-pet-care/id1232470530). **Lição:** funcionalidade sem calor não cria vínculo. O espaço para "prontuário bonito" está aberto. [H]
+- **Rover.** Fluxos catalogados no [Lazyweb](https://lazyweb.com/company/rover). Fotos grandes de pets e de cuidadores, cartões com selo de garantia. [E]. **Lição:** a foto real do animal, grande, é o que vende confiança. [H]
+- **Conceitos no Dribbble.** Coleções de apps veterinários e de cuidado de pets em [Dribbble: Veterinary Pet Care Apps](https://dribbble.com/ux_ramirez/collections/7466059-Veterinary-Pet-Care-Mobile-Apps) e [Pets App](https://dribbble.com/coderscotch/collections/7614358-Pets-App). O padrão recorrente é um fundo creme ou bege (paletas [ebe3dc](https://dribbble.com/colors/ebe3dc)), foto recortada do pet sobre um bloco de cor, cantos muito arredondados e uma tipografia geométrica grande. [E: observação de vitrine, não de app publicado]
+
+## 2. Como representar o animal e criar vínculo
+
+- **Foto recortada (sujeito sem fundo).** O iOS já recorta o sujeito de uma foto nativamente ([Apple: Levantar um objeto do fundo da foto](https://support.apple.com/pt-br/guide/iphone/iphfe4809658/ios)). Os conceitos do Dribbble usam esse recorte sobre um círculo colorido porque ele dá ar de "produto" à foto caseira. [H]
+- **Avatar que precisa de cuidado.** No Finch, o pássaro só cresce quando a pessoa cuida de si. A análise de 40.294 avaliações liga o pássaro à permanência no app, mas não prova que ele seja a causa. [E] [Appbot](https://appbot.co/blog/finch-app-reviews-emotional-attachment-user-retention-product-loyalty/). Para o PetLife, o pet é real e o vínculo já existe. O papel do visual é *refletir* esse vínculo, não inventar outro. [H]
+- **O mascote como narrador.** O Duolingo põe a coruja nos cartões de conquista e de retrospectiva ([blog Duolingo](https://blog.duolingo.com/streak-milestone-design-animation)). O Vyron pode fazer o mesmo papel: aparecer nas comemorações e nos estados vazios, nunca por cima do pet real. [H]
+- **Personalização.** Uma cor por pet (usada no anel, no cartão e no ícone) é o recurso mais barato para dar identidade em casas com vários animais. [H]
+
+## 3. Documentos digitais que parecem oficiais e desejáveis
+
+- **A diretriz do Apple Wallet.** Não copiar o documento físico. Fazer um passe limpo, com o essencial na frente, detalhes no verso, código QR legível e contraste de rótulos garantido sobre imagens. [E] [HIG Wallet](https://developer.apple.com/design/human-interface-guidelines/wallet)
+- **Cartão de embarque no iOS 26.** Layout mais limpo, fundo de alto contraste, hierarquia mais clara, Live Activity com portão e horário, e a possibilidade de compartilhar o acompanhamento com outra pessoa (sem o assento). [E] [9to5Mac](https://9to5mac.com/2025/09/02/ios-26-gives-boarding-passes-three-new-features-for-your-next-flight/). **Lição:** "compartilhar uma versão reduzida com a família" já é um padrão da Apple. [H]
+- **Certificados governamentais.** O certificado europeu de COVID e o ConecteSUS confiam no QR assinado: o QR é a prova, e o resto é leitura humana. O ConecteSUS passou a permitir adicionar o certificado à Carteira do iPhone. [E] [Telekom/EU DCC](https://telekom.com/en/company/details/stop-sign-for-virus-eu-launches-secure-digital-covid-certificate-630916) e [Olhar Digital](https://olhardigital.com.br/2022/05/12/dicas-e-tutoriais/como-adicionar-cartao-vacinacao-covid-19-apple-wallet/)
+- **O que faz parecer oficial** [H]: um número de documento, data de emissão, QR de verificação, um selo ou brasão discreto, tipografia monoespaçada nos dados, um padrão de segurança sutil (guilloché) e um emissor nomeado. **O que faz parecer desejável** [H]: foto do pet grande, cor própria, material com profundidade (o brilho do cartão Nubank ou Revolut) e animação ao inclinar.
+
+## 4. Visualização de saúde em apps de consumo
+
+- **Anéis da Apple.** Três anéis concêntricos, uma cor por métrica, que "fecham" ao completar. [E] [Engadget](https://www.engadget.com/2015-03-10-apple-watch-activity-design.html). Os prêmios funcionam como broches digitais, com marcos de 100, 365 e 1.000 dias aplicados retroativamente. [E] [Android Authority](https://androidauthority.com/apple-rings-ten-year-anniversary-3547546)
+- **Whoop.** Fundo escuro e vocabulário de três cores (verde 67–100%, amarelo 34–66%, vermelho 0–33%), usado só para dados, nunca como decoração. [E] [Whoop](https://www.whoop.com/thelocker/how-does-whoop-recovery-work-101) e [925 Studios](https://www.925studios.co/blog/whoop-design-breakdown)
+- **Oura.** Uma nota de 0 a 100 por dia, em que 85 ou mais é ótimo e 100 é feito para ser raro. [E] [Oura](https://ouraring.com/readiness-score) e [9to5Google](https://9to5google.com/2025/10/20/oura-app-redesign/)
+- **"Em dia" vs "atrasado"** [H]: os melhores usam um único estado-resumo no topo (anel ou nota), com cor só para desvio, e linha do tempo abaixo. Atraso vira um aviso, não um alarme vermelho em tela inteira.
+
+## 5. O que faz alguém postar
+
+- **Spotify Wrapped.** Formato vertical de Stories, botão de compartilhar que gera a imagem pronta e a pessoa como protagonista ("pessoas não compartilham gráficos, compartilham histórias"). Resultados constrangedores fazem a pessoa *não* postar. [E: fontes secundárias] [ADMA](https://adma.com.au/resources/personal-shareable-no-strings-attached-the-winning-formula-behind-spotify-wrapped) e [Cannes Lions](https://www.lovethework.com/work-awards/campaigns/wrapped-design-1531758)
+- **Duolingo.** Uma imagem pronta venceu o link como formato. Colocar o percentil ("top 5%") e um "tipo de aprendiz" aumentou o compartilhamento. [E] [Duolingo: bastidores](https://blog.duolingo.com/year-in-review-behind-the-scenes)
+- **Strava Sticker Stats.** Adesivo transparente com os números para pôr por cima da própria foto, que vai direto para os Stories. [E] [BikeRadar](https://www.bikeradar.com/news/strava-sticker-stats-spring-2025-updates)
+- **Padrão comum** [H]: a foto é da pessoa (no nosso caso, do pet), o dado é curto e lisonjeiro, o formato é 9:16, a marca fica pequena e a geração leva um toque.
+
+## Ideias para o PetLife
+
+1. **Carteirinha com "cara de documento".** Na tela da carteirinha, entram número do documento, data de emissão, QR de verificação, guilloché sutil em menta e dados em fonte monoespaçada. Inspiração: [HIG Wallet](https://developer.apple.com/design/human-interface-guidelines/wallet) e o certificado europeu. Só frontend: sim (o QR aponta para o link de verificação que já existe).
+2. **Foto do pet recortada sobre a cor do pet.** No cartão e no topo da ficha, a foto aparece sem fundo, sobre um círculo na cor escolhida. Inspiração: coleções do Dribbble e o recorte do iOS. Só frontend: em parte (um seletor de cor, sim; o recorte automático exige plugin nativo ou servidor).
+3. **Cor por pet em todo lugar.** O anel, a borda do cartão e o ícone na lista usam a cor do pet. Inspiração: anéis da Apple (uma cor por métrica). Só frontend: sim, guardando a cor localmente ou num campo novo.
+4. **Anel com estado-resumo e cor só para desvio.** O anel fica verde-menta quando está em dia e âmbar só no item atrasado, com texto "1 vacina para pôr em dia" em vez de vermelho. Inspiração: [Whoop](https://www.925studios.co/blog/whoop-design-breakdown). Só frontend: sim.
+5. **Linha do tempo de vacinas com "hoje".** Na ficha, uma faixa horizontal com as doses passadas preenchidas, a próxima contornada e um marcador de hoje. Inspiração: Oura/Flo. Só frontend: sim.
+6. **Cartão de compartilhar em 9:16.** Botão "Postar nos Stories" gera uma imagem com a foto do pet, "Protegido: 100%" e uma marca pequena. Inspiração: [Duolingo](https://blog.duolingo.com/year-in-review-behind-the-scenes) e Wrapped. Só frontend: sim (canvas + Share do Capacitor).
+7. **Adesivo transparente do pet.** Gerar um PNG sem fundo com o anel e o nome, para colar sobre uma foto. Inspiração: [Strava Sticker Stats](https://www.bikeradar.com/news/strava-sticker-stats-spring-2025-updates). Só frontend: sim.
+8. **Broches de cuidado.** Prêmios por "1 ano em dia", "carteirinha completa" e "primeira vacina registrada", no estilo broche esmaltado, com o Vyron entregando. Inspiração: prêmios do Apple Fitness. Só frontend: sim, calculados a partir dos dados existentes.
+9. **Estados vazios com Vyron.** Na lista sem vacinas, o Vyron segura uma carteirinha em branco, com uma única ação. Nunca há tela só de texto. Inspiração: mascote do Duolingo. Só frontend: sim (ilustração estática).
+10. **Visualização da família reduzida.** O link compartilhado mostra só o essencial (pet, status, próxima dose), como o cartão de embarque compartilhado do iOS 26 sem o assento. Inspiração: [9to5Mac](https://9to5mac.com/2025/09/02/ios-26-gives-boarding-passes-three-new-features-for-your-next-flight/). Só frontend: sim, se a página pública já recebe esses dados.
