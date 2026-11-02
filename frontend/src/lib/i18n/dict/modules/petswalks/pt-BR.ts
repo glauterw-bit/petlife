@@ -329,7 +329,7 @@ export const dict: Dict = {
   'petx.facts.unknown': '—',
   'petx.act.vaccines': 'Vacinas',
   'petx.act.wallet': 'Carteirinha',
-  'petx.act.invite': 'Convidar família',
+  'petx.act.invite': 'Família',
   'petx.act.more': 'Mais',
   'petx.act.moreAria': 'Mais ações para {name}',
   'petx.sheet.title': 'Tudo para {name}',
