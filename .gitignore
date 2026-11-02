@@ -60,3 +60,4 @@ frontend/.next/
 frontend/assets/
 screenshots/
 *.bak
+.claude/settings.local.json
