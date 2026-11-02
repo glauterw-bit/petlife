@@ -41,4 +41,4 @@ App de saúde de cães e gatos para tutores no Brasil (também en e es). O centr
 
 ## Time de agentes
 
-Os agentes ficam em `.claude/agents/`. Comece pelo `petlife-produto`, que decide a prioridade e distribui o trabalho. Antes de qualquer envio à Apple ou publicação, passe a mudança pelo `petlife-revisor`.
+Os agentes ficam em `.claude/agents/`. Para pôr o time inteiro num objetivo, use `/time <objetivo>` (skill em `.claude/skills/time/`). Para um agente só, comece pelo `petlife-produto`, que decide a prioridade e distribui o trabalho. Antes de qualquer envio à Apple ou publicação, passe a mudança pelo `petlife-revisor`.
