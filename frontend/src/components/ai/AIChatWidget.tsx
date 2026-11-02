@@ -20,6 +20,11 @@ export const BUBBLE_MAX_MS = 6000
 
 /** Telas onde o botão do Vyron atrapalha (formulários longos, passeio ativo, suporte humano). */
 const HIDDEN_ROUTES = ['/suporte', '/pets/new', '/walks/active', '/settings', '/plans']
+/**
+ * Telas onde o botão cobriria a ação principal: a carteirinha (o passe e o
+ * "Enviar" ocupam a tela toda) e a ficha do pet (grade de ações e abas).
+ */
+const HIDDEN_PATTERNS = [/^\/health\/vaccines\/carteirinha\//, /^\/pets\/\d+\/?$/]
 
 function SpeciesIcon({ species, className }: { species?: string; className?: string }) {
   const Icon = species === 'dog' ? Dog : species === 'cat' ? Cat : PawPrint
@@ -174,6 +179,7 @@ export function AIChatWidget({ pets, hidden = false }: AIChatWidgetProps) {
 
   const selectedPet = pets.find(p => p.id === selectedPetId)
   const routeHidden = HIDDEN_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
+    || HIDDEN_PATTERNS.some(re => re.test(pathname))
   const showButton = !open && !hidden && !routeHidden && !keyboardOpen
 
   return (

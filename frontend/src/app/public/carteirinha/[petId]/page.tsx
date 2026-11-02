@@ -9,6 +9,7 @@ import {
 import { formatAge, getSpeciesLabel, localeTag, cn } from '@/lib/utils'
 import { normalizeVaccineName, daysUntil, SOON_DAYS } from '@/lib/care'
 import { DownloadCta } from '@/components/public/DownloadCta'
+import { readCardTracking, type CardDest } from '@/lib/cardLink'
 import { usePublicColorScheme } from '@/components/public/usePublicColorScheme'
 import { StatusBadge, careStateLabel } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -85,6 +86,11 @@ export default function PublicCarteirinhaPage() {
   const [loading, setLoading] = useState(true)
   const [errorKey, setErrorKey] = useState<string | null>(null)
   const [showOld, setShowOld] = useState(false)
+  // Rastreio do envio (?d=hotel&ref=PET-…): vira a campanha da loja e a
+  // indicação no cadastro. Lido antes de a carteirinha chegar, então o CTA
+  // já nasce com a campanha certa (um só public_view).
+  const [origin, setOrigin] = useState<{ d: CardDest | null; ref: string | null }>({ d: null, ref: null })
+  useEffect(() => { setOrigin(readCardTracking(window.location.search)) }, [])
 
   useEffect(() => {
     async function load() {
@@ -312,7 +318,8 @@ export default function PublicCarteirinhaPage() {
         </footer>
 
         <DownloadCta
-          campanha="carteirinha"
+          campanha={origin.d ? `carteirinha_${origin.d}` : 'carteirinha'}
+          refCode={origin.ref}
           className="mt-6"
           headline={t('pub.card.ctaHeadline', { name: pet.name })}
           sub={t('pub.card.ctaSub')}

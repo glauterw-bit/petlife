@@ -10,7 +10,6 @@ import { useT } from '@/contexts/LocaleContext'
 import {
   pets as petsApi,
   vaccines as vaccinesApi,
-  walks as walksApi,
   reminders as remindersApi,
   heatCycles as heatCyclesApi,
   support as supportApi,
@@ -18,6 +17,7 @@ import {
 } from '@/lib/api'
 import { useCached, invalidate } from '@/lib/cache'
 import { useProtectionsQuery } from '@/lib/queries'
+import { cardSentBefore } from '@/lib/cardLink'
 import { useFirstVisit } from '@/lib/motion'
 import { useShell } from '@/components/layout/shell'
 import { buildCareSummaries, overallState, type CareKind } from '@/lib/care'
@@ -69,7 +69,8 @@ export default function DashboardPage() {
   const overall = overallState(summaries)
 
   const [supUnread, setSupUnread] = useState(0)
-  const [hasWalk, setHasWalk] = useState(false)
+  // Guia de primeiros passos: já enviou a carteirinha neste aparelho?
+  const [hasSent, setHasSent] = useState(false)
   const protRef = useRef<ProtectionCardHandle>(null)
   const ring = useRingCelebrate()
   const [pulsePet, setPulsePet] = useState<number | null>(null)
@@ -85,7 +86,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     supportApi.unread().then(r => setSupUnread(r.unread)).catch(() => {})
-    walksApi.list({ limit: 1 }).then(w => setHasWalk((w?.length ?? 0) > 0)).catch(() => {})
+    setHasSent(cardSentBefore())
   }, [])
 
   // Avisos: registra o push só se já permitido e agenda os locais — sem pedir
@@ -186,7 +187,7 @@ export default function DashboardPage() {
   useEffect(() => {
     try { setOnbDismissed(localStorage.getItem('petlife_onboarding_v1_dismissed') === '1') } catch { setOnbDismissed(false) }
   }, [])
-  const checklistActive = !!pets[0] && !onbDismissed && !(!!pets[0].photo_url && vaccines.length > 0 && hasWalk)
+  const checklistActive = !!pets[0] && !onbDismissed && !(!!pets[0].photo_url && vaccines.length > 0 && hasSent)
 
   // Troca esqueleto → conteúdo com um fade curto, só quando houve esqueleto.
   const sawSkeleton = useRef(false)
@@ -280,7 +281,7 @@ export default function DashboardPage() {
 
               {top && (
                 <StaggerItem>
-                  <OnboardingChecklist pet={pets[0]} hasVaccine={vaccines.length > 0} hasWalk={hasWalk} firstName={firstName} />
+                  <OnboardingChecklist pet={pets[0]} hasVaccine={vaccines.length > 0} hasSent={hasSent} firstName={firstName} />
                 </StaggerItem>
               )}
 

@@ -60,12 +60,15 @@ export function DownloadCta({
   headline,
   sub,
   campanha,
+  refCode,
   className = '',
 }: {
   headline: string
   sub?: string
   /** Identifica a origem no App Analytics: 'carteirinha', 'pet_perdido'… */
   campanha?: string
+  /** Código de indicação de quem mandou o link: vai para o cadastro (?ref=). */
+  refCode?: string | null
   className?: string
 }) {
   const t = useT()
@@ -111,7 +114,7 @@ export function DownloadCta({
           </a>
         )}
         <Link
-          href="/auth/register"
+          href={refCode ? `/auth/register?ref=${encodeURIComponent(refCode)}` : '/auth/register'}
           onClick={() => click('navegador')}
           className={buttonClasses('primary', 'md', true, 'min-h-[48px]')}
         >

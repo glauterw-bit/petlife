@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, FormEvent, type KeyboardEvent } from 'reac
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AnimatePresence, m } from 'framer-motion'
-import { Camera, Search, ChevronDown, AlertCircle, PawPrint, Sparkles, Dog, Cat, Keyboard } from 'lucide-react'
+import { Camera, Search, ChevronDown, AlertCircle, PawPrint, Sparkles, Dog, Cat, Syringe } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { pets as petsApi, breeds as breedsApi, type Breed, type Pet } from '@/lib/api'
 import { useToast } from '@/components/ui/ToastContext'
@@ -272,18 +272,17 @@ export default function NewPetPage() {
           )}
 
           <div className="w-full mt-8 space-y-3">
+            {/* Mesmo destino do /start: a tela rápida das 2 vacinas que importam,
+                que já oferece a leitura por foto para quem tem a carteirinha de papel. */}
             <Button
               fullWidth
               size="lg"
-              leftIcon={Camera}
-              href={`/health/vaccines?novo=1&pet=${created.id}&scan=1`}
+              leftIcon={Syringe}
+              href={`/health/vaccines?novo=1&pet=${created.id}`}
             >
-              {t('petx.new.scan')}
+              {t('petx.new.vaccines', { name: created.name })}
             </Button>
-            <p className="text-[13px] text-surface-600 dark:text-surface-400">{t('petx.new.scanHint')}</p>
-            <Button fullWidth variant="secondary" leftIcon={Keyboard} href={`/health/vaccines?novo=1&pet=${created.id}&add=1`}>
-              {t('petx.new.type')}
-            </Button>
+            <p className="text-[13px] text-surface-600 dark:text-surface-400">{t('petx.new.vaccinesHint')}</p>
           </div>
           <Link
             href={`/pets/${created.id}`}

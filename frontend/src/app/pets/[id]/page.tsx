@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { m, AnimatePresence } from 'framer-motion'
 import {
   Edit2, Camera, PawPrint, Heart, Route, Stethoscope, Sparkles, Plus, AlertTriangle, CheckCircle,
-  AlertCircle, Info, Syringe, IdCard, Share2, Ellipsis, History, Image as ImageIcon, GitFork,
+  AlertCircle, Info, Syringe, IdCard, UserPlus, Ellipsis, History, Image as ImageIcon, GitFork,
   Utensils, Activity, Scissors, GraduationCap, Microscope, Dog, ClipboardList, Dna, Pill, Bug, ChevronDown, ChevronRight, BellRing, type LucideIcon,
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
@@ -537,7 +537,8 @@ export default function PetProfilePage() {
       <div className="grid grid-cols-4 gap-2 mb-4">
         <ActionTile icon={Syringe} label={t('petx.act.vaccines')} href={`/health/vaccines?pet=${petId}`} />
         <ActionTile icon={IdCard} label={t('petx.act.wallet')} href={`/health/vaccines/carteirinha/${petId}`} />
-        <ActionTile icon={Share2} label={t('petx.act.share')} onClick={() => setShareOpen(true)} />
+        {/* Abre o convite de co-tutor: o nome diz o que faz (antes era "Compartilhar", lido como mandar a carteirinha) */}
+        <ActionTile icon={UserPlus} label={t('petx.act.invite')} onClick={() => setShareOpen(true)} />
         <ActionTile icon={Ellipsis} label={t('petx.act.more')} ariaLabel={t('petx.act.moreAria', { name: pet.name })} onClick={() => setMoreOpen(true)} />
       </div>
 

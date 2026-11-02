@@ -32,7 +32,7 @@ import { latestDoses, normalizeVaccineName, vaccineState } from '@/lib/care'
 import { celebrate, haptic } from '@/lib/feedback'
 import { getPushPermission } from '@/lib/push'
 import { spring, usePrefersReducedMotion } from '@/lib/motion'
-import { cn } from '@/lib/utils'
+import { cn, localeTag } from '@/lib/utils'
 import { useHideAssistant } from '@/components/layout/shell'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { IconButton } from '@/components/ui/IconButton'
@@ -113,6 +113,13 @@ function suggestNextDue(name: string, given: string, previous?: Vaccine): string
 type Mode = 'choose' | 'scan' | 'manual' | 'memory'
 
 const EMPTY_FORM = { pet_id: '', name: '', date_given: '', next_due: '', veterinarian: '', lot_number: '', notes: '' }
+
+/** "fev/2027", "Feb 2027": mês curto + ano no idioma do app (o separador vem da tradução). */
+function shortMonthYear(iso: string): { month: string; year: number } {
+  const d = new Date(iso.slice(0, 10) + 'T12:00:00')
+  const month = new Intl.DateTimeFormat(localeTag(), { month: 'short' }).format(d).replace('.', '')
+  return { month, year: d.getFullYear() }
+}
 
 const TILE: Record<Exclude<UrgencyGroup, 'previous'>, { bg: string; fg: string; Icon: LucideIcon }> = {
   overdue: { bg: 'tone-danger-bg', fg: 'text-red-700 dark:text-red-300', Icon: AlertCircle },
@@ -273,6 +280,13 @@ function VaccinesPageInner() {
     soon: latest.filter(v => vaccineState(v) === 'soon').length,
     ok: latest.filter(v => vaccineState(v) === 'ok').length,
   }
+  // Tudo em dia: três quadros com "0" em destaque não dizem nada — vira uma
+  // faixa só ("3 vacinas em dia · próxima em fev/2027").
+  const allOk = counts.overdue === 0 && counts.soon === 0
+  const nextDue = latest
+    .map(v => v.next_due)
+    .filter((d): d is string => !!d)
+    .sort()[0]
   // Carteirinhas: o pet com a pior situação vem primeiro (mesma regra do Início)
   const petRank = (id: number) => {
     const doses = latest.filter(v => v.pet_id === id)
@@ -543,7 +557,24 @@ function VaccinesPageInner() {
             )}
 
             {/* Resumo: só as doses mais recentes contam */}
-            {latest.length > 0 && (
+            {latest.length > 0 && allOk && (
+              <div
+                role="group"
+                aria-label={t('care.summaryAria')}
+                className="tone-success-bg rounded-2xl border px-4 py-3 mb-5 flex items-center gap-3"
+              >
+                <TILE.ok.Icon className={cn('w-5 h-5 shrink-0', TILE.ok.fg)} aria-hidden />
+                <p className="text-[15px] font-semibold text-surface-900 dark:text-white leading-snug">
+                  {counts.ok === 1 ? t('care.okBandOne') : t('care.okBand', { n: counts.ok })}
+                  {nextDue && (
+                    <span className="font-normal text-surface-700 dark:text-surface-200">
+                      {' · '}{t('care.okBandNext', shortMonthYear(nextDue))}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+            {latest.length > 0 && !allOk && (
               <div role="group" aria-label={t('care.summaryAria')} className="grid grid-cols-3 gap-2.5 mb-5">
                 {(['overdue', 'soon', 'ok'] as const).map(k => {
                   const tile = TILE[k]
@@ -611,7 +642,7 @@ function VaccinesPageInner() {
 
       {quickStartPet && (
         <VaccineQuickStart
-          pet={{ id: quickStartPet.id, name: quickStartPet.name, species: String(quickStartPet.species), birth_date: quickStartPet.birth_date }}
+          pet={{ id: quickStartPet.id, name: quickStartPet.name, species: String(quickStartPet.species), birth_date: quickStartPet.birth_date, public_token: quickStartPet.public_token }}
           onCreated={v => vaccinesQ.mutate(prev => [v, ...(prev ?? [])])}
           onDone={created => {
             syncAfterChange(quickStartPet.id)

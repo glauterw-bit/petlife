@@ -20,6 +20,8 @@ import { PetAvatar } from '@/components/ui/PetAvatar'
 import { Button } from '@/components/ui/Button'
 import { careStateLabel } from '@/components/ui/StatusBadge'
 import { QrCode } from '@/components/ui/QrCode'
+import { withCardTracking, type CardDest } from '@/lib/cardLink'
+import { useReferralCode } from '@/lib/queries'
 import type { Vaccine } from '@/lib/api'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8030'
@@ -73,9 +75,14 @@ export function carteirinhaPhoto(photo: string | null): string | null {
   return /^https?:\/\//.test(photo) ? photo : `${API_URL}${photo}`
 }
 
-export function carteirinhaPublicUrl(data: CarteirinhaData): string {
+/**
+ * Link público da carteirinha. Com `d` (destino) e `ref` (código de indicação),
+ * a página pública sabe de qual envio veio a visita — ver lib/cardLink.
+ */
+export function carteirinhaPublicUrl(data: CarteirinhaData, track?: { d?: CardDest; ref?: string | null }): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  return `${origin}/public/carteirinha/${data.pet.public_token ?? data.pet.id}`
+  const url = `${origin}/public/carteirinha/${data.pet.public_token ?? data.pet.id}`
+  return track ? withCardTracking(url, track) : url
 }
 
 export type RabiesInfo =
@@ -167,7 +174,9 @@ function RabiesSeal({ info }: { info: RabiesInfo }) {
 function Front({ data }: { data: CarteirinhaData }) {
   const t = useT()
   const pet = data.pet
-  const url = carteirinhaPublicUrl(data)
+  // QR do passe: destino 'qr' (alguém leu na tela) + indicação de quem mostrou
+  const refCode = useReferralCode()
+  const url = carteirinhaPublicUrl(data, { d: 'qr', ref: refCode })
   const doses = sortByUrgency(latestDoses(carteirinhaVaccines(data)))
   const meta = [speciesLabel(t, pet.species), pet.breed ?? t('h.card.mixedBreed'), pet.birth_date ? formatAge(pet.birth_date) : null]
     .filter(Boolean)

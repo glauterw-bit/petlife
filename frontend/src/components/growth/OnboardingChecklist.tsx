@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { PawPrint, Camera, Syringe, Footprints, Check, ArrowRight, X, Sparkles } from 'lucide-react'
+import { PawPrint, Camera, Syringe, Send, Check, ArrowRight, X, Sparkles } from 'lucide-react'
 import type { Pet } from '@/lib/api'
 import { useT } from '@/contexts/LocaleContext'
 
@@ -12,6 +12,10 @@ import { useT } from '@/contexts/LocaleContext'
  * Aparece SÓ enquanto há passos pendentes (e some sozinho quando tudo é feito
  * ou o usuário fecha). Cada passo leva direto pra ação de maior valor, que é
  * o que revela o "aha" do app e cria o hábito cedo (retenção).
+ *
+ * O último passo é ENVIAR a carteirinha (não mais o passeio): é o uso que
+ * resolve um problema real do tutor e leva o app a quem recebe o link.
+ * "Concluído" vem da marca local gravada pelo "Enviar para…" (lib/cardLink).
  */
 
 const DISMISS_KEY = 'petlife_onboarding_v1_dismissed'
@@ -28,12 +32,13 @@ interface Step {
 export function OnboardingChecklist({
   pet,
   hasVaccine,
-  hasWalk,
+  hasSent,
   firstName,
 }: {
   pet: Pet
   hasVaccine: boolean
-  hasWalk: boolean
+  /** Já enviou/compartilhou a carteirinha neste aparelho (cardSentBefore). */
+  hasSent: boolean
   firstName?: string
 }) {
   const t = useT()
@@ -69,16 +74,17 @@ export function OnboardingChecklist({
       done: hasVaccine,
       label: t('onb.step.vaccine'),
       desc: t('onb.step.vaccineDesc'),
-      href: `/health/vaccines?pet=${pet.id}&scan=1`,
+      // Tela rápida (2 datas ou foto da carteirinha), não a câmera direto
+      href: `/health/vaccines?novo=1&pet=${pet.id}`,
       icon: <Syringe className="w-4 h-4" />,
     },
     {
-      key: 'walk',
-      done: hasWalk,
-      label: t('onb.step.walk'),
-      desc: t('onb.step.walkDesc'),
-      href: '/walks/active',
-      icon: <Footprints className="w-4 h-4" />,
+      key: 'send',
+      done: hasSent,
+      label: t('onb.step.send'),
+      desc: t('onb.step.sendDesc'),
+      href: `/health/vaccines/carteirinha/${pet.id}`,
+      icon: <Send className="w-4 h-4" />,
     },
   ]
 

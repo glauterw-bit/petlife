@@ -171,8 +171,10 @@ function TutorShellInner({ children }: { children: ReactNode }) {
         <div className="flex min-h-screen bg-surface-50 dark:bg-surface-950 w-full max-w-full overflow-x-clip">
           <Sidebar pets={pets} activePetId={activePetId} onPetChange={p => setActivePetId(p.id)} />
           {/* pb-nav: cápsula + margem + lançador do Vyron (+8 px) + área segura,
-              para o último conteúdo nunca ficar embaixo dos dois. */}
-          <main className="flex-1 min-w-0 md:ml-64 min-h-screen pb-nav md:pb-0 overflow-x-clip">
+              para o último conteúdo nunca ficar embaixo dos dois. No computador
+              não há cápsula, mas o Vyron fica a 24 px do rodapé (52 px de altura):
+              md:pb-12 + o md:p-8 de dentro deixam o último item livre. */}
+          <main className="flex-1 min-w-0 md:ml-64 min-h-screen pb-nav md:pb-12 overflow-x-clip">
             <div className="w-full max-w-7xl mx-auto px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] pb-4 md:p-8">
               {!hasHeader && <MobileBackBar />}
               <ErrorBoundary>{children}</ErrorBoundary>

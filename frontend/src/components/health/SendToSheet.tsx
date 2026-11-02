@@ -4,7 +4,9 @@
  * "Enviar para…" — uma folha só: escolhe o destino (hotel e creche, banho e
  * tosa, veterinário, outro), vê a prévia da mensagem e envia pelo WhatsApp,
  * pela folha de compartilhar do sistema, em PDF ou impresso. A mensagem
- * sempre leva o link público, que se mantém atualizado.
+ * sempre leva o link público, que se mantém atualizado — com o destino
+ * (`?d=`) e o código de indicação de quem enviou, para medir de onde vem
+ * cada instalação (lib/cardLink).
  *
  * Confirmação do envio: a folha fecha e o ícone do botão "Enviar" da tela
  * vira um check por 1,2 s (SendFlashIcon + useSendFlash), com haptic('saved').
@@ -23,6 +25,8 @@ import { track } from '@/lib/track'
 import { trackHappyMoment } from '@/lib/review'
 import { dur, easeOut, spring, usePrefersReducedMotion } from '@/lib/motion'
 import { cn } from '@/lib/utils'
+import { markCardSent, withCardTracking } from '@/lib/cardLink'
+import { useReferralCode } from '@/lib/queries'
 
 /** Tempo que o check fica no lugar do ícone de enviar. */
 const SENT_FLASH_MS = 1200
@@ -110,6 +114,7 @@ export function SendToSheet({
   open: boolean
   onClose: () => void
   petName: string
+  /** Link público sem rastreio; o destino e a indicação são somados aqui. */
   shareUrl: string
   onPdf: () => Promise<void> | void
   onPrint?: () => void
@@ -120,6 +125,7 @@ export function SendToSheet({
   const [dest, setDest] = useState<SendDest | null>(null)
   const [canShare, setCanShare] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
+  const refCode = useReferralCode()
 
   useEffect(() => {
     setCanShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
@@ -132,15 +138,17 @@ export function SendToSheet({
     }
   }, [open])
 
+  const url = dest ? withCardTracking(shareUrl, { d: dest, ref: refCode }) : shareUrl
   const message = dest
     ? dest === 'other'
-      ? t('h.card.shareWhatsAppText', { name: petName, url: shareUrl })
-      : t(`h.card.sendText.${dest}`, { name: petName, url: shareUrl })
+      ? t('h.card.shareWhatsAppText', { name: petName, url })
+      : t(`h.card.sendText.${dest}`, { name: petName, url })
     : ''
 
   function done(channel: 'whatsapp' | 'share' | 'pdf') {
     if (!dest) return
     haptic('saved')
+    markCardSent()
     onSent?.(dest, channel)
     onClose()
   }
@@ -156,7 +164,7 @@ export function SendToSheet({
   async function share() {
     if (!dest || !navigator.share) return
     try {
-      await navigator.share({ title: t('h.card.shareTitle', { name: petName }), text: message, url: shareUrl })
+      await navigator.share({ title: t('h.card.shareTitle', { name: petName }), text: message, url })
       track('carteirinha_share')
       trackHappyMoment('carteirinha_share')
       done('share')

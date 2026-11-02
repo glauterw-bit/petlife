@@ -8,11 +8,21 @@
  * mais de uma tela passam a ser lidas só por estes hooks.
  */
 import { useCached } from './cache'
-import { protections as protectionsApi } from './api'
+import { protections as protectionsApi, growth } from './api'
 
 export type ProtectionSummaryResponse = Awaited<ReturnType<typeof protectionsApi.summary>>
 
 /** 'protections' guarda SEMPRE a resposta inteira ({ pets: [...] }). Leia `.data?.pets`. */
 export function useProtectionsQuery() {
   return useCached<ProtectionSummaryResponse>('protections', () => protectionsApi.summary())
+}
+
+/**
+ * Código de indicação do tutor ('referral'). Muda raramente: vale por 1 hora.
+ * Vai no link público da carteirinha (`ref=`) para o cadastro de quem recebe
+ * creditar quem enviou.
+ */
+export function useReferralCode(): string | null {
+  const q = useCached('referral', () => growth.myReferral(), { ttlMs: 3_600_000 })
+  return q.data?.code ?? null
 }

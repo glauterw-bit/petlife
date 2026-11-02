@@ -104,7 +104,8 @@ function LegacyDashboardLayout({ children }: DashboardLayoutProps) {
         activePetId={activePetId}
         onPetChange={p => setActivePetId(p.id)}
       />
-      <main className="flex-1 min-w-0 md:ml-64 min-h-screen pb-nav md:pb-0 overflow-x-hidden">
+      {/* Folga do rodapé para o Vyron não cobrir o último item (ver TutorShell) */}
+      <main className="flex-1 min-w-0 md:ml-64 min-h-screen pb-nav md:pb-12 overflow-x-hidden">
         <div className="w-full max-w-7xl mx-auto px-4 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] pb-4 md:p-8 animate-fade-in">
           <MobileBackBar />
           <ErrorBoundary>{children}</ErrorBoundary>

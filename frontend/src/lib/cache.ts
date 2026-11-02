@@ -16,6 +16,7 @@
  *   'walks:stats'           estatísticas de passeio
  *   'reminders:upcoming'    lembretes próximos
  *   'carteirinha:<petId>'   dados da carteirinha
+ *   'referral'              código de indicação do tutor (useReferralCode)
  *
  * invalidate('vaccines') derruba 'vaccines' e 'vaccines:pet:*'.
  */

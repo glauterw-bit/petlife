@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useId, useState } from 'react'
-import { Camera, ChevronRight, Info, Share2, Syringe, UserPlus } from 'lucide-react'
+import { Camera, ChevronRight, FileText, Info, Send, Syringe, UserPlus } from 'lucide-react'
 import { SharePetModal } from '@/components/innovations/SharePetModal'
+import { SendToSheet } from '@/components/health/SendToSheet'
 import { vaccines as vaccinesApi, reminders as remindersApi, petExport, type Vaccine } from '@/lib/api'
 import { haptic } from '@/lib/feedback'
 import { trackHappyMoment } from '@/lib/review'
 import { track } from '@/lib/track'
-import { requestSoftUpsell } from '@/lib/softUpsell'
+import { markCardSent } from '@/lib/cardLink'
 import { useT } from '@/contexts/LocaleContext'
 import { Sheet } from '@/components/ui/Sheet'
 import { Button } from '@/components/ui/Button'
@@ -24,6 +25,11 @@ import { ageInWeeks, vaccineNextDueDays } from '@/lib/care'
  * (vira um lembrete de confirmar com o vet, não um beco sem saída).
  * Quem tem a carteirinha de papel vai direto para a leitura por foto.
  *
+ * No fim, a ação principal é ENVIAR a carteirinha (o mesmo "Enviar para…" da
+ * tela da carteirinha, com o link público): é o motivo de o tutor estar aqui
+ * e o que traz quem recebe para o app. O PDF fica como opção menor, e não há
+ * convite de plano neste momento — pedir assinatura logo após o envio atrapalha.
+ *
  * "Não sei" se desdobra em duas saídas, nenhuma grava data estimada:
  *  - "Vou ver na carteirinha" → lembrete de confirmar em 7 dias;
  *  - "Nunca tomou"            → lembrete de agendar a 1ª dose em 7 dias.
@@ -33,7 +39,7 @@ import { ageInWeeks, vaccineNextDueDays } from '@/lib/care'
  * semanas, sempre com o aviso de ajustar ao que o veterinário indicar.
  */
 
-interface QuickPet { id: number; name: string; species: string; birth_date?: string | null }
+interface QuickPet { id: number; name: string; species: string; birth_date?: string | null; public_token?: string | null }
 
 type UnknownReason = 'check' | 'never'
 interface RowState { date: string; unknown: boolean; reason: UnknownReason }
@@ -64,6 +70,7 @@ export function VaccineQuickStart({ pet, onCreated, onClose, onPhoto, onDone }: 
   // convite contextual: quem cuida junto (parceiro, família) — antes ficava
   // escondido no perfil do pet e nunca foi usado
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [sendOpen, setSendOpen] = useState(false)
   useHideAssistant(true)
 
   useEffect(() => { track('quickstart_shown') }, [])
@@ -143,11 +150,29 @@ export function VaccineQuickStart({ pet, onCreated, onClose, onPhoto, onDone }: 
     try {
       await petExport.sharePdf(pet.id, pet.name)
       trackHappyMoment('pdf_export')
-      requestSoftUpsell('pdf')
+      markCardSent()
     } catch {} finally {
       setSharing(false)
       onClose()
     }
+  }
+
+  if (sendOpen) {
+    // Mesmo link da carteirinha; pets antigos sem token usam o id (link legado).
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    return (
+      <SendToSheet
+        open
+        onClose={() => setSendOpen(false)}
+        petName={pet.name}
+        shareUrl={`${origin}/public/carteirinha/${pet.public_token ?? pet.id}`}
+        onPdf={async () => {
+          await petExport.sharePdf(pet.id, pet.name)
+          trackHappyMoment('pdf_export')
+        }}
+        onSent={() => { track('quickstart_sent'); onClose() }}
+      />
+    )
   }
 
   if (inviteOpen) {
@@ -162,15 +187,20 @@ export function VaccineQuickStart({ pet, onCreated, onClose, onPhoto, onDone }: 
         ariaLabel={t('h.qs.doneTitle', { name: pet.name })}
         footer={
           <div className="flex flex-col gap-2">
-            <Button size="lg" fullWidth leftIcon={Share2} loading={sharing} onClick={sharePdf}>
-              {t('h.qs.sharePdf')}
+            <Button size="lg" fullWidth leftIcon={Send} onClick={() => { track('quickstart_send'); setSendOpen(true) }}>
+              {t('h.qs.send')}
             </Button>
             <Button variant="soft" fullWidth leftIcon={UserPlus} onClick={() => { track('quickstart_invite'); setInviteOpen(true) }}>
               {t('h.qs.invite')}
             </Button>
-            <Button variant="ghost" fullWidth onClick={onClose}>
-              {t('h.qs.finish')}
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="ghost" size="sm" leftIcon={FileText} loading={sharing} onClick={sharePdf}>
+                {t('h.qs.sharePdf')}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                {t('h.qs.finish')}
+              </Button>
+            </div>
           </div>
         }
       >

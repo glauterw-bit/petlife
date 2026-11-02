@@ -134,7 +134,7 @@ export const dict: Dict = {
   'health.dim.wellbeing': 'Bienestar',
   'health.dim.consistency': 'Constancia',
 
-  'onb.title': '¡Vamos a empezar{name}! 🚀',
+  'onb.title': '¡Vamos a empezar{name}!',
   'onb.progress': '{done} de {total} — complétalos para aprovechar PetLife al máximo',
   'onb.step.pet': 'Registrar tu mascota',
   'onb.step.petDone': '¡Hecho! 🎉',
@@ -142,8 +142,8 @@ export const dict: Dict = {
   'onb.step.photoDesc': 'Dale su carita al perfil',
   'onb.step.vaccine': 'Registrar la 1ª vacuna',
   'onb.step.vaccineDesc': 'La cartilla digital queda lista para compartir',
-  'onb.step.walk': 'Hacer el 1er paseo',
-  'onb.step.walkDesc': 'Con mapa del recorrido y tarjeta para publicar',
+  'onb.step.send': 'Enviar la cartilla',
+  'onb.step.sendDesc': 'Al veterinario, hotel o peluquería, con un enlace siempre actualizado',
   'onb.dismiss': 'Descartar guía',
 
   'fb.title': '¿Me ayudas a mejorar PetLife?',

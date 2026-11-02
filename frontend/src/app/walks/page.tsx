@@ -66,6 +66,9 @@ function unitOf(b: WalkBadge): BadgeUnit {
   return null
 }
 
+/** Colunas da grade de resumo conforme quantos números não-zero sobram (classes inteiras para o Tailwind). */
+const STAT_COLS: Record<number, string> = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3' }
+
 const fmtKm = (n: number) => n.toLocaleString(localeTag(), { maximumFractionDigits: 1, minimumFractionDigits: n % 1 ? 1 : 0 })
 
 /** Progresso real: "2,4 de 10 km" — separado do nome e da meta do selo. */
@@ -204,11 +207,17 @@ export default function WalksPage() {
                 </Card>
               )}
 
+              {/* Sem número zerado em destaque: distância 0 (passeio sem GPS) e
+                  sequência 0 (não passeou hoje/ontem) saem da grade. */}
               {s && s.total_walks > 0 && (
-                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+                <div className={cn('grid gap-2 sm:gap-3 mb-6', STAT_COLS[1 + (s.total_distance_meters > 0 ? 1 : 0) + (s.current_streak_days > 0 ? 1 : 0)])}>
                   <SummaryCard icon={Activity} label={t('pw.walks.statTotal')} value={String(s.total_walks)} sub={s.total_walks === 1 ? t('pw.walks.statTotalSubOne') : t('pw.walks.statTotalSub')} />
-                  <SummaryCard icon={MapPin} label={t('walk.distance')} value={formatDistance(s.total_distance_meters)} sub={t('pw.walks.statDistanceSub')} />
-                  <SummaryCard icon={Flame} label={t('pw.walks.statStreak')} value={String(s.current_streak_days)} sub={s.current_streak_days === 1 ? t('pw.walks.day') : t('pw.walks.days')} />
+                  {s.total_distance_meters > 0 && (
+                    <SummaryCard icon={MapPin} label={t('walk.distance')} value={formatDistance(s.total_distance_meters)} sub={t('pw.walks.statDistanceSub')} />
+                  )}
+                  {s.current_streak_days > 0 && (
+                    <SummaryCard icon={Flame} label={t('pw.walks.statStreak')} value={String(s.current_streak_days)} sub={s.current_streak_days === 1 ? t('pw.walks.day') : t('pw.walks.days')} />
+                  )}
                 </div>
               )}
 

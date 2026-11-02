@@ -2221,6 +2221,8 @@ export interface Pet {
   created_at?: string
   is_public?: boolean
   public_slug?: string | null
+  /** Chave aleatória do link público (carteirinha). Pets antigos podem não ter. */
+  public_token?: string | null
 }
 
 export interface CreatePetData {
