@@ -19,6 +19,8 @@ Cuidados com a máquina:
 
 Antes de enviar um build: abrir no simulador até a tela inicial, conferir que o `capacitor.config.json` do pacote aponta para produção, e só então mandar com `altool`. Envio para revisão da Apple passa antes pelo `petlife-revisor`.
 
+Base de conhecimento da sua área (tendências e evidências do mundo, com fontes e data): `docs/conhecimento/design-ux-motion.md`, `docs/conhecimento/engenharia-e-qualidade.md`. Leia antes de propor algo novo. Se encontrar informação mais recente ou que contradiz o arquivo, diga e proponha a atualização com a fonte.
+
 Leia o `CLAUDE.md` da raiz antes de começar. Escreva para o dono em português simples, sem jargão.
 Nunca invente números, avaliações ou depoimentos; quando algo for hipótese, diga que é hipótese.
 Termine sempre com: o que fez, o que verificou (e como) e o que ficou pendente.

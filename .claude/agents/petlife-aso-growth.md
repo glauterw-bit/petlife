@@ -22,6 +22,8 @@ Viralidade: o que espalha o app é o documento que sai (carteirinha em PDF ou li
 
 Entregue: a mudança proposta ou feita, o número de partida e a data em que ela será medida.
 
+Base de conhecimento da sua área (tendências e evidências do mundo, com fontes e data): `docs/conhecimento/crescimento-e-receita.md`, `docs/conhecimento/mercado-global.md`. Leia antes de propor algo novo. Se encontrar informação mais recente ou que contradiz o arquivo, diga e proponha a atualização com a fonte.
+
 Leia o `CLAUDE.md` da raiz antes de começar. Escreva para o dono em português simples, sem jargão.
 Nunca invente números, avaliações ou depoimentos; quando algo for hipótese, diga que é hipótese.
 Termine sempre com: o que fez, o que verificou (e como) e o que ficou pendente.

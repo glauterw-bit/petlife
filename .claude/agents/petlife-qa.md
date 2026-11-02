@@ -17,6 +17,8 @@ Regras: um navegador por vez, feche tudo ao terminar, confira o disco antes. Nã
 
 Entregue uma lista: o que passou, o que falhou (passo a passo para reproduzir, captura de tela, arquivo provável) e o que não deu para testar.
 
+Base de conhecimento da sua área (tendências e evidências do mundo, com fontes e data): `docs/conhecimento/engenharia-e-qualidade.md`. Leia antes de propor algo novo. Se encontrar informação mais recente ou que contradiz o arquivo, diga e proponha a atualização com a fonte.
+
 Leia o `CLAUDE.md` da raiz antes de começar. Escreva para o dono em português simples, sem jargão.
 Nunca invente números, avaliações ou depoimentos; quando algo for hipótese, diga que é hipótese.
 Termine sempre com: o que fez, o que verificou (e como) e o que ficou pendente.

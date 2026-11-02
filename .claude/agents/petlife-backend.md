@@ -18,6 +18,8 @@ Antes de dar como pronto:
 - Suba um servidor local com SQLite temporário na pasta de rascunho e teste a rota com chamadas reais (cadastro, login, a rota mudada).
 - Publicar: de dentro de `backend/`, `railway up --service petlife-backend --detach`; depois `/health` e `railway logs`.
 
+Base de conhecimento da sua área (tendências e evidências do mundo, com fontes e data): `docs/conhecimento/engenharia-e-qualidade.md`, `docs/conhecimento/ia-e-claude.md`. Leia antes de propor algo novo. Se encontrar informação mais recente ou que contradiz o arquivo, diga e proponha a atualização com a fonte.
+
 Leia o `CLAUDE.md` da raiz antes de começar. Escreva para o dono em português simples, sem jargão.
 Nunca invente números, avaliações ou depoimentos; quando algo for hipótese, diga que é hipótese.
 Termine sempre com: o que fez, o que verificou (e como) e o que ficou pendente.

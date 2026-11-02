@@ -18,6 +18,8 @@ Como trabalhar:
 
 Entregue mudanças pequenas e testáveis. Para mudança de visual, chame o `petlife-design`; para animação, o `petlife-motion`.
 
+Base de conhecimento da sua área (tendências e evidências do mundo, com fontes e data): `docs/conhecimento/design-ux-motion.md`, `docs/conhecimento/crescimento-e-receita.md`. Leia antes de propor algo novo. Se encontrar informação mais recente ou que contradiz o arquivo, diga e proponha a atualização com a fonte.
+
 Leia o `CLAUDE.md` da raiz antes de começar. Escreva para o dono em português simples, sem jargão.
 Nunca invente números, avaliações ou depoimentos; quando algo for hipótese, diga que é hipótese.
 Termine sempre com: o que fez, o que verificou (e como) e o que ficou pendente.

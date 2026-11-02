@@ -29,3 +29,18 @@ Base: diagnóstico de agosto (gargalo é distribuição) e pesquisa de mercado d
 | 7 | Carteirinha pelo WhatsApp (foto → link e lembretes) para quem não tem o app. Checar custo da API antes. | Cadastros sem app | pesquisa → backend, ia | Não |
 
 Regra: uma aposta por vez em produção, medida em 7 dias, antes de abrir a próxima.
+
+## Atualização com a base de conhecimento (02/11/2026)
+
+Fontes: `docs/conhecimento/` (mercado-global, crescimento-e-receita, design-ux-motion, ia-e-claude, engenharia-e-qualidade).
+
+O que muda nas apostas:
+
+- **Novo, risco alto (engenharia):** a documentação do Capacitor diz que `server.url` (o app carregar o site remoto) não é para produção; há relatos de recusa da Apple pela regra 4.2 e o app abre em branco se o servidor cair. Primeiro passo barato: tela local de "sem conexão" com a carteirinha guardada no aparelho. Depois avaliar empacotar o frontend no app.
+- **Android pode destravar por outro caminho:** conta de organização no Google Play (com D-U-N-S) fica fora da regra dos 12 testadores, segundo fontes de terceiros — confirmar no Play Console. O dono tem CNPJ (ver memória de financiamento), então isso pode valer mais que juntar testadores.
+- **"Apto para hospedagem" ganha reforço:** o Boop (Reino Unido, 2025) faz o veterinário confirmar a vacina e o tutor enviar o certificado. Juntar as duas ideias: o hotel vê verde/vermelho e, quando a clínica confirmou, um selo "confirmada pela clínica".
+- **Viagem:** regras oficiais pedindo documento digital cresceram (UE desde 22/04/2026, CDC nos EUA). Um checklist de viagem com o pet é aposta nova e barata no frontend.
+- **ASO:** páginas personalizadas (CPP) já aparecem na busca orgânica ligadas a palavras-chave (até 70). Criar CPPs para "caderneta", "antirrábica" e "viagem".
+- **IA:** trocar para Haiku 5.5 (Vyron e suporte) e Sonnet 5.5 (carteirinha e análises), com cache; custo estimado cai de ~US$ 35 para US$ 10–15/mês para 200 usuários (estimativa, não medido). Plano passo a passo em `ia-e-claude.md`.
+- **Receita:** em saúde, ~38% dos testes grátis viram assinatura no mundo, mas ~20–23% na América Latina; teste de 7 dias está na faixa comum. Pagamento fora da Apple no Brasil (desde 18/06/2026) não compensa agora com o Small Business Program.
+- **Não fazer:** coleira inteligente e marketplace (capital e operação que um time de 1 pessoa não sustenta).
