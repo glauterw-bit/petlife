@@ -174,6 +174,24 @@
   }
   .icon-pop { animation: iconPop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
 
+  /* Carteirinha: trama de segurança (≤ 6% de opacidade) e brilho holográfico
+     que gira devagar. Desligado com "reduzir movimento". */
+  .wallet-guilloche {
+    opacity: 0.05;
+    background:
+      repeating-radial-gradient(circle at 20% 30%, #fff 0 1px, transparent 1px 7px),
+      repeating-radial-gradient(circle at 80% 70%, #fff 0 1px, transparent 1px 7px);
+  }
+  .wallet-holo {
+    opacity: 0.35;
+    mix-blend-mode: overlay;
+    background: conic-gradient(from var(--ang) at 70% 30%, #fde68a, #a7f3d0, #93c5fd, #f9a8d4, #fde68a);
+    animation: walletHolo 9s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wallet-holo { display: none; }
+  }
+
   /* Lançador do Vyron: sempre 8 px acima da cápsula; some ao rolar para baixo. */
   .vyron-launcher {
     bottom: calc(var(--bottom-nav-h) + var(--bottom-nav-gap) + 8px + env(safe-area-inset-bottom));
@@ -419,3 +437,11 @@ input[type='checkbox'] {
 body:has(.crm-layer) .fixed.z-50.pointer-events-none.items-end{z-index:200}
 .crm-scroll-x{scrollbar-width:none}
 .crm-scroll-x::-webkit-scrollbar{display:none}
+
+/* Ângulo animável do brilho da carteirinha (.wallet-holo) */
+@property --ang {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes walletHolo { to { --ang: 360deg; } }

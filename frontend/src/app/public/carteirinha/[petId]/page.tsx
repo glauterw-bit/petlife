@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useParams } from 'next/navigation'
 import { m } from 'framer-motion'
 import {
@@ -13,6 +13,7 @@ import { readCardTracking, type CardDest } from '@/lib/cardLink'
 import { usePublicColorScheme } from '@/components/public/usePublicColorScheme'
 import { StatusBadge, careStateLabel } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { petColor } from '@/lib/petColor'
 import { useT } from '@/contexts/LocaleContext'
 import { variants, spring } from '@/lib/motion'
 
@@ -37,6 +38,7 @@ interface CardData {
     birth_date: string | null
     weight: number | null
     color: string | null
+    theme_color?: string | null
     gender: string | null
     neutered: boolean
     microchip: string | null
@@ -216,11 +218,16 @@ export default function PublicCarteirinhaPage() {
               <img
                 src={`${API_URL}${pet.photo}`}
                 alt={pet.name}
-                className="w-20 h-20 rounded-2xl object-cover ring-2 ring-white/40 shadow-lg shrink-0"
+                className="w-20 h-20 rounded-2xl object-cover ring-[3px] shadow-lg shrink-0"
+                style={{ '--tw-ring-color': petColor(pet) } as CSSProperties}
               />
             ) : (
-              <span className="w-20 h-20 rounded-2xl bg-white/15 ring-2 ring-white/30 flex items-center justify-center shrink-0">
-                <SpeciesIcon className="w-10 h-10" aria-hidden />
+              <span
+                aria-hidden
+                className="w-20 h-20 rounded-2xl ring-2 ring-white/60 flex items-center justify-center shrink-0 font-display text-4xl font-extrabold"
+                style={{ backgroundColor: petColor(pet) }}
+              >
+                {Array.from(pet.name.trim())[0]?.toUpperCase() ?? '?'}
               </span>
             )}
             <div className="min-w-0">

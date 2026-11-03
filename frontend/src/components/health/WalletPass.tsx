@@ -36,6 +36,7 @@ export interface CarteirinhaData {
     birth_date: string | null
     weight: number | null
     color: string | null
+    theme_color?: string | null
     gender: string | null
     neutered: boolean
     microchip: string | null
@@ -68,6 +69,12 @@ export function carteirinhaVaccines(data: CarteirinhaData): Vaccine[] {
     notes: v.notes ?? undefined,
     document_path: v.document_path ?? undefined,
   }))
+}
+
+/** Número do documento: PL- + id com zeros + ano de emissão (ex.: PL-000042-2026). */
+export function passNumber(data: CarteirinhaData): string {
+  const year = /^\d{4}/.exec(data.generated_at)?.[0] ?? String(new Date().getFullYear())
+  return `PL-${String(data.pet.id).padStart(6, '0')}-${year}`
 }
 
 export function carteirinhaPhoto(photo: string | null): string | null {
@@ -190,9 +197,21 @@ function Front({ data }: { data: CarteirinhaData }) {
         <span className="text-[11px] font-bold uppercase tracking-wider text-white/85">{t('wallet.badge')}</span>
       </div>
 
-      <div className="mt-5 flex items-center gap-4">
+      {/* Dados do documento em fonte monoespaçada: parecem de registro, não de enfeite */}
+      <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-0.5 font-mono text-[10.5px] uppercase tracking-wider text-white/85">
+        <div className="flex gap-1.5">
+          <dt>{t('wallet.regNo')}</dt>
+          <dd className="font-bold text-white">{passNumber(data)}</dd>
+        </div>
+        <div className="flex gap-1.5">
+          <dt>{t('wallet.issued')}</dt>
+          <dd className="font-bold text-white">{formatDate(data.generated_at)}</dd>
+        </div>
+      </dl>
+
+      <div className="mt-4 flex items-center gap-4">
         <PetAvatar
-          pet={{ name: pet.name, species: pet.species, photo_url: carteirinhaPhoto(pet.photo) }}
+          pet={{ id: pet.id, name: pet.name, species: pet.species, photo_url: carteirinhaPhoto(pet.photo), theme_color: pet.theme_color }}
           size={72}
           priority
           className="ring-[3px] ring-white shadow-float"
@@ -296,6 +315,16 @@ function Back({ data }: { data: CarteirinhaData }) {
   )
 }
 
+/** Trama de segurança (guilloché) e brilho holográfico; ficam por cima, sem pegar toque. */
+function PassSheen() {
+  return (
+    <>
+      <span aria-hidden className="wallet-guilloche pointer-events-none absolute inset-0" />
+      <span aria-hidden className="wallet-holo pointer-events-none absolute inset-0 print:hidden" />
+    </>
+  )
+}
+
 const FACE =
   'absolute inset-0 rounded-3xl overflow-hidden text-white bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900 shadow-float ring-1 ring-black/5 dark:ring-white/10'
 
@@ -341,6 +370,7 @@ export function WalletPass({
                 transition={{ duration: dur.micro }}
               >
                 {back ? <Back data={data} /> : <Front data={data} />}
+                <PassSheen />
               </m.div>
             </AnimatePresence>
           </div>
@@ -353,12 +383,14 @@ export function WalletPass({
           >
             <div className={cn(FACE, '[backface-visibility:hidden] [-webkit-backface-visibility:hidden]')} aria-hidden={back}>
               <Front data={data} />
+              <PassSheen />
             </div>
             <div
               className={cn(FACE, '[backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]')}
               aria-hidden={!back}
             >
               <Back data={data} />
+              <PassSheen />
             </div>
           </m.div>
         )}

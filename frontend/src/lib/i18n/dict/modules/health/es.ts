@@ -395,4 +395,7 @@ export const dict: Dict = {
   'h.heat.tipCat': 'En celo la gata maúlla fuerte, se revuelca y intenta escaparse — mantén las ventanas con malla. Consulta al veterinario sobre la esterilización.',
   'h.heat.errSave': 'No se pudo guardar',
   'h.heat.notifyInfo': 'En la app, te avisamos {count} días antes y el día previsto.',
+  'wallet.regNo': 'N.º',
+  'wallet.issued': 'Emisión',
+  'wallet.sendBar': 'Enviar cartilla',
 }

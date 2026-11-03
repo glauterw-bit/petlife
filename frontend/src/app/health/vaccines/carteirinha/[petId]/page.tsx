@@ -98,16 +98,6 @@ export default function CarteirinhaPage() {
       back
       large={false}
       showBell={false}
-      actions={
-        data ? (
-          <Button size="sm" onClick={() => setSendOpen(true)} aria-label={t('wallet.sendAria')}>
-            <span className="inline-flex items-center gap-1.5">
-              <SendFlashIcon sent={sendFlash.sent} />
-              {t('wallet.send')}
-            </span>
-          </Button>
-        ) : undefined
-      }
     />
   )
 
@@ -227,6 +217,16 @@ export default function CarteirinhaPage() {
           </table>
           <p className="mt-3 text-xs">{t('wallet.footer', { date: formatServerDateTime(data.generated_at) })}</p>
         </section>
+      </div>
+
+      {/* Barra fixa acima da barra de navegação; deixa o canto direito livre para o lançador do Vyron */}
+      <div className="fixed left-4 right-20 z-30 bottom-[calc(var(--bottom-nav-h)+var(--bottom-nav-gap)+8px+env(safe-area-inset-bottom))] md:left-72 md:right-24 md:bottom-6 print:hidden">
+        <Button size="lg" fullWidth onClick={() => setSendOpen(true)} aria-label={t('wallet.sendAria')} className="shadow-float">
+          <span className="inline-flex items-center gap-2">
+            <SendFlashIcon sent={sendFlash.sent} />
+            {t('wallet.sendBar')}
+          </span>
+        </Button>
       </div>
 
       <SendToSheet

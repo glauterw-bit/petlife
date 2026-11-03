@@ -395,4 +395,7 @@ export const dict: Dict = {
   'h.heat.tipCat': 'In heat, cats yowl, roll on the floor and try to get out — keep window screens closed. Ask your vet about spaying.',
   'h.heat.errSave': 'Could not save',
   'h.heat.notifyInfo': 'In the app, we remind you {count} days before and on the expected day.',
+  'wallet.regNo': 'No.',
+  'wallet.issued': 'Issued',
+  'wallet.sendBar': 'Send card',
 }
