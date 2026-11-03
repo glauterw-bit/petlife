@@ -219,7 +219,7 @@ export default function MomentosPage() {
       ) : momentos.length === 0 ? (
         // O botão "Foto do dia" já está no topo: aqui só explica, sem repetir a ação.
         <EmptyState
-          icon={Camera}
+          mascot="sleeping"
           title={t('g.mo.emptyTitle')}
           text={t('wk2.mo.emptyText')}
         />

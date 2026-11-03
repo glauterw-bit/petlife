@@ -198,7 +198,7 @@ export default function WalksPage() {
               {items.length === 0 && (
                 <Card padding="none" className="mb-6">
                   <EmptyState
-                    icon={Footprints}
+                    mascot="sleeping"
                     title={t('pw.walks.emptyTitle')}
                     text={t('pw.walks.emptyText')}
                     ctaLabel={t('pw.walks.startNow')}

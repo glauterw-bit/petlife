@@ -245,7 +245,7 @@ export function VaccineTimeline({
   if (vaccines.length === 0) {
     return (
       <EmptyState
-        icon={Syringe}
+        mascot="sleeping"
         title={t('h.timeline.empty')}
         text={t('h.timeline.emptyHint')}
         ctaLabel={emptyCta?.label}

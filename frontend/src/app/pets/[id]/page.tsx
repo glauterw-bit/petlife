@@ -7,7 +7,7 @@ import { m, AnimatePresence } from 'framer-motion'
 import {
   Edit2, Camera, PawPrint, Heart, Route, Stethoscope, Sparkles, Plus, AlertTriangle, CheckCircle,
   AlertCircle, Info, Syringe, IdCard, UserPlus, Ellipsis, History, Image as ImageIcon, GitFork,
-  Utensils, Activity, Scissors, GraduationCap, Microscope, Dog, ClipboardList, Dna, Pill, Bug, ChevronDown, ChevronRight, BellRing, type LucideIcon,
+  Utensils, Activity, Scissors, GraduationCap, Dna, Pill, Bug, ChevronDown, ChevronRight, BellRing, type LucideIcon,
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { VaccineTimeline } from '@/components/health/VaccineTimeline'
@@ -789,7 +789,7 @@ export default function PetProfilePage() {
               </Button>
             </div>
             {exams.length === 0 ? (
-              <EmptyState icon={Microscope} title={t('pw.pet.noExams')} />
+              <EmptyState mascot="sleeping" title={t('pw.pet.noExams')} />
             ) : (
               <div className="space-y-3">
                 {exams.map(e => <ExamCard key={e.id} exam={e} onDelete={handleDeleteExam} />)}
@@ -832,7 +832,7 @@ export default function PetProfilePage() {
           </div>
           {routines.length === 0 ? (
             <Card>
-              <EmptyState icon={Dog} title={t('pw.pet.noRoutineTitle')} text={t('pw.pet.noRoutineText')} />
+              <EmptyState mascot="sleeping" title={t('pw.pet.noRoutineTitle')} text={t('pw.pet.noRoutineText')} />
             </Card>
           ) : (
             routines.map(r => (
@@ -973,7 +973,7 @@ export default function PetProfilePage() {
           <h2 className="text-lg font-display font-bold text-surface-900 dark:text-white mt-8 mb-4">{t('pw.pet.anamHistory')}</h2>
           {anamnesisHistory.length === 0 ? (
             <Card>
-              <EmptyState icon={ClipboardList} title={t('pw.pet.noAnam')} />
+              <EmptyState mascot="sleeping" title={t('pw.pet.noAnam')} />
             </Card>
           ) : (
             <div className="space-y-3">
