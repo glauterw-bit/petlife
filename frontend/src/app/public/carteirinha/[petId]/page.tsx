@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { m } from 'framer-motion'
 import {
@@ -218,8 +218,7 @@ export default function PublicCarteirinhaPage() {
               <img
                 src={`${API_URL}${pet.photo}`}
                 alt={pet.name}
-                className="w-20 h-20 rounded-2xl object-cover ring-[3px] shadow-lg shrink-0"
-                style={{ '--tw-ring-color': petColor(pet) } as CSSProperties}
+                className="w-20 h-20 rounded-2xl object-cover ring-[3px] ring-white/30 shadow-lg shrink-0"
               />
             ) : (
               <span

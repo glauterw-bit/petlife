@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, type CSSProperties } from 'react'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { CareState } from '@/lib/care'
 import { petColor } from '@/lib/petColor'
@@ -34,10 +34,10 @@ export function PetAvatar({
       className={cn(
         'relative inline-flex shrink-0 items-center justify-center rounded-full overflow-hidden',
         'text-white',
-        ring && cn('ring-[2.5px] ring-offset-2 ring-offset-white dark:ring-offset-surface-900', ring !== 'ok' && RING[ring]),
+        ring && cn('ring-[2.5px] ring-offset-2 ring-offset-white dark:ring-offset-surface-900', RING[ring]),
         className,
       )}
-      style={{ width: size, height: size, backgroundColor: color, ...(ring === 'ok' ? ({ '--tw-ring-color': color } as CSSProperties) : null) }}
+      style={{ width: size, height: size, backgroundColor: color }}
     >
       {showPhoto ? (
         <>

@@ -397,7 +397,7 @@ function WalkCard({ walk }: { walk: WalkListItem }) {
   return (
     <Card href={`/walks/${walk.id}`} interactive className="group">
       <div className="flex items-center gap-3 mb-3">
-        <PetAvatar pet={{ name: walk.pet_name ?? '', photo_url: walk.pet_photo }} size={40} />
+        <PetAvatar pet={{ id: walk.pet_id, name: walk.pet_name ?? '', photo_url: walk.pet_photo }} size={40} />
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-surface-900 dark:text-white text-sm truncate">
             {walk.pet_name ?? t('pw.walks.petFallback')} {moodEmoji && <span className="ml-1" role="img" aria-label={t(`pw.mood.${walk.mood}`)}>{moodEmoji}</span>}

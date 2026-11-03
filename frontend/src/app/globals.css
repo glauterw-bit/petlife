@@ -183,10 +183,11 @@
       repeating-radial-gradient(circle at 80% 70%, #fff 0 1px, transparent 1px 7px);
   }
   .wallet-holo {
-    opacity: 0.35;
+    /* Sutil (o texto pequeno do cartão precisa de contraste) e uma volta só ao abrir: em loop redesenha a camada a cada quadro e gasta bateria. */
+    opacity: 0.14;
     mix-blend-mode: overlay;
     background: conic-gradient(from var(--ang) at 70% 30%, #fde68a, #a7f3d0, #93c5fd, #f9a8d4, #fde68a);
-    animation: walletHolo 9s linear infinite;
+    animation: walletHolo 2.4s cubic-bezier(0.22, 1, 0.36, 1) 1 both;
   }
   @media (prefers-reduced-motion: reduce) {
     .wallet-holo { display: none; }

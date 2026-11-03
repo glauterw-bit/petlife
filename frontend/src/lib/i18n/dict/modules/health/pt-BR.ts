@@ -395,7 +395,6 @@ export const dict: Dict = {
   'h.heat.tipCat': 'No cio a gata mia alto, rola no chão e tenta fugir — mantenha as janelas teladas. Converse com o veterinário sobre castração.',
   'h.heat.errSave': 'Não foi possível salvar',
   'h.heat.notifyInfo': 'No app, avisamos {count} dias antes e no dia previsto.',
-  'wallet.regNo': 'Nº',
   'wallet.issued': 'Emissão',
   'wallet.sendBar': 'Enviar carteirinha',
 }

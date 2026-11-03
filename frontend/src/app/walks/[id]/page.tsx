@@ -399,7 +399,7 @@ export default function WalkDetailPage() {
                 </span>
               ) : (
                 <span className="shrink-0">
-                  <PetAvatar pet={{ name: petName, photo_url: walk.pet_photo }} size={56} />
+                  <PetAvatar pet={{ id: walk.pet_id, name: petName, photo_url: walk.pet_photo }} size={56} />
                 </span>
               )}
               <div className="min-w-0">

@@ -219,14 +219,16 @@ export default function CarteirinhaPage() {
         </section>
       </div>
 
-      {/* Barra fixa acima da barra de navegação, na largura toda (o Vyron não aparece nesta tela) */}
+      {/* Barra fixa acima da barra de navegação, na largura do conteúdo, limitada à do cartão (o Vyron não aparece nesta tela) */}
       <div className="fixed left-4 right-4 z-30 bottom-[calc(var(--bottom-nav-h)+var(--bottom-nav-gap)+8px+env(safe-area-inset-bottom))] md:left-72 md:right-8 md:bottom-6 print:hidden">
-        <Button size="lg" fullWidth onClick={() => setSendOpen(true)} aria-label={t('wallet.sendAria')} className="shadow-float">
-          <span className="inline-flex items-center gap-2">
-            <SendFlashIcon sent={sendFlash.sent} />
-            {t('wallet.sendBar')}
-          </span>
-        </Button>
+        <div className="max-w-sm mx-auto">
+          <Button size="lg" fullWidth onClick={() => setSendOpen(true)} aria-label={t('wallet.sendAria')} className="shadow-float">
+            <span className="inline-flex items-center gap-2">
+              <SendFlashIcon sent={sendFlash.sent} />
+              {t('wallet.sendBar')}
+            </span>
+          </Button>
+        </div>
       </div>
 
       <SendToSheet

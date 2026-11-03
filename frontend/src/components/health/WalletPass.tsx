@@ -71,12 +71,6 @@ export function carteirinhaVaccines(data: CarteirinhaData): Vaccine[] {
   }))
 }
 
-/** Número do documento: PL- + id com zeros + ano de emissão (ex.: PL-000042-2026). */
-export function passNumber(data: CarteirinhaData): string {
-  const year = /^\d{4}/.exec(data.generated_at)?.[0] ?? String(new Date().getFullYear())
-  return `PL-${String(data.pet.id).padStart(6, '0')}-${year}`
-}
-
 export function carteirinhaPhoto(photo: string | null): string | null {
   if (!photo) return null
   return /^https?:\/\//.test(photo) ? photo : `${API_URL}${photo}`
@@ -198,14 +192,10 @@ function Front({ data }: { data: CarteirinhaData }) {
       </div>
 
       {/* Dados do documento em fonte monoespaçada: parecem de registro, não de enfeite */}
-      <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-0.5 font-mono text-[10.5px] uppercase tracking-wider text-white/85">
-        <div className="flex gap-1.5">
-          <dt>{t('wallet.regNo')}</dt>
-          <dd className="font-bold text-white">{passNumber(data)}</dd>
-        </div>
+      <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-0.5 font-mono text-[10.5px] uppercase tracking-wider text-white">
         <div className="flex gap-1.5">
           <dt>{t('wallet.issued')}</dt>
-          <dd className="font-bold text-white">{formatDate(data.generated_at)}</dd>
+          <dd className="font-bold text-white">{formatServerDateTime(data.generated_at)}</dd>
         </div>
       </dl>
 
