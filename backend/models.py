@@ -219,6 +219,7 @@ class Pet(Base):
     birth_date = Column(DateTime, nullable=True)
     weight = Column(Float, nullable=True)
     color = Column(String(100), nullable=True)
+    theme_color = Column(String(9), nullable=True)  # cor escolhida (#rrggbb)
     gender = Column(SAEnum(GenderEnum), nullable=True)
     neutered = Column(Boolean, default=False)
     microchip = Column(String(50), nullable=True)

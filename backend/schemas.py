@@ -4,6 +4,18 @@ from datetime import datetime
 from enum import Enum
 
 
+import re as _re
+
+
+def _normalize_theme_color(v):
+    """Aceita #RRGGBB (qualquer caixa) e grava em minúsculas; None limpa a cor."""
+    if v is None:
+        return None
+    if not isinstance(v, str) or not _re.fullmatch(r"#[0-9a-fA-F]{6}", v.strip()):
+        raise ValueError("Cor deve estar no formato #RRGGBB")
+    return v.strip().lower()
+
+
 class SpeciesEnum(str, Enum):
     dog = "dog"
     cat = "cat"
@@ -181,6 +193,12 @@ class PetCreate(BaseModel):
     neutered: bool = False
     microchip: Optional[str] = None
     bio: Optional[str] = None
+    theme_color: Optional[str] = None
+
+    @field_validator("theme_color")
+    @classmethod
+    def _check_theme_color(cls, v):
+        return _normalize_theme_color(v)
 
 
 class PetUpdate(BaseModel):
@@ -196,6 +214,12 @@ class PetUpdate(BaseModel):
     neutered: Optional[bool] = None
     microchip: Optional[str] = None
     bio: Optional[str] = None
+    theme_color: Optional[str] = None
+
+    @field_validator("theme_color")
+    @classmethod
+    def _check_theme_color(cls, v):
+        return _normalize_theme_color(v)
 
 
 class PetResponse(BaseModel):
@@ -218,6 +242,7 @@ class PetResponse(BaseModel):
     is_public: bool = False
     public_slug: Optional[str] = None
     public_token: Optional[str] = None
+    theme_color: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

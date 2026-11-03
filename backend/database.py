@@ -143,6 +143,8 @@ async def _run_migrations():
         "ALTER TABLE pets ADD COLUMN is_deceased BOOLEAN DEFAULT FALSE NOT NULL",
         f"ALTER TABLE pets ADD COLUMN deceased_at {timestamp_type}",
         "ALTER TABLE pets ADD COLUMN memorial_text TEXT",
+        # Cor escolhida para o pet (#rrggbb); NULL = sem cor escolhida
+        "ALTER TABLE pets ADD COLUMN theme_color VARCHAR(9)",
         # Indexes
         "CREATE INDEX IF NOT EXISTS ix_behavior_logs_pet_logged ON pet_behavior_logs(pet_id, logged_at)",
         "CREATE INDEX IF NOT EXISTS ix_stories_pet_created ON pet_stories(pet_id, created_at)",

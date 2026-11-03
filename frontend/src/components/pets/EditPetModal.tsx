@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/Button'
 import { hapticSuccess, hapticWarning, hapticError } from '@/lib/feedback'
 import { invalidate } from '@/lib/cache'
 import { useShell } from '@/components/layout/shell'
+import { PetColorPicker } from './PetColorPicker'
+import { isPetColor } from '@/lib/petColor'
 
 type Species = 'dog' | 'cat'
 type BreedPick = { id: number; name: string; species: Species }
@@ -36,6 +38,7 @@ function formFromPet(pet: Pet) {
     birth_date: pet.birth_date ? pet.birth_date.slice(0, 10) : '',
     weight: pet.weight != null ? String(pet.weight) : '',
     color: pet.color ?? '',
+    theme_color: isPetColor(pet.theme_color) ? pet.theme_color : (null as string | null),
     microchip: pet.microchip ?? '',
     bio: pet.bio ?? '',
   }
@@ -102,6 +105,7 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
         birth_date: form.birth_date || null,
         weight,
         color: form.color.trim() || null,
+        theme_color: form.theme_color,
         microchip: form.microchip.trim() || null,
         bio: form.bio.trim() || null,
       })
@@ -222,6 +226,11 @@ export function EditPetModal({ pet, open, onClose, onSaved }: Props) {
             <input id="ep-color" type="text" value={form.color} maxLength={100}
               onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className={inputCls} />
           </div>
+        </div>
+
+        <div>
+          <span className={labelCls}>{t('pet.themeColor')}</span>
+          <PetColorPicker value={form.theme_color} onChange={c => setForm(f => ({ ...f, theme_color: c }))} />
         </div>
 
         <label className="flex items-center gap-3 min-h-[44px] text-[15px] text-surface-800 dark:text-surface-200 cursor-pointer">

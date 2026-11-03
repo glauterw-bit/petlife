@@ -68,6 +68,7 @@ async def create_pet(
         birth_date=pet_data.birth_date,
         weight=pet_data.weight,
         color=pet_data.color,
+        theme_color=pet_data.theme_color,
         gender=pet_data.gender,
         neutered=pet_data.neutered,
         microchip=pet_data.microchip,

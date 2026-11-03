@@ -2211,7 +2211,10 @@ export interface Pet {
   breed?: Breed
   birth_date?: string
   weight?: number
+  /** Cor da pelagem, texto livre ("caramelo"). Não é a cor do tema. */
   color?: string
+  /** Cor escolhida para o pet (#rrggbb). Sem ela, `petColor` deriva uma do id. */
+  theme_color?: string | null
   gender?: 'male' | 'female'
   neutered?: boolean
   microchip?: string
@@ -2232,6 +2235,7 @@ export interface CreatePetData {
   birth_date?: string
   weight?: number
   color?: string
+  theme_color?: string | null
   gender?: 'male' | 'female'
   neutered?: boolean
   microchip?: string

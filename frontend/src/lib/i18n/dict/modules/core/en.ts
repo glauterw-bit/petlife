@@ -223,4 +223,14 @@ export const dict: Dict = {
 
   'settings.language': 'Language',
   'settings.languageDesc': 'Choose the app language',
+  'pet.themeColor': 'Pet color',
+  'pet.themeColorHint': 'Shows on the avatar and the card. If you skip it, the app picks one.',
+  'pet.themeColor.0': 'Teal',
+  'pet.themeColor.1': 'Blue',
+  'pet.themeColor.2': 'Purple',
+  'pet.themeColor.3': 'Pink',
+  'pet.themeColor.4': 'Orange',
+  'pet.themeColor.5': 'Amber',
+  'pet.themeColor.6': 'Olive',
+  'pet.themeColor.7': 'Graphite',
 }

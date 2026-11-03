@@ -1,10 +1,10 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
-import { Dog, Cat, PawPrint } from 'lucide-react'
+import { useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 import type { CareState } from '@/lib/care'
+import { petColor } from '@/lib/petColor'
 
 const RING: Record<CareState, string> = {
   ok: 'ring-emerald-500',
@@ -20,26 +20,27 @@ export function PetAvatar({
   className,
   priority = false,
 }: {
-  pet: { name: string; species?: string; photo_url?: string | null }
+  pet: { id?: number; name: string; species?: string; photo_url?: string | null; theme_color?: string | null }
   size?: number
   ring?: CareState | null
   className?: string
   priority?: boolean
 }) {
   const [broken, setBroken] = useState(false)
-  const Icon = pet.species === 'dog' ? Dog : pet.species === 'cat' ? Cat : PawPrint
+  const color = petColor(pet)
   const showPhoto = !!pet.photo_url && !broken
   return (
     <span
       className={cn(
         'relative inline-flex shrink-0 items-center justify-center rounded-full overflow-hidden',
-        'bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300',
-        ring && cn('ring-[2.5px] ring-offset-2 ring-offset-white dark:ring-offset-surface-900', RING[ring]),
+        'text-white',
+        ring && cn('ring-[2.5px] ring-offset-2 ring-offset-white dark:ring-offset-surface-900', ring !== 'ok' && RING[ring]),
         className,
       )}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, backgroundColor: color, ...(ring === 'ok' ? ({ '--tw-ring-color': color } as CSSProperties) : null) }}
     >
       {showPhoto ? (
+        <>
         <Image
           src={pet.photo_url as string}
           alt={pet.name}
@@ -50,8 +51,13 @@ export function PetAvatar({
           className="object-cover"
           onError={() => setBroken(true)}
         />
+        {/* borda fina na cor do pet, por cima da foto */}
+        <span aria-hidden className="absolute inset-0 rounded-full" style={{ boxShadow: `inset 0 0 0 2px ${color}` }} />
+        </>
       ) : (
-        <Icon aria-label={pet.name} role="img" style={{ width: size * 0.48, height: size * 0.48 }} strokeWidth={1.9} />
+        <span aria-label={pet.name} role="img" className="font-display font-extrabold leading-none" style={{ fontSize: size * 0.46 }}>
+          {Array.from(pet.name.trim())[0]?.toUpperCase() ?? '?'}
+        </span>
       )}
     </span>
   )

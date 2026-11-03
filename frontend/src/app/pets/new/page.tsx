@@ -22,6 +22,7 @@ import { invalidate } from '@/lib/cache'
 import { useShell } from '@/components/layout/shell'
 import { variants, dur, easeOut, spring } from '@/lib/motion'
 import { formatDate, cn } from '@/lib/utils'
+import { PetColorPicker } from '@/components/pets/PetColorPicker'
 
 interface BreedCandidate {
   breed: string
@@ -68,6 +69,7 @@ export default function NewPetPage() {
     birth_date: '',
     weight: '',
     color: '',
+    theme_color: null as string | null,
     gender: 'unknown' as Sex,
     neutered: false,
     microchip: '',
@@ -209,6 +211,7 @@ export default function NewPetPage() {
         birth_date: birth || undefined,
         weight: form.weight ? parseFloat(form.weight.replace(',', '.')) : undefined,
         color: form.color || undefined,
+        ...(form.theme_color ? { theme_color: form.theme_color } : {}),
         gender: form.gender === 'unknown' ? undefined : form.gender,
         neutered: form.neutered,
         microchip: form.microchip || undefined,
@@ -512,6 +515,12 @@ export default function NewPetPage() {
                   <div>
                     <label htmlFor="pet-color" className={LABEL}>{t('pet.color')}</label>
                     <input id="pet-color" type="text" value={form.color} onChange={set('color')} placeholder={t('pw.newPet.colorPlaceholder')} className={INPUT} />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <span className={LABEL}>{t('pet.themeColor')}</span>
+                    <PetColorPicker value={form.theme_color} onChange={c => setForm(f => ({ ...f, theme_color: c }))} />
+                    <p className="mt-1.5 text-[13px] text-surface-600 dark:text-surface-400">{t('pet.themeColorHint')}</p>
                   </div>
 
                   <div className="sm:col-span-2">

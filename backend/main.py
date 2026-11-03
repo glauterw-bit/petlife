@@ -276,6 +276,7 @@ async def public_vaccination_card(request: Request, pet_key: str):
                 "birth_date": pet.birth_date.isoformat() if pet.birth_date else None,
                 "weight": pet.weight,
                 "color": pet.color,
+                "theme_color": pet.theme_color,
                 "gender": pet.gender,
                 "neutered": pet.neutered,
                 "microchip": public_links.mask_microchip(pet.microchip),
