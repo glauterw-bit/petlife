@@ -219,8 +219,8 @@ export default function CarteirinhaPage() {
         </section>
       </div>
 
-      {/* Barra fixa acima da barra de navegação; deixa o canto direito livre para o lançador do Vyron */}
-      <div className="fixed left-4 right-20 z-30 bottom-[calc(var(--bottom-nav-h)+var(--bottom-nav-gap)+8px+env(safe-area-inset-bottom))] md:left-72 md:right-24 md:bottom-6 print:hidden">
+      {/* Barra fixa acima da barra de navegação, na largura toda (o Vyron não aparece nesta tela) */}
+      <div className="fixed left-4 right-4 z-30 bottom-[calc(var(--bottom-nav-h)+var(--bottom-nav-gap)+8px+env(safe-area-inset-bottom))] md:left-72 md:right-8 md:bottom-6 print:hidden">
         <Button size="lg" fullWidth onClick={() => setSendOpen(true)} aria-label={t('wallet.sendAria')} className="shadow-float">
           <span className="inline-flex items-center gap-2">
             <SendFlashIcon sent={sendFlash.sent} />

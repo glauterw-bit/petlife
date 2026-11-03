@@ -357,7 +357,7 @@ export function WalletPass({
 
   return (
     <div className="w-full max-w-sm mx-auto">
-      <m.div animate={fly} className="relative w-full aspect-[0.66] [perspective:1200px]">
+      <m.div animate={fly} className="relative w-full aspect-[0.48] min-[380px]:aspect-[0.62] [perspective:1200px]">
         {reduced ? (
           <div className="absolute inset-0 cursor-pointer" onClick={toggle}>
             <AnimatePresence initial={false} mode="wait">

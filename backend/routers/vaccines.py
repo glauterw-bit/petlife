@@ -247,6 +247,7 @@ async def get_vaccination_card(
             "birth_date": pet_full.birth_date.isoformat() if pet_full.birth_date else None,
             "weight": pet_full.weight,
             "color": pet_full.color,
+            "theme_color": pet_full.theme_color,
             "gender": pet_full.gender,
             "neutered": pet_full.neutered,
             "microchip": pet_full.microchip,
