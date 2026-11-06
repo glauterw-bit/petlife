@@ -54,7 +54,7 @@ export default function PrivacyPage() {
                 <li>Prover funcionalidades do app (pets, lembretes, IA)</li>
                 <li>Personalizar análises da IA Vyron com base nas características do seu pet</li>
                 <li>Enviar lembretes de vacinação via push notification</li>
-                <li>Mostrar clínicas próximas via OpenStreetMap</li>
+                <li>Mostrar clínicas e pet shops próximos: enviamos só o ponto aproximado da busca (sem nome nem conta) aos serviços de mapa aberto OpenStreetMap/Overpass e Photon (komoot, Alemanha)</li>
                 <li>Diagnosticar problemas técnicos</li>
               </ul>
             </section>

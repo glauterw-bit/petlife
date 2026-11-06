@@ -119,6 +119,62 @@ def _parse_overpass_elements(elements: list, user_lat: float, user_lon: float, p
     return locations
 
 
+PHOTON_URL = "https://photon.komoot.io/api/"
+# O Photon busca por texto: várias palavras comuns cobrem quase todos os nomes
+# de clínica e pet shop dentro do quadrado ao redor do tutor.
+PHOTON_TERMS = {
+    "vet": ("amenity:veterinary", ["veterinaria", "veterinario", "vet", "clinica", "hospital", "pet", "animal"]),
+    "petshop": ("shop:pet", ["pet", "shop", "racao", "animal", "agro", "casa"]),
+}
+
+
+async def _nearby_from_photon(lat: float, lon: float, radius_m: int, place_type: str) -> tuple:
+    import asyncio
+    tag, terms = PHOTON_TERMS[place_type]
+    lat, lon = round(lat, 3), round(lon, 3)  # ~100 m: basta para achar clínicas
+    dlat = radius_m / 111_000
+    dlon = radius_m / (111_000 * max(math.cos(math.radians(lat)), 0.01))
+    bbox = f"{lon - dlon},{lat - dlat},{lon + dlon},{lat + dlat}"
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=4.0), headers=OVERPASS_HEADERS) as client:
+        sem = asyncio.Semaphore(3)  # o Photon pede uso moderado
+
+        async def one(q: str):
+            async with sem:
+                return await _one(q)
+
+        async def _one(q: str):
+            try:
+                r = await client.get(PHOTON_URL, params={"q": q, "bbox": bbox, "osm_tag": tag, "limit": 50})
+                return r.json().get("features", []) if r.status_code == 200 else None
+            except (httpx.HTTPError, ValueError):
+                return None
+        batches = await asyncio.gather(*(one(q) for q in terms))
+
+    if all(b is None for b in batches):
+        return None, False
+    elements, seen = [], set()
+    for feats in batches:
+        for f in feats or []:
+            p = f.get("properties", {})
+            key = (p.get("osm_type"), p.get("osm_id"))
+            coords = (f.get("geometry") or {}).get("coordinates") or []
+            if key in seen or len(coords) != 2:
+                continue
+            seen.add(key)
+            tags = {"name": p.get("name")}
+            if p.get("street"):
+                tags["addr:street"] = p["street"]
+            if p.get("housenumber"):
+                tags["addr:housenumber"] = p["housenumber"]
+            if p.get("city"):
+                tags["addr:city"] = p["city"]
+            elements.append({"type": "node", "id": p.get("osm_id"), "lat": coords[1], "lon": coords[0], "tags": tags})
+    radius_km = radius_m / 1000
+    found = [l for l in _parse_overpass_elements(elements, lat, lon, place_type) if (l.distance_km or 0) <= radius_km][:30]
+    return found, all(b is not None for b in batches)
+
+
 @router.get("/nearby", response_model=List[NearbyLocation])
 async def search_nearby(
     lat: float = Query(..., description="Latitude do usuário"),
@@ -142,25 +198,40 @@ async def search_nearby(
     if hit and _time.time() - hit[0] < _NEARBY_TTL:
         return hit[1]
 
-    data = None
-    async with httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=4.0)) as client:
-        for url in OVERPASS_MIRRORS:
-            try:
-                response = await client.post(url, data={"data": query}, headers=OVERPASS_HEADERS)
-                if response.status_code != 200:
+    async def _overpass():
+        async with httpx.AsyncClient(timeout=httpx.Timeout(4.0, connect=3.0)) as client:
+            for url in OVERPASS_MIRRORS:
+                try:
+                    response = await client.post(url, data={"data": query}, headers=OVERPASS_HEADERS)
+                    if response.status_code == 200:
+                        return response.json()
+                except (httpx.HTTPError, ValueError):
                     continue
-                data = response.json()
-                break
-            except (httpx.HTTPError, ValueError):
-                continue
-    if data is None:
-        raise HTTPException(
-            status_code=503,
-            detail="O serviço de mapas está fora do ar agora. Tente de novo em alguns minutos.",
-        )
-    elements = data.get("elements", [])
-    locations = _parse_overpass_elements(elements, lat, lon, type)[:30]
-    _NEARBY_CACHE[key] = (_time.time(), locations)
+        return None
+
+    import asyncio
+    # Prazo total curto: se o Overpass enrolar, o Photon responde em ~2s.
+    try:
+        data = await asyncio.wait_for(_overpass(), timeout=5.0)
+    except asyncio.TimeoutError:
+        data = None
+    if data is not None:
+        locations = _parse_overpass_elements(data.get("elements", []), lat, lon, type)[:30]
+    else:
+        # Overpass fora do ar (acontece com frequência): usa o Photon, outro
+        # índice do mesmo mapa aberto, que responde de forma mais estável.
+        locations, complete = await _nearby_from_photon(lat, lon, radius_m, type)
+        if locations is None:
+            raise HTTPException(
+                status_code=503,
+                detail="O serviço de mapas está fora do ar agora. Tente de novo em alguns minutos.",
+            )
+    # Resultado do Photon (plano B) vale só 30 min, para o Overpass voltar a
+    # mandar quando se recuperar; lista parcial ou vazia não é guardada.
+    if data is not None:
+        _NEARBY_CACHE[key] = (_time.time(), locations)
+    elif complete and locations:
+        _NEARBY_CACHE[key] = (_time.time() - _NEARBY_TTL + 1800, locations)
     if len(_NEARBY_CACHE) > 2000:
         _NEARBY_CACHE.clear()
     return locations

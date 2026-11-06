@@ -1,4 +1,5 @@
 import base64
+import unicodedata
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
@@ -37,24 +38,56 @@ async def list_breeds(
     return result.scalars().all()
 
 
+def _norm(s: str | None) -> str:
+    s = unicodedata.normalize("NFKD", s or "")
+    s = "".join(c for c in s if not unicodedata.combining(c)).lower()
+    return " ".join(s.replace("-", " ").split())
+
+
+# Como o tutor chama a raça no dia a dia → trecho do nome no catálogo.
+# Sem isso, "vira-lata" (o pet mais comum do Brasil) não achava nada.
+BREED_ALIASES = {
+    "vira lata": "srd", "viralata": "srd", "vira lata caramelo": "srd",
+    "caramelo": "srd", "mestico": "srd", "mesticos": "srd", "sem raca": "srd",
+    "misturado": "srd", "comum": "srd", "domestico": "srd",
+    "sagrado da birmania": "birmanes", "sagrado": "birmanes",
+    "pomeranian": "pomerania",
+    "salsicha": "dachshund", "basse": "dachshund", "linguica": "dachshund",
+    "pit bull": "pitbull", "pitbul": "pitbull",
+    "buldogue frances": "french bulldog", "bulldog frances": "french bulldog",
+    "buldogue ingles": "bulldog ingles", "york": "yorkshire",
+    "shitzu": "shih tzu", "shih tsu": "shih tzu",
+}
+
+
 @router.get("/search", response_model=list[BreedResponse])
 async def search_breeds(
     q: str = Query(..., min_length=1, description="Termo de busca"),
+    species: Optional[str] = Query(None, description="dog ou cat"),
     db: AsyncSession = Depends(get_db),
 ):
-    search_term = f"%{q}%"
-    result = await db.execute(
-        select(Breed)
-        .where(
-            or_(
-                Breed.name.ilike(search_term),
-                Breed.name_en.ilike(search_term),
-                Breed.origin.ilike(search_term),
-            )
-        )
-        .order_by(Breed.name)
-    )
-    return result.scalars().all()
+    # O catálogo tem poucas centenas de raças: filtrar em Python deixa a busca
+    # sem acento ("raca" acha "Raça") e com apelidos, igual em SQLite e Postgres.
+    term = _norm(q)
+    if not term:
+        return []
+    alias = BREED_ALIASES.get(term)
+    if alias is None:
+        alias = next((v for k, v in BREED_ALIASES.items() if len(term) >= 4 and k.startswith(term)), None)
+    query = select(Breed).order_by(Breed.name)
+    if species in ("dog", "cat"):
+        query = query.where(Breed.species == species)
+    breeds = (await db.execute(query)).scalars().all()
+
+    def hit(b: Breed, t: str) -> bool:
+        return t in _norm(b.name) or t in _norm(b.name_en) or t in _norm(b.origin)
+
+    found = [b for b in breeds if hit(b, term)]
+    if alias:
+        found += [b for b in breeds if b not in found and hit(b, alias)]
+    # Quem começa com o termo vem primeiro ("pug" antes de "Puggle").
+    found.sort(key=lambda b: (not _norm(b.name).startswith(term), not (alias and alias in _norm(b.name)), b.name))
+    return found
 
 
 @router.get("/{breed_id}", response_model=BreedResponse)
